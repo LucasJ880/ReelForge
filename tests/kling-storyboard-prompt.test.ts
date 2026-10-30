@@ -110,7 +110,13 @@ test("30 秒第二段：从第 3 帧开场，只列本段的镜头", () => {
 
 test("派发接线：Kling 线路用开场帧版改写，首派与分段重提都把本段开场帧标 first_frame", async () => {
   const service = await readFile("src/lib/services/video-service.ts", "utf8");
-  assert.match(service, /isKlingRunwayModel\(routeRead\.videoModelSnapshot\)\s*\? groundSegmentPromptForOpeningFrame\s*: groundSegmentPromptInStoryboard/);
+  assert.match(service, /const klingRoute =[\s\S]{0,200}?isKlingRunwayModel\(routeRead\.videoModelSnapshot\);/);
+  /// 10-29：Shuyu 单段走首帧版（只带开场帧作参考），其余线路照旧逐帧
+  assert.match(
+    service,
+    /const groundSegment = klingRoute\s*\? groundSegmentPromptForOpeningFrame\s*: seedanceOpeningFrame\s*\? groundSegmentPromptForSeedanceOpeningFrame\s*: groundSegmentPromptInStoryboard;/,
+  );
+  assert.match(service, /openingFrameOnly: seedanceOpeningFrame,/);
   assert.match(service, /openingFrameUrl: segmentOpeningFrameUrl\(routeSnapshot\.videoModelSnapshot, brief\.directorPlan, plan, segment, referenceImageUrls\)/);
   assert.match(service, /const opening = segmentOpeningFrameUrl\(args\.model, args\.brief\.directorPlan, plan, segment, refs\);/);
   assert.equal((service.match(/role: url === (?:openingFrameUrl|opening) \? \("first_frame" as const\)/g) ?? []).length, 2);

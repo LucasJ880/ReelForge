@@ -23,6 +23,7 @@ import {
 } from "../src/lib/video-generation/runway-fallback";
 import {
   groundSegmentPromptForOpeningFrame,
+  SEEDANCE_OPENING_FRAME_MARKER,
   STORYBOARD_GROUNDING_MARKER,
 } from "../src/lib/video-generation/storyboard-beats";
 import { createVideoRouteSnapshot } from "../src/lib/video-generation/video-route-registry";
@@ -361,12 +362,12 @@ async function fakeVideoStore(t: TestContext, options: { route?: "runway" | "bud
 }
 
 function assertShuyuTookOver(store: Awaited<ReturnType<typeof fakeVideoStore>>, shuyuOptions: CreateVideoJobOptions) {
-  /// 按 Shuyu 重新改写：参考图带序号、没有 Kling 的开场帧句，参考图里没有 first_frame
+  /// 按 Shuyu 重新改写（10-29 起单段走首帧版）：参考图带序号、只带开场帧；没有 Kling 的开场帧句，参考图里没有 first_frame
   assert.equal(shuyuOptions.model, "studio-video");
-  assert.ok(shuyuOptions.prompt.includes(STORYBOARD_GROUNDING_MARKER));
-  assert.match(shuyuOptions.prompt, /reference image 3\)/, "第一张关键帧排在两张实拍后面");
+  assert.ok(shuyuOptions.prompt.includes(SEEDANCE_OPENING_FRAME_MARKER));
+  assert.match(shuyuOptions.prompt, /Image 3 is the opening frame/, "开场帧排在两张实拍后面");
   assert.doesNotMatch(shuyuOptions.prompt, /It opens exactly on the opening frame/);
-  assert.deepEqual(shuyuOptions.referenceImages, [...PRODUCT_PHOTOS, ...FRAMES].map((url) => ({ url, role: "content" })));
+  assert.deepEqual(shuyuOptions.referenceImages, [...PRODUCT_PHOTOS, FRAMES[0]].map((url) => ({ url, role: "content" })));
 
   assert.equal(store.brief.videoRouteSnapshot, "buddy");
   assert.equal(store.brief.videoProviderAdapterSnapshot, "shuyu");

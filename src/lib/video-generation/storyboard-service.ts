@@ -66,10 +66,12 @@ import {
   STORYBOARD_REGENERATION_LINE,
   STORYBOARD_STORY_CONTEXT_PREFIX,
   type StoryboardFrameInputImage,
+  readStoryContextFromFramePrompt,
   storyboardFrameStoryBudget,
   storyboardUserDirectionLine,
   truncateStoryText,
 } from "@/lib/video-generation/storyboard-frame-inputs";
+import { renderStoryInEnglish } from "@/lib/video-generation/story-english";
 import { STORYBOARD_PERSON_REFS_MAX } from "@/lib/video-generation/storyboard-person-refs";
 import { reviewStoryboardFrames } from "@/lib/video-generation/storyboard-gacha";
 import {
@@ -634,19 +636,25 @@ export async function createStoryboardRun(
   const id = randomUUID();
   /// 镜头卡只给单条故事板：批量视频的提示词沿用模板自己的时间线，帧按卡构图会和它打架。
   const isBatchRun = (input.purpose ?? "").startsWith("batch-");
-  const shotCards = isBatchRun
-    ? null
-    : await designStoryboardShotCards({
-        story: input.prompt,
-        beats: storyboardBeatsForDuration(input.durationSec),
-        durationSec: input.durationSec,
-        aspectRatio: input.aspectRatio,
-        productImageCount: assets.length,
-        personImageCount: personAssetIds.length,
-        voiceoverScript: input.voiceoverScript ?? null,
-      });
+  /// 帧提示词全程英文（10-29）：原话译成英文写进 STORY CONTEXT，随帧落库，派发视频时读回；译不了就用原话。
+  /// 镜头卡仍读原话；sourcePrompt 存原话（界面回显、重建计划都用它）。两次 LLM 调用互不依赖，并行跑。
+  const [shotCards, storyEnglish] = await Promise.all([
+    isBatchRun
+      ? Promise.resolve(null)
+      : designStoryboardShotCards({
+          story: input.prompt,
+          beats: storyboardBeatsForDuration(input.durationSec),
+          durationSec: input.durationSec,
+          aspectRatio: input.aspectRatio,
+          productImageCount: assets.length,
+          personImageCount: personAssetIds.length,
+          voiceoverScript: input.voiceoverScript ?? null,
+        }),
+    renderStoryInEnglish(input.prompt),
+  ]);
+  const promptStory = storyEnglish ?? input.prompt;
   const plans = buildStoryboardFramePlans({
-    prompt: input.prompt,
+    prompt: promptStory,
     durationSec: input.durationSec,
     aspectRatio: input.aspectRatio,
     productImageCount: assets.length,
@@ -1528,7 +1536,8 @@ export async function regenerateStoryboardFrame(input: {
         beat: existing.beat,
         /// 从 plan 重建，不在旧提示词后累加：多次重做的提示词长度不增长，旧的补充要求不残留。
         prompt: buildRegeneratedStoryboardFramePrompt({
-          story: run.sourcePrompt ?? "",
+          /// 沿用这一帧建 run 时写的故事（10-29 起是英文版），旧帧没有这一行才回到原话
+          story: readStoryContextFromFramePrompt(existing.prompt) ?? run.sourcePrompt ?? "",
           durationSec: run.durationSec,
           aspectRatio: run.aspectRatio,
           ordinal: existing.ordinal,
@@ -1846,7 +1855,12 @@ export interface StoryboardVideoInputs extends SingleVideoReferenceGroups {
  */
 export async function requireApprovedStoryboardVideoInputsForBrief(
   briefId: string,
-  options: { includeAnchorAndPersonReferences?: boolean; limit?: number } = {},
+  options: {
+    includeAnchorAndPersonReferences?: boolean;
+    limit?: number;
+    /// 首帧版（Shuyu 单段，10-29）：帧组只带开场的第一张，后面的剧情交给提示词时间线；参考图顺序约定不变
+    openingFrameOnly?: boolean;
+  } = {},
 ): Promise<StoryboardVideoInputs> {
   const { run, frameUrls } = await loadApprovedStoryboardForBrief(briefId);
   const grouped = options.includeAnchorAndPersonReferences === true;
@@ -1857,7 +1871,7 @@ export async function requireApprovedStoryboardVideoInputsForBrief(
     productImageUrls: run.inputImageUrls,
     anchorCutoutUrls: grouped ? run.anchorCutoutUrls ?? [] : [],
     personUrls,
-    storyboardFrameUrls: frameUrls,
+    storyboardFrameUrls: options.openingFrameOnly ? frameUrls.slice(0, 1) : frameUrls,
     limit: options.limit,
   });
   const approvedFrames = run.frames
@@ -1865,7 +1879,8 @@ export async function requireApprovedStoryboardVideoInputsForBrief(
     .sort((a, b) => a.ordinal - b.ordinal);
   return {
     ...groups,
-    story: run.sourcePrompt,
+    /// 视频提示词全程英文（10-29）：读回建 run 时写进帧提示词的英文故事；旧 run 没有英文版就用原话
+    story: readStoryContextFromFramePrompt(approvedFrames[0]?.prompt) ?? run.sourcePrompt,
     beats: approvedFrames.map((frame) => frame.beat),
     shotCards: approvedFrames.map((frame) => readShotCardFromFramePrompt(frame.prompt)),
     totalDurationSec: run.durationSec,

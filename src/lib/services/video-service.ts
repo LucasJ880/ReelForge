@@ -91,8 +91,10 @@ import {
 } from "@/lib/video-generation/storyboard-service";
 import {
   groundSegmentPromptForOpeningFrame,
+  groundSegmentPromptForSeedanceOpeningFrame,
   groundSegmentPromptInStoryboard,
   readStoryboardReferenceLayout,
+  shuyuOpeningFramePromptEnabled,
   storyboardOpeningFrameUrl,
   type StoryboardReferenceLayout,
 } from "@/lib/video-generation/storyboard-beats";
@@ -534,10 +536,6 @@ async function dispatchBriefOnPersistedRoute(
           ? undefined
           : singleVideoReferenceImageLimitForAdapter(routeRead.videoProviderAdapterSnapshot)),
     );
-    const storyboard = await requireApprovedStoryboardVideoInputsForBrief(briefId, {
-      includeAnchorAndPersonReferences: true,
-      limit: referenceImageLimit,
-    });
     /// 计划解析失败就不改写（分段派发会给出带原因的错误），只写回参考图。
     let plan: DirectorPlan | null = null;
     try {
@@ -545,12 +543,27 @@ async function dispatchBriefOnPersistedRoute(
     } catch {
       plan = null;
     }
-    /// Runway Kling（图生视频、提示词上限 2500 字）按开场帧版改写；其余线路照旧（2026-10-28 灰度真机）
-    const groundSegment =
+    /// Runway Kling（图生视频、提示词上限 2500 字）按开场帧版改写（2026-10-28 灰度真机）
+    const klingRoute =
       routeRead.state === "persisted"
       && routeRead.videoProviderAdapterSnapshot === "runway"
-      && isKlingRunwayModel(routeRead.videoModelSnapshot)
-        ? groundSegmentPromptForOpeningFrame
+      && isKlingRunwayModel(routeRead.videoModelSnapshot);
+    /// Shuyu 单段按首帧版改写（10-29，Kelin 团队做法）：参考图只带开场帧，剧情交给英文时间线。多段照旧逐帧。
+    /// `SHUYU_OPENING_FRAME_PROMPT=off` 一键退回逐帧版（没经评测集验证就上线，留个不用回滚代码的退路）。
+    const seedanceOpeningFrame =
+      routeRead.state === "persisted"
+      && routeRead.videoProviderAdapterSnapshot === "shuyu"
+      && plan?.segmentPlan.length === 1
+      && shuyuOpeningFramePromptEnabled();
+    const storyboard = await requireApprovedStoryboardVideoInputsForBrief(briefId, {
+      includeAnchorAndPersonReferences: true,
+      limit: referenceImageLimit,
+      openingFrameOnly: seedanceOpeningFrame,
+    });
+    const groundSegment = klingRoute
+      ? groundSegmentPromptForOpeningFrame
+      : seedanceOpeningFrame
+        ? groundSegmentPromptForSeedanceOpeningFrame
         : groundSegmentPromptInStoryboard;
     const groundedPlan: DirectorPlan | null = plan && {
       ...plan,

@@ -38,6 +38,8 @@ export interface StoryboardShotCard {
   endState: string;
   /** 同步声音（只要现场声，不要音乐与旁白） */
   sound: string;
+  /** 光色：主光方向与质感、整体色调（10-29 补齐 Kelin 六项里缺的一项）。旧卡没有 */
+  light?: string;
   /** 这一镜在哪：同一地点用同一个短名，换名 = 硬切到新地点。旧卡没有 */
   location?: string;
   /** 口播怎么出：主播出镜说 / 画外音 / 这一镜没人说。旧卡没有 */
@@ -45,7 +47,7 @@ export interface StoryboardShotCard {
 }
 
 export const SHOT_CARD_LINE_PREFIX = "SHOT CARD: ";
-const SHOT_CARD_TEXT_FIELDS = ["startState", "lens", "camera", "composition", "action", "endState", "sound"] as const;
+const SHOT_CARD_TEXT_FIELDS = ["startState", "lens", "camera", "composition", "action", "endState", "sound", "light"] as const;
 const FIELD_MAX_CHARS = 160;
 /// 一张卡格式化后的上限：出帧提示词 5000 字里要给故事与锁行留位，视频侧还会按段预算再压。
 export const SHOT_CARD_MAX_CHARS = 640;
@@ -115,8 +117,9 @@ export function normalizeShotCards(raw: unknown, count: number): StoryboardShotC
 }
 
 /**
- * 一张卡 → 一行英文（模型读）。按重要性排：首态 → 动作 → 尾态 → 谁说话 → 景别 / 机位 / 构图 / 声音，
+ * 一张卡 → 一行英文（模型读）。按重要性排：首态 → 动作 → 尾态 → 谁说话 → 景别 / 机位 / 构图 / 光色 / 声音，
  * 预算不够时从尾巴截，动作和尾态最后才丢。空字段不写；`newLocation` 时以 `New location:` 开头。
+ * 齐了就是 Kelin 核对镜头的六项：主体与表演、空间 / 调度、构图、摄影机、光色、声音 / 剪辑。
  */
 export function formatShotCard(card: StoryboardShotCard, options: { newLocation?: boolean } = {}): string {
   const parts = [
@@ -128,6 +131,7 @@ export function formatShotCard(card: StoryboardShotCard, options: { newLocation?
     card.lens && `Shot: ${card.lens}`,
     card.camera && `Camera: ${card.camera}`,
     card.composition && `Composition: ${card.composition}`,
+    card.light && `Light: ${card.light}`,
     card.sound && `Sound: ${card.sound}`,
   ].filter(Boolean);
   const text = `${parts.join(". ")}.`;
@@ -166,6 +170,7 @@ Write exactly one card per beat, in order. Every card describes ONE continuous c
 - lens: focal length + shot size, e.g. "24mm wide establishing shot", "85mm close-up", "100mm macro".
 - camera: where the camera is and how high (e.g. "12cm above the floor, slightly tilted up"), plus at most ONE slow move with a size ("20cm push-in", "slow 15° pan left", "locked off").
 - composition: what sits in the foreground, midground and background, and where the product is in frame.
+- light: the key light's direction and quality and the overall color, e.g. "soft window light from camera left, warm morning tones". Keep it identical for shots in the same place.
 - sound: diegetic sync sound only (room tone, footsteps, the product's own sounds). Never music, never narration.
 
 Rules:
@@ -179,7 +184,7 @@ Rules:
 - When a voice-over script is given, order the shots so each one shows what the narration says while it plays. Never put its words on screen or into the cards.
 - English only. startState, action and endState at most 15 words each; every other field at most 20 words.
 
-Return JSON only: {"shots":[{"startState":"","action":"","endState":"","location":"","voice":"","lens":"","camera":"","composition":"","sound":""}]}`;
+Return JSON only: {"shots":[{"startState":"","action":"","endState":"","location":"","voice":"","lens":"","camera":"","composition":"","light":"","sound":""}]}`;
 
 export interface DesignShotCardsInput {
   story: string;

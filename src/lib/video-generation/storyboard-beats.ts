@@ -163,7 +163,9 @@ export function groundSegmentPromptInStoryboard(
     shotCards?: ReadonlyArray<string | null>;
   },
 ): string {
-  if (original.includes(STORYBOARD_GROUNDING_MARKER) || input.beats.length === 0) return original;
+  if (original.includes(STORYBOARD_GROUNDING_MARKER) || original.includes(SEEDANCE_OPENING_FRAME_MARKER) || input.beats.length === 0) {
+    return original;
+  }
   const count = input.beats.length;
   const segmentSec = Math.max(1, input.toSec - input.fromSec);
   const photos = input.productPhotoCount;
@@ -323,7 +325,9 @@ export function groundSegmentPromptForOpeningFrame(
   original: string,
   input: Parameters<typeof groundSegmentPromptInStoryboard>[1] & { promptLimit?: number },
 ): string {
-  if (original.includes(STORYBOARD_GROUNDING_MARKER) || input.beats.length === 0) return original;
+  if (original.includes(STORYBOARD_GROUNDING_MARKER) || original.includes(SEEDANCE_OPENING_FRAME_MARKER) || input.beats.length === 0) {
+    return original;
+  }
   const count = input.beats.length;
   const segmentSec = Math.max(1, input.toSec - input.fromSec);
   const opening = storyboardOpeningFrameOrdinal({
@@ -429,6 +433,166 @@ export function groundSegmentPromptForOpeningFrame(
   return assemble(storyText, cardLimit, extras);
 }
 
+/** `SHUYU_OPENING_FRAME_PROMPT=off` 一键退回逐帧版（Shuyu 单段带全部关键帧）；缺省开。派发时读服务端 env。 */
+export function shuyuOpeningFramePromptEnabled(env: Record<string, string | undefined> = process.env): boolean {
+  return env.SHUYU_OPENING_FRAME_PROMPT?.trim().toLowerCase() !== "off";
+}
+
+/// 首帧版（Shuyu · Seedance 2.5）的时间线标题：已改写的段提示词带它，重试 / 重复派发不再二次改写。
+export const SEEDANCE_OPENING_FRAME_MARKER =
+  "TIMELINE (the video opens on the opening frame, then plays these shots in order):";
+/// 首帧版每张卡的上限：时间线是这一版的主体，但每镜写满 640 字又成了长说明书
+const SEEDANCE_SHOT_CARD_MAX_CHARS = 420;
+/// 英文故事只交代谁、在哪、发生什么，细节在时间线里
+const SEEDANCE_STORY_MAX_CHARS = 600;
+/// 超预算时先缩到的保底长度：故事留一句交代谁和在哪，卡留动作、尾态与机位
+const SEEDANCE_STORY_FLOOR_CHARS = 200;
+const SEEDANCE_SHOT_CARD_FLOOR_CHARS = 260;
+/// 锁行是模板的通用约束：总长在这以内才加，保持提交包紧凑（必留部分不受它限制）
+const SEEDANCE_PROMPT_SOFT_LIMIT = 3600;
+
+function seedanceKeyConstraintsLine(productSpan: { from: number; to: number } | null): string {
+  const images = productSpan && (productSpan.from === productSpan.to ? `image ${productSpan.from}` : `images ${productSpan.from}-${productSpan.to}`);
+  const product = images
+    ? `the product keeps the exact shape, proportions, colors, parts and printed marks of ${images} in every shot, never morphs and never gains extra parts or text; `
+    : "";
+  return `KEY CONSTRAINTS: ${product}no extra people beyond the story; no cartoon, CGI or game look; no on-screen text, subtitles, logos, watermarks or background music.`;
+}
+
+/**
+ * Shuyu（Seedance 2.5）单段故事板视频的首帧版提示词（2026-10-29，按 Kelin 团队的做法：全英文；
+ * 首帧 + 商品 / 人物参考 + 按秒时间线精确控制剧情——他们实测这样基本不用抽卡）。
+ *
+ * 参考图只带本段开场的那一张关键帧（仍按 实拍 → 切片 → 主播 → 帧 排，帧组只有一张，排在最后），
+ * 后面的剧情交给镜头卡时间线，不再把四张关键帧都塞给模型逐张复刻。
+ * 结构照他们的提交包：画幅与质感 → 参考职责（含产品描述）→ 故事 → 时间线（每镜首态 / 动作 / 尾态 / 机位）→ 声音 → 关键限制。
+ * `story` 传英文版（帧提示词读回）；口播台词照模板原样保留——模型要逐字念出来，是全篇唯一可能的非英文。
+ */
+export function groundSegmentPromptForSeedanceOpeningFrame(
+  original: string,
+  input: Parameters<typeof groundSegmentPromptInStoryboard>[1] & {
+    /// 人物位放的是什么：商家传的主播照（缺省）或从开场帧出的人物设定图（character-sheet.ts）
+    personRole?: "presenter" | "character_sheet";
+    /// 开场帧排第 1 张（Kling 这类把第一张图当首帧的模型）：参考图顺序 = 开场帧 → 人物 → 实拍 → 切片。缺省 false（Shuyu 线上约定）
+    openingFrameFirst?: boolean;
+    /// 整段上限（含负面尾巴）；缺省 5000（Shuyu）。Kling 官方接口 2500
+    promptLimit?: number;
+  },
+): string {
+  if (
+    original.includes(STORYBOARD_GROUNDING_MARKER) ||
+    original.includes(SEEDANCE_OPENING_FRAME_MARKER) ||
+    input.beats.length === 0
+  ) {
+    return original;
+  }
+  const segmentSec = Math.max(1, input.toSec - input.fromSec);
+  const shots = storyboardSegmentShots(input);
+  const photos = input.productPhotoCount;
+  const anchors = input.anchorCount ?? 0;
+  const persons = input.personCount ?? 0;
+  /// 2500 字一档（Kling）用短句写参考职责与口播时间窗，把字数让给镜头卡
+  const compact = (input.promptLimit ?? VIDEO_PROMPT_LIMIT) < 4000;
+  /// 各组在参考图里的起始序号（1 起）
+  const first = input.openingFrameFirst === true;
+  const openingImage = first ? 1 : photos + anchors + persons + 1;
+  const personFrom = first ? 2 : photos + anchors + 1;
+  const photoFrom = first ? 2 + persons : 1;
+  const anchorFrom = photoFrom + photos;
+  const roles: Array<{ at: number; text: string }> = [];
+  if (photos > 0) {
+    const span = capitalize(imageSpan(photoFrom, photoFrom + photos - 1));
+    roles.push({
+      at: photoFrom,
+      text: compact
+        ? `${span} ${photos === 1 ? "a real photo" : "real photos"} of the product — copy the product only, not ${photos === 1 ? "its" : "their"} background or props.`
+        : `${span} ${photos === 1 ? "a real photo" : "real photos"} of the product — copy only the product itself (shape, proportions, colors, printed marks), never ${photos === 1 ? "its" : "their"} background, hands, props, price tags or watermarks.`,
+    });
+  }
+  if (anchors > 0) {
+    roles.push({
+      at: anchorFrom,
+      text: `${capitalize(imageSpan(anchorFrom, anchorFrom + anchors - 1))} ${anchors === 1 ? "a cut-out view" : "cut-out views"} of the same product — match it exactly.`,
+    });
+  }
+  if (persons > 0) {
+    const span = capitalize(imageSpan(personFrom, personFrom + persons - 1));
+    roles.push({
+      at: personFrom,
+      text:
+        input.personRole === "character_sheet"
+          ? compact
+            ? `${span} a character sheet — keep these exact faces, hair and wardrobe; ignore its grey background.`
+            : `${span} a character sheet of the people and animals in the story (front, three-quarter, side and close-up views) — keep these exact faces, hair, build and wardrobe in every shot; ignore its grey background.`
+          : `${span} the presenter — the on-camera person is this exact person (same face, hair, skin tone and build).`,
+    });
+  }
+  roles.push({
+    at: openingImage,
+    text: compact
+      ? `Image ${openingImage} is the opening frame: start exactly on it, then move.`
+      : `Image ${openingImage} is the opening frame: the video starts exactly on it (same people, place, wardrobe, light and framing), then the action moves forward.`,
+  });
+  roles.sort((left, right) => left.at - right.at);
+  const productSpan = photos + anchors > 0 ? { from: Math.min(photoFrom, anchorFrom), to: photoFrom + photos + anchors - 1 } : null;
+  const formatLine = `FORMAT: ${input.aspectRatio}, ${segmentSec}s, one photorealistic live-action commercial: natural skin and materials, real reflections, liquids and contact shadows, one consistent grade, slow and steady motivated camera moves.`;
+  const references = `REFERENCES: ${roles.map((role) => role.text).join(" ")}`;
+  const lines = original.split("\n").map((line) => line.trim());
+  const productLines = lines.filter((line) => /^(?:PRODUCT(?: \(|:)|CHARACTER \(must match the presenter reference photo)/u.test(line));
+  /// 模板的「Do not render subtitles…」与 KEY CONSTRAINTS 说的是同一件事，不重复写（Kelin：不写互相重复的要求）
+  const soundLines = lines
+    .filter((line) => /^(?:Audio:|Spoken dialogue)/u.test(line))
+    .map((line) => line.replace("subtle real room ambience", "subtle ambient sound that fits the location"));
+  const hasDialogue = soundLines.some((line) => line.startsWith("Spoken dialogue"));
+  const voice = shots.some((shot) => shot.card) ? segmentVoice(shots) : null;
+  const locks = reconcileLockLines(
+    lines.filter((line) =>
+      /^(?:CHARACTER IDENTITY LOCK|SCENE GEOMETRY LOCK|PRODUCT SHAPE LOCK|LIP-SYNC LOCK|LIGHTING CONTINUITY LOCK)/u.test(line),
+    ),
+    { voice, hasDialogue, locationChange: segmentChangesLocation(shots) },
+  );
+  const assemble = (story: string, cardLimit: number, extras: readonly string[]) => [
+    formatLine,
+    references,
+    ...productLines,
+    ...(story ? [`${STORY_LINE_PREFIX}${story}`] : []),
+    "",
+    SEEDANCE_OPENING_FRAME_MARKER,
+    ...shots.map(
+      (shot, order) =>
+        `${shot.from}-${shot.to}s${hardCutLabel(shot, order)}: ${
+          shot.card && cardLimit >= SHOT_CARD_MIN_CHARS ? fitShotCard(shot.card, cardLimit) : `${shot.beat}.`
+        }`,
+    ),
+    "",
+    ...soundLines,
+    ...(hasDialogue ? [compact && voice ? klingSpeechLine(segmentSec, voice) : speechTimingLine(segmentSec, voice)] : []),
+    seedanceKeyConstraintsLine(productSpan),
+    ...extras,
+  ].join("\n");
+
+  const negative = input.negativePrompt?.trim() ?? "";
+  const negativeTail = negative ? `${NEGATIVE_CONSTRAINTS_SEPARATOR}${negative}` : "";
+  const budget = (input.promptLimit ?? VIDEO_PROMPT_LIMIT) - VIDEO_PROMPT_SAFETY - negativeTail.length;
+  /// 超预算（Kling 2500 字，或产品行 / 台词 / 负面特别长）分级缩：故事缩到保底 → 卡缩到保底 → 故事删光 → 卡再缩；台词一个字不动
+  let storyText = truncateStoryText(input.story.replace(/\s+/gu, " ").trim(), SEEDANCE_STORY_MAX_CHARS);
+  let cardLimit = SEEDANCE_SHOT_CARD_MAX_CHARS;
+  const over = () => assemble(storyText, cardLimit, []).length > budget;
+  while (over() && storyText.length > SEEDANCE_STORY_FLOOR_CHARS) {
+    storyText = truncateStoryText(storyText, Math.max(SEEDANCE_STORY_FLOOR_CHARS, storyText.length - 100));
+  }
+  while (over() && cardLimit - 40 >= SEEDANCE_SHOT_CARD_FLOOR_CHARS) cardLimit -= 40;
+  while (over() && storyText.length > 0) storyText = truncateStoryText(storyText, Math.max(0, storyText.length - 100));
+  while (over() && cardLimit >= SHOT_CARD_MIN_CHARS) cardLimit -= 40;
+  const extras: string[] = [];
+  for (const line of locks) {
+    if (assemble(storyText, cardLimit, [...extras, line]).length <= Math.min(budget, SEEDANCE_PROMPT_SOFT_LIMIT)) {
+      extras.push(line);
+    }
+  }
+  return assemble(storyText, cardLimit, extras);
+}
+
 /// 与 shot-cards.ts 的 SHOT_CARD_MAX_CHARS 同值（本模块客户端也引用，不能 import 那个服务端模块）。
 const SHOT_CARD_SEGMENT_MAX_CHARS = 640;
 /// 预算挤到这个长度以下的卡整张不写（半句镜头卡比没有更误导）。
@@ -489,11 +653,11 @@ function hardCutLabel(shot: StoryboardSegmentShot, order: number): string {
 const KEYFRAME_MOTION_LINE = "Each shot opens on its keyframe and then moves; never hold a keyframe still.";
 
 /// 镜头卡正文按「. 字段名: 」切成字段（10-28 的旧卡开头是不带字段名的焦段，按 Shot 处理）。
-const SHOT_CARD_FIELD_LABELS = ["New location", "Starts on", "Action", "Ends on", "Voice", "Shot", "Camera", "Composition", "Sound"];
+const SHOT_CARD_FIELD_LABELS = ["New location", "Starts on", "Action", "Ends on", "Voice", "Shot", "Camera", "Composition", "Light", "Sound"];
 const SHOT_CARD_FIELD_BOUNDARY = new RegExp(`\\. (?=(?:${SHOT_CARD_FIELD_LABELS.join("|")}): )`, "u");
 /// 视频提示词里放不下整张卡时的取舍顺序：关键帧已经画出了首态，所以动作与尾态排在首态前面；
 /// 「谁说话」不逐镜写（段里的 SPEECH TIMING / SPEECH 一句已经写清）。
-const VIDEO_CARD_FIELD_PRIORITY = ["New location", "Action", "Ends on", "Starts on", "Camera", "Shot", "Composition", "Sound"];
+const VIDEO_CARD_FIELD_PRIORITY = ["New location", "Action", "Ends on", "Starts on", "Camera", "Shot", "Light", "Composition", "Sound"];
 
 function shotCardFieldLabel(field: string): string {
   const label = /^([A-Za-z ]+): /u.exec(field)?.[1];

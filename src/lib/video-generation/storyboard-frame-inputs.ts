@@ -188,6 +188,15 @@ export function applyStoryboardReferenceRoles(
 export const STORYBOARD_FRAME_PROMPT_LIMIT = 5000;
 export const STORYBOARD_STORY_CONTEXT_PREFIX =
   "STORY CONTEXT (continuity only — do not depict the other beats in this image): ";
+/**
+ * 从帧提示词读回 STORY CONTEXT 的正文（2026-10-29 起建 run 时写的是英文版，免迁移地随帧落库）。
+ * 没有这一行或正文为空 → null（调用方退回 run.sourcePrompt）。
+ */
+export function readStoryContextFromFramePrompt(prompt: string | null | undefined): string | null {
+  const line = (prompt ?? "").split("\n").find((candidate) => candidate.startsWith(STORYBOARD_STORY_CONTEXT_PREFIX));
+  const story = line?.slice(STORYBOARD_STORY_CONTEXT_PREFIX.length).trim();
+  return story ? story : null;
+}
 /// 重做一帧时的尾行。P05-A 起重做从 plan 重建提示词、只带这一行一次；建 run 的预算仍按 3 次留余量，
 /// 兜住 P05-A 之前按旧逻辑累加过的帧行。
 export const STORYBOARD_REGENERATION_LINE =

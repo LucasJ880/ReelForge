@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useTranslation } from "@/i18n/useTranslation";
+import { uploadBlobWithProgress } from "@/lib/upload/blob-xhr";
 import type {
   LogoBoxInput,
   ProductAnchorView,
@@ -137,15 +138,14 @@ export function ProductAnchorManager({
     }
     setUploading(true);
     try {
-      const form = new FormData();
-      form.set("file", file);
-      form.set("prefix", "product-anchors/sources");
-      const response = await fetch("/api/upload/blob", { method: "POST", body: form });
-      const data = (await response.json()) as { asset?: AssetView; error?: string };
-      if (!response.ok || !data.asset) {
-        throw new Error(data.error ?? (english ? "Upload failed." : "上传失败，请重试。"));
-      }
-      setSourceAsset(data.asset);
+      const stored = await uploadBlobWithProgress({ file, prefix: "product-anchors/sources" });
+      setSourceAsset({
+        id: stored.assetId,
+        url: stored.url,
+        mimeType: stored.mimeType,
+        width: stored.width,
+        height: stored.height,
+      });
     } catch (reason) {
       setError((reason as Error).message);
     } finally {

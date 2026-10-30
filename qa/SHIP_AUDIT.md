@@ -70,7 +70,7 @@ Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against 
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
-## API endpoint inventory (87/87 route files; 2026-10-28 删除旧中台 / 数字人 / persona 等 32 个；10-29 加线路目录)
+## API endpoint inventory (89/89 route files; 2026-10-28 删除旧中台 / 数字人 / persona 等 32 个；10-29 加线路目录；10-30 加直传 ticket / complete)
 
 Middleware provides public/session boundaries. Phase 0 statically reviewed the endpoint guard calls, ownership lookup patterns, validators, and machine authentication. Full request/response schema snapshots and hostile-input execution belong to Phase 2.
 
@@ -107,7 +107,9 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | GET | `/api/capabilities` | Session (any signed-in user) | C4: 能力注册表客户视图（状态 / 最近检测 / 异常起点 / 中英人话 / 受影响功能）；route 只做鉴权 + getCapabilities()；service 永不抛出（状态表读不到时按配置显示） |
 | GET | `/api/exchange/pulse` | Session, owner-scoped | Round 1025 B1: shell pulse (generating / queued / active + paused batches / awaiting images / needs-attention / new leads / UTC-month quota / production tape); DB count + groupBy only; 500 instead of zeros on failure |
 | POST | `/api/exchange/failures-ack` | Session, own workspace | Round 1025 B1: library 「看过了」 sets Workspace.failuresAckedAt = now; failure records untouched |
-| POST | `/api/upload/blob` | Session | VERIFIED H1 strict: success, auth, validation, review, quota, storage and 5xx schemas |
+| POST | `/api/upload/blob` | Session | VERIFIED H1 strict: success, auth, validation, review, quota, storage and 5xx schemas ; 10-30 起 Vercel Blob 存储下只给旧客户端兜底（函数请求体上限 4.5MB） |
+| POST | `/api/upload/blob/ticket` | Session | 10-30 浏览器直传第一步：校验类型 / 大小 / 目录，签只能写一个路径的 Blob 客户端凭证 + HMAC 票据；不扣额度；TOS 回 mode=server |
+| POST | `/api/upload/blob/complete` | Session, ticket-bound owner | 10-30 直传第三步：验票据（本人 / 未过期）、读回对象验签名、按真实大小扣额度、登记 MediaAsset；不过关删对象；同票据幂等 |
 
 ### Agent Director, briefs, planning, and rendering
 

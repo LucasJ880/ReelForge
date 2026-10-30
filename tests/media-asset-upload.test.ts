@@ -87,11 +87,10 @@ test("active creation upload consumers use the server-issued asset ID", async ()
     readFile("src/components/product-images/product-image-studio.tsx", "utf8"),
   ]);
 
-  assert.match(xhr, /payload\.asset\?\.id/);
-  assert.match(
-    xhr,
-    /resolve\(\{[\s\S]*assetId: payload\.asset\.id,[\s\S]*url: payload\.asset\.url/,
-  );
+  /// 10-30 起直传 + 登记（ticket → Blob → complete），两条路径都经 toUploadResult 取服务端资产 ID
+  assert.match(xhr, /const asset = payload\.asset;/);
+  assert.match(xhr, /if \(!asset\?\.id \|\| !asset\.url \|\| !asset\.mimeType\) return null;/);
+  assert.match(xhr, /assetId: asset\.id,[\s\S]*url: asset\.url/);
   assert.doesNotMatch(xhr, /!payload\.url/);
 
   assert.match(uploadAssets, /assetId: asset\.id/);
@@ -103,6 +102,7 @@ test("active creation upload consumers use the server-issued asset ID", async ()
   assert.doesNotMatch(batchWizard, /images: uploaded\.map/);
 
   assert.match(singleStudio, /toOwnedCreationRequest/);
-  assert.match(imageStudio, /asset\?: AssetView/);
+  assert.match(imageStudio, /uploadBlobWithProgress\(\{ file, prefix: "product-images\/sources" \}\)/);
+  assert.match(imageStudio, /id: stored\.assetId/);
   assert.match(imageStudio, /sourceAssetId: sourceAsset\?\.id/);
 });

@@ -23,6 +23,7 @@ import { StatusTick } from "@/components/exchange/status-tick";
 import { productImageState } from "@/lib/exchange/state-vocab";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { uploadBlobWithProgress } from "@/lib/upload/blob-xhr";
 import { useTranslation } from "@/i18n/useTranslation";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 
@@ -204,13 +205,14 @@ export function ProductImageStudio({
     }
     setUploading(true);
     try {
-      const form = new FormData();
-      form.set("file", file);
-      form.set("prefix", "product-images/sources");
-      const response = await fetch("/api/upload/blob", { method: "POST", body: form });
-      const data = (await response.json()) as { asset?: AssetView; error?: string };
-      if (!response.ok || !data.asset) throw new Error(data.error ?? copy.requestFailed);
-      setSourceAsset(data.asset);
+      const stored = await uploadBlobWithProgress({ file, prefix: "product-images/sources" });
+      setSourceAsset({
+        id: stored.assetId,
+        url: stored.url,
+        mimeType: stored.mimeType,
+        width: stored.width,
+        height: stored.height,
+      });
     } catch (reason) {
       setError((reason as Error).message);
     } finally {

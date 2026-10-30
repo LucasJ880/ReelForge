@@ -36,6 +36,42 @@ export const uploadBlobResponseSchema = z.union([
 
 export type UploadBlobSuccess = z.infer<typeof uploadBlobSuccessSchema>;
 
+/**
+ * 浏览器直传第一步：只报文件类型与大小，换一张写入凭证。
+ * 文件本体不进函数（Vercel 函数请求体上限 4.5MB），见 src/lib/upload/blob-xhr.ts。
+ */
+export const uploadTicketRequestSchema = z
+  .object({
+    contentType: z.string().min(1).max(100),
+    size: z.number().int().positive(),
+    prefix: z.string().min(1).max(120).optional(),
+  })
+  .strict();
+
+/**
+ * mode=direct：浏览器拿 clientToken 直接 PUT 到 pathname，传完拿 ticket 来登记。
+ * mode=server：存储不支持直传（国内 TOS），退回 multipart 中转。
+ */
+export const uploadTicketResponseSchema = z.discriminatedUnion("mode", [
+  z
+    .object({
+      ok: z.literal(true),
+      mode: z.literal("direct"),
+      pathname: z.string().min(1),
+      clientToken: z.string().min(1),
+      ticket: z.string().min(1),
+    })
+    .strict(),
+  z.object({ ok: z.literal(true), mode: z.literal("server") }).strict(),
+]);
+
+export type UploadTicketResponse = z.infer<typeof uploadTicketResponseSchema>;
+
+/** 直传第三步：凭票据登记，成功响应与中转上传同一个 DTO（uploadBlobSuccessSchema）。 */
+export const uploadCompleteRequestSchema = z
+  .object({ ticket: z.string().min(1).max(4096) })
+  .strict();
+
 export function uploadBlobSuccess(args: {
   asset: {
     id: string;

@@ -8,10 +8,14 @@ import { createOwnedMediaAsset } from "@/lib/services/media-asset-service";
 import { assertQuotaForSession } from "@/lib/services/quota-service";
 import { getStorageProvider } from "@/lib/storage";
 import { validateFileMagicBytes } from "@/lib/upload/media-file-validation";
-
-const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
-const SUPPORTED_UPLOAD_TYPES = /^(video\/(mp4|quicktime|webm|x-m4v)|image\/(png|jpe?g|webp)|audio\/(mpeg|mp4|x-m4a|wav|aac))$/i;
-const SAFE_PREFIX = /^(?!\/)(?!.*(?:^|\/)\.\.?(?:\/|$))[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*$/;
+import {
+  MAX_UPLOAD_BYTES,
+  SAFE_UPLOAD_PREFIX,
+  SUPPORTED_UPLOAD_TYPES,
+  UPLOAD_TOO_LARGE_MESSAGE,
+  UPLOAD_UNSUPPORTED_TYPE_MESSAGE,
+  extensionForMime,
+} from "@/lib/upload/upload-policy";
 
 interface UploadBlobDependencies {
   requireAuth: typeof requireAuth;
@@ -71,6 +75,11 @@ function unavailableError(args: {
  * 由 size + MIME 白名单 + 文件名 prefix 兜底防滥用。Phase 7a 已加单用户配额。
  *
  * 成功响应返回服务端持有的资产 ID；后续创作请求只提交 ID，不信任外部 URL。
+ *
+ * ⚠️ 部署在 Vercel 上时，这条中转路径只收得下 4.5MB 以内的文件：函数请求体超过上限，
+ * 平台直接回 413 FUNCTION_PAYLOAD_TOO_LARGE（纯文本），本 handler 根本不会被调用
+ * （10-30 CEO 演示翻车）。Vercel Blob 存储下，前端一律走 ticket → 直传 → complete
+ * （src/lib/upload/blob-xhr.ts）；这里只给国内 TOS 部署与旧客户端兜底。
  */
 export function createUploadBlobPostHandler(
   overrides: Partial<UploadBlobDependencies> = {},
@@ -89,16 +98,10 @@ export function createUploadBlobPostHandler(
     return validationError("缺少 file 字段");
   }
   if (file.size > MAX_UPLOAD_BYTES) {
-    return validationError(
-      "素材上传失败：单个文件不能超过 100MB。请压缩视频、裁短素材，或拆分后重新上传以获取服务器资产 ID。",
-      413,
-    );
+    return validationError(UPLOAD_TOO_LARGE_MESSAGE, 413);
   }
   if (!SUPPORTED_UPLOAD_TYPES.test(file.type)) {
-    return validationError(
-      "素材上传失败：当前 MVP 仅支持 mp4、mov、webm、png、jpg、webp、mp3、wav、m4a、aac。请转换格式后重试。",
-      415,
-    );
+    return validationError(UPLOAD_UNSUPPORTED_TYPE_MESSAGE, 415);
   }
   const magic = await dependencies.validateFileMagicBytes(file).catch(() => null);
   if (!magic) {
@@ -113,7 +116,7 @@ export function createUploadBlobPostHandler(
   /// 以文件签名为准：扩展名与内容不符的图（.png 名字、JPEG 内容）按真实类型存储与声明。
   const mimeType = magic.detected && magic.detected.split("/")[0] === "image" ? magic.detected : file.type;
   const prefix = (form.get("prefix") as string | null) ?? "uploads";
-  if (!SAFE_PREFIX.test(prefix)) {
+  if (!SAFE_UPLOAD_PREFIX.test(prefix)) {
     return validationError("上传目录不合法，请刷新页面后重试。");
   }
   const extension = extensionForMime(mimeType);
@@ -203,25 +206,6 @@ export function createUploadBlobPostHandler(
         });
   }
   };
-}
-
-function extensionForMime(mimeType: string): string {
-  switch (mimeType.toLowerCase()) {
-    case "image/png": return ".png";
-    case "image/jpeg":
-    case "image/jpg": return ".jpg";
-    case "image/webp": return ".webp";
-    case "video/mp4": return ".mp4";
-    case "video/quicktime": return ".mov";
-    case "video/webm": return ".webm";
-    case "video/x-m4v": return ".m4v";
-    case "audio/mpeg": return ".mp3";
-    case "audio/mp4":
-    case "audio/x-m4a": return ".m4a";
-    case "audio/wav": return ".wav";
-    case "audio/aac": return ".aac";
-    default: return "";
-  }
 }
 
 export const POST = createUploadBlobPostHandler();

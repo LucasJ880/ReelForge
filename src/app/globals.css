@@ -61,6 +61,19 @@
     color: var(--text-primary);
   }
 
+  /* 原生下拉的选项面板由浏览器自己画，不跟页面的深色背景走：select 是透明底、
+     字色继承浅色时，Windows 版 Chrome / Edge 和 Firefox 会画成白底浅字
+     （10-30 CEO 实测「创意模板是白底的，看不到」）。选项的底色与字色在这里钉死，全站原生下拉一起生效。 */
+  select {
+    color-scheme: dark;
+  }
+
+  select option,
+  select optgroup {
+    background-color: var(--popover);
+    color: var(--popover-foreground);
+  }
+
   .lucide {
     stroke-width: 1.5;
   }

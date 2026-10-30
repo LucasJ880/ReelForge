@@ -28,6 +28,7 @@ import {
   submitRunwayStoryboardImage,
 } from "@/lib/video-generation/runway-storyboard-images";
 import type { VideoProviderAdapterSnapshot } from "@/lib/video-generation/video-route-registry";
+import type { PlanningStage } from "@/types/video-generation";
 import {
   createOwnedMediaAsset,
   MediaAssetNotFoundError,
@@ -73,6 +74,11 @@ import {
 } from "@/lib/video-generation/storyboard-frame-inputs";
 import { renderStoryInEnglish } from "@/lib/video-generation/story-english";
 import { STORYBOARD_PERSON_REFS_MAX } from "@/lib/video-generation/storyboard-person-refs";
+import {
+  createPlanningDegradationLog,
+  logPlanningDegradations,
+  readPlanningDegradations,
+} from "@/lib/video-generation/planning-degradation";
 import { reviewStoryboardFrames } from "@/lib/video-generation/storyboard-gacha";
 import {
   aiReviewRegenerationDirection,
@@ -169,6 +175,8 @@ export interface StoryboardRunView {
   canApprove: boolean;
   /// 服务端是否接受取消（还在出帧 / 等确认，且没有交给视频派发）。
   canCancel: boolean;
+  /// 建故事板时哪几步 AI 没用上、退回了兜底（目前只有镜头卡）；面板据此提醒商家。原因原文不下发。
+  degradedStages: PlanningStage[];
   frames: Array<{
     id: string;
     ordinal: number;
@@ -422,6 +430,7 @@ export function storyboardRunView(run: StoryboardRunRecord): StoryboardRunView {
       run.status === StoryboardRunStatus.AWAITING_APPROVAL &&
       allReady,
     canCancel: isStoryboardRunCancellable(run),
+    degradedStages: [...new Set(readPlanningDegradations(run.planningDegradations).map((entry) => entry.stage))],
     frames,
   };
 }
@@ -636,23 +645,30 @@ export async function createStoryboardRun(
   const id = randomUUID();
   /// 镜头卡只给单条故事板：批量视频的提示词沿用模板自己的时间线，帧按卡构图会和它打架。
   const isBatchRun = (input.purpose ?? "").startsWith("batch-");
+  /// 镜头卡调了 LLM 却没用上（失败 / 超时 / 输出不合格）时记在 run 上，与方案的 planningDegradations 同一形状。
+  const degradations = createPlanningDegradationLog();
   /// 帧提示词全程英文（10-29）：原话译成英文写进 STORY CONTEXT，随帧落库，派发视频时读回；译不了就用原话。
   /// 镜头卡仍读原话；sourcePrompt 存原话（界面回显、重建计划都用它）。两次 LLM 调用互不依赖，并行跑。
   const [shotCards, storyEnglish] = await Promise.all([
     isBatchRun
       ? Promise.resolve(null)
-      : designStoryboardShotCards({
-          story: input.prompt,
-          beats: storyboardBeatsForDuration(input.durationSec),
-          durationSec: input.durationSec,
-          aspectRatio: input.aspectRatio,
-          productImageCount: assets.length,
-          personImageCount: personAssetIds.length,
-          voiceoverScript: input.voiceoverScript ?? null,
-        }),
+      : designStoryboardShotCards(
+          {
+            story: input.prompt,
+            beats: storyboardBeatsForDuration(input.durationSec),
+            durationSec: input.durationSec,
+            aspectRatio: input.aspectRatio,
+            productImageCount: assets.length,
+            personImageCount: personAssetIds.length,
+            voiceoverScript: input.voiceoverScript ?? null,
+          },
+          { onDegraded: degradations.record },
+        ),
     renderStoryInEnglish(input.prompt),
   ]);
   const promptStory = storyEnglish ?? input.prompt;
+  const planningDegradations = degradations.list();
+  logPlanningDegradations({ source: "storyboard", runId: id }, planningDegradations);
   const plans = buildStoryboardFramePlans({
     prompt: promptStory,
     durationSec: input.durationSec,
@@ -681,6 +697,7 @@ export async function createStoryboardRun(
         inputAssetIds: assetIds,
         inputImageUrls: assets.map((asset) => asset.url),
         personAssetIds,
+        planningDegradations: planningDegradations as unknown as Prisma.InputJsonValue,
         frames: {
           create: plans.map((plan) => ({
             ordinal: plan.ordinal,

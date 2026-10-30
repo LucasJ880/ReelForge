@@ -4,12 +4,17 @@ import { AlertTriangle, CheckCircle2, ChevronRight, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type {
   PlanPreview,
+  QualityIssue,
   QualityReview,
   VideoGenerationPlan,
 } from "@/types/video-generation";
 import { useTranslation } from "@/i18n/useTranslation";
 import type { Locale } from "@/i18n/config";
 import { BRAND_END_CARD_ENTRY_ENABLED } from "@/lib/brand/brand-end-card-policy";
+import {
+  planningDegradationNotice,
+  planningStageFromIssueCode,
+} from "@/lib/video-generation/planning-degradation-notice";
 
 interface PlanPreviewCardProps {
   plan: VideoGenerationPlan;
@@ -136,7 +141,7 @@ function QualityBlock({ review, locale }: { review: QualityReview; locale: Local
           </p>
           <ul className="mt-1.5 space-y-1 text-meta text-warning">
             {review.warnings.map((w, i) => (
-              <li key={i}>· {w.message}</li>
+              <li key={i}>· {issueMessage(w, isEn)}</li>
             ))}
           </ul>
         </div>
@@ -161,6 +166,12 @@ function QualityBlock({ review, locale }: { review: QualityReview; locale: Local
       )}
     </div>
   );
+}
+
+/** 出方案降级的提醒按界面语言给（方案里存英文）；其它提醒照旧显示原文。 */
+function issueMessage(issue: QualityIssue, isEn: boolean): string {
+  const stage = planningStageFromIssueCode(issue.code);
+  return stage ? planningDegradationNotice(stage, isEn ? "en" : "zh") : issue.message;
 }
 
 function SceneList({ plan, locale }: { plan: VideoGenerationPlan; locale: Locale }) {

@@ -12,6 +12,7 @@
  *  - auto end card 但没有 logo
  *  - prompt 整体过短（< 30 字符）
  *  - 9:16 但上传 16:9 素材为主
+ *  - 出方案时某一步 AI 没用上、退回了兜底（2026-10-29，一步一条，不拦派发）
  *
  * suggestion：
  *  - 可优化 prompt 的建议
@@ -20,6 +21,7 @@
 import type {
   CreativeBrief,
   InputClassification,
+  PlanningDegradation,
   QualityIssue,
   QualityReview,
   UploadedAsset,
@@ -27,6 +29,10 @@ import type {
   BrandPackagingPlan,
 } from "@/types/video-generation";
 import { effectiveAssetRole } from "@/types/video-generation";
+import {
+  planningDegradationIssueCode,
+  planningDegradationNotice,
+} from "@/lib/video-generation/planning-degradation-notice";
 import {
   resolveClientLockProfile,
   usesSunnyShutterLocks,
@@ -96,6 +102,8 @@ export interface BuildQualityReviewArgs {
    */
   storyboard?: Image2StoryboardArtifact | null;
   storyboardRunKind?: StoryboardFirstRunKind;
+  /** 出方案时哪几步 AI 没用上、退回了兜底（2026-10-29）；每一步一条 warning。 */
+  planningDegradations?: readonly PlanningDegradation[] | null;
 }
 
 export function buildQualityReview(args: BuildQualityReviewArgs): QualityReview {
@@ -251,6 +259,15 @@ export function buildQualityReview(args: BuildQualityReviewArgs): QualityReview 
       severity: "warning",
       code: "brand_packaging_warning",
       message: w,
+    });
+  }
+
+  /// 8. 出方案时 AI 没用上的步骤：告诉商家这次哪一步退回了兜底（一步一条）；原因原文只进方案 JSON 与运维日志
+  for (const stage of new Set((args.planningDegradations ?? []).map((degradation) => degradation.stage))) {
+    warnings.push({
+      severity: "warning",
+      code: planningDegradationIssueCode(stage),
+      message: planningDegradationNotice(stage, "en"),
     });
   }
 

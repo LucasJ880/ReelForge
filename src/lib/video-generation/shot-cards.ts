@@ -9,12 +9,17 @@
  * 这里在建故事板时让 LLM 按商家原话给每一帧写一张镜头卡：出帧提示词里落一行 `SHOT CARD:`（持久化在帧提示词里，
  * 免迁移），派发视频时从帧提示词读回、接到对应镜头行上。LLM 不可用 / 超时 / 输出不合格 → 返回 null，
  * 出帧与派发与之前逐字节一致。`STORYBOARD_SHOT_CARDS=off` 整体关闭。
+ * 调了 LLM 却没用上（失败 / 超时 / 输出不合格）时交给 onDegraded，故事板 run 上记一条（2026-10-29）。
  *
  * 2026-10-29（借鉴朋友的 ai-video-workflow 方法包，计划 docs/superpowers/plans/2026-10-29-shot-direction-p0.md）：
  * 每张卡加「首态 / 地点 / 谁说话」，字段按重要性排——出帧画的是首态那一刻，视频从这一帧开始演；
  * Kling 2500 字截断时先丢声音与构图，动作和尾态最后才丢。建故事板时把口播稿一起给 LLM，按台词顺序排镜头（台词原文不进卡）。
  */
 import { chatJsonByTier, isLLMAvailable, isLLMForcedMock } from "@/lib/ai";
+import {
+  planningDegradation,
+  type RecordPlanningDegradation,
+} from "@/lib/video-generation/planning-degradation";
 import {
   SHOT_CARD_NEW_LOCATION_PREFIX,
   SHOT_CARD_VOICE_PHRASES,
@@ -88,13 +93,18 @@ export function sameShotLocation(a: string | null | undefined, b: string | null 
   return !left || !right || left === right;
 }
 
-/** LLM 原始输出 → 恰好 count 张卡；任何一张缺镜头 / 机位 / 动作就整体作废（半套卡比没有更容易误导）。 */
-export function normalizeShotCards(raw: unknown, count: number): StoryboardShotCard[] | null {
-  const list = Array.isArray(raw)
+/** LLM 原始输出里的卡数组：直接是数组，或包在 `{ shots: [...] }` 里。 */
+function shotCardList(raw: unknown): unknown[] | null {
+  return Array.isArray(raw)
     ? raw
     : raw && typeof raw === "object" && Array.isArray((raw as { shots?: unknown }).shots)
       ? (raw as { shots: unknown[] }).shots
       : null;
+}
+
+/** LLM 原始输出 → 恰好 count 张卡；任何一张缺镜头 / 机位 / 动作就整体作废（半套卡比没有更容易误导）。 */
+export function normalizeShotCards(raw: unknown, count: number): StoryboardShotCard[] | null {
+  const list = shotCardList(raw);
   if (!list || list.length < count) return null;
   const cards = list.slice(0, count).map((item): StoryboardShotCard => {
     const record = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
@@ -114,6 +124,14 @@ export function normalizeShotCards(raw: unknown, count: number): StoryboardShotC
     }
   }
   return cards;
+}
+
+/** normalizeShotCards 整体作废时的原因（记进降级记录）。 */
+function rejectedShotCardsReason(raw: unknown, count: number): string {
+  const list = shotCardList(raw);
+  if (!list) return `LLM 输出里没有镜头卡数组（要 ${count} 张）`;
+  if (list.length < count) return `LLM 只给了 ${list.length} 张镜头卡（要 ${count} 张）`;
+  return `LLM 给的镜头卡有缺镜头 / 机位 / 动作的（要 ${count} 张都齐），整套作废`;
 }
 
 /**
@@ -202,6 +220,8 @@ export interface DesignShotCardsDeps {
   llmAvailable?: () => boolean;
   chat?: typeof chatJsonByTier;
   timeoutMs?: number;
+  /// 调了 LLM 却没用上（失败 / 超时 / 输出不合格）时记一条；不传 = 只打日志
+  onDegraded?: RecordPlanningDegradation;
 }
 
 export function buildShotCardUserPrompt(input: DesignShotCardsInput): string {
@@ -231,7 +251,7 @@ export function buildShotCardUserPrompt(input: DesignShotCardsInput): string {
 }
 
 /**
- * 建故事板时设计镜头卡。任何失败都返回 null（调用方退回旧的模板节奏，不影响出帧）。
+ * 建故事板时设计镜头卡。任何失败都返回 null（调用方退回旧的模板节奏，不影响出帧）；调了 LLM 的失败同时交给 deps.onDegraded。
  */
 export async function designStoryboardShotCards(
   input: DesignShotCardsInput,
@@ -242,6 +262,7 @@ export async function designStoryboardShotCards(
   const available = deps.llmAvailable ?? (() => isLLMAvailable() && !isLLMForcedMock());
   if (!available()) return null;
   const chat = deps.chat ?? chatJsonByTier;
+  const timeoutMs = deps.timeoutMs ?? DESIGN_TIMEOUT_MS;
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const result = await Promise.race([
@@ -254,18 +275,23 @@ export async function designStoryboardShotCards(
         maxTokens: 2500,
       }),
       new Promise<null>((resolve) => {
-        timer = setTimeout(() => resolve(null), deps.timeoutMs ?? DESIGN_TIMEOUT_MS);
+        timer = setTimeout(() => resolve(null), timeoutMs);
       }),
     ]);
     if (!result) {
       console.warn("[shot-cards] design timed out; falling back to template beats");
+      deps.onDegraded?.(planningDegradation("shot_cards", `镜头卡设计超时（${timeoutMs / 1000} 秒没返回）`));
       return null;
     }
     const cards = normalizeShotCards(result.data, input.beats.length);
-    if (!cards) console.warn("[shot-cards] LLM output rejected; falling back to template beats");
+    if (!cards) {
+      console.warn("[shot-cards] LLM output rejected; falling back to template beats");
+      deps.onDegraded?.(planningDegradation("shot_cards", rejectedShotCardsReason(result.data, input.beats.length)));
+    }
     return cards;
   } catch (error) {
     console.warn("[shot-cards] design failed; falling back to template beats:", (error as Error).message);
+    deps.onDegraded?.(planningDegradation("shot_cards", error));
     return null;
   } finally {
     if (timer) clearTimeout(timer);

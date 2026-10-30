@@ -1464,6 +1464,9 @@ model StoryboardRun {
   /// 2026-11 P0-1：批量故事板 AI 审帧的 run 级汇总（状态 / 轮次 / warning）。
   /// 不复用 errorCode/errorMessage：迁到 APPROVED 时它们会被清空，且会直接显示给客户。
   aiReviewSummary  Json?
+  /// 2026-10-29：建故事板时哪几步 AI 没用上、退回了兜底（目前只有镜头卡 → 模板节奏），
+  /// 形状同 VideoGenerationPlan.planningDegradations（PlanningDegradation[]）。[] = 都用上了；null = 旧 run。
+  planningDegradations Json?
 
   videoBriefId           String?     @unique
   videoBrief             VideoBrief? @relation(fields: [videoBriefId], references: [id], onDelete: SetNull)

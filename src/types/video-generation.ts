@@ -462,6 +462,35 @@ export interface PlanPreview {
   };
 }
 
+// ---------- Planning degradations ----------
+
+/// 出方案要调 AI 的几步（按流水线顺序）；shot_cards 在建故事板时调，记在 StoryboardRun 上。
+export type PlanningStage =
+  | "creative_brief"
+  | "visual_reference"
+  | "consistency_bible"
+  | "segment_prompts"
+  | "shot_cards";
+
+/// 每一步 AI 没用上时退回到的兜底（一步对应一个，见 PLANNING_FALLBACK_BY_STAGE）。
+export type PlanningFallback =
+  | "heuristic_brief"
+  | "no_visual_analysis"
+  | "heuristic_bible"
+  | "heuristic_segment_prompts"
+  | "template_beats";
+
+/**
+ * 一次 AI 调用失败 / 超时 / 输出不可用、退回兜底的记录（2026-10-29）。
+ * 只记「调了 AI 但没用上」；LLM 没配置或强制 mock 是配置状态，归能力状态（C4）管，不记在这里。
+ */
+export interface PlanningDegradation {
+  stage: PlanningStage;
+  /// 原因：直接用错误信息（provider 层写明 finish_reason / 拉图失败等）；超时与输出不合格由调用方写明。已压成一行、截断。
+  reason: string;
+  fallback: PlanningFallback;
+}
+
 // ---------- Top-level plan ----------
 
 export interface VideoGenerationPlan {
@@ -488,6 +517,8 @@ export interface VideoGenerationPlan {
   postProduction?: PostProductionPlan | null;
   qualityReview: QualityReview;
   planPreview: PlanPreview;
+  /// 本次出方案哪几步 AI 没用上、退回了兜底（2026-10-29）。[] = 都用上了；旧 plan 缺省 = 不知道。
+  planningDegradations?: PlanningDegradation[];
   /// supervisor 生成时间
   createdAt: string;
 }

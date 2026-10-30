@@ -7,6 +7,7 @@ import {
   ChevronDown,
   ChevronRight,
   ImageIcon,
+  Info,
   Loader2,
   RefreshCw,
   ShieldCheck,
@@ -15,6 +16,8 @@ import { StatusTick } from "@/components/exchange/status-tick";
 import type { VocabState } from "@/lib/exchange/state-vocab";
 import { storyboardBeatLabel } from "@/lib/video-generation/storyboard-beats";
 import { customerVisibleFramePrompt } from "@/lib/video-generation/storyboard-prompt-display";
+import { planningDegradationNotice } from "@/lib/video-generation/planning-degradation-notice";
+import type { PlanningStage } from "@/types/video-generation";
 import {
   STORYBOARD_FRAME_DIRECTION_MAX,
   STORYBOARD_FRAME_SOURCE_ASSETS_MAX,
@@ -47,6 +50,8 @@ export interface StoryboardRunView {
   errorCode: string | null;
   errorMessage: string | null;
   canApprove: boolean;
+  /** 建故事板时哪几步 AI 没用上、退回了兜底（目前只有镜头卡）；旧响应没有这一项。 */
+  degradedStages?: PlanningStage[];
   frames: StoryboardFrameView[];
 }
 
@@ -137,6 +142,13 @@ export function StoryboardWorkflowPanel({
                 ? `${generatedCount}/${expectedCount} keyframes ready. Review every frame before video generation.`
                 : `关键帧已完成 ${generatedCount}/${expectedCount}。确认每一帧后才会进入视频生成。`}
           </p>
+          {/* 镜头卡没写成、分镜退回通用节奏时如实说一句（与方案卡「请注意」同色）；锁定后不再提醒 */}
+          {!approved && run.degradedStages?.includes("shot_cards") ? (
+            <p className="flex max-w-[62ch] items-start gap-1.5 text-meta text-warning" data-testid="storyboard-degraded-notice">
+              <Info className="mt-0.5 size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
+              <span>{planningDegradationNotice("shot_cards", english ? "en" : "zh")}</span>
+            </p>
+          ) : null}
         </div>
         <Button type="button" variant="outline" size="sm" className="shrink-0 self-start sm:self-auto" onClick={onEditPlan} disabled={approving || Boolean(busyFrameId)}>
           {english ? "Edit direction" : "修改创作方向"}

@@ -15,6 +15,10 @@
 import { chatJsonByTier, isLLMAvailable, isLLMForcedMock } from "@/lib/ai";
 import { effectiveAssetRole } from "@/types/video-generation";
 import { presenterReferenceAssets } from "@/lib/video-generation/storyboard-person-refs";
+import {
+  planningDegradation,
+  type RecordPlanningDegradation,
+} from "@/lib/video-generation/planning-degradation";
 import type {
   ConsistencyBible,
   CreativeBrief,
@@ -64,6 +68,8 @@ export interface BuildConsistencyBibleArgs {
   styleTemplate?: StyleTemplate | null;
   /// 参考图视觉分析（真实门店/产品实拍）；有真实场所时 environmentProfile 逐字采用实拍描述
   visualRefs?: VisualReferenceAnalysis | null;
+  /// LLM 失败退回启发式时记一条（方案上可见）；不传 = 只打日志
+  onDegraded?: RecordPlanningDegradation;
 }
 
 export async function buildConsistencyBible(
@@ -166,6 +172,7 @@ Return the JSON now.`,
       "[consistency-bible] LLM failed; falling back to heuristic:",
       (err as Error).message,
     );
+    args.onDegraded?.(planningDegradation("consistency_bible", err));
     return heuristicBible(args);
   }
 }

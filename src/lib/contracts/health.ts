@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+const RELEASE_PATTERN = /^[0-9a-f]{7,40}$/;
+
 const providerConfigurationSchema = z.enum([
   "configured",
   "not_configured",
@@ -51,11 +53,22 @@ export const healthResponseSchema = z
       })
       .strict(),
     appVersion: z.string().min(1).max(80).nullable(),
+    /// 正在提供服务的那次部署的 git commit：发布后冒烟据此确认生产别名已切到新部署再开测
+    release: z.string().regex(RELEASE_PATTERN).nullable().optional(),
     timestamp: z.string().datetime(),
   })
   .strict();
 
 export type HealthResponse = z.infer<typeof healthResponseSchema>;
+
+/**
+ * Vercel 注入的部署 commit（VERCEL_GIT_COMMIT_SHA）；本地 / 自建没有就是 null。
+ * 仓库公开，commit 不算敏感信息；但只放行十六进制 SHA，别的值一律不回显。
+ */
+export function deploymentRelease(env: Record<string, string | undefined> = process.env): string | null {
+  const sha = env.VERCEL_GIT_COMMIT_SHA?.trim().toLowerCase();
+  return sha && RELEASE_PATTERN.test(sha) ? sha : null;
+}
 
 export function healthHttpStatus(body: HealthResponse): 200 | 503 {
   return body.ok ? 200 : 503;
@@ -89,6 +102,7 @@ export function unavailableHealthResponse(now = new Date()): HealthResponse {
       warnings: [],
     },
     appVersion: process.env.npm_package_version?.slice(0, 80) || null,
+    release: deploymentRelease(),
     timestamp: now.toISOString(),
   });
 }

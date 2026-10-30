@@ -1,0 +1,112 @@
+name: prod-smoke
+
+# 发布后冒烟：每次 Vercel 生产部署成功，就对生产跑一遍 e2e/prod-smoke.spec.ts。
+# 10-30 CEO 演示翻车的三件事——手机原图上传 413、创意模板原生下拉白底白字、
+# 两天前的登录不输密码直接进创作页——要在人碰到之前先被它碰到。
+#
+# 仓库 Secrets（Settings → Secrets and variables → Actions）：
+#   PROD_SMOKE_EMAIL     专用生产 QA 账号。必须是真实域名：*.test / .example / .invalid / .localhost
+#                        的邮箱在生产一律登录不了（src/lib/demo-account.ts 的 isReservedTestEmail）
+#   PROD_SMOKE_PASSWORD  该账号密码；同时用来加密交给下一次部署的登录态（最后两步）
+# 两个都没配时只跑未登录检查（健康、跳转、401、旧中转 413），并打一条 warning。
+#
+# 仓库是公开的，日志与 artifact 任何人都能看：所以不开 Playwright trace / 视频 / HTML 报告
+# （trace 会录下输入的密码和 cookie）。唯一的 artifact 是用 QA 账号密码加密过的登录态，
+# 拿到它不比拿到密码多任何东西，8 天后自动删除（会话绝对上限 7 天）。
+#
+# 每跑一次在生产留下 1 个约 6MB 的 Blob 对象 + 1 条 MediaAsset（QA 账号名下）；不点生成、不花生成额度。
+# 手动跑：Actions → prod-smoke → Run workflow（不核对部署版本）。
+
+on:
+  deployment_status: {}
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  # 取上一轮留下的登录态（gh api / gh run download）
+  actions: read
+
+# Vercel 每个部署会发好几条 deployment_status（pending → success，预览也发）。
+# 按「环境 + 状态」分组：只有新的生产成功才取消还在跑的旧冒烟（旧部署已经不在别名上了）。
+concurrency:
+  group: prod-smoke-${{ github.event.deployment.environment || 'manual' }}-${{ github.event.deployment_status.state || 'dispatch' }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      || (github.event.deployment_status.state == 'success'
+          && github.event.deployment.environment == 'Production')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PROD_SMOKE_BASE_URL: https://reelforge-delta.vercel.app
+      PROD_SMOKE_EXPECTED_RELEASE: ${{ github.event.deployment.sha }}
+      PROD_SMOKE_SAVE_SESSION: tmp/prod-smoke/session.json
+      PROD_SMOKE_PREVIOUS_SESSION: tmp/prod-smoke/previous-session.json
+    steps:
+      - name: Checkout the deployed commit
+        uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      # 冒烟只用 @playwright/test；跳过 postinstall（prisma generate、ffmpeg 下载）
+      - name: Install dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps --only-shell chromium
+
+      - name: Restore the login the previous deploy's smoke signed in with
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROD_SMOKE_PASSWORD: ${{ secrets.PROD_SMOKE_PASSWORD }}
+        run: |
+          mkdir -p tmp/prod-smoke
+          if [ -z "$PROD_SMOKE_PASSWORD" ]; then exit 0; fi
+          run_id=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=prod-smoke-session&per_page=1" \
+            --jq '.artifacts[0] | select(.expired == false) | .workflow_run.id' || true)
+          if [ -z "$run_id" ]; then
+            echo "没有上一轮留下的登录态，跳过发布即失效检查"
+            exit 0
+          fi
+          gh run download "$run_id" --name prod-smoke-session --dir tmp/prod-smoke/previous || exit 0
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -pass env:PROD_SMOKE_PASSWORD \
+            -in tmp/prod-smoke/previous/session.enc -out "$PROD_SMOKE_PREVIOUS_SESSION" \
+            || { rm -f "$PROD_SMOKE_PREVIOUS_SESSION"; echo "::warning::上一轮的登录态解不开（改过密码？），跳过发布即失效检查"; }
+
+      - name: Prod smoke
+        env:
+          PROD_SMOKE_EMAIL: ${{ secrets.PROD_SMOKE_EMAIL }}
+          PROD_SMOKE_PASSWORD: ${{ secrets.PROD_SMOKE_PASSWORD }}
+        run: |
+          if [ -z "$PROD_SMOKE_EMAIL" ] || [ -z "$PROD_SMOKE_PASSWORD" ]; then
+            echo "::warning::没配 PROD_SMOKE_EMAIL / PROD_SMOKE_PASSWORD：只跑了未登录检查，上传、下拉、会话都没测。"
+          fi
+          npx playwright test --config=playwright.prod-smoke.config.ts
+
+      - name: Encrypt this run's login for the next deploy
+        if: success() && hashFiles('tmp/prod-smoke/session.json') != ''
+        env:
+          PROD_SMOKE_PASSWORD: ${{ secrets.PROD_SMOKE_PASSWORD }}
+        run: |
+          openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt -pass env:PROD_SMOKE_PASSWORD \
+            -in "$PROD_SMOKE_SAVE_SESSION" -out tmp/prod-smoke/session.enc
+
+      - name: Keep the encrypted login for the next deploy
+        if: success() && hashFiles('tmp/prod-smoke/session.enc') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-smoke-session
+          path: tmp/prod-smoke/session.enc
+          retention-days: 8
+          if-no-files-found: ignore
+
+      - name: Remove plaintext logins
+        if: always()
+        run: rm -f tmp/prod-smoke/*.json

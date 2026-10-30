@@ -9,6 +9,7 @@ import { getStorageProvider } from "@/lib/storage";
 import { VolcengineTosStorageProvider } from "@/lib/storage/providers/volcengine-tos-provider";
 import { getVideoProvider } from "@/lib/video-generation/providers";
 import {
+  deploymentRelease,
   healthHttpStatus,
   healthResponseSchema,
   unavailableHealthResponse,
@@ -131,6 +132,7 @@ async function resolveHealth(req: NextRequest): Promise<HealthResponse> {
     },
 
     appVersion: process.env.npm_package_version?.slice(0, 80) || null,
+    release: deploymentRelease(),
     timestamp: new Date().toISOString(),
   });
 }

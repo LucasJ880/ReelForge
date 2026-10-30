@@ -130,6 +130,16 @@ export async function createOwnedMediaAsset(
   });
 }
 
+/** 直传登记的幂等重放：同一对象（storageKey 唯一）已由本人登记过就直接返回那条。 */
+export async function findOwnedMediaAssetByStorageKey(args: {
+  userId: string;
+  storageKey: string;
+}): Promise<MediaAssetRecord | null> {
+  return db.mediaAsset.findFirst({
+    where: { userId: args.userId, storageKey: args.storageKey },
+  });
+}
+
 export class MediaAssetNotFoundError extends Error {
   constructor() {
     super("Media asset not found");

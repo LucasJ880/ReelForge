@@ -1,11 +1,11 @@
 "use client";
 
+import { uploadBlobWithProgress } from "@/lib/upload/blob-xhr";
 import type { AssetRole, UploadedAsset } from "@/types/video-generation";
 
 /**
  * 共享上传管线（Agent 页 / 创作页共用）：
- * blob 上传 → 读媒体元数据 → 资产分类，产出 UploadedAsset。
- * 与 attachment-uploader 相同协议，但纯函数便于新玻璃 UI 复用。
+ * 直传对象存储并登记（uploadBlobWithProgress）→ 读媒体元数据 → 资产分类，产出 UploadedAsset。
  */
 export async function uploadFilesToAssets(
   files: File[],
@@ -13,25 +13,13 @@ export async function uploadFilesToAssets(
 ): Promise<UploadedAsset[]> {
   const out: UploadedAsset[] = [];
   for (const file of files) {
-    const form = new FormData();
-    form.append("file", file);
-    form.append("prefix", "unified-input");
-    const uploadRes = await fetch("/api/upload/blob", {
-      method: "POST",
-      body: form,
-    });
-    if (!uploadRes.ok) {
-      const j = await uploadRes.json().catch(() => ({}));
-      throw new Error(j.error ?? `上传失败 (${uploadRes.status})`);
-    }
-    const { asset } = (await uploadRes.json()) as {
-      asset: {
-        id: string;
-        url: string;
-        mimeType: string;
-        width: number | null;
-        height: number | null;
-      };
+    const stored = await uploadBlobWithProgress({ file, prefix: "unified-input" });
+    const asset = {
+      id: stored.assetId,
+      url: stored.url,
+      mimeType: stored.mimeType,
+      width: stored.width,
+      height: stored.height,
     };
 
     const { width, height, durationSeconds } = await readMediaMetadata(file);

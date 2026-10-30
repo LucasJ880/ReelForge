@@ -316,7 +316,6 @@ export function BatchCreateWizard({
     try {
       const data = await uploadBlobWithProgress({
         file: item.file,
-        endpoint: "/api/upload/blob",
         prefix: "batch-products",
         signal: controller.signal,
         onProgress: (progress) =>

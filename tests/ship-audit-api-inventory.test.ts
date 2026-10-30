@@ -19,7 +19,7 @@ test("API inventory accounts for every route file", () => {
     return `/api/${relative}`;
   });
 
-  assert.equal(routeFiles.length, 87);
+  assert.equal(routeFiles.length, 89);
   assert.equal(new Set(endpoints).size, routeFiles.length);
   for (const endpoint of endpoints) {
     assert.ok(
@@ -27,7 +27,7 @@ test("API inventory accounts for every route file", () => {
       `${endpoint} is implemented but missing from qa/SHIP_AUDIT.md`,
     );
   }
-  assert.match(audit, /API endpoint inventory \(87\/87 route files/);
+  assert.match(audit, /API endpoint inventory \(89\/89 route files/);
   assert.match(audit, /GET, POST \| `\/api\/cron\/stitch-dispatch`/);
   assert.match(audit, /GET \| `\/api\/video-generation\/routes`/);
 });

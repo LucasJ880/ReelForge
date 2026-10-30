@@ -37,7 +37,11 @@ function withEnv(values: Record<string, string | undefined>, run: () => Promise<
 }
 
 async function requestAs(email: string, path: string, method = "GET") {
-  const token = await encode({ secret: SECRET, token: { sub: `user-${email}`, email } });
+  /// loginAt：会话安全闸（session-policy）要求新签发的 token 带登录时刻，否则视为旧版本作废
+  const token = await encode({
+    secret: SECRET,
+    token: { sub: `user-${email}`, email, loginAt: Math.floor(Date.now() / 1000) },
+  });
   return middleware(
     new NextRequest(`${ORIGIN}${path}`, {
       method,

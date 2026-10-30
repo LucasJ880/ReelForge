@@ -75,7 +75,8 @@ test("RF-027：批量向导与 API 共享 250 条商单认证上限", () => {
     "number 与 range 两个输入都必须使用同一个上限",
   );
   assert.match(wizard, /上传素材.*选择风格.*生成数量.*确认提交/);
-  assert.match(wizard, /\/api\/upload\/blob/);
+  /// 10-30 起上传统一走直传（uploadBlobWithProgress → /api/upload/blob/ticket → Blob → complete）
+  assert.match(wizard, /uploadBlobWithProgress\(\{/);
   assert.match(wizard, /\/api\/batch-style-templates/);
   assert.match(wizard, /\/api\/batches/);
   assert.match(wizard, /BATCH_IMAGE_MIME_TYPES/);

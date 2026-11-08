@@ -60,6 +60,7 @@ model AdminUser {
   mediaAssets           MediaAsset[]           @relation("MediaAssetOwner")
   storyboardRuns        StoryboardRun[]        @relation("StoryboardRunOwner")
   approvedStoryboards   StoryboardRun[]        @relation("StoryboardRunApprover")
+  machineVideoTasks     MachineVideoTask[]
   passwordResetTokens   PasswordResetToken[]
 }
 
@@ -1486,10 +1487,34 @@ model StoryboardRun {
   updatedAt    DateTime   @updatedAt
 
   frames StoryboardFrame[]
+  machineVideoTask MachineVideoTask?
 
   @@unique([userId, idempotencyKey])
   @@index([userId, createdAt(sort: Desc)])
   @@index([status, updatedAt])
+}
+
+/// 外部机器（例如 Grok Bot）的视频任务入口。
+/// 只保存文案和生成参数；不调用供应商、不扣视频额度。
+/// 故事板确认和开拍仍走创作台既有按钮。storyboardRunId 在用户开始故事板后才写入。
+model MachineVideoTask {
+  id               String   @id @default(cuid())
+  userId           String
+  user             AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  idempotencyKey   String
+  requestHash      String
+  prompt           String
+  voiceoverScript  String?
+  durationSec      Int
+  aspectRatio      String
+  assetIds         String[] @default([])
+  storyboardRunId  String?  @unique
+  storyboardRun    StoryboardRun? @relation(fields: [storyboardRunId], references: [id], onDelete: SetNull)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId, createdAt(sort: Desc)])
 }
 
 /// Each regeneration creates a new immutable attempt row while `isCurrent`

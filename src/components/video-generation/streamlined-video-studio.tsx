@@ -384,6 +384,8 @@ export function StreamlinedVideoStudio({
   initialPrompt = "",
   initialDurationSec,
   initialAspectRatio,
+  initialVoiceoverScript = "",
+  machineTaskId = null,
   retryOfOrderId = null,
   brandPackages = [],
   canSelectVideoRoute,
@@ -400,6 +402,10 @@ export function StreamlinedVideoStudio({
   /** 成品库「重新生成」带回的原时长 / 画幅。 */
   initialDurationSec?: 15 | 30 | 60;
   initialAspectRatio?: AspectRatio;
+  /** 机器任务带来的口播稿。有值时不再用模板稿覆盖。 */
+  initialVoiceoverScript?: string;
+  /** 机器任务 id。创作台点「生成故事板」时挂回该任务，不另开一条。 */
+  machineTaskId?: string | null;
   /** 成品库「重新生成」的原订单：有值时不做故事板静默恢复，避免覆盖预填。 */
   retryOfOrderId?: string | null;
   brandPackages?: WorkspaceBrandPackageView[];
@@ -469,7 +475,7 @@ export function StreamlinedVideoStudio({
     useState<AudioCaptionControlValue>(() => ({
       voiceoverEnabled: true,
       voiceId: "warm-confident",
-      voiceoverScript: generateVoiceoverScript({
+      voiceoverScript: initialVoiceoverScript.trim() || generateVoiceoverScript({
         prompt: initialPrompt,
         cta: null,
         durationSec: initialDurationSec ?? 15,
@@ -506,7 +512,7 @@ export function StreamlinedVideoStudio({
   const [dragOver, setDragOver] = useState(false);
   const storyboardAttemptRef = useRef<StoredAttempt | null>(null);
   const dispatchAttemptRef = useRef<StoredAttempt | null>(null);
-  const voiceoverEditedRef = useRef(false);
+  const voiceoverEditedRef = useRef(initialVoiceoverScript.trim().length > 0);
   /// 用户一旦改动任何创作输入，挂载时的静默恢复就必须放弃，避免覆盖新意图。
   const interactedRef = useRef(false);
 
@@ -534,7 +540,7 @@ export function StreamlinedVideoStudio({
     // Arriving from the Product Image Studio (or the regenerate link in the library)
     // expresses intent to start a new creation, so the silent resume stays out
     // of the way.
-    if (initialProductAssets.length > 0 || retryOfOrderId) return;
+    if (initialProductAssets.length > 0 || retryOfOrderId || machineTaskId) return;
     let cancelled = false;
     const resume = async () => {
       /// 恢复是「必须尽力」而不是「随缘」：0805 实测 APPROVED 故事板在刷新后
@@ -618,7 +624,7 @@ export function StreamlinedVideoStudio({
     return () => {
       cancelled = true;
     };
-  }, [copy.storyboardFailed, english, initialProductAssets.length, retryOfOrderId]);
+  }, [copy.storyboardFailed, english, initialProductAssets.length, machineTaskId, retryOfOrderId]);
 
   useEffect(() => {
     if (!retryOfOrderId) return;
@@ -1244,6 +1250,7 @@ export function StreamlinedVideoStudio({
         sourceAssetIds: productAssets.map((asset) => asset.assetId ?? asset.id),
         approvalPolicy: "MANUAL" as const,
         purpose: "single-video-storyboard",
+        ...(machineTaskId ? { machineTaskId } : {}),
       };
       const fingerprint = JSON.stringify(storyboardBody);
       if (storyboardAttemptRef.current?.fingerprint !== fingerprint) {
@@ -1757,6 +1764,14 @@ export function StreamlinedVideoStudio({
             ))}
           </dl>
         </header>
+
+        {machineTaskId ? (
+          <p className="text-center text-meta text-muted-foreground" data-testid="machine-task-confirmation">
+            {english
+              ? "This request is saved but filming has not started. Confirm the storyboard, then generate the video."
+              : "任务已保存，还没有开拍。请先确认故事板，再生成视频。"}
+          </p>
+        ) : null}
 
         {showGuide ? (
           <section

@@ -76,10 +76,17 @@ const exactPublicPaths = [
   /// 限流与校验；工作台的询盘管理接口在 /api/leads 下，仍走会话鉴权。
   "/api/public/leads",
   "/api/public/pilot-applications",
+  /// 机器视频任务只放行精确的创建路径。查询带任务 id，由下面的正则单独放行。
+  /// 鉴权在路由内，使用 MACHINE_VIDEO_API_TOKEN，不接受 CRON_SECRET。
+  "/api/machine/video-tasks",
 ];
 
 /// 匿名访客入口：商家询盘页 /l/[slug] 与追踪链接 /t/[code]，只放行单段路径。
-const publicPatterns = [/^\/l\/[a-z0-9-]{2,64}$/, /^\/t\/[A-Za-z0-9_-]{4,32}$/];
+const publicPatterns = [
+  /^\/l\/[a-z0-9-]{2,64}$/,
+  /^\/t\/[A-Za-z0-9_-]{4,32}$/,
+  /^\/api\/machine\/video-tasks\/[a-z0-9]{8,32}$/i,
+];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

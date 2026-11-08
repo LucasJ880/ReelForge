@@ -5,8 +5,14 @@ import { isInternalRole } from "@/lib/auth-role-policy";
 import {
   createStoryboardRun,
   findResumableStoryboardRunForUser,
+  getStoryboardRunForUser,
   StoryboardRequestError,
 } from "@/lib/video-generation/storyboard-service";
+import {
+  attachMachineVideoTaskStoryboard,
+  findLinkedMachineVideoStoryboard,
+  MachineVideoTaskError,
+} from "@/lib/services/machine-video-task-service";
 import {
   STORYBOARD_PERSON_REFS_MAX,
   canSubmitStoryboardPersonRefs,
@@ -51,18 +57,26 @@ const createSchema = z.object({
   purpose: z.string().trim().min(1).max(200).optional(),
   /// 已定的口播稿：只给镜头卡按台词顺序排镜头、标谁说话（上限与统一创作请求的口播稿一致）。
   voiceoverScript: z.string().trim().max(2_000).optional(),
+  /// 机器视频任务的人工确认入口。有值时复用这一轮故事板，不另开任务。
+  machineTaskId: z.string().trim().min(8).max(32).optional(),
 }).strict();
 
 interface StoryboardPostDependencies {
   requireAuth: typeof requireAuth;
   createStoryboardRun: typeof createStoryboardRun;
   personRefsMode: typeof storyboardPersonRefsMode;
+  findLinkedMachineVideoStoryboard: typeof findLinkedMachineVideoStoryboard;
+  attachMachineVideoTaskStoryboard: typeof attachMachineVideoTaskStoryboard;
+  getStoryboardRunForUser: typeof getStoryboardRunForUser;
 }
 
 const defaultPostDependencies: StoryboardPostDependencies = {
   requireAuth,
   createStoryboardRun,
   personRefsMode: storyboardPersonRefsMode,
+  findLinkedMachineVideoStoryboard,
+  attachMachineVideoTaskStoryboard,
+  getStoryboardRunForUser,
 };
 
 export function createStoryboardPostHandler(
@@ -87,10 +101,24 @@ export function createStoryboardPostHandler(
       );
     }
     try {
+      const { machineTaskId, ...storyboardInput } = parsed.data;
+      if (machineTaskId) {
+        const linkedRunId = await dependencies.findLinkedMachineVideoStoryboard(
+          guard.session.user.id,
+          machineTaskId,
+        );
+        if (linkedRunId) {
+          const run = await dependencies.getStoryboardRunForUser(
+            linkedRunId,
+            guard.session.user.id,
+          );
+          return NextResponse.json({ ok: true, run });
+        }
+      }
       const run = await dependencies.createStoryboardRun({
         userId: guard.session.user.id,
         idempotencyKey,
-        ...parsed.data,
+        ...storyboardInput,
         // 主播参考图的放行由路由按开关 + 角色算好；service 在幂等回放之后才校验，
         // 同一键的旧请求刷新重提不会因为开关关掉而 400。
         personRefsAllowed: canSubmitStoryboardPersonRefs({
@@ -100,8 +128,18 @@ export function createStoryboardPostHandler(
         // 创作台直接发起：计入每小时限流（批量内部准备不走这个入口）。
         userInitiated: true,
       });
+      if (machineTaskId) {
+        await dependencies.attachMachineVideoTaskStoryboard({
+          userId: guard.session.user.id,
+          taskId: machineTaskId,
+          storyboardRunId: run.id,
+        });
+      }
       return NextResponse.json({ ok: true, run }, { status: 201 });
     } catch (error) {
+      if (error instanceof MachineVideoTaskError) {
+        return NextResponse.json(error.body, { status: error.status });
+      }
       if (error instanceof StoryboardRequestError) {
         return NextResponse.json(
           { ok: false, code: error.code, error: error.message },

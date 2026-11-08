@@ -9,6 +9,8 @@ import { getCapabilities } from "@/lib/services/capability-status-service";
 import { authOptions } from "@/lib/auth";
 import { contactEmail } from "@/lib/config/contact";
 import { loadCreateRetryPrefill } from "@/lib/services/create-retry-prefill-service";
+import { resolveOwnedImageAssets } from "@/lib/services/media-asset-service";
+import { readMachineVideoTaskPrefill } from "@/lib/services/machine-video-task-service";
 import { loadExchangeReadings, loadProductionCounts, loadVideoQuota } from "@/lib/services/exchange-readings";
 import { findProductImageResultForUser } from "@/lib/services/product-image-service";
 import type { UploadedAsset } from "@/types/video-generation";
@@ -32,11 +34,12 @@ export default async function PlatformCreatePage({
     prompt?: string;
     guide?: string;
     retry?: string;
+    machineTask?: string;
   }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/create");
-  const [{ productImageResultId, styleTemplate, prompt, guide, retry }, locale, routeState] = await Promise.all([
+  const [{ productImageResultId, styleTemplate, prompt, guide, retry, machineTask }, locale, routeState] = await Promise.all([
     searchParams,
     getServerLocale(),
     getCustomerRouteRehearsalState("create"),
@@ -54,6 +57,12 @@ export default async function PlatformCreatePage({
   const retryPrefill = typeof retry === "string" && retry && !result
     ? await loadCreateRetryPrefill(retry, session.user.id)
     : null;
+  const machinePrefill = typeof machineTask === "string" && machineTask && !result && !retryPrefill
+    ? await readMachineVideoTaskPrefill(session.user.id, machineTask)
+    : null;
+  const machineAssets = machinePrefill?.assetIds.length
+    ? await loadMachineTaskAssets(session.user.id, machinePrefill.assetIds, locale)
+    : [];
   const retryAssets: UploadedAsset[] = (retryPrefill?.productAssets ?? []).map((asset, index) => ({
     id: asset.id,
     assetId: asset.id,
@@ -88,15 +97,23 @@ export default async function PlatformCreatePage({
           suggestedUse: locale === "en-US" ? "Loaded from Product Image Studio as a product-consistency reference." : "已从产品图工作台载入，可作为视频的产品一致性参考。",
           warnings: [],
         }]
-      : retryAssets;
+      : retryAssets.length > 0
+        ? retryAssets
+        : machineAssets;
   return (
     <div data-route-state={routeState === "empty" ? "empty" : "ready"}>
       <StreamlinedVideoStudio
         initialAssets={initialAssets}
         initialStyleTemplateId={styleTemplate}
-        initialPrompt={(retryPrefill?.prompt || prompt)?.slice(0, 4000) ?? ""}
-        initialDurationSec={retryPrefill?.durationSec ?? undefined}
-        initialAspectRatio={retryPrefill?.aspectRatio ?? undefined}
+        initialPrompt={(retryPrefill?.prompt || machinePrefill?.prompt || prompt)?.slice(0, 4000) ?? ""}
+        initialDurationSec={supportedDuration(retryPrefill?.durationSec ?? machinePrefill?.durationSec)}
+        initialAspectRatio={supportedAspect(retryPrefill?.aspectRatio ?? machinePrefill?.aspectRatio)}
+        initialVoiceoverScript={machinePrefill?.voiceoverScript ?? ""}
+        machineTaskId={
+          machinePrefill && !machinePrefill.storyboardRunId && typeof machineTask === "string"
+            ? machineTask
+            : null
+        }
         retryOfOrderId={retryPrefill?.orderId ?? null}
         brandPackages={brandPackages}
         canSelectVideoRoute={false}
@@ -130,6 +147,44 @@ async function loadCreateReadings(userId: string, rehearseEmpty: boolean): Promi
     quotaLimit: quota.limit,
     successRate7d: activity.successRate7d,
   };
+}
+
+function supportedDuration(value: number | undefined): 15 | 30 | 60 | undefined {
+  return value === 15 || value === 30 || value === 60 ? value : undefined;
+}
+
+function supportedAspect(value: string | undefined): "9:16" | "16:9" | "1:1" | undefined {
+  return value === "9:16" || value === "16:9" || value === "1:1" ? value : undefined;
+}
+
+async function loadMachineTaskAssets(
+  userId: string,
+  assetIds: string[],
+  locale: string,
+): Promise<UploadedAsset[]> {
+  try {
+    const assets = await resolveOwnedImageAssets({ userId, assetIds });
+    return assets.map((asset, index) => ({
+      id: asset.id,
+      assetId: asset.id,
+      type: "IMAGE" as const,
+      inferredRole: "product_image" as const,
+      roleConfidence: 1,
+      url: absoluteAssetUrl(asset.url),
+      mimeType: asset.mimeType,
+      fileName: `product-image-${index + 1}`,
+      width: asset.width,
+      height: asset.height,
+      durationSeconds: null,
+      userAssignedRole: "product_image" as const,
+      suggestedUse: locale === "en-US"
+        ? "Loaded from a video task waiting for confirmation."
+        : "已从待确认的视频任务载入。",
+      warnings: [],
+    }));
+  } catch {
+    return [];
+  }
 }
 
 function absoluteAssetUrl(url: string): string {

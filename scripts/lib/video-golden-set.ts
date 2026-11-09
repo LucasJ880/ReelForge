@@ -322,3 +322,65 @@ export function tallyBlindVotes(
   }
   return result;
 }
+
+export function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/gu, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!);
+}
+
+export interface BlindReviewSection {
+  /// 一对的标识（评测集是用例 id，压测是「用例-角度」）；票按它记
+  id: string;
+  title: string;
+  /// 标题下面的几行说明（商家原话、口播、重点看什么）
+  notes: Array<{ label: string; text: string }>;
+  leftSrc: string;
+  rightSrc: string;
+  /// 这一对底下附加的内容（已是 HTML，如 AI 预评表）
+  extraHtml?: string;
+}
+
+/**
+ * 盲评页（评测集与真机压测共用）：每对两段视频左右摆，六项 + 整体各选「左更好 / 差不多 / 右更好」，
+ * 票存浏览器本地、可导出 JSON（{ runKey, reviewer, votes }）交回来揭盲。页面里不出现哪段是哪一版。
+ */
+export function renderBlindReviewPage(args: { runKey: string; sections: readonly BlindReviewSection[] }): string {
+  const dimensions = [
+    ...GOLDEN_SET_DIMENSIONS.map((dimension) => ({ id: dimension.id as string, label: dimension.label, question: dimension.question })),
+    { id: "overall", label: "整体", question: "哪一条你更愿意直接发出去？" },
+  ];
+  const sections = args.sections.map((section) => {
+    const radios = dimensions
+      .map(
+        (dimension) => `<fieldset data-dim="${dimension.id}"><legend title="${escapeHtml(dimension.question)}">${escapeHtml(dimension.label)}</legend>${["left", "tie", "right"]
+          .map((vote) => `<label><input type="radio" name="${section.id}-${dimension.id}" value="${vote}"> ${vote === "left" ? "左更好" : vote === "right" ? "右更好" : "差不多"}</label>`)
+          .join("")}</fieldset>`,
+      )
+      .join("");
+    return `<section data-case="${section.id}"><h2>${escapeHtml(section.title)}</h2>
+${section.notes.map((note) => `<p><b>${escapeHtml(note.label)}：</b>${escapeHtml(note.text)}</p>`).join("")}
+<div class="pair"><figure><figcaption>左</figcaption><video src="${escapeHtml(section.leftSrc)}" controls preload="metadata" playsinline></video></figure><figure><figcaption>右</figcaption><video src="${escapeHtml(section.rightSrc)}" controls preload="metadata" playsinline></video></figure></div>
+<form>${radios}</form>
+${section.extraHtml ?? ""}</section>`;
+  });
+  return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>视频盲评 · ${escapeHtml(args.runKey)}</title>
+<meta name="color-scheme" content="light dark">
+<style>body{font:15px/1.6 system-ui,sans-serif;max-width:1100px;margin:0 auto;padding:16px;background:Canvas;color:CanvasText}section{border-top:1px solid GrayText;padding:16px 0}.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}figure{margin:0}video{width:100%;max-height:70vh}fieldset{display:inline-block;border:1px solid GrayText;margin:4px;padding:4px 8px}table{border-collapse:collapse}td,th{border:1px solid GrayText;padding:2px 8px;text-align:center}#bar{position:sticky;top:0;background:Canvas;padding:8px 0;border-bottom:1px solid GrayText}@media (max-width:640px){.pair{grid-template-columns:1fr}}</style></head><body>
+<div id="bar"><b>视频盲评 · ${escapeHtml(args.runKey)}</b> · 每条两段视频左右顺序随机，看不出哪段是哪一版。评审人：<input id="reviewer" placeholder="名字"> <button id="export">导出评分</button> <span id="count"></span></div>
+<p>六项各选「左更好 / 差不多 / 右更好」，最后选整体更愿意发哪条。鼠标停在项目名上能看到判断标准。评完点「导出评分」，把下载的 JSON 发回来揭盲。</p>
+${sections.join("\n")}
+<script>
+const KEY = ${JSON.stringify(`golden-set-votes:${args.runKey}`)};
+const saved = (() => { try { return JSON.parse(localStorage.getItem(KEY) || "{}"); } catch { return {}; } })();
+for (const input of document.querySelectorAll("input[type=radio]")) {
+  const [caseId, dim] = input.name.split(/-(?=[^-]+$)/);
+  if (saved[caseId] && saved[caseId][dim] === input.value) input.checked = true;
+  input.addEventListener("change", () => { saved[caseId] = saved[caseId] || {}; saved[caseId][dim] = input.value; try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch {} update(); });
+}
+function update() { const n = Object.values(saved).reduce((s, v) => s + Object.keys(v).length, 0); document.getElementById("count").textContent = "已评 " + n + " 项"; }
+update();
+document.getElementById("export").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify({ runKey: ${JSON.stringify(args.runKey)}, reviewer: document.getElementById("reviewer").value, votes: saved }, null, 2)], { type: "application/json" });
+  const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "votes-" + ${JSON.stringify(args.runKey)} + ".json"; link.click();
+});
+</script></body></html>`;
+}

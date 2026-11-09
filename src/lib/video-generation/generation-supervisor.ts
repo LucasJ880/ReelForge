@@ -43,6 +43,7 @@ import {
   createPlanningDegradationLog,
   logPlanningDegradations,
 } from "@/lib/video-generation/planning-degradation";
+import { leanPlanningEnabled } from "@/lib/video-generation/planning-mode";
 import {
   effectiveAssetRole,
   type UnifiedVideoGenerationRequest,
@@ -102,6 +103,8 @@ export async function buildPlan(
 
   const classification = classifyInput({ ...request, attachments: classifiedAssets });
   const degradations = createPlanningDegradationLog();
+  /// 出方案精简（缺省开，PLANNING_FULL_LLM=on 退回）：一致性设定与段提示词不再调模型，见 planning-mode.ts
+  const lean = leanPlanningEnabled();
 
   /// 2. Creative brief（可能调 LLM）与 5.45 参考图视觉分析：
   /// 视觉分析让 GPT 真正「看」参考图，提取真实门店 / 产品实拍细节，让文字锚（bible / prompt）和图片锚描述同一个真实场景。
@@ -169,6 +172,7 @@ export async function buildPlan(
     styleTemplate,
     visualRefs,
     onDegraded: degradations.record,
+    skipLlm: lean,
   });
 
   /// 6. Per-segment prompts → VideoSegment[]
@@ -185,6 +189,7 @@ export async function buildPlan(
     visualRefs,
     voiceover: postProduction.audio.voiceover,
     onDegraded: degradations.record,
+    skipLlm: lean,
   });
 
   /// 7. Assembly plan

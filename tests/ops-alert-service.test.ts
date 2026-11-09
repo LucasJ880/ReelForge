@@ -197,8 +197,8 @@ test("保活告警线：过了截止 45 分钟才报；没有截止时间不报�
 });
 
 test("Shuyu 余额预警：还够不到 20 条 15 秒视频就提醒，按天一条；余额或单价拿不到不报", () => {
-  /// 11-09 实况：余额 142698、最便宜 15 秒档 1260 → 还够 113 条，不报
-  assert.equal(shuyuLowBalanceAlert({ balancePoints: 142_698, videoCostPoints: 1260, minVideos: 20 }), null);
+  /// 余额充足（够 100 条）：不报
+  assert.equal(shuyuLowBalanceAlert({ balancePoints: 126_000, videoCostPoints: 1260, minVideos: 20 }), null);
   const low = shuyuLowBalanceAlert({ balancePoints: 24_000, videoCostPoints: 1260, minVideos: 20 });
   assert.equal(low?.kind, "provider_low_balance");
   assert.equal(low?.window, "day");

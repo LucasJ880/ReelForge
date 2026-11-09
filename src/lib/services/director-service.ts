@@ -17,6 +17,7 @@ import {
   type DirectorPlan,
 } from "@/lib/schemas/director-plan";
 import { getTopThemeKeysForIndustry } from "@/lib/config/industry-defaults";
+import { safeAreaNotesFor } from "@/lib/video-generation/platform-safe-zone";
 import { recordAIUsage } from "./ai-usage-log-service";
 import {
   LLMSchemaError,
@@ -560,7 +561,7 @@ export function mockDirectorPlan(ctx: DirectorContext): DirectorPlan {
       ctaEndCard: "End card: product name + 'Tap to learn more'",
       backgroundMusic: "Soft modern indie loop at -14 LUFS.",
       voiceoverAlignment: "Voiceover aligned with on-screen actions, no overlap with captions.",
-      safeAreaNotes: "Keep captions inside the central 80% to clear TikTok UI overlays.",
+      safeAreaNotes: safeAreaNotesFor(ctx.targetPlatform),
     },
     qualityChecklist: [
       "First 2 seconds is a visual moment (no tagline-only opening)",

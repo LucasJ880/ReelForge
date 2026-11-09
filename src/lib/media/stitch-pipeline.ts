@@ -31,6 +31,7 @@ import {
   renderSrtCaptions,
 } from "@/lib/video-generation/audio-post-production";
 import { measureSpeechSafeTailTrim } from "@/lib/video-generation/tail-trim";
+import { renderAiBadgeAss, shouldBurnAiBadge } from "@/lib/compliance/ai-generated-badge";
 import { probeMedia, runFfmpeg, type MediaProbe } from "./ffmpeg-bin";
 import { pickStitchFrameRate } from "./frame-rate";
 import { ensureMediaFonts } from "./media-fonts";
@@ -340,7 +341,8 @@ function escapeFfmpegFilterPath(value: string): string {
  * 纯函数：单遍合成的 filter_complex。
  *   [v_i] = 缩放/pad/setsar/帧率 → 末帧克隆兜底 → 按帧数截断
  *   [a_i] = 重采样立体声 → 补静音 → 按采样数截断（无音轨：静音源按采样数截断）
- *   concat → [vcat][acat] → 字幕（ass）→ 混音计划（BGM 闪避 + 响度归一）
+ *   concat → [vcat][acat] → 字幕（ass）→「AI生成」角标（ass，可开关）→ 混音计划（BGM 闪避 + 响度归一）
+ * 没开角标时滤镜串与之前逐字节一致。
  */
 export function buildTimelineFilterGraph(args: {
   clips: PlannedTimelineClip[];
@@ -348,6 +350,8 @@ export function buildTimelineFilterGraph(args: {
   height: number;
   fps: string;
   ass: { path: string; fontsDir: string } | null;
+  /** 常驻「AI生成」角标（叠在字幕之后，整条成片含尾卡都有）；null / 不传 = 不烧 */
+  badgeAss?: { path: string; fontsDir: string } | null;
   /** buildAudioFilterPlan 的 filterComplex（以 [acat] 为原生音轨）；null = 不混音直接用 [acat] */
   audioPlanFilter: string | null;
   audioPlanOutput: string | null;
@@ -377,6 +381,12 @@ export function buildTimelineFilterGraph(args: {
       `[vcat]ass=filename='${escapeFfmpegFilterPath(args.ass.path)}':fontsdir='${escapeFfmpegFilterPath(args.ass.fontsDir)}'[vout]`,
     );
     videoLabel = "[vout]";
+  }
+  if (args.badgeAss) {
+    parts.push(
+      `${videoLabel}ass=filename='${escapeFfmpegFilterPath(args.badgeAss.path)}':fontsdir='${escapeFfmpegFilterPath(args.badgeAss.fontsDir)}'[vbadge]`,
+    );
+    videoLabel = "[vbadge]";
   }
   let audioLabel = "[acat]";
   if (args.audioPlanFilter && args.audioPlanOutput) {
@@ -464,6 +474,15 @@ export interface ComposeTimelineInput {
    * 字幕按段窗口逐段对齐时直接用它；没有（旧计划）按各段计划时长重切。
    */
   voiceoverChunks?: ReadonlyArray<string> | null;
+  /**
+   * 目标平台（DeliveryOrder.targetPlatform）。抖音：字幕让开界面安全区，并默认烧入「AI生成」角标。
+   */
+  platform?: string | null;
+  /**
+   * 常驻「AI生成」角标的显式开关：true / false 以它为准；不传 = 按平台与部署开关决定
+   *（见 compliance/ai-generated-badge 的 shouldBurnAiBadge）。
+   */
+  aiBadge?: boolean;
   workDir: string;
   /** 强制帧率（b-roll：30）；不传 = 主片（第一段）源帧率 */
   frameRate?: string;
@@ -482,7 +501,7 @@ export interface ComposeTimelineOutput {
   thumbnailPath: string | null;
   durationSec: number;
   captionWindowSec: number | null;
-  applied: { captions: boolean; audioMix: boolean; bgm: boolean };
+  applied: { captions: boolean; audioMix: boolean; bgm: boolean; aiBadge: boolean };
   clips: TimelineClipReport[];
   timings: Record<string, number>;
   /** 主编码的 ffmpeg stderr（logLevel=info 时含 libass 日志） */
@@ -718,6 +737,7 @@ export async function composeTimeline(
         position: input.postProduction.captions.position,
         style: input.postProduction.captions.style,
         language: input.postProduction.captions.language,
+        platform: input.platform ?? null,
       }),
       "utf8",
     );
@@ -726,6 +746,22 @@ export async function composeTimeline(
       srtPath = path.join(input.workDir, "captions.srt");
       await writeFile(srtPath, renderSrtCaptions(cues), "utf8");
     }
+  }
+
+  // ---- 「AI生成」角标（常驻，整条成片含尾卡；与字幕同一次编码） ----
+  let badgeAss: { path: string; fontsDir: string } | null = null;
+  if (shouldBurnAiBadge({ platform: input.platform, explicit: input.aiBadge })) {
+    const { fontDir } = ensureMediaFonts();
+    if (!fontDir) {
+      /// 标识是合规要求：没字体就烧不出来，宁可失败也不交付一条没有标识的成片
+      throw new StitchCompositionError(
+        "AI_BADGE_FONT_MISSING",
+        "bundled CJK font is missing in this runtime; refusing to deliver without the AI-generated badge",
+      );
+    }
+    const badgePath = path.join(input.workDir, "ai-badge.ass");
+    await writeFile(badgePath, renderAiBadgeAss({ width, height, platform: input.platform }), "utf8");
+    badgeAss = { path: badgePath, fontsDir: fontDir };
   }
 
   // ---- 输入 ----
@@ -780,6 +816,7 @@ export async function composeTimeline(
     height,
     fps,
     ass,
+    badgeAss,
     audioPlanFilter,
     audioPlanOutput,
   });
@@ -864,6 +901,7 @@ export async function composeTimeline(
       captions: Boolean(ass),
       audioMix: Boolean(audioPlanOutput),
       bgm: Boolean(effects.bgmPath),
+      aiBadge: Boolean(badgeAss),
     },
     clips: states.map((state, index) => ({
       index,

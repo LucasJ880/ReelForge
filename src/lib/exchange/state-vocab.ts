@@ -89,6 +89,11 @@ export const STATE_VOCAB = {
   submission: {
     received: entry("filled", "已收到", "Received"),
   },
+  /** 一条成片在某个平台上的发布登记（抖音发布包）：登记 = 运营回来记下发到了哪个号。 */
+  publish: {
+    unlogged: entry("queued", "未登记", "Not logged"),
+    logged: entry("filled", "已登记", "Logged"),
+  },
   /** 上手向导的一步（/app/welcome）：做没做完从真实数据推出来；进行中 = 等你接着做。 */
   setupStep: {
     todo: entry("queued", "待完成", "To do"),

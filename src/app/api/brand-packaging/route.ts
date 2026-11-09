@@ -28,6 +28,15 @@ import {
   isTrustedMediaUrl,
   MediaFetchError,
 } from "@/lib/storage/trusted-media-url";
+import { douyinKitRenderSchema } from "@/lib/contracts/douyin-publish-kit";
+import {
+  DouyinKitError,
+  loadDouyinKitContext,
+  renderDouyinKitAssets,
+} from "@/lib/services/douyin-publish-kit-service";
+import { isDouyinMatrixAccount } from "@/lib/brand/douyin-matrix-access";
+import { assertPaidActionRateLimit } from "@/lib/services/paid-action-rate-limit";
+import { rateLimitedResponse } from "@/lib/api-rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -123,12 +132,72 @@ async function downloadTo(
   return path;
 }
 
+/**
+ * 抖音发布包的导出素材（封面 + 烧入「AI生成」角标的发布版成片，矩阵账号另加 Aivora 尾卡）。
+ * 挂在本路由上是因为只有这个函数打包了 ffmpeg 与中文字体；逻辑全在 douyin-publish-kit-service。
+ * 文案命中广告法极限词 → 422，不产出任何素材。客户端中止请求 = 取消，已有素材不动。
+ */
+async function renderDouyinKit(
+  request: Request,
+  userId: string,
+  input: unknown,
+): Promise<NextResponse> {
+  const parsed = douyinKitRenderSchema.safeParse(input);
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "VALIDATION_FAILED",
+        error: parsed.error.issues[0]?.message ?? "参数不合法",
+      },
+      { status: 400 },
+    );
+  }
+  const context = await loadDouyinKitContext(userId, parsed.data.orderId);
+  if (!context) {
+    return NextResponse.json(
+      { ok: false, code: "NOT_FOUND", error: "成片不存在、不属于当前账号，或还没有成片" },
+      { status: 404 },
+    );
+  }
+  try {
+    await assertPaidActionRateLimit({ action: "douyin-kit-render", userId });
+    const assets = await renderDouyinKitAssets({
+      context,
+      copy: parsed.data.copy,
+      includeVideo: parsed.data.includeVideo,
+      matrixAccount: await isDouyinMatrixAccount(userId),
+      signal: request.signal,
+    });
+    return NextResponse.json({ ok: true, assets });
+  } catch (error) {
+    const limited = rateLimitedResponse(error);
+    if (limited) return limited;
+    if (error instanceof DouyinKitError) {
+      return NextResponse.json(
+        { ok: false, code: error.code, error: error.message, hits: error.hits },
+        { status: error.code === "AD_LAW_TERMS" ? 422 : error.code === "CANCELLED" ? 499 : 500 },
+      );
+    }
+    console.error("[brand-packaging] douyin kit failed", error);
+    return NextResponse.json(
+      { ok: false, code: "RENDER_FAILED", error: "发布素材生成失败，请重试" },
+      { status: 500 },
+    );
+  }
+}
+
 export async function POST(request: Request): Promise<NextResponse> {
   const auth = await requireAuth();
   if (!auth.ok) return auth.response;
   const session = auth.session;
 
-  const parsed = requestSchema.safeParse(await request.json().catch(() => null));
+  const rawBody: unknown = await request.json().catch(() => null);
+  if (rawBody && typeof rawBody === "object" && "douyinKit" in rawBody) {
+    return renderDouyinKit(request, session.user.id, (rawBody as { douyinKit: unknown }).douyinKit);
+  }
+
+  const parsed = requestSchema.safeParse(rawBody);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "invalid request", issues: parsed.error.issues.slice(0, 5) },

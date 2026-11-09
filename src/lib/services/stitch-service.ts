@@ -1543,6 +1543,9 @@ export async function composeAndPersistTimeline(params: {
   frameRate?: string;
   /// P04-C：派发时持久化的各 AI 段台词（DirectorPlan.segmentPlan[].voiceoverChunk，按段序）；字幕逐段对齐用
   voiceoverChunks?: ReadonlyArray<string> | null;
+  /// 目标平台（抖音：字幕安全区 + 默认烧「AI生成」角标）与角标显式开关，原样交给合成管线
+  platform?: string | null;
+  aiBadge?: boolean;
   extractThumbnail?: boolean;
   budget?: MediaBudget;
   checkpoint?: () => Promise<void>;
@@ -1586,6 +1589,8 @@ export async function composeAndPersistTimeline(params: {
       postProduction: params.postProduction ?? null,
       captionWindowSec: params.captionWindowSec ?? null,
       voiceoverChunks: params.voiceoverChunks ?? null,
+      platform: params.platform ?? null,
+      aiBadge: params.aiBadge,
       workDir: path.join(tmpDir, "work"),
       frameRate: params.frameRate,
       budget: params.budget,

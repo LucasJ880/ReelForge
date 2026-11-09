@@ -47,6 +47,18 @@ export const PAID_ACTION_RATE_LIMITS = {
     envKey: "BROLL_RATE_LIMIT_PER_HOUR",
     message: "实拍图库成片提交过于频繁，请一小时后再试。",
   },
+  /// 抖音发布包起文案：一次 fast 档 LLM
+  "douyin-kit-copy": {
+    perHour: 30,
+    envKey: "DOUYIN_KIT_COPY_RATE_LIMIT_PER_HOUR",
+    message: "文案生成过于频繁，请一小时后再试，或直接手动填写。",
+  },
+  /// 抖音发布包导出素材：函数内 ffmpeg 再编码一次成片 + 封面合成（不调任何生成供应商）
+  "douyin-kit-render": {
+    perHour: 30,
+    envKey: "DOUYIN_KIT_RENDER_RATE_LIMIT_PER_HOUR",
+    message: "发布素材生成过于频繁，请一小时后再试。",
+  },
 } as const;
 
 export type PaidAction = keyof typeof PAID_ACTION_RATE_LIMITS;

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, Music } from "lucide-react";
+import { ArrowLeft, Music, Send } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { contactEmail } from "@/lib/config/contact";
 import { getUnifiedLibraryItem } from "@/lib/services/unified-library-service";
@@ -143,6 +143,13 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
               ) : null}
               {item.subtitleFileUrl && !item.isShowcase ? (
                 <SubtitleDownloadLink subtitleFileUrl={item.subtitleFileUrl} filename={`aivora-${item.id}.srt`} label={copy.downloadSubtitles} />
+              ) : null}
+              {/* 抖音发布包：带「AI生成」角标的成片 + 封面 + 标题正文话题 + 发布登记（只对本人的已成片单条） */}
+              {item.videoUrl && item.status === "ready" && item.briefId && !item.isShowcase ? (
+                <Button render={<Link href={`/app/library/${item.id}/douyin`} />} variant="outline" size="sm" data-testid="douyin-kit-entry">
+                  <Send aria-hidden />
+                  {copy.douyinKit}
+                </Button>
               ) : null}
             </div>
             {/* 授权配乐（CC BY）的署名跟着交付走：紧挨下载按钮，发布时照抄即可 */}

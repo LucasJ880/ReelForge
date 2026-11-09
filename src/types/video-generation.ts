@@ -35,7 +35,12 @@ export type VideoGoal =
   | "personal_lifestyle"
   | "personal_clip";
 
-export type TargetPlatform = "tiktok" | "instagram_reels" | "youtube_shorts" | "generic_vertical";
+export type TargetPlatform =
+  | "tiktok"
+  | "instagram_reels"
+  | "youtube_shorts"
+  | "generic_vertical"
+  | "douyin";
 
 export type AspectRatio = "9:16" | "16:9" | "1:1";
 

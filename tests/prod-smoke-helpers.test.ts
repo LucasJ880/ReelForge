@@ -14,11 +14,19 @@ import {
   optionColorProblem,
   parseSmokeSession,
   planStaleSessionCheck,
+  schemaBehindProblem,
   type OptionColors,
   type Rgba,
   type SmokeSession,
 } from "../e2e/prod-smoke-helpers";
-import { deploymentRelease, healthResponseSchema, unavailableHealthResponse } from "../src/lib/contracts/health";
+import {
+  deploymentRelease,
+  expectedMigrations,
+  healthResponseSchema,
+  resolveSchemaSync,
+  unavailableHealthResponse,
+} from "../src/lib/contracts/health";
+import { migrationNames } from "../next.config";
 
 const WHITE: Rgba = { r: 255, g: 255, b: 255, a: 1 };
 const BLACK: Rgba = { r: 0, g: 0, b: 0, a: 1 };
@@ -193,4 +201,74 @@ test("冒烟绝不触发付费生成：不点「生成」、不调生成 / 派�
   const spec = await readFile("e2e/prod-smoke.spec.ts", "utf8");
   assert.doesNotMatch(spec, /name:\s*["'`][^"'`]*生成/);
   assert.doesNotMatch(spec, /\/api\/(videos|video-generation|batch|product-images|storyboard)/);
+});
+
+// ---------------------------------------------------------------------------
+// 「代码比库新」发布闸（2026-11-09：11-08 部署带了迁移却没在生产库执行）
+// ---------------------------------------------------------------------------
+
+const MIGRATION_A = "20261029120000_storyboard_run_planning_degradations";
+const MIGRATION_B = "20261108120000_machine_video_task";
+
+test("迁移清单：只收迁移目录名，按时间排序，锁文件与杂项不算", () => {
+  /// 早期迁移是 8 位日期前缀（20260510_...），后来才是 14 位时间戳，两种都要收
+  const EARLY = "20260510_phase1_phase2_wizard_baseline";
+  assert.deepEqual(
+    migrationNames([MIGRATION_B, "migration_lock.toml", MIGRATION_A, ".DS_Store", "README.md", EARLY]),
+    [EARLY, MIGRATION_A, MIGRATION_B],
+  );
+});
+
+test("迁移清单：仓库里的每个迁移目录都被收进清单（漏收 = 那条迁移没执行也查不出来）", async () => {
+  const { readdir } = await import("node:fs/promises");
+  const entries = await readdir(new URL("../prisma/migrations", import.meta.url), { withFileTypes: true });
+  const directories = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
+  assert.deepEqual(migrationNames(directories), directories);
+  assert.deepEqual(expectedMigrations(directories.join(",")), directories);
+});
+
+test("迁移清单：构建时内联值里格式不对的条目被丢弃，没有值就是空清单", () => {
+  assert.deepEqual(expectedMigrations(`${MIGRATION_A}, ${MIGRATION_B},DROP TABLE x,`), [MIGRATION_A, MIGRATION_B]);
+  assert.deepEqual(expectedMigrations(undefined), []);
+  assert.deepEqual(expectedMigrations(""), []);
+});
+
+test("库结构核对：代码带的迁移都执行了才 in_sync；库里多出来的历史行不算问题", () => {
+  assert.deepEqual(
+    resolveSchemaSync([MIGRATION_A, MIGRATION_B], [MIGRATION_A, MIGRATION_B, "20260728100000_batch_post_production"]),
+    { schema: "in_sync", pendingMigrations: 0 },
+  );
+});
+
+test("库结构核对：部署带的迁移没执行 → behind 并报条数（11-08 的事故形状）", () => {
+  assert.deepEqual(resolveSchemaSync([MIGRATION_A, MIGRATION_B], [MIGRATION_A]), {
+    schema: "behind",
+    pendingMigrations: 1,
+  });
+});
+
+test("库结构核对：没有清单（本地构建）或查不了库 → not_checked，不误报落后", () => {
+  assert.deepEqual(resolveSchemaSync([], [MIGRATION_A]), { schema: "not_checked" });
+  assert.deepEqual(resolveSchemaSync([MIGRATION_A], null), { schema: "not_checked" });
+});
+
+test("库结构核对：三种结果都过健康响应的契约校验，且不带迁移名", () => {
+  const base = unavailableHealthResponse(new Date("2026-11-09T00:00:00.000Z"));
+  for (const sync of [
+    resolveSchemaSync([MIGRATION_A], [MIGRATION_A]),
+    resolveSchemaSync([MIGRATION_A, MIGRATION_B], [MIGRATION_A]),
+    resolveSchemaSync([], null),
+  ]) {
+    const parsed = healthResponseSchema.parse({ ...base, ...sync });
+    assert.ok(!JSON.stringify(parsed).includes("machine_video_task"));
+  }
+});
+
+test("冒烟判定：只有明确报 behind 才判红；老部署不报字段、not_checked、in_sync 都放行", () => {
+  assert.match(schemaBehindProblem({ schema: "behind", pendingMigrations: 1 }) ?? "", /1 条迁移没执行/);
+  assert.match(schemaBehindProblem({ schema: "behind" }) ?? "", /迁移没执行/);
+  assert.equal(schemaBehindProblem({ schema: "in_sync", pendingMigrations: 0 }), null);
+  assert.equal(schemaBehindProblem({ schema: "not_checked" }), null);
+  assert.equal(schemaBehindProblem({ ok: true }), null);
+  assert.equal(schemaBehindProblem(null), null);
 });

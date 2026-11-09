@@ -4,6 +4,9 @@ import {
   confirmPublished,
   failPublish,
   markDownloaded,
+  PublishAccountConflictError,
+  PublishRegistrationInputError,
+  PublishRegistrationUnavailableError,
   submitExternalPost,
   tryTransitionRoundToLive,
 } from "@/lib/services/publish-service";
@@ -37,6 +40,7 @@ export async function POST(
           externalPostId: parsed.data.externalPostId,
           publishUrl: parsed.data.publishUrl,
           operatorNote: parsed.data.operatorNote,
+          accountLabel: parsed.data.accountLabel,
         });
         return NextResponse.json(r);
       }
@@ -56,6 +60,19 @@ export async function POST(
         );
     }
   } catch (err) {
+    /// 同一条成片已登记给另一个账号：明确拒绝，不是 500
+    if (err instanceof PublishAccountConflictError) {
+      return NextResponse.json(
+        { error: err.message, code: err.code, existingAccountLabel: err.existingAccountLabel },
+        { status: 409 },
+      );
+    }
+    if (err instanceof PublishRegistrationInputError) {
+      return NextResponse.json({ error: err.message, code: err.code }, { status: 400 });
+    }
+    if (err instanceof PublishRegistrationUnavailableError) {
+      return NextResponse.json({ error: err.message, code: err.code }, { status: 503 });
+    }
     return NextResponse.json(
       { error: (err as Error).message },
       { status: 500 },

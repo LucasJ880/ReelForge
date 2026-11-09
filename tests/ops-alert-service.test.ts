@@ -14,6 +14,8 @@ import {
   opsAlertWindowKey,
   scrubAlertLine,
   sendOpsAlert,
+  shuyuLowBalanceAlert,
+  shuyuMinVideosThreshold,
   type OpsAlert,
   type OpsAlertDeps,
 } from "../src/lib/services/ops-alert-service";
@@ -192,4 +194,22 @@ test("保活告警线：过了截止 45 分钟才报；没有截止时间不报�
   assert.equal(keptAliveOverdueMinutes(timeoutAt, new Date(timeoutAt.getTime() + 44 * 60_000)), null);
   assert.equal(keptAliveOverdueMinutes(timeoutAt, new Date(timeoutAt.getTime() + 45 * 60_000)), 45);
   assert.equal(keptAliveOverdueMinutes(timeoutAt, new Date(timeoutAt.getTime() + 308 * 60_000)), 308);
+});
+
+test("Shuyu 余额预警：还够不到 20 条 15 秒视频就提醒，按天一条；余额或单价拿不到不报", () => {
+  /// 11-09 实况：余额 142698、最便宜 15 秒档 1260 → 还够 113 条，不报
+  assert.equal(shuyuLowBalanceAlert({ balancePoints: 142_698, videoCostPoints: 1260, minVideos: 20 }), null);
+  const low = shuyuLowBalanceAlert({ balancePoints: 24_000, videoCostPoints: 1260, minVideos: 20 });
+  assert.equal(low?.kind, "provider_low_balance");
+  assert.equal(low?.window, "day");
+  assert.match(low?.title ?? "", /只够约 19 条/);
+  assert.equal(shuyuLowBalanceAlert({ balancePoints: 25_200, videoCostPoints: 1260, minVideos: 20 }), null, "正好 20 条不报");
+  assert.equal(shuyuLowBalanceAlert({ balancePoints: null, videoCostPoints: 1260, minVideos: 20 }), null);
+  assert.equal(shuyuLowBalanceAlert({ balancePoints: 100, videoCostPoints: null, minVideos: 20 }), null);
+  assert.equal(shuyuLowBalanceAlert({ balancePoints: 100, videoCostPoints: 1260, minVideos: 0 }), null, "0 = 关掉预警");
+
+  assert.equal(shuyuMinVideosThreshold({}), 20);
+  assert.equal(shuyuMinVideosThreshold({ OPS_ALERT_SHUYU_MIN_VIDEOS: "50" }), 50);
+  assert.equal(shuyuMinVideosThreshold({ OPS_ALERT_SHUYU_MIN_VIDEOS: "0" }), 0);
+  assert.equal(shuyuMinVideosThreshold({ OPS_ALERT_SHUYU_MIN_VIDEOS: "abc" }), 20);
 });

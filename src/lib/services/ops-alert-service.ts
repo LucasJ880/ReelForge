@@ -29,6 +29,7 @@ export const OPS_ALERT_KINDS = [
   "stitch_failed",
   "submit_ack_unknown",
   "cron_overrun",
+  "provider_low_balance",
 ] as const;
 export type OpsAlertKind = (typeof OPS_ALERT_KINDS)[number];
 
@@ -251,4 +252,39 @@ export function capabilityTransitionAlert(
     };
   }
   return null;
+}
+
+/**
+ * Shuyu 余额预警：还够出几条 15 秒视频。能力状态要等余额不够 1 条才翻成「暂停」，那时已经断供；
+ * 这里提前在「还剩不到 N 条」时提醒充值（默认 20 条，OPS_ALERT_SHUYU_MIN_VIDEOS 可调，0 = 关）。
+ * 按天去重：没充值就每天提醒一次。
+ */
+export const DEFAULT_SHUYU_MIN_VIDEOS = 20;
+
+export function shuyuMinVideosThreshold(env: EnvLike = process.env): number {
+  const raw = env.OPS_ALERT_SHUYU_MIN_VIDEOS?.trim();
+  if (!raw) return DEFAULT_SHUYU_MIN_VIDEOS;
+  const value = Number(raw);
+  return Number.isFinite(value) && value >= 0 ? Math.floor(value) : DEFAULT_SHUYU_MIN_VIDEOS;
+}
+
+export function shuyuLowBalanceAlert(args: {
+  balancePoints: number | null;
+  videoCostPoints: number | null;
+  minVideos: number;
+}): OpsAlert | null {
+  const { balancePoints, videoCostPoints, minVideos } = args;
+  if (balancePoints === null || videoCostPoints === null || videoCostPoints <= 0 || minVideos <= 0) return null;
+  const videosLeft = Math.floor(balancePoints / videoCostPoints);
+  if (videosLeft >= minVideos) return null;
+  return {
+    kind: "provider_low_balance",
+    dedupeKey: "provider-low-balance:shuyu",
+    window: "day",
+    title: `Shuyu 余额只够约 ${videosLeft} 条 15 秒视频了`,
+    lines: [
+      `余额 ${balancePoints} 积分；最便宜的 15 秒档 ${videoCostPoints} 积分/条`,
+      `预警线：少于 ${minVideos} 条。余额不够 1 条时出片会直接暂停`,
+    ],
+  };
 }

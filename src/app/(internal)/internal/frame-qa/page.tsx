@@ -27,7 +27,8 @@ const BUCKET_COPY: Record<FrameQaBucket, { label: string; caption: string; tone:
   PASSED: { label: "通过", caption: "抽帧未检出叠加文字", tone: "filled" },
   BLOCKED: { label: "拦截中", caption: "当前仍处于拦截态（检出文字、已判失败）；重抽后通过的段不在这里，看下方拦截事件", tone: "fault" },
   WOULD_BLOCK: { label: "本该拦截", caption: "免费重抽用满，按上限放行，需人工复核", tone: "winner" },
-  SKIPPED: { label: "跳过", caption: "质检本身没跑成，不等于通过", tone: "winner" },
+  SKIPPED: { label: "跳过", caption: "本来就不该检：门禁没启用，或供应商没给视频地址", tone: "neutral" },
+  UNVERIFIED: { label: "没检成", caption: "质检自己坏了（额度 / 超时 / 抽帧异常），成片未质检就交付了；服务恢复后自动补检", tone: "fault" },
   CHECKING: { label: "质检中", caption: "占位中，结论未落库", tone: "live" },
   UNCHECKED: { label: "未质检", caption: "已成片但没进过门禁（mock / 老路径）", tone: "neutral" },
 };
@@ -96,8 +97,11 @@ export default async function InternalFrameQaPage({
       <div className="grid min-w-0 gap-4 xl:grid-cols-2">
         <section className="x-panel min-w-0 px-5 py-4">
           <SectionHead
-            title="跳过原因"
-            count={report.byStatus.find((bucket) => bucket.status === "SKIPPED")?.count ?? 0}
+            title="跳过与没检成的原因"
+            count={
+              (report.byStatus.find((bucket) => bucket.status === "SKIPPED")?.count ?? 0) +
+              (report.byStatus.find((bucket) => bucket.status === "UNVERIFIED")?.count ?? 0)
+            }
             countTone="winner"
             hint="来自 frameQaDetail.skipReason，按前缀归一化分桶（原文见每行下方）；比例按跳过行计"
           />

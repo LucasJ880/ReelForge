@@ -360,3 +360,44 @@ test("validateDeploymentEnv: explicit legacy CN profile 只接受旧 credential 
   assert.equal(ready.ok, true);
   assert.ok(ready.warnings.some((m) => /中国区/.test(m)));
 });
+
+// ---------------------------------------------------------------------------
+// 线路精简（2026-11-09）：客户出片只走 Shuyu / Runway，直连密钥缺失不该再让健康检查 503
+// ---------------------------------------------------------------------------
+
+const PROD_LIKE: EnvMap = {
+  DATABASE_URL: "postgresql://x:y@host/db",
+  AUTH_SECRET: "secret",
+  APP_BASE_URL: "https://aivora.example",
+  LLM_FORCE_MOCK: "true",
+  VIDEO_ENGINE_MOCK: "false",
+  /// 生产的实际形状：默认运行时仍指向火山直连
+  VIDEO_PROVIDER: "byteplus",
+  SEEDANCE_RUNTIME_PROFILE: "volcengine_cn_legacy",
+};
+
+test("validateDeploymentEnv: 火山直连密钥删掉后，只要 Shuyu 配着就仍然健康，直连缺失降为提醒", () => {
+  const r = validateDeploymentEnv({ ...PROD_LIKE, SHUYU_API_KEY: "shuyu-key" });
+  assert.equal(r.ok, true, r.missing.join("; "));
+  assert.deepEqual(r.missing, []);
+  assert.ok(r.warnings.some((w) => /ARK_API_KEY 未配置/.test(w) && /Shuyu \/ Runway 不受影响/.test(w)));
+});
+
+test("validateDeploymentEnv: 只配 Runway 也算有客户线路", () => {
+  const r = validateDeploymentEnv({ ...PROD_LIKE, RUNWAYML_API_SECRET: "runway-key" });
+  assert.equal(r.ok, true, r.missing.join("; "));
+});
+
+test("validateDeploymentEnv: 直连、Shuyu、Runway 都没配 → 照旧 fail closed（真的没有线路能出片）", () => {
+  const r = validateDeploymentEnv(PROD_LIKE);
+  assert.equal(r.ok, false);
+  assert.ok(r.missing.some((m) => /ARK_API_KEY/.test(m)));
+  const blank = validateDeploymentEnv({ ...PROD_LIKE, SHUYU_API_KEY: "  ", RUNWAYML_API_SECRET: " " });
+  assert.equal(blank.ok, false, "空白值不算配置");
+});
+
+test("validateDeploymentEnv: 直连密钥还配着时行为不变（不多出缺失提醒）", () => {
+  const r = validateDeploymentEnv({ ...PROD_LIKE, ARK_API_KEY: "ark-key", SHUYU_API_KEY: "shuyu-key" });
+  assert.equal(r.ok, true, r.missing.join("; "));
+  assert.equal(r.warnings.some((w) => /未配置：直连线路/.test(w)), false);
+});

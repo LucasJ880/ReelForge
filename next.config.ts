@@ -1,4 +1,28 @@
+import { readdirSync } from "node:fs";
+import path from "node:path";
 import type { NextConfig } from "next";
+
+/**
+ * 「代码比库新」发布闸（2026-11-09）：11-08 部署带了迁移却没在生产库执行，没人发现。
+ *
+ * 构建时把仓库里的迁移名清单内联进产物；/api/health 拿它和库里 `_prisma_migrations`
+ * 已完成的行比，缺一条就报 schema: "behind"，发布后冒烟据此判红。
+ * prisma/migrations 不进函数包（见 runtimeTracingExcludes），所以只能构建时读。
+ */
+const MIGRATION_DIR_PATTERN = /^\d{8,14}_[a-z0-9_]+$/;
+
+export function migrationNames(entries: readonly string[]): string[] {
+  return entries.filter((name) => MIGRATION_DIR_PATTERN.test(name)).sort();
+}
+
+function readMigrationNames(): string {
+  try {
+    return migrationNames(readdirSync(path.join(process.cwd(), "prisma", "migrations"))).join(",");
+  } catch {
+    /// 读不到目录（非常规构建环境）：留空，health 报 not_checked 而不是误报落后
+    return "";
+  }
+}
 
 export const legacyPlatformRedirects = [
   { source: "/design", destination: "/app/create", permanent: true },
@@ -94,6 +118,8 @@ const nextConfig: NextConfig = {
   /// 本地构建没有 → 空串 → 不按发布失效（闲置超时与绝对上限照常生效）。
   env: {
     AIVORA_SESSION_RELEASE: process.env.VERCEL_GIT_COMMIT_SHA ?? "",
+    /// 这次构建带的迁移名清单（逗号分隔），/api/health 的 schema 字段用它核对生产库
+    AIVORA_EXPECTED_MIGRATIONS: readMigrationNames(),
   },
   /// 运行时 require 的包不进打包产物（ffmpeg-static 的入口按 __dirname 定位二进制）
   serverExternalPackages: ["ffmpeg-static"],

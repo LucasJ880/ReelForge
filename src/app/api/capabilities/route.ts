@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
+import { withoutRetiredCapabilities } from "@/lib/capabilities/registry";
 import { getCapabilities } from "@/lib/services/capability-status-service";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const guard = await requireAuth();
   if (!guard.ok) return guard.response;
-  const capabilities = await getCapabilities();
+  /// 与状态页、壳层同一口径：已下线的线路不进客户视图
+  const capabilities = withoutRetiredCapabilities(await getCapabilities());
   return NextResponse.json(capabilities, { headers: { "cache-control": "private, no-store" } });
 }

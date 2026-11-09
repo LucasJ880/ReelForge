@@ -85,7 +85,10 @@ test("RF-029: list and detail share one runtime-validated SSR DTO mapper", () =>
     "updatedAt",
     "videoJobId",
     "videoUrl",
+    /// 2026-11-09：还在生成且等了很久时的已等待分钟数（详情页如实提示可取消重提）；其余为 null。
+    "waitingMinutes",
   ]);
+  assert.equal(row.waitingMinutes, null, "已完成的成片没有「等了多久」");
   assert.equal(row.status, "ready");
   assert.equal(row.progress, 100);
   assert.equal(row.videoUrl, "https://assets.example.com/final.mp4");

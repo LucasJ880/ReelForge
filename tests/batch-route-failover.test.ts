@@ -10,7 +10,6 @@ import { __testVideoPlans__ } from "../src/lib/providers/shuyu";
 import { createBatchJob } from "../src/lib/services/batch-service";
 import { createVideoRouteSnapshot } from "../src/lib/video-generation/video-route-registry";
 import {
-  CUSTOMER_FAILOVER_ROUTE_ID,
   customerFailoverRouteSnapshot,
 } from "../src/lib/video-generation/video-route-selection";
 import { __resetShuyuRuntimeProbeForTests } from "../src/lib/video-generation/shuyu-runtime";
@@ -85,7 +84,7 @@ function patch(
   });
 }
 
-/// 非生产、真实引擎、客户线路 = buddy；备用线路 volcengine_cn_legacy 凭据齐全。
+/// 非生产、真实引擎、客户线路 = buddy；备用线路 Runway 凭据齐全。
 function realEnvWithBackup(t: TestContext) {
   const values: Record<string, string | undefined> = {
     VERCEL_ENV: "preview",
@@ -94,8 +93,9 @@ function realEnvWithBackup(t: TestContext) {
     AIVORA_DRY_RUN: "false",
     SHUYU_API_KEY: "test-only",
     SHUYU_ALLOW_FINAL_TIER: undefined,
-    ARK_API_KEY: "test-ark-key",
-    ARK_BASE_URL: undefined,
+    /// 2026-11-09 线路精简：Shuyu 的备用只有 Runway
+    RUNWAYML_API_SECRET: "test-runway-key",
+    SHUYU_FALLBACK_TO_RUNWAY: undefined,
   };
   const originals = new Map<string, string | undefined>();
   for (const [key, value] of Object.entries(values)) {
@@ -203,9 +203,9 @@ function pickSnapshot(record: Record<string, unknown>) {
 
 test("前提：本夹具下备用线路确实可用（否则「没降级」证明不了任何事）", (t) => {
   realEnvWithBackup(t);
-  const backup = customerFailoverRouteSnapshot();
+  const backup = customerFailoverRouteSnapshot(process.env, "buddy");
   assert.ok(backup);
-  assert.equal(backup.videoRouteSnapshot, CUSTOMER_FAILOVER_ROUTE_ID);
+  assert.equal(backup.videoRouteSnapshot, "runway");
 });
 
 test("Shuyu 上游不可用：批量按原原因 shuyu_unavailable 拒绝，零建批次、零换线路", async (t) => {

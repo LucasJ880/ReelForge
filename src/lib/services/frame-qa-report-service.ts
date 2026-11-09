@@ -14,12 +14,13 @@ import { FRAME_QA_CHECKING, FRAME_QA_STATUS } from "@/lib/services/frame-qa-gate
  * 但一律防御性读取：坏数据算「未知」，不抛错。
  */
 
-/** 报表里的状态桶：四个结论 + 占位中 + 从没质检（null，如 MOCK / 老数据）。 */
+/** 报表里的状态桶：五个结论 + 占位中 + 从没质检（null，如 MOCK / 老数据）。 */
 export const FRAME_QA_BUCKETS = [
   FRAME_QA_STATUS.PASSED,
   FRAME_QA_STATUS.BLOCKED,
   FRAME_QA_STATUS.WOULD_BLOCK,
   FRAME_QA_STATUS.SKIPPED,
+  FRAME_QA_STATUS.UNVERIFIED,
   FRAME_QA_CHECKING,
   "UNCHECKED",
 ] as const;
@@ -207,7 +208,11 @@ export function normalizeSkipReason(raw: string): string {
 }
 
 function summarizeSkipReasons(rows: readonly FrameQaReportRow[]): FrameQaReasonCount[] {
-  const skipped = rows.filter((row) => bucketOf(row.frameQaStatus) === FRAME_QA_STATUS.SKIPPED);
+  /// 没检成（UNVERIFIED）与跳过（SKIPPED）的原因都记在 skipReason，一起分桶
+  const skipped = rows.filter((row) => {
+    const bucket = bucketOf(row.frameQaStatus);
+    return bucket === FRAME_QA_STATUS.SKIPPED || bucket === FRAME_QA_STATUS.UNVERIFIED;
+  });
   const buckets = new Map<string, { count: number; sample: string }>();
   for (const row of skipped) {
     const detail = isRecord(row.frameQaDetail) ? row.frameQaDetail : null;

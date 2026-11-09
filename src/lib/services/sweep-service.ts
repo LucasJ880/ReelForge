@@ -281,6 +281,54 @@ function timedOutJobCutoffs(now: Date) {
   };
 }
 
+/**
+ * 保活告警线（2026-11-09）：过了 timeoutAt 这么久、问供应商还说在处理，就叫醒运维。
+ * 10 月有两条任务这样在供应商侧挂了 308 / 338 分钟，期间商家只看到「生成中」、没人知道。
+ * Shuyu 的 failed / refund_pending / refund_error 也落在这条路上（等退款确认，不能提前重投）。
+ */
+export const KEPT_ALIVE_ALERT_MIN = 45;
+const KEPT_ALIVE_ALERT_LIMIT = 5;
+
+/** 纯函数：这条被保活的任务过了截止时间多久；没有 timeoutAt 或还没到告警线返回 null。 */
+export function keptAliveOverdueMinutes(timeoutAt: Date | null, now: Date): number | null {
+  if (!timeoutAt) return null;
+  const overdue = Math.floor((now.getTime() - timeoutAt.getTime()) / 60_000);
+  return overdue >= KEPT_ALIVE_ALERT_MIN ? overdue : null;
+}
+
+/**
+ * 对「这一轮 reconcile 之后仍在跑」的超期任务发告警（按任务一天一条）。任何失败只记日志。
+ */
+async function alertKeptAliveJobs(jobIds: string[], now: Date): Promise<void> {
+  if (jobIds.length === 0) return;
+  try {
+    const stillRunning = await db.videoJob.findMany({
+      where: { id: { in: jobIds }, status: { in: [VideoJobStatus.RUNNING, VideoJobStatus.QUEUED] } },
+      select: { id: true, timeoutAt: true, lastProviderStatus: true, videoRouteSnapshot: true },
+      take: KEPT_ALIVE_ALERT_LIMIT,
+    });
+    if (stillRunning.length === 0) return;
+    const { sendOpsAlert } = await import("./ops-alert-service");
+    for (const job of stillRunning) {
+      const overdue = keptAliveOverdueMinutes(job.timeoutAt, now);
+      if (overdue === null) continue;
+      await sendOpsAlert({
+        kind: "job_kept_alive",
+        dedupeKey: `job-kept-alive:${job.id}`,
+        window: "day",
+        title: "出片任务过了截止时间仍被供应商挂着",
+        lines: [
+          `任务 ${job.id}（线路 ${job.videoRouteSnapshot ?? "未知"}）`,
+          `供应商状态：${job.lastProviderStatus ?? "未知"}；已超过截止 ${overdue} 分钟`,
+          `商家可在成品库取消后重提；满 ${JOB_ABSOLUTE_MAX_MIN()} 分钟系统自动判失败并返还额度`,
+        ],
+      });
+    }
+  } catch (err) {
+    console.warn("[sweep] kept-alive alert failed:", (err as Error).message);
+  }
+}
+
 /// 超时候选的查询条件（抽出来便于对真实 Postgres 校验 NULL 语义）。
 function timedOutJobsWhere(
   now: Date,
@@ -311,6 +359,7 @@ async function sweepTimedOutJobs(now: Date, result: SweepResult) {
       createdAt: true,
       availableAt: true,
       externalJobId: true,
+      timeoutAt: true,
       dispatchQuarantineDecision: true,
     },
     take: 50,
@@ -318,6 +367,8 @@ async function sweepTimedOutJobs(now: Date, result: SweepResult) {
   if (stuckJobs.length === 0) return;
 
   const briefIds = new Set<string>();
+  /// reconcile 过、且已超过保活告警线的任务：循环结束后统一确认是否仍在跑再告警
+  const overdueReconciled: string[] = [];
   for (const job of stuckJobs) {
     /// Defense in depth：即使查询条件未来被改坏或行在读取后被人工 EXPIRED，
     /// 仍不能把隔离任务改成 FAILED 后送进 retry 重提路径。
@@ -335,6 +386,7 @@ async function sweepTimedOutJobs(now: Date, result: SweepResult) {
         await reconcileVideoJob(job.id);
         result.reconciledJobs.push(job.id);
         if (job.videoBriefId) briefIds.add(job.videoBriefId);
+        if (keptAliveOverdueMinutes(job.timeoutAt, now) !== null) overdueReconciled.push(job.id);
       } catch (err) {
         /// reconcile 本身异常（非供应商不可达）：留给下一轮，绝对上限兜底。
         console.warn(
@@ -371,6 +423,8 @@ async function sweepTimedOutJobs(now: Date, result: SweepResult) {
       if (job.videoBriefId) briefIds.add(job.videoBriefId);
     }
   }
+
+  await alertKeptAliveJobs(overdueReconciled, now);
 
   /// 聚合回 brief（RENDER_FAILED + errorMessage 人话）—— 复用 video-service 逻辑
   const { syncBriefStatus } = await import("./video-service");

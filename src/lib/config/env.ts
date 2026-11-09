@@ -303,6 +303,16 @@ export function parseAppEnv(env: NodeJS.ProcessEnv | Record<string, string | und
  *
  * 不抛错，由调用方决定是 throw 还是 warn 还是写 health endpoint。
  */
+/**
+ * 客户出片线路（Shuyu 或 Runway）是否至少有一条配了凭据。只看 env、不发请求。
+ * Runway 的变量名直接写在这里而不 import providers/runway：本模块是配置底座，不能反过来依赖 provider。
+ */
+function hasCustomerVideoRouteCredential(
+  env: NodeJS.ProcessEnv | Record<string, string | undefined>,
+): boolean {
+  return Boolean(shuyuApiKey(env)) || Boolean(env.RUNWAYML_API_SECRET?.trim());
+}
+
 export function validateDeploymentEnv(
   env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
 ): { ok: boolean; missing: string[]; warnings: string[] } {
@@ -349,9 +359,19 @@ export function validateDeploymentEnv(
       !seedanceApiKey(app.seedanceRuntimeProfile, env) &&
       !isMockVideoRuntime(env)
     ) {
-      missing.push(
-        `${credentialName}（SEEDANCE_RUNTIME_PROFILE=${app.seedanceRuntimeProfile} 且 VIDEO_ENGINE_MOCK=false 时必填；缺失会 fail closed）`,
-      );
+      /// 线路精简（2026-11-09）：客户出片只走 Shuyu / Runway，派发与批量在默认直连线路没配好时
+      /// 本来就放行这两条（canVideoRouteOverrideDefaultRuntimeFailure）。所以只要客户线路有一条配好了，
+      /// 直连密钥缺失就只是提醒，不再让 /api/health 报 503——否则这把已欠费账户的密钥永远删不掉。
+      /// 两条客户线路都没配时照旧 fail closed：那时真的没有任何线路能出片。
+      if (hasCustomerVideoRouteCredential(env)) {
+        warnings.push(
+          `${credentialName} 未配置：直连线路 ${app.seedanceRuntimeProfile} 不可用。客户出片走 Shuyu / Runway 不受影响；内部脚本点名直连线路会失败`,
+        );
+      } else {
+        missing.push(
+          `${credentialName}（SEEDANCE_RUNTIME_PROFILE=${app.seedanceRuntimeProfile} 且 VIDEO_ENGINE_MOCK=false 时必填；缺失会 fail closed）`,
+        );
+      }
     }
     try {
       resolveSeedanceArkBaseUrl(

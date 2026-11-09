@@ -14,6 +14,7 @@ import {
   PLANNING_FALLBACK_BY_STAGE,
   PLANNING_STAGES,
   createPlanningDegradationLog,
+  mergePlanningDegradation,
   logPlanningDegradations,
   planningDegradation,
   planningDegradationReason,
@@ -68,6 +69,9 @@ test("每一步对应一个兜底；记录形状 = 阶段 / 原因 / 兜底", ()
     "consistency_bible",
     "segment_prompts",
     "shot_cards",
+    "story_english",
+    "presenter_reference",
+    "frame_prompt",
   ]);
   assert.deepEqual(PLANNING_FALLBACK_BY_STAGE, {
     creative_brief: "heuristic_brief",
@@ -75,6 +79,9 @@ test("每一步对应一个兜底；记录形状 = 阶段 / 原因 / 兜底", ()
     consistency_bible: "heuristic_bible",
     segment_prompts: "heuristic_segment_prompts",
     shot_cards: "template_beats",
+    story_english: "original_wording",
+    presenter_reference: "no_presenter_reference",
+    frame_prompt: "trimmed_prompt",
   });
   assert.deepEqual(planningDegradation("consistency_bible", new Error("OpenAI 返回了空响应")), {
     stage: "consistency_bible",
@@ -329,6 +336,11 @@ const GOOD: Record<Exclude<Stage, "shotCards">, unknown> = {
 function stubOpenAi(t: TestContext, respond: (stage: Stage, params: CreateParams) => unknown): Stage[] {
   const calls: Stage[] = [];
   mock.method(openai.chat.completions, "create", (async (params: CreateParams) => {
+    /// 建故事板时顺带把商家原话译成英文（story-english）。这里一律译成功、不计入 calls：
+    /// 这些用例测的是各步降级，译文失败自己的记录在文件末尾单独测（2026-11-09 起译不成也记一条）。
+    if (String(params.messages[0]?.content ?? "").includes("You translate a small business owner's request")) {
+      return ok({ english: "A golden retriever plays tug of war with a teal rope toy, then naps chewing the knot." });
+    }
     const stage = stageOf(params);
     calls.push(stage);
     return respond(stage, params);
@@ -700,4 +712,96 @@ test("方案卡：降级提醒进「请注意」，按界面语言给人话，�
   /// 没降级的方案不出这句
   const clean = { ...plan, qualityReview: { ...plan.qualityReview, warnings: [] }, planningDegradations: [] };
   assert.doesNotMatch(render("zh-CN", clean), /这次 AI/);
+});
+
+// ---------------------------------------------------------------------------
+// 2026-11-09：此前只打一行 console.warn 的三处降级
+// ---------------------------------------------------------------------------
+
+test("原话译英文：超时 / 输出仍是中文 / 报错都记一条 story_english；已是英文、开关关着、LLM 没配置不算降级", async () => {
+  const { renderStoryInEnglish } = await import("../src/lib/video-generation/story-english");
+  const story = "一位妈妈在厨房里给孩子倒热水，保温杯一整天都是热的";
+  const collect = () => {
+    const recorded: Array<{ stage: string; fallback: string; reason: string }> = [];
+    return { recorded, onDegraded: (entry: { stage: string; fallback: string; reason: string }) => void recorded.push(entry) };
+  };
+
+  const timedOut = collect();
+  assert.equal(
+    await renderStoryInEnglish(story, {
+      enabled: true,
+      llmAvailable: () => true,
+      chat: (() => new Promise(() => undefined)) as never,
+      timeoutMs: 10,
+      onDegraded: timedOut.onDegraded,
+    }),
+    null,
+  );
+  assert.deepEqual(timedOut.recorded.map((entry) => [entry.stage, entry.fallback]), [["story_english", "original_wording"]]);
+  assert.match(timedOut.recorded[0]?.reason ?? "", /timed out/);
+
+  const rejected = collect();
+  await renderStoryInEnglish(story, {
+    enabled: true,
+    llmAvailable: () => true,
+    chat: (async () => ({ data: { english: story } })) as never,
+    onDegraded: rejected.onDegraded,
+  });
+  assert.equal(rejected.recorded.length, 1, "译出来还是中文 = 没用上");
+
+  const threw = collect();
+  await renderStoryInEnglish(story, {
+    enabled: true,
+    llmAvailable: () => true,
+    chat: (async () => {
+      throw new Error("429 You have no credits remaining");
+    }) as never,
+    onDegraded: threw.onDegraded,
+  });
+  assert.equal(threw.recorded[0]?.reason, "429 You have no credits remaining");
+
+  const quiet = collect();
+  const never = (async () => {
+    throw new Error("must not be called");
+  }) as never;
+  assert.equal(await renderStoryInEnglish("A mom pours hot water in the kitchen.", { enabled: true, chat: never, onDegraded: quiet.onDegraded }), "A mom pours hot water in the kitchen.");
+  assert.equal(await renderStoryInEnglish(story, { enabled: false, chat: never, onDegraded: quiet.onDegraded }), null);
+  assert.equal(await renderStoryInEnglish(story, { enabled: true, llmAvailable: () => false, chat: never, onDegraded: quiet.onDegraded }), null);
+  assert.deepEqual(quiet.recorded, []);
+
+  const ok = collect();
+  assert.equal(
+    await renderStoryInEnglish(story, {
+      enabled: true,
+      llmAvailable: () => true,
+      chat: (async () => ({ data: { english: "A mom pours hot water for her kid; the bottle stays hot all day." } })) as never,
+      onDegraded: ok.onDegraded,
+    }),
+    "A mom pours hot water for her kid; the bottle stays hot all day.",
+  );
+  assert.deepEqual(ok.recorded, [], "译成了不记");
+});
+
+test("出帧阶段的降级并进 run：同一步只留第一条，按流水线顺序排，旧数据照读", () => {
+  const presenter = planningDegradation("presenter_reference", "presenter photos resolved to nothing (2 selected)");
+  assert.deepEqual(mergePlanningDegradation(null, presenter), [presenter]);
+  assert.equal(mergePlanningDegradation([presenter], presenter), null, "逐帧提交会重复撞见同一个问题，不重复写库");
+
+  const shotCards = planningDegradation("shot_cards", "OpenAI 返回了空响应");
+  const trimmed = planningDegradation("frame_prompt", "frame 3 prompt trimmed from 5210 to 5000 chars");
+  assert.deepEqual(
+    mergePlanningDegradation([trimmed, { stage: "legacy_unknown" }], shotCards)?.map((entry) => entry.stage),
+    ["shot_cards", "frame_prompt"],
+  );
+});
+
+test("新增三步都有给商家看的中英文提醒，且不带内部术语", () => {
+  for (const stage of ["story_english", "presenter_reference", "frame_prompt"] as const) {
+    for (const locale of ["zh", "en"] as const) {
+      const notice = planningDegradationNotice(stage, locale);
+      assert.ok(notice.length > 10, `${stage}/${locale}`);
+      assert.equal(containsBannedCustomerTerm(notice), false, `${stage}/${locale} 不能出现内部术语`);
+    }
+    assert.equal(planningStageFromIssueCode(planningDegradationIssueCode(stage)), stage);
+  }
 });

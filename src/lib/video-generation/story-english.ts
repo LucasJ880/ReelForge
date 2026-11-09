@@ -8,6 +8,7 @@
  * 任何失败都返回 null，调用方退回原话，不阻塞出帧。
  */
 import { chatJsonByTier, isLLMAvailable, isLLMForcedMock } from "@/lib/ai";
+import { planningDegradation, type RecordPlanningDegradation } from "@/lib/video-generation/planning-degradation";
 
 const CJK = /[㐀-鿿豈-﫿぀-ヿ가-힯]/gu;
 /// 英文版上限：装得下一段需求的全部事实；更长的由出帧 / 出视频各自的预算再截
@@ -48,6 +49,8 @@ function normalizeStoryEnglish(data: unknown): string | null {
 }
 
 export interface StoryEnglishDeps {
+  /// 调了 AI 却没用上（超时 / 输出不合格 / 报错）时回调一次；开关关着、已是英文、LLM 没配置都不算降级
+  onDegraded?: RecordPlanningDegradation;
   enabled?: boolean;
   chat?: typeof chatJsonByTier;
   llmAvailable?: () => boolean;
@@ -80,13 +83,18 @@ export async function renderStoryInEnglish(story: string, deps: StoryEnglishDeps
     ]);
     if (!result) {
       console.warn("[story-english] timed out; keeping the merchant's original wording");
+      deps.onDegraded?.(planningDegradation("story_english", `timed out after ${deps.timeoutMs ?? TRANSLATE_TIMEOUT_MS}ms`));
       return null;
     }
     const english = normalizeStoryEnglish(result.data);
-    if (!english) console.warn("[story-english] output rejected; keeping the merchant's original wording");
+    if (!english) {
+      console.warn("[story-english] output rejected; keeping the merchant's original wording");
+      deps.onDegraded?.(planningDegradation("story_english", "output rejected (empty or still mostly non-English)"));
+    }
     return english;
   } catch (error) {
     console.warn("[story-english] translation failed; keeping the merchant's original wording:", (error as Error).message);
+    deps.onDegraded?.(planningDegradation("story_english", error));
     return null;
   } finally {
     if (timer) clearTimeout(timer);

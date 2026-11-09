@@ -342,7 +342,16 @@ export const qualityReviewSchema = z.object({
 });
 
 export const planningDegradationSchema = z.object({
-  stage: z.enum(["creative_brief", "visual_reference", "consistency_bible", "segment_prompts", "shot_cards"]),
+  stage: z.enum([
+    "creative_brief",
+    "visual_reference",
+    "consistency_bible",
+    "segment_prompts",
+    "shot_cards",
+    "story_english",
+    "presenter_reference",
+    "frame_prompt",
+  ]),
   reason: z.string(),
   fallback: z.enum([
     "heuristic_brief",

@@ -45,13 +45,13 @@ function shadow(args: {
   };
 }
 
-test("空输入：六个桶都是 0、比例 0、列表空、漂移未接入——零就写零，不抛错", () => {
+test("空输入：七个桶都是 0、比例 0、列表空、漂移未接入——零就写零，不抛错", () => {
   const report = summarizeFrameQa([], 7);
   assert.equal(report.windowDays, 7);
   assert.equal(report.total, 0);
   assert.deepEqual(
     report.byStatus.map((bucket) => bucket.status),
-    ["PASSED", "BLOCKED", "WOULD_BLOCK", "SKIPPED", "CHECKING", "UNCHECKED"],
+    ["PASSED", "BLOCKED", "WOULD_BLOCK", "SKIPPED", "UNVERIFIED", "CHECKING", "UNCHECKED"],
   );
   assert.ok(report.byStatus.every((bucket) => bucket.count === 0 && bucket.ratio === 0));
   assert.deepEqual(report.skipReasons, []);
@@ -66,7 +66,7 @@ test("空输入：六个桶都是 0、比例 0、列表空、漂移未接入—�
   assert.deepEqual(report.drift, { available: false });
 });
 
-test("状态桶：四个结论 + CHECKING 占位 + null / 未知值归「未质检」；比例按全部行计", () => {
+test("状态桶：五个结论 + CHECKING 占位 + null / 未知值归「未质检」；比例按全部行计", () => {
   const rows = [
     row({ id: "a", frameQaStatus: "PASSED" }),
     row({ id: "b", frameQaStatus: "PASSED" }),
@@ -89,7 +89,26 @@ test("状态桶：四个结论 + CHECKING 占位 + null / 未知值归「未质�
   assert.equal(byStatus.UNCHECKED.count, 2, "null 与未知状态值都算未质检");
   assert.equal(bucketOf(undefined), "UNCHECKED");
   assert.equal(bucketOf("WOULD_BLOCK"), "WOULD_BLOCK");
-  assert.equal(FRAME_QA_BUCKETS.length, 6);
+  assert.equal(FRAME_QA_BUCKETS.length, 7);
+});
+
+test("没检成（UNVERIFIED）单独一桶，不混进跳过；它的原因和跳过原因一起分桶", () => {
+  const reason = "门禁执行异常：429 You have no credits remaining.";
+  const report = summarizeFrameQa(
+    [
+      row({ id: "u1", frameQaStatus: "UNVERIFIED", frameQaDetail: { skipReason: reason } }),
+      row({ id: "u2", frameQaStatus: "UNVERIFIED", frameQaDetail: { skipReason: reason } }),
+      row({ id: "s1", frameQaStatus: "SKIPPED", frameQaDetail: { skipReason: "供应商未返回视频地址" } }),
+      row({ id: "p1", frameQaStatus: "PASSED" }),
+    ],
+    7,
+  );
+  const byStatus = Object.fromEntries(report.byStatus.map((bucket) => [bucket.status, bucket]));
+  assert.equal(byStatus.UNVERIFIED.count, 2);
+  assert.equal(byStatus.SKIPPED.count, 1);
+  assert.equal(bucketOf("UNVERIFIED"), "UNVERIFIED");
+  assert.equal(report.skipReasons.reduce((sum, bucket) => sum + bucket.count, 0), 3);
+  assert.equal(report.skipReasons[0]?.count, 2, "没检成的原因排第一");
 });
 
 test("跳过原因：从 frameQaDetail.skipReason 取，按条数降序，比例按跳过行计；没写原因的单独一桶", () => {

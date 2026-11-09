@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { isInternalRole } from "@/lib/auth-role-policy";
 import { db } from "@/lib/db";
 import { loadPulse } from "@/lib/services/exchange-readings";
+import { withoutRetiredCapabilities } from "@/lib/capabilities/registry";
 import { getCapabilities } from "@/lib/services/capability-status-service";
 import { getServerLocale } from "@/i18n/server";
 
@@ -19,7 +20,7 @@ export default async function PlatformLayout({ children }: { children: React.Rea
   if (!session?.user?.id) redirect("/login?from=/app");
   const userId = session.user.id;
   const locale = await getServerLocale();
-  const [workspace, pulse, capabilities] = await Promise.all([
+  const [workspace, pulse, allCapabilities] = await Promise.all([
     /// 2026-10-28 /persona 选择页删除后，无身份类型、没有工作区的存量账号会直接进 /app：
     /// 补建一个入门版默认工作区（与注册时同一形状），不再 500。
     db.workspace.upsert({
@@ -37,6 +38,8 @@ export default async function PlatformLayout({ children }: { children: React.Rea
     /// C4：能力状态（进程内缓存 60 秒，永不抛出）——状态栏据此亮「部分 AI 能力暂停」。
     getCapabilities(),
   ]);
+  /// 已下线的线路不进客户视图（线路精简 2026-11-09）：一条不再使用的线路出错，不该点亮「部分 AI 能力暂停」
+  const capabilities = withoutRetiredCapabilities(allCapabilities);
   return (
     <PlatformShell
       email={session.user.email ?? ""}

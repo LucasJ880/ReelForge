@@ -1,6 +1,11 @@
 import { z } from "zod";
 
 const RELEASE_PATTERN = /^[0-9a-f]{7,40}$/;
+const MIGRATION_NAME_PATTERN = /^\d{8,14}_[a-z0-9_]+$/;
+
+/** 库结构是否跟得上这次部署的代码：in_sync 全部迁移已执行；behind 有迁移没执行；not_checked 核对不了。 */
+export const schemaSyncStatuses = ["in_sync", "behind", "not_checked"] as const;
+export type SchemaSyncStatus = (typeof schemaSyncStatuses)[number];
 
 const providerConfigurationSchema = z.enum([
   "configured",
@@ -55,6 +60,9 @@ export const healthResponseSchema = z
     appVersion: z.string().min(1).max(80).nullable(),
     /// 正在提供服务的那次部署的 git commit：发布后冒烟据此确认生产别名已切到新部署再开测
     release: z.string().regex(RELEASE_PATTERN).nullable().optional(),
+    /// 「代码比库新」发布闸：这次部署带的迁移是否都已在库里执行。只报状态与条数，不报迁移名
+    schema: z.enum(schemaSyncStatuses).optional(),
+    pendingMigrations: z.number().int().min(0).max(999).optional(),
     timestamp: z.string().datetime(),
   })
   .strict();
@@ -68,6 +76,35 @@ export type HealthResponse = z.infer<typeof healthResponseSchema>;
 export function deploymentRelease(env: Record<string, string | undefined> = process.env): string | null {
   const sha = env.VERCEL_GIT_COMMIT_SHA?.trim().toLowerCase();
   return sha && RELEASE_PATTERN.test(sha) ? sha : null;
+}
+
+/**
+ * 构建时内联的迁移名清单（next.config.ts 的 env.AIVORA_EXPECTED_MIGRATIONS）；格式不对的条目一律丢弃。
+ * 默认值必须字面写 `process.env.AIVORA_EXPECTED_MIGRATIONS`：next.config 的 env 只做构建期字面替换，
+ * 运行时的 process.env 里没有这个键（与 session-policy 读 AIVORA_SESSION_RELEASE 同理）。
+ */
+export function expectedMigrations(raw: string | undefined = process.env.AIVORA_EXPECTED_MIGRATIONS): string[] {
+  return (raw ?? "")
+    .split(",")
+    .map((name) => name.trim())
+    .filter((name) => MIGRATION_NAME_PATTERN.test(name));
+}
+
+/**
+ * 代码带的迁移 vs 库里已完成的迁移。
+ * 库里多出来的行不算问题（历史迁移本地已归并）；代码带的任何一条没执行就是 behind。
+ * 拿不到清单（本地构建）或查不了库（applied = null）→ not_checked，不误报。
+ */
+export function resolveSchemaSync(
+  expected: readonly string[],
+  applied: readonly string[] | null,
+): { schema: SchemaSyncStatus; pendingMigrations?: number } {
+  if (expected.length === 0 || applied === null) return { schema: "not_checked" };
+  const done = new Set(applied);
+  const pending = expected.filter((name) => !done.has(name)).length;
+  return pending === 0
+    ? { schema: "in_sync", pendingMigrations: 0 }
+    : { schema: "behind", pendingMigrations: Math.min(pending, 999) };
 }
 
 export function healthHttpStatus(body: HealthResponse): 200 | 503 {

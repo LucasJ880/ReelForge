@@ -70,7 +70,7 @@ Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against 
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
-## API endpoint inventory (89/89 route files; 2026-10-28 删除旧中台 / 数字人 / persona 等 32 个；10-29 加线路目录；10-30 加直传 ticket / complete)
+## API endpoint inventory (92/92 route files; 2026-10-28 删除旧中台 / 数字人 / persona 等 32 个；10-29 加线路目录；10-30 加直传 ticket / complete；11-08 加机器视频任务 2 个；11-09 加抖音发布包)
 
 Middleware provides public/session boundaries. Phase 0 statically reviewed the endpoint guard calls, ownership lookup patterns, validators, and machine authentication. Full request/response schema snapshots and hostile-input execution belong to Phase 2.
 
@@ -101,6 +101,8 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | GET, POST, DELETE | `/api/content-plans/[id]/posts/[postId]/render` | Session, owner-scoped; POST demo-blocked | PRD M3/O1 + C2: 单图/轮播出图默认走 Shuyu 异步（POST 开一轮回 202，GET 读时对账；`CONTENT_POST_IMAGE_PROVIDER=openai` 回滚同步线路）；重复出图幂等不重复计费；DELETE 弃用保留素材并取消未提交的屏 |
 | POST | `/api/content-plans/[id]/posts/[postId]/render/cancel` | Session, owner-scoped | C2: 停止出图——未提交的屏取消（不计费），已提交的照常收回落库，这一轮不再变可发布 |
 | POST | `/api/performance` | Machine auth (Bearer CRON_SECRET) | PRD M2/R2: 青砚回灌渠道指标；配方只从我方 subject 读，回流方不得指定 |
+| POST | `/api/machine/video-tasks` | Machine auth (dedicated bearer token, constant-time compare; missing config → 503, wrong token → 401) | ADDED 1108 (PR #31), inventoried 1109: creates a machine video task; requires an `Idempotency-Key` header and validates the body against `contracts/machine-video-api` before touching the service. Creating a task does not dispatch generation |
+| GET | `/api/machine/video-tasks/[id]` | Machine auth (same guard) + task ownership (reads by the token's user id) | ADDED 1108 (PR #31), inventoried 1109: reads one machine video task as `machineVideoTaskViewSchema`; unknown or foreign id → 404 |
 | GET | `/api/racing` | Session, owner-scoped | PRD M2/R3: 配方维度胜负；样本不足明确返回 insufficient，不给方向性结论 |
 | POST | `/api/product-images/[id]/cancel` | Session, owner-scoped | 铁律 #7：取消这一轮产品图；清幂等键、保留素材、取消不计费 |
 | GET | `/api/cron/capability-probe` | Machine auth (Bearer CRON_SECRET) | PRD M7/C1: 能力探测（非存活探测）；逐字段漂移诊断落库；漂移返回 503 供拨测告警。C4：同一轮探测全部能力（OpenAI 文本 1 token / 看图 / TTS 每 24h 一次 / 审核、Pexels、Firecrawl 额度、remove.bg 账户、Shuyu 余额、邮件配置）写入 CapabilityStatus；`?force=1` 强制 TTS |

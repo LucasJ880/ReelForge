@@ -10,8 +10,10 @@ import { VolcengineTosStorageProvider } from "@/lib/storage/providers/volcengine
 import { getVideoProvider } from "@/lib/video-generation/providers";
 import {
   deploymentRelease,
+  expectedMigrations,
   healthHttpStatus,
   healthResponseSchema,
+  resolveSchemaSync,
   unavailableHealthResponse,
   type HealthResponse,
 } from "@/lib/contracts/health";
@@ -42,6 +44,23 @@ async function checkDatabase(): Promise<{
     return { status: "connected" };
   } catch {
     return { status: "failed" };
+  }
+}
+
+/**
+ * 「代码比库新」核对：这次部署带的迁移是否都在 `_prisma_migrations` 里完成了。
+ * 只读一列迁移名；查不了（表不存在、无权限、库不通）一律 not_checked，不拖垮健康检查。
+ */
+async function checkSchemaSync() {
+  const expected = expectedMigrations();
+  if (expected.length === 0) return resolveSchemaSync(expected, null);
+  try {
+    const rows = await db.$queryRaw<Array<{ migration_name: string }>>`
+      SELECT migration_name FROM "_prisma_migrations"
+      WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL`;
+    return resolveSchemaSync(expected, rows.map((row) => row.migration_name));
+  } catch {
+    return resolveSchemaSync(expected, null);
   }
 }
 
@@ -76,8 +95,9 @@ async function resolveHealth(req: NextRequest): Promise<HealthResponse> {
     req.nextUrl.searchParams.get("storage") === "ping" ||
     process.env.HEALTH_STORAGE_PING === "true";
 
-  const [dbResult, storagePing] = await Promise.all([
+  const [dbResult, schemaSync, storagePing] = await Promise.all([
     checkDatabase(),
+    checkSchemaSync(),
     shouldPingStorage
       ? pingStorage(storage).catch((): {
           status: "failed";
@@ -133,6 +153,7 @@ async function resolveHealth(req: NextRequest): Promise<HealthResponse> {
 
     appVersion: process.env.npm_package_version?.slice(0, 80) || null,
     release: deploymentRelease(),
+    ...schemaSync,
     timestamp: new Date().toISOString(),
   });
 }

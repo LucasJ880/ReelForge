@@ -67,7 +67,11 @@ import {
 import { cn } from "@/lib/utils";
 import type { WorkspaceBrandPackageView } from "@/lib/services/workspace-brand-package-service";
 import { BRAND_END_CARD_ENTRY_ENABLED } from "@/lib/brand/brand-end-card-policy";
-import { BROLL_ROUTE_ENTRY_ENABLED, PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED } from "@/lib/create/entry-policy";
+import {
+  BROLL_ROUTE_ENTRY_ENABLED,
+  PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED,
+  PRODUCT_LINK_ENTRY_ENABLED,
+} from "@/lib/create/entry-policy";
 import { loadVoiceoverDraft, saveVoiceoverDraft } from "@/lib/video-generation/voiceover-draft-storage";
 import { awaitVoiceoverDraft } from "@/lib/video-generation/voiceover-draft-wait";
 import {
@@ -2005,19 +2009,22 @@ export function StreamlinedVideoStudio({
                   {label}
                 </button>
               ))}
-              <button
-                type="button"
-                aria-expanded={linkOpen}
-                className={cn(CHIP_CLASS, linkOpen && "border-(--accent-line)")}
-                disabled={locked}
-                onClick={() => setLinkOpen((open) => !open)}
-              >
-                <Link2 aria-hidden />
-                {copy.pasteLink}
-              </button>
+              {/* 贴链接起片入口 A 级下线（2026-11-09 线路精简，见 lib/create/entry-policy.ts） */}
+              {PRODUCT_LINK_ENTRY_ENABLED ? (
+                <button
+                  type="button"
+                  aria-expanded={linkOpen}
+                  className={cn(CHIP_CLASS, linkOpen && "border-(--accent-line)")}
+                  disabled={locked}
+                  onClick={() => setLinkOpen((open) => !open)}
+                >
+                  <Link2 aria-hidden />
+                  {copy.pasteLink}
+                </button>
+              ) : null}
             </div>
             {/* 链接起片（PRD O1）：有独立站的商家贴链接自动预填描述 */}
-            {linkOpen ? (
+            {PRODUCT_LINK_ENTRY_ENABLED && linkOpen ? (
               <div className="mx-auto w-full max-w-xl">
                 <ProductLinkPrefill
                   disabled={locked}

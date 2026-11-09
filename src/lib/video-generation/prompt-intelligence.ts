@@ -134,6 +134,9 @@ export interface BuildSegmentPromptsArgs {
   voiceover?: VoiceoverSettings | null;
   /// LLM 失败 / 输出不可用、退回模板镜头表时记一条（方案上可见）；不传 = 只打日志
   onDegraded?: RecordPlanningDegradation;
+  /// 出方案精简（planning-mode.ts）：直接用模板镜头表与固定负面提示词，不调模型。
+  /// 单条视频派发时会按已确认的故事板改写提示词，这里的镜头表本来就整段被替换；不算降级、不记 onDegraded。
+  skipLlm?: boolean;
 }
 
 export interface SegmentPromptResult {
@@ -166,8 +169,12 @@ export async function buildVideoSegments(
   const aiPrompts =
     aiSlots.length === 0
       ? []
-      : isLLMForcedMock() || !isLLMAvailable()
-        ? heuristicSegmentPrompts(args, aiSlots, bible)
+      : args.skipLlm
+        ? /// 精简：模板镜头表不带台词。模板自带的三句台词会让 Audio 行写成「念出引用的台词」，而台词行在按故事板
+          /// 改写时被丢掉——商家关了口播，模型反而可能自己编旁白。开着口播时走的是已确认口播稿那一支，不受影响。
+          heuristicSegmentPrompts(args, aiSlots, bible, { silentShots: true })
+        : isLLMForcedMock() || !isLLMAvailable()
+          ? heuristicSegmentPrompts(args, aiSlots, bible)
         : await tryLLMSegmentPrompts(args, aiSlots, bible);
 
   const segments: VideoSegment[] = [];
@@ -713,6 +720,7 @@ export function heuristicSegmentPrompts(
   args: BuildSegmentPromptsArgs,
   aiSlots: UnifiedSegmentSlot[],
   bible?: ConsistencyBible,
+  options: { /** 镜头表不带模板台词（出方案精简用，见 buildVideoSegments） */ silentShots?: boolean } = {},
 ): SegmentPromptResult[] {
   const b =
     bible ??
@@ -727,7 +735,9 @@ export function heuristicSegmentPrompts(
     segmentOrder: i,
     seedancePrompt: composeSeedancePrompt({
       bible: b,
-      shots: heuristicShotList(slot, args, b),
+      shots: options.silentShots
+        ? heuristicShotList(slot, args, b).map((shot) => ({ ...shot, dialogue: "" }))
+        : heuristicShotList(slot, args, b),
       slot,
       args,
       segIdxInAi: i,

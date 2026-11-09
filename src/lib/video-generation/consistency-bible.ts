@@ -70,12 +70,14 @@ export interface BuildConsistencyBibleArgs {
   visualRefs?: VisualReferenceAnalysis | null;
   /// LLM 失败退回启发式时记一条（方案上可见）；不传 = 只打日志
   onDegraded?: RecordPlanningDegradation;
+  /// 出方案精简（planning-mode.ts）：直接用确定性设定，不调模型。这是设计如此，不算降级、不记 onDegraded。
+  skipLlm?: boolean;
 }
 
 export async function buildConsistencyBible(
   args: BuildConsistencyBibleArgs,
 ): Promise<ConsistencyBible> {
-  if (isLLMForcedMock() || !isLLMAvailable()) {
+  if (args.skipLlm || isLLMForcedMock() || !isLLMAvailable()) {
     return heuristicBible(args);
   }
   try {

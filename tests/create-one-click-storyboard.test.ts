@@ -40,7 +40,7 @@ test("刷新恢复的故事板：确认后就能生成，派发前不再等本�
   /// 恢复请求扛得住一次重编译 / 冷启动：五次退避，约 15 秒
   assert.match(studio, /const RESUME_BACKOFF_MS = \[0, 800, 2_000, 4_000, 8_000\];/);
   const dispatchRoute = await readFile("src/app/api/video-generation/dispatch/route.ts", "utf8");
-  assert.match(dispatchRoute, /plan = await buildPlan\(request\)/);
+  assert.match(dispatchRoute, /plan = await buildPlan\(request[,)]/);
   assert.match(dispatchRoute, /if \(!plan\.qualityReview\.canDispatch\)/);
 });
 

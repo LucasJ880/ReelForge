@@ -59,6 +59,7 @@ import {
 } from "@/lib/services/media-asset-service";
 import type { UnifiedVideoGenerationRequest } from "@/types/video-generation";
 import {
+  readStoryboardVisualReferenceForUser,
   getApprovedStoryboardVideoReferences,
   StoryboardRequestError,
 } from "@/lib/video-generation/storyboard-service";
@@ -304,7 +305,10 @@ export async function POST(req: NextRequest) {
   /// Phase 1：始终服务端重建 plan 防 UI tamper
   let plan: Awaited<ReturnType<typeof buildPlan>>;
   try {
-    plan = await buildPlan(request);
+    /// 出方案并成一次（11-09）：建故事板时已经看过商品图，盘点存在 run 上（只读本人的 run）。
+    /// 读得到就不再重新看图；读不到（旧故事板、没有商品图）照旧现看。
+    const storedVisualRefs = await readStoryboardVisualReferenceForUser(session.user.id, body?.storyboardRunId);
+    plan = await buildPlan(request, storedVisualRefs ? { visualRefs: storedVisualRefs } : {});
   } catch (err) {
     /// 客户可见 error 走友好文案；详细 message 仅写日志 / dev 调试
     console.error("[/api/video-generation/dispatch] buildPlan failed", err);

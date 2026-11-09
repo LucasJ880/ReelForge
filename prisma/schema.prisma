@@ -1468,6 +1468,9 @@ model StoryboardRun {
   /// 2026-10-29：建故事板时哪几步 AI 没用上、退回了兜底（目前只有镜头卡 → 模板节奏），
   /// 形状同 VideoGenerationPlan.planningDegradations（PlanningDegradation[]）。[] = 都用上了；null = 旧 run。
   planningDegradations Json?
+  /// 建故事板时那次看图调用的视觉盘点（VisualReferenceAnalysis：商品 / 场所描述、印字、各图视角）。
+  /// 派发视频时读回、不再重新看图；null = 没有（旧 run、没有商品图、合并调用没用上）→ 派发时照旧现看。
+  visualReference      Json?
 
   videoBriefId           String?     @unique
   videoBrief             VideoBrief? @relation(fields: [videoBriefId], references: [id], onDelete: SetNull)

@@ -73,6 +73,11 @@ import {
   truncateStoryText,
 } from "@/lib/video-generation/storyboard-frame-inputs";
 import { renderStoryInEnglish } from "@/lib/video-generation/story-english";
+import { designStoryboardDirection } from "@/lib/video-generation/storyboard-direction";
+import {
+  readStoredVisualReference,
+  type VisualReferenceAnalysis,
+} from "@/lib/video-generation/visual-reference-analysis";
 import { STORYBOARD_PERSON_REFS_MAX } from "@/lib/video-generation/storyboard-person-refs";
 import {
   createPlanningDegradationLog,
@@ -651,23 +656,32 @@ export async function createStoryboardRun(
   const degradations = createPlanningDegradationLog();
   /// 帧提示词全程英文（10-29）：原话译成英文写进 STORY CONTEXT，随帧落库，派发视频时读回；译不了就用原话。
   /// 镜头卡仍读原话；sourcePrompt 存原话（界面回显、重建计划都用它）。两次 LLM 调用互不依赖，并行跑。
+  const shotCardInput = {
+    story: input.prompt,
+    beats: storyboardBeatsForDuration(input.durationSec),
+    durationSec: input.durationSec,
+    aspectRatio: input.aspectRatio,
+    productImageCount: assets.length,
+    personImageCount: personAssetIds.length,
+    voiceoverScript: input.voiceoverScript ?? null,
+  };
+  /// 出方案并成一次（11-09，storyboard-direction.ts）：有商品图的单条故事板先试一次看图调用，同时出镜头卡、
+  /// 原话英译与视觉盘点；哪一样没用上就只补跑那一样原来的单独调用，整次没用上（返回 null）就全走原路径。
+  const direction = isBatchRun
+    ? null
+    : await designStoryboardDirection({ ...shotCardInput, productImageUrls: assets.map((asset) => asset.url) });
   const [shotCards, storyEnglish] = await Promise.all([
     isBatchRun
       ? Promise.resolve(null)
-      : designStoryboardShotCards(
-          {
-            story: input.prompt,
-            beats: storyboardBeatsForDuration(input.durationSec),
-            durationSec: input.durationSec,
-            aspectRatio: input.aspectRatio,
-            productImageCount: assets.length,
-            personImageCount: personAssetIds.length,
-            voiceoverScript: input.voiceoverScript ?? null,
-          },
-          { onDegraded: degradations.record },
-        ),
-    renderStoryInEnglish(input.prompt, { onDegraded: degradations.record }),
+      : direction?.cards
+        ? Promise.resolve(direction.cards)
+        : designStoryboardShotCards(shotCardInput, { onDegraded: degradations.record }),
+    direction?.storyEnglish
+      ? Promise.resolve(direction.storyEnglish)
+      : renderStoryInEnglish(input.prompt, { onDegraded: degradations.record }),
   ]);
+  /// 盘点随 run 落库，派发视频时读回；没有就留空（派发时照旧现看一遍图）
+  const visualReference = direction?.visualReference ?? null;
   const promptStory = storyEnglish ?? input.prompt;
   const planningDegradations = degradations.list();
   logPlanningDegradations({ source: "storyboard", runId: id }, planningDegradations);
@@ -700,6 +714,7 @@ export async function createStoryboardRun(
         inputImageUrls: assets.map((asset) => asset.url),
         personAssetIds,
         planningDegradations: planningDegradations as unknown as Prisma.InputJsonValue,
+        ...(visualReference ? { visualReference: visualReference as unknown as Prisma.InputJsonValue } : {}),
         frames: {
           create: plans.map((plan) => ({
             ordinal: plan.ordinal,
@@ -1905,6 +1920,28 @@ export interface StoryboardVideoInputs extends SingleVideoReferenceGroups {
   shotCards: Array<string | null>;
   totalDurationSec: number;
   aspectRatio: string;
+}
+
+
+/**
+ * 派发视频前读回这轮故事板的视觉盘点（建故事板时那次看图调用存下的，storyboard-direction.ts）。
+ * 只读本人的 run；没有、形状不对、读库失败都返回 null——调用方照旧现看一遍图，绝不因此挡住派发。
+ */
+export async function readStoryboardVisualReferenceForUser(
+  userId: string,
+  runId: unknown,
+): Promise<VisualReferenceAnalysis | null> {
+  if (typeof runId !== "string" || runId.length === 0 || runId.length > 200) return null;
+  try {
+    const run = await db.storyboardRun.findFirst({
+      where: { id: runId, userId },
+      select: { visualReference: true },
+    });
+    return readStoredVisualReference(run?.visualReference);
+  } catch (error) {
+    console.warn("[storyboard] could not read the stored visual reference (will analyze again):", (error as Error).message);
+    return null;
+  }
 }
 
 /**

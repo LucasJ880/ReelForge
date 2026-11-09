@@ -67,7 +67,11 @@ import {
 import { cn } from "@/lib/utils";
 import type { WorkspaceBrandPackageView } from "@/lib/services/workspace-brand-package-service";
 import { BRAND_END_CARD_ENTRY_ENABLED } from "@/lib/brand/brand-end-card-policy";
-import { BROLL_ROUTE_ENTRY_ENABLED, PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED } from "@/lib/create/entry-policy";
+import {
+  BROLL_ROUTE_ENTRY_ENABLED,
+  PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED,
+  PRODUCT_LINK_ENTRY_ENABLED,
+} from "@/lib/create/entry-policy";
 import { loadVoiceoverDraft, saveVoiceoverDraft } from "@/lib/video-generation/voiceover-draft-storage";
 import { awaitVoiceoverDraft } from "@/lib/video-generation/voiceover-draft-wait";
 import {
@@ -831,6 +835,8 @@ export function StreamlinedVideoStudio({
   /// 2026-10-28：「生成口播稿」由 AI 按商家原话写（/api/video-generation/voiceover-draft）；
   /// AI 不可用、超时或超长时退回本地模板稿（与之前同一份）。AI 稿视同用户确认过的稿，描述再改也不被模板覆盖。
   const [voiceoverDrafting, setVoiceoverDrafting] = useState(false);
+  /// 这次真调了 AI 却没写成（接口回 degraded）：口播稿下面写明「现在是模板稿」，写成一次或换稿后清掉
+  const [voiceoverDraftFellBack, setVoiceoverDraftFellBack] = useState(false);
   /// 正在写的那一份 AI 口播稿（离开输入框 / 「生成口播稿」/ 出故事板前自动，三处共用）：同一时间只有一份，
   /// 出故事板时有就等它，不再并发写第二份。
   const voiceoverDraftRef = useRef<Promise<string | null> | null>(null);
@@ -850,9 +856,15 @@ export function StreamlinedVideoStudio({
           }),
           signal,
         });
-        const payload = await response.json().catch(() => null) as { ok?: boolean; script?: string | null } | null;
-        if (!response.ok || !payload?.script) return null;
+        const payload = await response.json().catch(() => null) as
+          | { ok?: boolean; script?: string | null; degraded?: boolean }
+          | null;
+        if (!response.ok || !payload?.script) {
+          setVoiceoverDraftFellBack(Boolean(response.ok && payload?.degraded));
+          return null;
+        }
         const script = payload.script;
+        setVoiceoverDraftFellBack(false);
         voiceoverEditedRef.current = true;
         setAudioCaptionSettings((current) => ({ ...current, voiceoverScript: script }));
         return script;
@@ -1997,19 +2009,22 @@ export function StreamlinedVideoStudio({
                   {label}
                 </button>
               ))}
-              <button
-                type="button"
-                aria-expanded={linkOpen}
-                className={cn(CHIP_CLASS, linkOpen && "border-(--accent-line)")}
-                disabled={locked}
-                onClick={() => setLinkOpen((open) => !open)}
-              >
-                <Link2 aria-hidden />
-                {copy.pasteLink}
-              </button>
+              {/* 贴链接起片入口 A 级下线（2026-11-09 线路精简，见 lib/create/entry-policy.ts） */}
+              {PRODUCT_LINK_ENTRY_ENABLED ? (
+                <button
+                  type="button"
+                  aria-expanded={linkOpen}
+                  className={cn(CHIP_CLASS, linkOpen && "border-(--accent-line)")}
+                  disabled={locked}
+                  onClick={() => setLinkOpen((open) => !open)}
+                >
+                  <Link2 aria-hidden />
+                  {copy.pasteLink}
+                </button>
+              ) : null}
             </div>
             {/* 链接起片（PRD O1）：有独立站的商家贴链接自动预填描述 */}
-            {linkOpen ? (
+            {PRODUCT_LINK_ENTRY_ENABLED && linkOpen ? (
               <div className="mx-auto w-full max-w-xl">
                 <ProductLinkPrefill
                   disabled={locked}
@@ -2078,6 +2093,7 @@ export function StreamlinedVideoStudio({
               onRegenerate={() => void regenerateVoiceoverScript()}
               regenerating={voiceoverDrafting}
               draftFromTemplate={narrationFromTemplate}
+              draftFellBack={voiceoverDraftFellBack}
             />
           </TicketRow>
           {/* 品牌尾卡入口 A 级下线（2026-10-28，见 brand-end-card-policy.ts）：品牌跟着商品走，不再在片尾贴卡 */}

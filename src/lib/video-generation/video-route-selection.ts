@@ -92,38 +92,30 @@ export function selectCustomerVideoRouteSnapshot(args: {
 }
 
 /**
- * 客户线路的自动降级目标（PRD C1）。
+ * 客户线路的自动降级（PRD C1）。
  *
- * 边界：客户**仍然不能自己选**线路 —— `selectCustomerVideoRouteSnapshot` 对任何
- * 非 buddy 的显式请求照旧抛 FORBIDDEN。降级是平台在主线路不可用时替客户做的
- * 决定，不是把选择权交出去。2026-07 Shuyu 线路 7 天成功率 28.6%，而它是客户
- * 唯一线路 —— 单点没有出口。
+ * 边界：客户**仍然不能自己选**直连线路 —— `selectCustomerVideoRouteSnapshot` 对 buddy / runway
+ * 以外的显式请求照旧抛 FORBIDDEN。降级是平台在主线路不可用时替客户做的决定，不是把选择权交出去。
  *
- * 为什么选 volcengine_cn_legacy 而不是 byteplus_international：只有它在生产
- * 配好了凭据（ARK_API_KEY）。两条线路的凭据分属不同账号域、绝不交叉接线，
- * 所以 byteplus 在 BYTEPLUS_ARK_API_KEY 配好之前只会返回 null，等于没有降级。
- * 换目标只需改这一个常量。
- */
-export const CUSTOMER_FAILOVER_ROUTE_ID = "volcengine_cn_legacy" as const;
-
-/**
- * 主线路不可用时可用的备用线路快照；备用线路自己也没配好时返回 null，
- * 由调用方走「提前告知不可用 + 免费取消」，而不是把用户丢进必死的提交。
+ * 2026-11-09 线路精简：备用只在 Shuyu（buddy）与 Runway 之间互换。此前「其余情况」会降到
+ * volcengine_cn_legacy（火山引擎直连）——那条线路的账户已欠费、近期零用量，留着只会把客户
+ * 丢进必死的提交。火山 / BytePlus 直连线路仍在 STAFF_SELECTABLE_VIDEO_ROUTE_IDS 里，只供
+ * 历史快照读取与内部脚本点名（A 级下线：撤客户入口，代码与数据保留）。
+ *
+ *  - 主线路 Runway → 备用 Shuyu；
+ *  - 主线路 Shuyu（或没指明、或内部点名的直连线路）→ 备用 Runway，SHUYU_FALLBACK_TO_RUNWAY=off
+ *    或没配 Runway key 时没有备用；
+ *  - 备用线路自己没配好时返回 null，由调用方走「提前告知不可用 + 免费取消」。
  */
 export function customerFailoverRouteSnapshot(
   env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
-  /// 主线路：Runway 的备用是 Shuyu（10-28 晚）；Shuyu 的备用是 Runway（10-29 Evan：Shuyu 失败再换 Runway，
-  /// SHUYU_FALLBACK_TO_RUNWAY=off 关）；其余主线路、以及 Runway 没开时照旧降到 CUSTOMER_FAILOVER_ROUTE_ID。
   primaryRouteId?: string,
 ): VideoRouteSnapshot | null {
   /// mock 演练不参与降级：演练线路必须保持确定性
   if (isMockVideoRuntime(env)) return null;
-  const backupRouteId =
-    primaryRouteId === "runway"
-      ? "buddy"
-      : primaryRouteId === "buddy" && shuyuFallbackToRunwayEnabled(env)
-        ? "runway"
-        : CUSTOMER_FAILOVER_ROUTE_ID;
+  const backupRouteId: CustomerVideoRouteId | null =
+    primaryRouteId === "runway" ? "buddy" : shuyuFallbackToRunwayEnabled(env) ? "runway" : null;
+  if (!backupRouteId) return null;
   const snapshot = createVideoRouteSnapshot(backupRouteId);
   return isVideoRouteSnapshotRuntimeReady(snapshot, env) ? snapshot : null;
 }
@@ -293,7 +285,7 @@ export interface RouteFailoverDeps {
     snapshot: VideoRouteSnapshot;
     shuyuRequiredPoints?: number;
   }) => Promise<VideoRouteRuntimeAvailability>;
-  /// 按主线路给备用（Runway ⇄ Shuyu 互为备用；其余降到 CUSTOMER_FAILOVER_ROUTE_ID）
+  /// 按主线路给备用（Runway ⇄ Shuyu 互为备用；没有第三条线路）
   failoverSnapshot: (primary: VideoRouteSnapshot) => VideoRouteSnapshot | null;
 }
 

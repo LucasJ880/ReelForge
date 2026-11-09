@@ -792,6 +792,25 @@ type Planned =
   | { key: CapabilityKey; observation: CapabilityObservation; source: CapabilitySource }
   | { key: CapabilityKey; kept: true };
 
+/**
+ * Shuyu 余额预警（ops-alert-service）：能力状态要等余额不够 1 条才翻成暂停，这里提前提醒充值。
+ * 懒加载、任何失败都吞掉——预警不能影响探测结论。
+ */
+async function alertShuyuLowBalance(
+  balancePoints: number | null,
+  videoCostPoints: number | null,
+  env: ProbeContext["env"],
+): Promise<void> {
+  if (balancePoints === null || videoCostPoints === null) return;
+  try {
+    const { sendOpsAlert, shuyuLowBalanceAlert, shuyuMinVideosThreshold } = await import("@/lib/services/ops-alert-service");
+    const alert = shuyuLowBalanceAlert({ balancePoints, videoCostPoints, minVideos: shuyuMinVideosThreshold(env) });
+    if (alert) await sendOpsAlert(alert);
+  } catch (error) {
+    console.warn("[capability-probe] Shuyu 余额预警失败（已忽略）:", (error as Error).message);
+  }
+}
+
 async function probeShuyuLines(
   ctx: ProbeContext,
   deps: CapabilityProbeDeps,
@@ -813,6 +832,11 @@ async function probeShuyuLines(
         };
       }
     }
+    await alertShuyuLowBalance(
+      balance && "points" in balance ? balance.points : null,
+      result.catalog?.cheapestVideo15sPoints ?? null,
+      ctx.env,
+    );
     return shuyuCapabilityObservations(result, balance);
   } catch (error) {
     const failed = classifyNetworkError(error);

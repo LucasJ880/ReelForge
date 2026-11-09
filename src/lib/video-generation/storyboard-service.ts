@@ -77,6 +77,8 @@ import { STORYBOARD_PERSON_REFS_MAX } from "@/lib/video-generation/storyboard-pe
 import {
   createPlanningDegradationLog,
   logPlanningDegradations,
+  mergePlanningDegradation,
+  planningDegradation,
   readPlanningDegradations,
 } from "@/lib/video-generation/planning-degradation";
 import { reviewStoryboardFrames } from "@/lib/video-generation/storyboard-gacha";
@@ -664,7 +666,7 @@ export async function createStoryboardRun(
           },
           { onDegraded: degradations.record },
         ),
-    renderStoryInEnglish(input.prompt),
+    renderStoryInEnglish(input.prompt, { onDegraded: degradations.record }),
   ]);
   const promptStory = storyEnglish ?? input.prompt;
   const planningDegradations = degradations.list();
@@ -731,6 +733,36 @@ export async function createStoryboardRun(
 }
 
 /**
+ * 出帧阶段才发现的降级（主播照片没取到、提示词被截短）：run 早已建好，读出来并进 planningDegradations
+ * 再写回，商家在故事板面板看到同一套「请注意」。同一步只记第一条；任何失败只记日志，绝不挡出帧。
+ * 只能在事务之外调用：这里用的是另一条连接，事务里若已锁住这一行 run 会自己等自己。
+ */
+async function noteStoryboardFrameDegradation(
+  runId: string,
+  stage: "presenter_reference" | "frame_prompt",
+  cause: string,
+): Promise<void> {
+  try {
+    const run = await db.storyboardRun.findUnique({
+      where: { id: runId },
+      select: { planningDegradations: true },
+    });
+    if (!run) return;
+    const degradation = planningDegradation(stage, cause);
+    const merged = mergePlanningDegradation(run.planningDegradations, degradation);
+    if (!merged) return;
+    /// updateMany：只写这一列，不碰 status（run 的状态写入一律带源状态，见 storyboard-cancel 的静态守卫）
+    await db.storyboardRun.updateMany({
+      where: { id: runId },
+      data: { planningDegradations: merged as unknown as Prisma.InputJsonValue },
+    });
+    logPlanningDegradations({ source: "storyboard", runId }, [degradation]);
+  } catch (error) {
+    console.warn("[storyboard] failed to record a frame-stage degradation (ignored):", (error as Error).message);
+  }
+}
+
+/**
  * 按 run 的列编排第 ordinal 帧的入参（提交与重做共用）：前帧取当前已成功的；主播参考图只进第 0 帧
  *（含重做第 0 帧），其余帧不查库。主播解析放在抢占 / 建帧之前：查库失败时不会把一次 DB 抖动记成供应商拒绝。
  */
@@ -774,6 +806,14 @@ async function composeRunFrameInputImages(input: {
       runId: run.id,
       personAssetIds,
     });
+    /// 重做第 0 帧走事务（input.client）：那条路只留上面的日志，不在事务里另开连接写 run
+    if (!input.client) {
+      await noteStoryboardFrameDegradation(
+        run.id,
+        "presenter_reference",
+        `presenter photos resolved to nothing (${personAssetIds.length} selected)`,
+      );
+    }
   }
   return composeStoryboardFrameInputImages({
     productImages: input.productImages,
@@ -841,6 +881,11 @@ async function submitStoryboardFrame(frameId: string): Promise<void> {
       before: aligned.length,
       after: prompt.length,
     });
+    await noteStoryboardFrameDegradation(
+      run.id,
+      "frame_prompt",
+      `frame ${frame.ordinal + 1} prompt trimmed from ${aligned.length} to ${prompt.length} chars`,
+    );
   }
 
   /// 出图供应商：已记过 Runway 的帧（重试 / 恢复）永远走 Runway，记过 Shuyu 套餐的永远走 Shuyu；

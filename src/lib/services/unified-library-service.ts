@@ -12,7 +12,7 @@ import {
   derivePersonalStatus,
   type PersonalVideoStatus,
 } from "@/lib/video-generation/personal-status";
-import { summarizeRunningJobs } from "@/lib/video-generation/business-status";
+import { runningLongMinutes, summarizeRunningJobs } from "@/lib/video-generation/business-status";
 import {
   unifiedLibraryRowSchema,
   type UnifiedLibraryRow,
@@ -353,13 +353,14 @@ export function toUnifiedLibraryRow(
   const segmentCount = finalVideo?.segmentCount ?? jobStatuses.length;
   const segmentsSucceeded = jobStatuses.filter((status) => status === "SUCCEEDED").length;
   const failedSceneCount = jobStatuses.filter((status) => status === "FAILED").length;
+  const runningSummary = summarizeRunningJobs(currentJobs);
   const derived = derivePersonalStatus({
     briefStatus: (brief?.status ?? null) as VideoBriefStatus | null,
     finalVideoStatus: (finalVideo?.status ?? null) as FinalVideoStatus | null,
     segmentsSucceeded,
     segmentsTotal: segmentCount,
     jobStatuses,
-    ...summarizeRunningJobs(currentJobs),
+    ...runningSummary,
   });
   const playable = Boolean(finalVideo?.stitchedVideoUrl ?? brief?.finalVideoUrl);
   const status =
@@ -419,6 +420,7 @@ export function toUnifiedLibraryRow(
     canRestitch,
     segments,
     redoInFlight,
+    waitingMinutes: status === "generating" ? runningLongMinutes(runningSummary.runningElapsedMs) : null,
   });
 }
 

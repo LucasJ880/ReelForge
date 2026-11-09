@@ -17,6 +17,7 @@ import {
   optionColorProblem,
   planStaleSessionCheck,
   readRelease,
+  schemaBehindProblem,
   saveSmokeSession,
   type UploadCall,
 } from "./prod-smoke-helpers";
@@ -59,6 +60,7 @@ test.describe("未登录", () => {
     expect(health, "健康检查报告不健康").toMatchObject({ ok: true, database: "connected" });
     const live = readRelease(health);
     if (EXPECTED_RELEASE && live) expect(live, "生产别名上跑的不是这次部署").toBe(EXPECTED_RELEASE);
+    expect(schemaBehindProblem(health), "部署了代码却没跑迁移").toBeNull();
   });
 
   test("打开 /app/create 307 到 /login", async ({ request }) => {

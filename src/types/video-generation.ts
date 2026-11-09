@@ -465,12 +465,17 @@ export interface PlanPreview {
 // ---------- Planning degradations ----------
 
 /// 出方案要调 AI 的几步（按流水线顺序）；shot_cards 在建故事板时调，记在 StoryboardRun 上。
+/// 2026-11-09 补三步此前只打一行 console.warn 的：story_english（建故事板时把商家原话译成英文）、
+/// presenter_reference / frame_prompt（出某一帧时主播照片没取到、提示词超上限被截短）。
 export type PlanningStage =
   | "creative_brief"
   | "visual_reference"
   | "consistency_bible"
   | "segment_prompts"
-  | "shot_cards";
+  | "shot_cards"
+  | "story_english"
+  | "presenter_reference"
+  | "frame_prompt";
 
 /// 每一步 AI 没用上时退回到的兜底（一步对应一个，见 PLANNING_FALLBACK_BY_STAGE）。
 export type PlanningFallback =
@@ -478,7 +483,10 @@ export type PlanningFallback =
   | "no_visual_analysis"
   | "heuristic_bible"
   | "heuristic_segment_prompts"
-  | "template_beats";
+  | "template_beats"
+  | "original_wording"
+  | "no_presenter_reference"
+  | "trimmed_prompt";
 
 /**
  * 一次 AI 调用失败 / 超时 / 输出不可用、退回兜底的记录（2026-10-29）。

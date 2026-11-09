@@ -30,6 +30,27 @@ export const CAPABILITY_KEYS = [
 ] as const;
 export type CapabilityKey = (typeof CAPABILITY_KEYS)[number];
 
+/**
+ * 线路精简（2026-11-09）：这些能力背后的外部线路已下线，对外只留 Shuyu（出图 / 出片）、Runway（出片备选）
+ * 与只做出方案的 OpenAI。
+ *
+ *  - voice：OpenAI / ElevenLabs 配音只服务实拍图库线路（入口 10-28 已撤）；主线口播是视频模型原生对白
+ *  - stock：Pexels / Pixabay 实拍素材，同上
+ *  - moderation：OpenAI 内容审核，生产一直关着
+ *  - scrape：Firecrawl 贴链接起片
+ *  - cutout：remove.bg / Clipdrop 商品主体抠图
+ *
+ * A 级下线：只撤入口与展示——这些键仍在 CAPABILITY_KEYS 里，探测、状态推进、provider 代码与库里的历史行
+ * 全都保留（撤掉对应密钥后探测自然报「未开通」，不再发请求）。这里只管两件事：客户的状态页不再列出它们
+ *（capability-board），它们的状态翻转不再发运维告警（ops-alert-service）。
+ * 放回某条线路：把它从这个清单里拿掉，并把对应入口开关（lib/create/entry-policy.ts）改回 true。
+ */
+export const RETIRED_CAPABILITY_KEYS: readonly CapabilityKey[] = ["voice", "moderation", "stock", "scrape", "cutout"];
+
+export function isRetiredCapability(key: CapabilityKey): boolean {
+  return RETIRED_CAPABILITY_KEYS.includes(key);
+}
+
 export const CAPABILITY_STATUSES = ["available", "degraded", "unavailable", "not_configured"] as const;
 export type CapabilityStatus = (typeof CAPABILITY_STATUSES)[number];
 
@@ -653,6 +674,35 @@ export function resolveCapabilities(input: {
   });
   return {
     generatedAt: input.now.toISOString(),
+    items,
+    counts,
+    paused: counts.unavailable > 0,
+    unstable: counts.unavailable === 0 && counts.degraded > 0,
+    lastCheckedAt,
+  };
+}
+
+/**
+ * 给客户看的能力视图：去掉已下线的线路（RETIRED_CAPABILITY_KEYS），并按剩下的重新计数。
+ * 状态页不再列「素材图库未开通」这类与商家无关的行；壳层的「部分 AI 能力暂停」也不会被
+ * 一条已经不用的线路（比如配音 403）点亮。功能闸门仍用完整视图，不走这里。
+ */
+export function withoutRetiredCapabilities(capabilities: PublicCapabilities): PublicCapabilities {
+  /// 「影响哪些功能」里也去掉入口已撤的功能（依赖任何一条已下线线路的，如实拍图库线路）
+  const retiredFeature = (feature: FeatureKey) => FEATURES[feature].needs.some(isRetiredCapability);
+  const items = capabilities.items
+    .filter((item) => !isRetiredCapability(item.key))
+    .map((item) => ({ ...item, features: item.features.filter((feature) => !retiredFeature(feature)) }));
+  const counts: Record<CapabilityStatus, number> = { available: 0, degraded: 0, unavailable: 0, not_configured: 0 };
+  let lastCheckedAt: string | null = null;
+  for (const item of items) {
+    counts[item.status] += 1;
+    if (item.checkedAt && (!lastCheckedAt || laterOrEqual(item.checkedAt, lastCheckedAt))) {
+      lastCheckedAt = item.checkedAt;
+    }
+  }
+  return {
+    ...capabilities,
     items,
     counts,
     paused: counts.unavailable > 0,

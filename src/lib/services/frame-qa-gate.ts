@@ -29,7 +29,7 @@ import { budgetStore } from "@/lib/services/vision-budget-context";
  * - defer：本次调用的上下文不跑质检、也不转终态，留给有质检预算的调用方
  *
  * D2（2026-10-25）：
- * - 结果落库：frameQaStatus = PASSED / BLOCKED / WOULD_BLOCK / SKIPPED，
+ * - 结果落库：frameQaStatus = PASSED / BLOCKED / WOULD_BLOCK / SKIPPED / UNVERIFIED，
  *   frameQaCheckedAt、frameQaDetail（结论、问题帧、影子检查、累计拦截次数）。
  *   MOCK 引擎不写（null = 未质检）。
  * - 质检只在「帧质检预算」上下文里跑：cron poll-videos / process-batches 用
@@ -38,6 +38,10 @@ import { budgetStore } from "@/lib/services/vision-budget-context";
  * - 同一段被拦截后平台最多免费重抽 2 次；第 3 次仍检出就按 WOULD_BLOCK 放行
  *   并告警，不再无限付费重抽。计数存在 frameQaDetail.blockCount（重试复用同一行）。
  * - 黑边 / 近静止是影子检查：只写 frameQaDetail.shadow，永不拦截。
+ * - 没检成 ≠ 跳过（2026-11-09）：vision 出错 / 超时 / 下载抽帧异常落 UNVERIFIED 而不是 SKIPPED。
+ *   10 月 OpenAI 欠费时 20/24 条成片就是这样「跳过」着交付的，没人知道。UNVERIFIED 照常放行
+ *   （质检不能变成管线单点故障），但会发运维告警，并由 frame-qa-recheck-service 在服务恢复后补检。
+ *   SKIPPED 只留给「本来就不该检」：门禁没启用、供应商没给视频地址。
  * - 段级漂移（P01-B，FRAME_QA_DRIFT_MODE=shadow）：按行类型取参考图，结论只写 frameQaDetail.drift，
  *   永不改放行结论；off（默认）不取参考图、不调 vision。
  */
@@ -55,6 +59,8 @@ export const FRAME_QA_STATUS = {
   BLOCKED: "BLOCKED",
   WOULD_BLOCK: "WOULD_BLOCK",
   SKIPPED: "SKIPPED",
+  /** 质检本身没跑成（vision 出错 / 超时 / 下载抽帧异常）：照常交付，但不等于通过，等补检 */
+  UNVERIFIED: "UNVERIFIED",
 } as const;
 export type FrameQaStatus = (typeof FRAME_QA_STATUS)[keyof typeof FRAME_QA_STATUS];
 
@@ -131,6 +137,11 @@ export function noteFrameQaVisionFailure(): void {
 }
 
 const GATE_FAILURE_REASON = /执行异常|超时/;
+
+/** 这次「没检」是不是质检自己坏了（而不是本来就不该检）。 */
+export function isFrameQaInfraFailure(skipReason: string | null | undefined): boolean {
+  return GATE_FAILURE_REASON.test(skipReason ?? "");
+}
 
 /**
  * 预算上下文之外的策略。生产默认 defer（D2：用户面请求不跑质检）；
@@ -248,6 +259,8 @@ export interface FrameQaDetail {
   /** 段级漂移影子结论（P01-B）：只记录，不参与 status */
   drift?: FrameDriftResult | null;
   budget?: string;
+  /** 交付后补检的次数（frame-qa-recheck-service）；首检不写 */
+  recheckCount?: number;
   checkedAt: string;
 }
 
@@ -277,9 +290,11 @@ function skippedDecision(args: {
   verdict?: FrameQaVerdict;
   budget?: string;
 }): FrameQaGateDecision {
+  /// 质检自己坏了 → UNVERIFIED（告警 + 等补检）；本来就不该检 → SKIPPED
+  const status = isFrameQaInfraFailure(args.reason) ? FRAME_QA_STATUS.UNVERIFIED : FRAME_QA_STATUS.SKIPPED;
   const detail: FrameQaDetail = {
     v: 1,
-    status: FRAME_QA_STATUS.SKIPPED,
+    status,
     checked: false,
     summary: args.verdict?.summary ?? `帧质检跳过：${args.reason}`,
     skipReason: args.reason,
@@ -294,7 +309,7 @@ function skippedDecision(args: {
   };
   return {
     action: "pass",
-    successData: columns(FRAME_QA_STATUS.SKIPPED, detail, args.checkedAt),
+    successData: columns(status, detail, args.checkedAt),
   };
 }
 
@@ -403,6 +418,27 @@ export interface FrameQaGateDeps {
   driftMode?: () => FrameDriftMode;
   /** 漂移参考图（默认 loadFrameDriftReferences）；只在 shadow 时调用 */
   references?: (source: FrameQaDriftSource) => Promise<FrameDriftReferences>;
+  /** 没检成时叫醒运维（默认发 ops-alert，全站每小时一条）；永不抛出 */
+  alertUnverified?: (jobId: string, reason: string) => Promise<void>;
+}
+
+/** 默认告警：懒加载 ops-alert-service（它会带进限流表的数据库依赖），任何失败都吞掉。 */
+async function alertFrameQaUnverified(jobId: string, reason: string): Promise<void> {
+  try {
+    const { sendOpsAlert } = await import("@/lib/services/ops-alert-service");
+    await sendOpsAlert({
+      kind: "frame_qa_unverified",
+      dedupeKey: "frame-qa-unverified",
+      title: "帧质检没检成，成片未质检直接交付",
+      lines: [
+        `任务 ${jobId}`,
+        `原因：${reason}`,
+        "服务恢复后 cron 会自动补检近 7 天的未质检成片；这期间的成片请人工过一眼再发",
+      ],
+    });
+  } catch (error) {
+    console.warn(`[frame-qa] job ${jobId} 未质检告警失败（已忽略）:`, (error as Error).message);
+  }
 }
 
 async function resolveDriftReferences(
@@ -437,6 +473,7 @@ const defaultDeps: FrameQaGateDeps = {
   claimCheck: claimFrameQaCheckInDb,
   driftMode: () => frameDriftMode(),
   references: loadFrameDriftReferences,
+  alertUnverified: alertFrameQaUnverified,
 };
 
 export async function decideFrameQaGate(
@@ -524,6 +561,12 @@ export async function decideFrameQaGate(
     checkedAt: deps.now(),
     budget: reservation.label,
   });
+  if (
+    decision.action === "pass" &&
+    decision.successData.frameQaStatus === FRAME_QA_STATUS.UNVERIFIED
+  ) {
+    await (deps.alertUnverified ?? alertFrameQaUnverified)(params.jobId, verdict.skipReason ?? "门禁未执行");
+  }
   if (
     decision.action === "pass" &&
     decision.successData.frameQaStatus === FRAME_QA_STATUS.WOULD_BLOCK

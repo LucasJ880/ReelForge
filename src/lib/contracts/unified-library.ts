@@ -78,6 +78,9 @@ export const unifiedLibraryRowSchema = z.object({
   segments: z.array(unifiedLibrarySegmentSchema).default([]),
   /// P05-C 有一段正在重做（生成中或等换上成片）：这时不能再重做别的段，也不能只重拼。
   redoInFlight: z.boolean().default(false),
+  /// 还在生成、且在飞段已经等了很久（≥ RUNNING_LONG_THRESHOLD_MS）时的已等待分钟数；否则 null。
+  /// 详情页据此如实告诉商家「比平时久，可以取消重提」，不再只转进度条（2026-11-09）。
+  waitingMinutes: z.number().int().min(0).nullable().default(null),
 });
 
 export type UnifiedLibraryRow = z.infer<typeof unifiedLibraryRowSchema>;

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { CapabilityBoard } from "@/components/capabilities/capability-board";
 import { getServerLocale } from "@/i18n/server";
 import { authOptions } from "@/lib/auth";
+import { withoutRetiredCapabilities } from "@/lib/capabilities/registry";
 import { getCapabilities } from "@/lib/services/capability-status-service";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,8 @@ export const dynamic = "force-dynamic";
 export default async function CapabilityStatusPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/status");
-  const [locale, capabilities] = await Promise.all([getServerLocale(), getCapabilities()]);
+  const [locale, allCapabilities] = await Promise.all([getServerLocale(), getCapabilities()]);
+  /// 已下线的线路不列给商家看（线路精简 2026-11-09）
+  const capabilities = withoutRetiredCapabilities(allCapabilities);
   return <CapabilityBoard capabilities={capabilities} locale={locale} />;
 }

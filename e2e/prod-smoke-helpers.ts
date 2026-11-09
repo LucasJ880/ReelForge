@@ -45,6 +45,18 @@ export function readRelease(health: unknown): string | null {
   return typeof release === "string" && RELEASE_PATTERN.test(release) ? release : null;
 }
 
+/**
+ * 读 GET /api/health 的 schema：这次部署带的迁移有没有漏在生产库外面。
+ * 只有明确报 behind 才算问题；老部署不报这个字段、或核对不了（not_checked）都不拦。
+ */
+export function schemaBehindProblem(health: unknown): string | null {
+  if (!health || typeof health !== "object") return null;
+  const { schema, pendingMigrations } = health as { schema?: unknown; pendingMigrations?: unknown };
+  if (schema !== "behind") return null;
+  const count = typeof pendingMigrations === "number" && pendingMigrations > 0 ? pendingMigrations : "若干";
+  return `生产库落后于这次部署：有 ${count} 条迁移没执行（先跑 npm run db:migrate:deploy）`;
+}
+
 // ---------------------------------------------------------------------------
 // 上传走到哪了
 // ---------------------------------------------------------------------------

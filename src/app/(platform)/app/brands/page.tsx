@@ -7,6 +7,7 @@ import {
   BrandPackageManager,
   NewBrandPackageButton,
 } from "@/components/brand/brand-package-manager";
+import { PRODUCT_ANCHOR_ENTRY_ENABLED } from "@/lib/create/entry-policy";
 import { ProductAnchorManager } from "@/components/brand/product-anchor-manager";
 import {
   listGlobalBrandWallEntries,
@@ -32,7 +33,8 @@ export default async function PlatformBrandsPage() {
   const [packages, wallEntries, anchors, latestOrder, locale] = await Promise.all([
     listWorkspaceBrandPackagesForUser(session.user.id),
     listGlobalBrandWallEntries(),
-    listProductAnchorsForUser(session.user.id),
+    /// 商品主体入口 A 级下线（2026-11-09 线路精简）：不展示就不查
+    PRODUCT_ANCHOR_ENTRY_ENABLED ? listProductAnchorsForUser(session.user.id) : Promise.resolve([]),
     db.deliveryOrder.findFirst({
       where: { createdById: session.user.id },
       orderBy: { createdAt: "desc" },
@@ -54,14 +56,18 @@ export default async function PlatformBrandsPage() {
         primaryAction={<NewBrandPackageButton label={copy.newPackage} />}
         readingsLabel={copy.readingsLabel}
         readings={[
-          {
-            label: copy.anchorsReady,
-            value: readyAnchors,
-            tone: readyAnchors > 0 ? "filled" : "neutral",
-            caption: copy.anchorsCaption
-              .replace("{total}", String(anchors.length))
-              .replace("{pending}", String(anchors.length - readyAnchors)),
-          },
+          ...(PRODUCT_ANCHOR_ENTRY_ENABLED
+            ? [
+                {
+                  label: copy.anchorsReady,
+                  value: readyAnchors,
+                  tone: readyAnchors > 0 ? ("filled" as const) : ("neutral" as const),
+                  caption: copy.anchorsCaption
+                    .replace("{total}", String(anchors.length))
+                    .replace("{pending}", String(anchors.length - readyAnchors)),
+                },
+              ]
+            : []),
           {
             label: copy.packages,
             value: workspacePackages.length,
@@ -75,7 +81,9 @@ export default async function PlatformBrandsPage() {
         ]}
         scope={copy.scope}
       >
-        <ProductAnchorManager initialAnchors={anchors.map(productAnchorView)} />
+        {PRODUCT_ANCHOR_ENTRY_ENABLED ? (
+          <ProductAnchorManager initialAnchors={anchors.map(productAnchorView)} />
+        ) : null}
         <BrandPackageManager
           initialPackages={packages}
           logoProjectId={latestOrder?.id ?? null}

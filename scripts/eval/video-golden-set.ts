@@ -26,6 +26,7 @@ import {
   AI_SCORED_DIMENSIONS,
   GOLDEN_SET_DIMENSIONS,
   blindLayout,
+  escapeHtml,
   initialRunRecord,
   nextGoldenSetStep,
   normalizeAiScores,
@@ -33,6 +34,7 @@ import {
   goldenSetRequestKey,
   parseGoldenSetCases,
   pendingSpend,
+  renderBlindReviewPage,
   retryFailedSteps,
   selectCases,
   tallyBlindVotes,
@@ -730,10 +732,6 @@ interface ScoreFile {
   ai: Record<GoldenSetDimension, DimensionScore> | null;
 }
 
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/gu, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!);
-}
-
 function twoArms(arms: readonly GoldenSetArm[]): [string, string] {
   if (arms.length !== 2) throw new Error("盲评只比两个臂：--arms 给两个");
   return [arms[0].id, arms[1].id];
@@ -762,45 +760,24 @@ function commandReport(flags: Flags): void {
     for (const [side, armId] of [["L", pair.left], ["R", pair.right]] as const) {
       symlinkSync(join(context.runDir, armId, `${item.id}.mp4`), join(reviewDir, `${item.id}-${side}.mp4`));
     }
-    const radios = [...GOLDEN_SET_DIMENSIONS.map((dimension) => ({ id: dimension.id as string, label: dimension.label, question: dimension.question })), { id: "overall", label: "整体", question: "哪一条你更愿意直接发出去？" }]
-      .map(
-        (dimension) => `<fieldset data-dim="${dimension.id}"><legend title="${escapeHtml(dimension.question)}">${escapeHtml(dimension.label)}</legend>${["left", "tie", "right"]
-          .map((vote) => `<label><input type="radio" name="${item.id}-${dimension.id}" value="${vote}"> ${vote === "left" ? "左更好" : vote === "right" ? "右更好" : "差不多"}</label>`)
-          .join("")}</fieldset>`,
-      )
-      .join("");
     const aiRow = (side: string, armId: string) => {
       const ai = score(armId, item.id)?.ai;
       return `<tr><th>${side}</th>${AI_SCORED_DIMENSIONS.map((id) => `<td title="${escapeHtml(ai?.[id].evidence ?? "")}">${ai?.[id].score ?? "—"}</td>`).join("")}</tr>`;
     };
-    return `<section data-case="${item.id}"><h2>${index + 1}. ${escapeHtml(item.category)} · ${escapeHtml(item.productName)}</h2>
-<p><b>商家原话：</b>${escapeHtml(item.story)}</p><p><b>口播：</b>${escapeHtml(item.voiceover)}</p>
-<p><b>重点看：</b>${item.watchFor.map(escapeHtml).join("；")}</p>
-<div class="pair"><figure><figcaption>左</figcaption><video src="review/${item.id}-L.mp4" controls preload="metadata" playsinline></video></figure><figure><figcaption>右</figcaption><video src="review/${item.id}-R.mp4" controls preload="metadata" playsinline></video></figure></div>
-<form>${radios}</form>
-<details><summary>AI 预评（先自己评完再看）</summary><table><tr><th></th>${AI_SCORED_DIMENSIONS.map((id) => `<th>${escapeHtml(GOLDEN_SET_DIMENSIONS.find((dimension) => dimension.id === id)!.label)}</th>`).join("")}</tr>${aiRow("左", pair.left)}${aiRow("右", pair.right)}</table></details></section>`;
+    return {
+      id: item.id,
+      title: `${index + 1}. ${item.category} · ${item.productName}`,
+      notes: [
+        { label: "商家原话", text: item.story },
+        { label: "口播", text: item.voiceover },
+        { label: "重点看", text: item.watchFor.join("；") },
+      ],
+      leftSrc: `review/${item.id}-L.mp4`,
+      rightSrc: `review/${item.id}-R.mp4`,
+      extraHtml: `<details><summary>AI 预评（先自己评完再看）</summary><table><tr><th></th>${AI_SCORED_DIMENSIONS.map((id) => `<th>${escapeHtml(GOLDEN_SET_DIMENSIONS.find((dimension) => dimension.id === id)!.label)}</th>`).join("")}</tr>${aiRow("左", pair.left)}${aiRow("右", pair.right)}</table></details>`,
+    };
   });
-  const html = `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>视频盲评 · ${escapeHtml(context.runKey)}</title>
-<meta name="color-scheme" content="light dark">
-<style>body{font:15px/1.6 system-ui,sans-serif;max-width:1100px;margin:0 auto;padding:16px;background:Canvas;color:CanvasText}section{border-top:1px solid GrayText;padding:16px 0}.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}figure{margin:0}video{width:100%;max-height:70vh}fieldset{display:inline-block;border:1px solid GrayText;margin:4px;padding:4px 8px}table{border-collapse:collapse}td,th{border:1px solid GrayText;padding:2px 8px;text-align:center}#bar{position:sticky;top:0;background:Canvas;padding:8px 0;border-bottom:1px solid GrayText}@media (max-width:640px){.pair{grid-template-columns:1fr}}</style></head><body>
-<div id="bar"><b>视频盲评 · ${escapeHtml(context.runKey)}</b> · 每条两段视频左右顺序随机，看不出哪段是新版。评审人：<input id="reviewer" placeholder="名字"> <button id="export">导出评分</button> <span id="count"></span></div>
-<p>六项各选「左更好 / 差不多 / 右更好」，最后选整体更愿意发哪条。鼠标停在项目名上能看到判断标准。评完点「导出评分」，把下载的 JSON 发回来揭盲。</p>
-${sections.join("\n")}
-<script>
-const KEY = ${JSON.stringify(`golden-set-votes:${context.runKey}`)};
-const saved = (() => { try { return JSON.parse(localStorage.getItem(KEY) || "{}"); } catch { return {}; } })();
-for (const input of document.querySelectorAll("input[type=radio]")) {
-  const [caseId, dim] = input.name.split(/-(?=[^-]+$)/);
-  if (saved[caseId] && saved[caseId][dim] === input.value) input.checked = true;
-  input.addEventListener("change", () => { saved[caseId] = saved[caseId] || {}; saved[caseId][dim] = input.value; try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch {} update(); });
-}
-function update() { const n = Object.values(saved).reduce((s, v) => s + Object.keys(v).length, 0); document.getElementById("count").textContent = "已评 " + n + " 项"; }
-update();
-document.getElementById("export").addEventListener("click", () => {
-  const blob = new Blob([JSON.stringify({ runKey: ${JSON.stringify(context.runKey)}, reviewer: document.getElementById("reviewer").value, votes: saved }, null, 2)], { type: "application/json" });
-  const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "votes-" + ${JSON.stringify(context.runKey)} + ".json"; link.click();
-});
-</script></body></html>`;
+  const html = renderBlindReviewPage({ runKey: context.runKey, sections });
   writeFileSync(join(context.runDir, "report.html"), html);
 
   /// 揭盲汇总：只给内部看（含臂名），评审人不要看

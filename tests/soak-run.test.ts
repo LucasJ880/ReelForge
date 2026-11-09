@@ -4,6 +4,7 @@ import test from "node:test";
 import { checkBudgetGate } from "../scripts/lib/experiment-budget";
 import {
   SOAK_FRAMES_PER_ITEM,
+  SOAK_GROUPS,
   SOAK_HOOK_ANGLES,
   SOAK_KEY_PREFIX,
   assertManifestMatches,
@@ -21,6 +22,8 @@ import {
   renderSoakReport,
   retrySoakRecord,
   selectSoakItems,
+  soakBlindPairs,
+  soakBlindTally,
   soakDispatchBody,
   soakEndToEndMs,
   soakIdempotencyKey,
@@ -28,11 +31,12 @@ import {
   soakStoryboardBody,
   soakSubmitAllowance,
   summarizeSoak,
+  type SoakFirstPassInput,
   type SoakItem,
   type SoakJobFact,
   type SoakRecord,
 } from "../scripts/lib/soak-run";
-import { parseGoldenSetCases } from "../scripts/lib/video-golden-set";
+import { blindLayout, parseGoldenSetCases, renderBlindReviewPage } from "../scripts/lib/video-golden-set";
 import { EXPERIMENT_BATCH_KEY_PREFIX } from "../src/lib/experiments/run-key";
 import { unifiedVideoGenerationRequestSchema } from "../src/lib/schemas/unified-input";
 import { validateIdempotencyKey } from "../src/lib/services/video-dispatch-idempotency";
@@ -49,6 +53,7 @@ async function loadItems(): Promise<SoakItem[]> {
 
 const T0 = "2026-11-10T01:00:00.000Z";
 const at = (minutes: number) => new Date(Date.parse(T0) + minutes * 60_000).toISOString();
+const noScores = (input: Omit<SoakFirstPassInput, "scores">): SoakFirstPassInput => ({ ...input, scores: {} });
 
 function job(overrides: Partial<SoakJobFact> = {}): SoakJobFact {
   return {
@@ -58,6 +63,9 @@ function job(overrides: Partial<SoakJobFact> = {}): SoakJobFact {
     submissionErrorClass: null,
     route: "buddy",
     frameQaStatus: "PASSED",
+    frameQaBlockCount: 0,
+    frameQaCheckedAt: at(12),
+    frameQaClaimedAt: null,
     retryCount: 0,
     submitAttempts: 1,
     submittedAt: at(5),
@@ -101,11 +109,11 @@ function recordAt(
   if (stage === "approved") return record;
   Object.assign(dispatch, { state: "accepted", briefId: `brief-${item.id}`, deliveryOrderId: `order-${item.id}`, httpStatus: 200 });
   video.briefStatus = "RENDERING";
-  video.jobs = [job({ id: `job-${item.id}`, status: "RUNNING", finishedAt: null, frameQaStatus: null })];
+  video.jobs = [job({ id: `job-${item.id}`, status: "RUNNING", finishedAt: null, frameQaStatus: null, frameQaCheckedAt: null })];
   if (stage === "rendering") return record;
   if (stage === "video_failed") {
     video.briefStatus = "RENDER_FAILED";
-    video.jobs = [job({ id: `job-${item.id}`, status: "FAILED", frameQaStatus: null, error: "[provider:failed] refunded" })];
+    video.jobs = [job({ id: `job-${item.id}`, status: "FAILED", frameQaStatus: null, frameQaCheckedAt: null, error: "[provider:failed] refunded" })];
     return record;
   }
   video.briefStatus = "RENDER_SUCCEEDED";
@@ -116,31 +124,37 @@ function recordAt(
   return record;
 }
 
-test("展开：10 个品类 × 4 个钩子角度 = 40 条，id 不重复；角度清单是四条明确的中文说明", async () => {
+test("展开：10 个品类 × 2 个钩子角度 × A/B 两组 = 40 条（20 对），id 不重复；每对 A 在前 B 紧跟", async () => {
   const items = await loadItems();
-  assert.equal(SOAK_HOOK_ANGLES.length, 4);
-  assert.deepEqual(SOAK_HOOK_ANGLES.map((angle) => angle.id), ["pain", "result", "contrast", "scene"]);
+  assert.deepEqual(SOAK_HOOK_ANGLES.map((angle) => angle.id), ["pain", "result"]);
   for (const angle of SOAK_HOOK_ANGLES) assert.match(angle.direction, /^开头/u, angle.id);
+  assert.deepEqual(SOAK_GROUPS.map((group) => group.id), ["A", "B"]);
   assert.equal(items.length, 40);
   assert.equal(new Set(items.map((item) => item.id)).size, 40);
+  assert.equal(new Set(items.map((item) => item.pairId)).size, 20);
   assert.equal(new Set(items.map((item) => item.caseId)).size, 10);
-  for (const angle of SOAK_HOOK_ANGLES) assert.equal(items.filter((item) => item.angleId === angle.id).length, 10);
+  for (const angle of SOAK_HOOK_ANGLES) assert.equal(items.filter((item) => item.angleId === angle.id).length, 20);
+  for (const group of SOAK_GROUPS) assert.equal(items.filter((item) => item.group === group.id).length, 20);
   assert.ok(items.every((item) => item.route === "buddy"), "默认全走 Shuyu");
-  assert.equal(items[0].id, "bottle-pain");
+  assert.deepEqual(items.slice(0, 3).map((item) => `${item.id}/${item.pairId}/${item.group}`), [
+    "bottle-pain-a/bottle-pain/A",
+    "bottle-pain-b/bottle-pain/B",
+    "earbuds-pain-a/earbuds-pain/A",
+  ]);
   assert.match(soakPrompt({ story: "卖保温杯。" }, "result"), /^卖保温杯。\n开头钩子（结果前置）：开头第一个画面/u);
 });
 
-test("请求体：15 秒、9:16、中文口播，过线上的创作请求校验；Runway 条目才点名线路", async () => {
+test("请求体：15 秒、9:16、中文口播，过线上的创作请求校验；Runway 条目才点名线路；B 组才带确认过的段提示词", async () => {
   const cases = parseGoldenSetCases(JSON.parse(await readFile("scripts/eval/golden-set.cases.json", "utf8")));
   for (const item of cases) {
     const assetIds = item.productImages.map((_, index) => `asset-${index}`);
-    const storyboard = soakStoryboardBody(item, "contrast", assetIds);
+    const storyboard = soakStoryboardBody(item, "result", assetIds);
     assert.deepEqual(
       [storyboard.durationSec, storyboard.aspectRatio, storyboard.approvalPolicy, storyboard.purpose],
       [15, "9:16", "MANUAL", "single-video-storyboard"],
     );
     assert.ok(storyboard.prompt.length <= 4000 && storyboard.sourceAssetIds.length <= 9, item.id);
-    const body = soakDispatchBody({ item, angleId: "contrast", assetIds, storyboardRunId: "run-1", route: "buddy" });
+    const body = soakDispatchBody({ item, angleId: "result", assetIds, storyboardRunId: "run-1", route: "buddy" });
     const parsed = unifiedVideoGenerationRequestSchema.safeParse(body.request);
     assert.ok(parsed.success, `${item.id}: ${parsed.success ? "" : parsed.error.message}`);
     assert.equal(body.request.rawPrompt, storyboard.prompt, "故事板与出片读的是同一段描述");
@@ -150,9 +164,13 @@ test("请求体：15 秒、9:16、中文口播，过线上的创作请求校验�
     );
     assert.equal(body.request.audio.voiceover.script, item.voiceover);
     assert.equal("videoRouteId" in body, false, "Shuyu 条目不点名线路，走客户默认线路");
+    assert.equal("confirmedPrompts" in body, false, "A 组不带确认过的段提示词");
   }
-  const runway = soakDispatchBody({ item: cases[0], angleId: "pain", assetIds: ["a"], storyboardRunId: "run-1", route: "runway" });
-  assert.equal(runway.videoRouteId, "runway");
+  const base = { item: cases[0], angleId: "pain" as const, assetIds: ["a"], storyboardRunId: "run-1" };
+  assert.equal(soakDispatchBody({ ...base, route: "runway" }).videoRouteId, "runway");
+  const groupB = soakDispatchBody({ ...base, route: "buddy", confirmedPrompts: [{ segmentOrder: 0, prompt: "heuristic prompt" }] });
+  assert.deepEqual(groupB.confirmedPrompts, [{ segmentOrder: 0, prompt: "heuristic prompt" }]);
+  assert.deepEqual(groupB.request, soakDispatchBody({ ...base, route: "buddy" }).request, "两组交上去的创作请求一字不差");
 });
 
 test("帧数与幂等键：15 秒故事板 4 帧与线上一致；键带实验前缀、过派发接口的格式校验、同一次尝试不变", async () => {
@@ -161,24 +179,26 @@ test("帧数与幂等键：15 秒故事板 4 帧与线上一致；键带实验�
   const [item] = await loadItems();
   const record = initialSoakRecord(item);
   const storyboardKey = soakIdempotencyKey("soak-1110", record, "storyboard");
-  assert.equal(storyboardKey, "exp-2611-soak-1110:bottle-pain:a0:sb");
-  assert.equal(soakIdempotencyKey("soak-1110", record, "dispatch"), "exp-2611-soak-1110:bottle-pain:a0:dispatch-r0");
-  assert.equal(validateIdempotencyKey(soakIdempotencyKey("soak-1110", record, "dispatch")), "exp-2611-soak-1110:bottle-pain:a0:dispatch-r0");
+  assert.equal(storyboardKey, "exp-2611-soak-1110:bottle-pain-a:a0:sb");
+  assert.equal(soakIdempotencyKey("soak-1110", record, "dispatch"), "exp-2611-soak-1110:bottle-pain-a:a0:dispatch-r0");
+  assert.equal(validateIdempotencyKey(soakIdempotencyKey("soak-1110", record, "dispatch")), "exp-2611-soak-1110:bottle-pain-a:a0:dispatch-r0");
   record.current.dispatch.retries = 1;
   assert.match(soakIdempotencyKey("soak-1110", record, "dispatch"), /dispatch-r1$/u, "可安全重试的派发错误换键");
   assert.equal(soakIdempotencyKey("soak-1110", record, "storyboard"), storyboardKey, "故事板的键不跟着派发重试变");
 });
 
-test("分波：40 条分成 14 / 13 / 13，每一波里品类与角度都是混的；同一品类的四个角度不挤在一波", async () => {
+test("分波：按对分成 7 / 7 / 6 对（14 / 14 / 12 条）；一对的 A、B 永远同一波；每一波两个角度、两组都有", async () => {
   const items = await loadItems();
   const byWave = (wave: string) => items.filter((item) => item.wave === wave);
-  assert.deepEqual([byWave("morning").length, byWave("noon").length, byWave("evening").length], [14, 13, 13]);
+  assert.deepEqual([byWave("morning").length, byWave("noon").length, byWave("evening").length], [14, 14, 12]);
   for (const wave of ["morning", "noon", "evening"]) {
-    assert.equal(new Set(byWave(wave).map((item) => item.angleId)).size, 4, `${wave} 四个角度都有`);
-    assert.ok(new Set(byWave(wave).map((item) => item.caseId)).size >= 9, `${wave} 品类基本都有`);
+    assert.equal(new Set(byWave(wave).map((item) => item.angleId)).size, 2, `${wave} 两个角度都有`);
+    assert.equal(byWave(wave).filter((item) => item.group === "A").length, byWave(wave).length / 2, `${wave} 两组各一半`);
   }
-  for (const caseId of new Set(items.map((item) => item.caseId))) {
-    assert.equal(new Set(items.filter((item) => item.caseId === caseId).map((item) => item.wave)).size, 3, caseId);
+  for (const pairId of new Set(items.map((item) => item.pairId))) {
+    const members = items.filter((item) => item.pairId === pairId);
+    assert.deepEqual(members.map((item) => item.group), ["A", "B"], pairId);
+    assert.equal(new Set(members.map((item) => item.wave)).size, 1, `${pairId} 两条同一波`);
   }
   assert.equal(parseWave("noon"), "noon");
   assert.equal(parseWave("all"), "all");
@@ -186,40 +206,45 @@ test("分波：40 条分成 14 / 13 / 13，每一波里品类与角度都是混�
   assert.throws(() => parseWave(null), /--wave/u);
 });
 
-test("选子集：--limit 2 冒烟、按品类 / 角度 / 条目点名；拼错的名字与空结果直接报错", async () => {
+test("选子集：--limit 2 冒烟 = 第一对的 A 与 B；按品类 / 角度 / 一对 / 单条点名；拼错的名字与空结果直接报错", async () => {
   const items = await loadItems();
-  assert.deepEqual(selectSoakItems(items, { limit: 2 }).map((item) => item.id), ["bottle-pain", "earbuds-pain"]);
+  assert.deepEqual(selectSoakItems(items, { limit: 2 }).map((item) => item.id), ["bottle-pain-a", "bottle-pain-b"]);
   assert.equal(selectSoakItems(items, {}).length, 40);
   assert.equal(selectSoakItems(items, { cases: "bottle,serum" }).length, 8);
-  assert.deepEqual(selectSoakItems(items, { cases: "bottle", angles: "scene,pain" }).map((item) => item.id), ["bottle-pain", "bottle-scene"]);
-  assert.deepEqual(selectSoakItems(items, { arms: "serum-contrast, bottle-result" }).map((item) => item.id), ["bottle-result", "serum-contrast"]);
+  assert.deepEqual(selectSoakItems(items, { cases: "bottle", angles: "result" }).map((item) => item.id), ["bottle-result-a", "bottle-result-b"]);
+  assert.deepEqual(selectSoakItems(items, { arms: "serum-result, bottle-pain-b" }).map((item) => item.id), [
+    "bottle-pain-b",
+    "serum-result-a",
+    "serum-result-b",
+  ]);
   assert.throws(() => selectSoakItems(items, { cases: "bottel" }), /bottel/u);
   assert.throws(() => selectSoakItems(items, { angles: "shock" }), /shock/u);
   assert.throws(() => selectSoakItems(items, { arms: "bottle-shock" }), /bottle-shock/u);
-  assert.throws(() => selectSoakItems(items, { arms: "bottle-pain", angles: "scene" }), /一条都不剩/u);
+  assert.throws(() => selectSoakItems(items, { arms: "bottle-pain", angles: "result" }), /一条都不剩/u);
   assert.throws(() => selectSoakItems(items, { limit: 0 }), /正整数/u);
 });
 
-test("线路：--runway n 挑时段、角度、品类重复最少的 n 条，其余 Shuyu；超过条数或负数报错；清单定了不能中途变", async () => {
+test("线路：--runway n 按对挑（一对的 A、B 同一条线路），挑时段、角度、品类重复最少的；奇数、超量、负数报错；清单定了不能中途变", async () => {
   const items = await loadItems();
   const routed = assignRunwayRoutes(items, 4);
   const runway = routed.filter((item) => item.route === "runway");
   assert.deepEqual(runway.map((item) => `${item.id}@${item.wave}`), [
-    "bottle-pain@morning",
-    "earbuds-result@evening",
-    "serum-contrast@noon",
-    "tintTrio-scene@morning",
+    "bottle-pain-a@morning",
+    "bottle-pain-b@morning",
+    "earbuds-result-a@evening",
+    "earbuds-result-b@evening",
   ]);
-  assert.equal(runway.length, 4);
-  assert.equal(new Set(runway.map((item) => item.angleId)).size, 4, "四条落在四个不同的角度上");
-  assert.equal(new Set(runway.map((item) => item.caseId)).size, 4, "四个不同的品类");
-  assert.equal(new Set(runway.map((item) => item.wave)).size, 3, "三个时段都有");
   assert.equal(routed.filter((item) => item.route === "buddy").length, 36);
-  assert.deepEqual(assignRunwayRoutes(items, 4), routed, "同样的输入永远挑同样的几条");
+  for (const pairId of new Set(routed.map((item) => item.pairId))) {
+    assert.equal(new Set(routed.filter((item) => item.pairId === pairId).map((item) => item.route)).size, 1, `${pairId} 两条同一条线路`);
+  }
+  assert.deepEqual(assignRunwayRoutes(items, 4), routed, "同样的输入永远挑同样的几对");
   assert.ok(assignRunwayRoutes(items, 0).every((item) => item.route === "buddy"));
   assert.equal(assignRunwayRoutes(items.slice(0, 2), 2).filter((item) => item.route === "runway").length, 2);
-  assert.throws(() => assignRunwayRoutes(items.slice(0, 2), 3), /超过了选中的 2 条/u);
-  assert.throws(() => assignRunwayRoutes(items, -1), /非负整数/u);
+  assert.throws(() => assignRunwayRoutes(items, 3), /偶数/u);
+  assert.throws(() => assignRunwayRoutes(items.slice(0, 2), 4), /超过了选中的 1 对/u);
+  assert.throws(() => assignRunwayRoutes(items.slice(0, 3), 4), /超过了选中的 1 对/u, "落单的那条不成对，不参与");
+  assert.throws(() => assignRunwayRoutes(items, -2), /非负整数/u);
 
   const manifest = { version: 1 as const, runKey: "soak-1110", createdAt: T0, items: routed };
   assert.doesNotThrow(() => assertManifestMatches(manifest, assignRunwayRoutes(items, 4)));
@@ -227,15 +252,18 @@ test("线路：--runway n 挑时段、角度、品类重复最少的 n 条，其
   assert.throws(() => assertManifestMatches(manifest, routed.slice(0, 2)), /换 --run-key/u, "条目变了");
 });
 
-test("点数估算：按实时单价算，已提交的不再计；超过上限、余额不够、Runway 没给单价都拒绝花钱", async () => {
+test("点数估算：两组分开列、按实时单价算，已提交的不再计；超过上限、余额不够、Runway 没给单价都拒绝花钱", async () => {
   const items = assignRunwayRoutes(await loadItems(), 4);
   const fresh = items.map((item) => initialSoakRecord(item));
   const prices = { frameUnitPoints: 60, shuyuVideoUnitPoints: 700, runwayVideoUnitUsd: 4.5 };
   const estimate = estimateSoakSpend({ records: fresh, ...prices });
   assert.deepEqual(estimate.lines.map((line) => [line.armId, line.count, line.points]), [
-    ["故事板帧", 160, 9_600],
-    ["Shuyu 视频", 36, 25_200],
-    ["Runway 视频", 4, 0],
+    ["A 组·故事板帧", 80, 4_800],
+    ["A 组·Shuyu 视频", 18, 12_600],
+    ["A 组·Runway 视频", 2, 0],
+    ["B 组·故事板帧", 80, 4_800],
+    ["B 组·Shuyu 视频", 18, 12_600],
+    ["B 组·Runway 视频", 2, 0],
   ]);
   assert.equal(estimate.totalPoints, 34_800);
   assert.equal(estimate.totalUsd, 18);
@@ -250,10 +278,11 @@ test("点数估算：按实时单价算，已提交的不再计；超过上限�
   assert.match(gate(35_000, 60_000, null).reasons.join("；"), /没给美元硬上限/u);
 
   const unpriced = estimateSoakSpend({ records: fresh, ...prices, runwayVideoUnitUsd: null });
-  assert.deepEqual(unpriced.unpricedArms, ["Runway 视频"]);
+  assert.deepEqual(unpriced.unpricedArms, ["A 组·Runway 视频", "B 组·Runway 视频"]);
   assert.equal(checkBudgetGate({ estimate: unpriced, maxPoints: 99_999, maxUsd: 99, availablePoints: 99_999, reservePoints: 0 }).ok, false);
-  const noCatalog = estimateSoakSpend({ records: fresh.filter((record) => record.route === "buddy").slice(0, 1), frameUnitPoints: null, shuyuVideoUnitPoints: null, runwayVideoUnitUsd: null });
-  assert.deepEqual(noCatalog.unpricedArms, ["故事板帧", "Shuyu 视频"], "价目表读不到就是未定价，不拿旧常量顶");
+  const oneShuyuA = fresh.filter((record) => record.route === "buddy" && record.group === "A").slice(0, 1);
+  const noCatalog = estimateSoakSpend({ records: oneShuyuA, frameUnitPoints: null, shuyuVideoUnitPoints: null, runwayVideoUnitUsd: null });
+  assert.deepEqual(noCatalog.unpricedArms, ["A 组·故事板帧", "A 组·Shuyu 视频"], "价目表读不到就是未定价，不拿旧常量顶");
 
   /// 续跑：已建故事板的不再计帧，已派发的不再计视频，到终态的一分不计
   const [first, second, third, fourth] = items;
@@ -382,7 +411,7 @@ test("放行线：四项全达标", async () => {
   const items = (await loadItems()).slice(0, 20);
   /// 20 条里 19 条成功（95%），成片用时 11–29 分钟
   const records = items.map((item, index) => (index === 0 ? recordAt(item, "video_failed") : recordAt(item, "ready", 10 + index)));
-  const summary = summarizeSoak(records, { now: new Date(at(60)), firstPass: { firstPass: 17, total: 20, rated: 19 } });
+  const summary = summarizeSoak(records, { now: new Date(at(60)), firstPass: noScores({ firstPass: 17, total: 20, rated: 19 }) });
   assert.equal(summary.succeeded, 19);
   assert.equal(summary.failed, 1);
   assert.equal(summary.successRate, 0.95);
@@ -396,6 +425,7 @@ test("放行线：四项全达标", async () => {
   assert.match(report, /\| 端到端 P90 \| ≤ 30 分 \| 28\.0 分（19 条成片） \| 达标 \|/u);
   assert.match(report, /\| 人工首过率 \| ≥ 80\.0% \| 85\.0%（17 \/ 20，已评 19 条） \| 达标 \|/u);
   assert.match(report, /没检不等于通过/u, "没写质检状态的段要提醒");
+  assert.match(report, /放行线按全部条目算（A、B 两组合在一起）/u);
 });
 
 test("放行线：成功率、P90、UNVERIFIED、首过率逐项不达标", async () => {
@@ -406,7 +436,7 @@ test("放行线：成功率、P90、UNVERIFIED、首过率逐项不达标", asyn
   );
   records[5].current.video.jobs[0].frameQaStatus = "UNVERIFIED";
   records[6].current.video.jobs[0].frameQaStatus = "SKIPPED";
-  const summary = summarizeSoak(records, { now: new Date(at(120)), firstPass: { firstPass: 6, total: 10, rated: 8 } });
+  const summary = summarizeSoak(records, { now: new Date(at(120)), firstPass: noScores({ firstPass: 6, total: 10, rated: 8 }) });
   assert.equal(summary.successRate, 0.8);
   assert.equal(summary.p90Ms, 45 * 60_000);
   assert.deepEqual(summary.gates.map((gate) => [gate.name, gate.verdict]), [
@@ -443,7 +473,7 @@ test("放行线：还有在途或没投的不抢着下结论；没有评分输�
 });
 
 test("汇总口径：取消的不进分母；重试救回来的不算首次成功；确认未知与改交线路单独数；按波与线路分组", async () => {
-  const items = assignRunwayRoutes((await loadItems()).slice(0, 6), 1);
+  const items = assignRunwayRoutes((await loadItems()).slice(0, 6), 2);
   const records = items.map((item) => recordAt(item, "ready", 12));
   /// 第 1 条：第一次失败、重试后成功 → 仍算失败
   const retried = recordAt(items[0], "video_failed");
@@ -469,10 +499,138 @@ test("汇总口径：取消的不进分母；重试救回来的不算首次成�
   assert.equal(summary.videoAckUnknown, 1);
   assert.equal(summary.rerouted, 1);
   assert.equal(summary.byWave.reduce((sum, group) => sum + group.started, 0), 6);
-  assert.deepEqual(summary.byRoute.map((group) => [group.key, group.started]), [["buddy", 5], ["runway", 1]]);
+  assert.deepEqual(summary.byRoute.map((group) => [group.key, group.started]), [["buddy", 4], ["runway", 2]]);
   const report = renderSoakReport("soak-1110", summary, new Date(at(60)));
   assert.match(report, /1 条重试过；下面所有读数只看第一次尝试/u);
   assert.match(report, /视频提交确认未知：1 条/u);
   assert.match(report, /实际改交到别的线路：1 条/u);
   assert.match(report, /## 失败明细/u);
+});
+
+test("帧质检去留依据：结论分布、累计拦截次数、认领到成功的间隔（没撞上的如实标无法测量）、与人工评分对照", async () => {
+  const items = (await loadItems()).slice(0, 6);
+  const records = items.map((item, index) => (index === 5 ? recordAt(item, "video_failed") : recordAt(item, "ready", 12)));
+  const qa = (index: number) => records[index].current.video.jobs[0];
+  /// 第 1 段：轮询撞上了质检进行中，认领到任务成功隔了 30 秒
+  qa(0).frameQaClaimedAt = at(11.5);
+  /// 第 2 段：被拦过一次、重抽后放行；这一次的认领到成功隔了 60 秒
+  Object.assign(qa(1), { frameQaBlockCount: 1, frameQaClaimedAt: at(11) });
+  qa(2).frameQaStatus = "WOULD_BLOCK";
+  qa(3).frameQaStatus = "UNVERIFIED";
+  qa(4).frameQaStatus = "SKIPPED";
+  /// 第 6 段：连拦两次、免费重抽用完，停在 BLOCKED
+  Object.assign(qa(5), { frameQaStatus: "BLOCKED", frameQaBlockCount: 2 });
+
+  const bare = summarizeSoak(records, { now: new Date(at(60)) }).frameQaEvidence;
+  assert.equal(bare.jobs, 6);
+  assert.deepEqual(bare.statuses, { PASSED: 2, BLOCKED: 1, WOULD_BLOCK: 1, UNVERIFIED: 1, SKIPPED: 1 });
+  assert.equal(bare.blockCount, 3);
+  assert.equal(bare.flaggedItems, 3, "拦过一次的、影子判拦的、停在 BLOCKED 的");
+  assert.deepEqual(bare.overhead, { measured: 2, unmeasured: 4, p50Ms: 30_000, p90Ms: 60_000 });
+  assert.equal(bare.human, null);
+  const bareReport = renderSoakReport("soak-1110", summarizeSoak(records, { now: new Date(at(60)) }), new Date(at(60)));
+  assert.match(bareReport, /## 帧质检去留依据/u);
+  assert.match(bareReport, /PASSED 2，BLOCKED 1，WOULD_BLOCK 1，UNVERIFIED 1，SKIPPED 1/u);
+  assert.match(bareReport, /累计拦截 3 次/u);
+  assert.match(bareReport, /供应商出片到任务转成功的间隔无法测量/u);
+  assert.match(bareReport, /测到 2 段，P50 30\.0 秒 \/ P90 60\.0 秒；另有 4 段没测到/u);
+  assert.match(bareReport, /与人工评分的对照：待人工评分/u);
+  assert.match(bareReport, /数字小结：6 段里放行 2 段、拦下 1 段、影子判拦 1 段、没检成 1 段、跳过 1 段，累计拦截 3 次；人工对照待人工评分。/u);
+
+  /// 人工：前两条合格，影子判拦的与没检成的两条不合格，跳过的合格，停在 BLOCKED 的没有成片可评
+  const scores = { [items[0].id]: "ok", [items[1].id]: "ok", [items[2].id]: "bad", [items[3].id]: "bad", [items[4].id]: "ok" } as const;
+  const rated = summarizeSoak(records, { now: new Date(at(60)), firstPass: { firstPass: 3, total: 6, rated: 5, scores } });
+  assert.deepEqual(rated.frameQaEvidence.human, {
+    rated: 5,
+    humanBad: 2,
+    humanBadFlagged: 1,
+    flaggedRated: 2,
+    flaggedHumanBad: 1,
+    table: [
+      { status: "BLOCKED", ok: 0, bad: 0, unrated: 1 },
+      { status: "PASSED", ok: 2, bad: 0, unrated: 0 },
+      { status: "SKIPPED", ok: 1, bad: 0, unrated: 0 },
+      { status: "UNVERIFIED", ok: 0, bad: 1, unrated: 0 },
+      { status: "WOULD_BLOCK", ok: 0, bad: 1, unrated: 0 },
+    ],
+  });
+  const ratedReport = renderSoakReport("soak-1110", rated, new Date(at(60)));
+  assert.match(ratedReport, /\| WOULD_BLOCK \| 0 \| 1 \| 0 \|/u);
+  assert.match(ratedReport, /人工判不合格 2 条，其中质检拦过 1 条；质检拦过的 3 条里人工评了 2 条，判不合格 1 条。/u);
+
+  /// 一段都没撞上质检进行中：整项如实标无法测量，不估
+  qa(0).frameQaClaimedAt = null;
+  qa(1).frameQaClaimedAt = null;
+  const blind = summarizeSoak(records, { now: new Date(at(60)) });
+  assert.deepEqual(blind.frameQaEvidence.overhead, { measured: 0, unmeasured: 6, p50Ms: null, p90Ms: null });
+  assert.match(renderSoakReport("soak-1110", blind, new Date(at(60))), /认领到任务转成功的间隔：无法测量（6 段有结论/u);
+});
+
+test("出方案对照：两组各自的成功率、P50 / P90、出方案阶段用时；两组都出片的才配成一对；盲评揭盲给 B 组的胜平负", async () => {
+  const items = (await loadItems()).slice(0, 8);
+  /// 4 对：A 组全成（12 分钟）；B 组 3 成（15 分钟）1 败
+  const records = items.map((item, index) => (item.group === "A" ? recordAt(item, "ready", 12) : index === 7 ? recordAt(item, "video_failed") : recordAt(item, "ready", 15)));
+  for (const record of records) {
+    record.current.storyboard.createMs = record.group === "A" ? 50_000 : 2_000;
+    record.current.dispatch.requestMs = record.group === "A" ? 60_000 : 58_000;
+    record.current.dispatch.localPlanMs = record.group === "A" ? null : 300;
+  }
+  records[0].current.storyboard.degradedStages = ["shot_cards"];
+
+  const pairs = soakBlindPairs(records);
+  assert.deepEqual(pairs.map((pair) => pair.pairId), ["bottle-pain", "earbuds-pain", "serum-pain"], "B 组失败的那一对不进盲评");
+  assert.deepEqual(pairs[0].videos, { A: "https://example.com/bottle-pain-a.mp4", B: "https://example.com/bottle-pain-b.mp4" });
+
+  const layout = [
+    { caseId: "bottle-pain", left: "B", right: "A" },
+    { caseId: "earbuds-pain", left: "A", right: "B" },
+  ];
+  const tally = soakBlindTally(layout, { "bottle-pain": { overall: "left", hook: "right" }, "earbuds-pain": { overall: "tie" } }, " 小王 ");
+  assert.equal(tally.reviewer, "小王");
+  assert.equal(tally.pairsVoted, 2);
+  assert.deepEqual(tally.rows.find((row) => row.id === "overall"), { id: "overall", label: "整体", win: 1, tie: 1, loss: 0 });
+  assert.deepEqual(tally.rows.find((row) => row.id === "hook"), { id: "hook", label: "前 2 秒钩子", win: 0, tie: 0, loss: 1 });
+  assert.equal(tally.rows.length, 7, "六项 + 整体");
+
+  const summary = summarizeSoak(records, { now: new Date(at(60)), blindTallies: [tally] });
+  const [a, b] = summary.planComparison.groups;
+  assert.deepEqual(
+    [a.key, a.started, a.succeeded, a.failed, a.successRate, a.p50Ms, a.storyboardCreateP50Ms, a.dispatchRequestP50Ms, a.localPlanP50Ms, a.degradedStoryboards],
+    ["A", 4, 4, 0, 1, 12 * 60_000, 50_000, 60_000, null, 1],
+  );
+  assert.deepEqual(
+    [b.key, b.started, b.succeeded, b.failed, b.successRate, b.p50Ms, b.storyboardCreateP50Ms, b.dispatchRequestP50Ms, b.localPlanP50Ms, b.degradedStoryboards],
+    ["B", 4, 3, 1, 0.75, 15 * 60_000, 2_000, 58_000, 300, 0],
+  );
+  assert.deepEqual([summary.planComparison.pairs, summary.planComparison.pairsReady], [4, 3]);
+  const report = renderSoakReport("soak-1110", summary, new Date(at(60)));
+  assert.match(report, /## 出方案对照/u);
+  assert.match(report, /\| B 组（不调 OpenAI 出方案） \| 4 \| 3 \| 1 \| 0 \| 75\.0% \| 15\.0 分 \| 15\.0 分 \| 2\.0 秒 \| 58\.0 秒 \| 0\.3 秒 \| 0 \|/u);
+  assert.match(report, /共 4 对，两组都出了成片、可以盲评的 3 对/u);
+  assert.match(report, /\| 整体 \| 1 \| 1 \| 0 \|/u);
+  assert.match(report, /数字小结：A 组成功率 100\.0%、P50 12\.0 分 \/ P90 12\.0 分；B 组成功率 75\.0%、P50 15\.0 分 \/ P90 15\.0 分；盲评整体（小王）B 胜 1 \/ 平 1 \/ 负 0。/u);
+  assert.match(renderSoakReport("soak-1110", summarizeSoak(records, { now: new Date(at(60)) }), new Date(at(60))), /盲评待评/u);
+});
+
+test("盲评页：左右按运行键随机、页面与文件名里不出现组别，票按「用例-角度」记", async () => {
+  const pairIds = ["bottle-pain", "earbuds-pain", "serum-pain", "tintTrio-pain", "bottle-result", "earbuds-result"];
+  const layout = blindLayout("soak-1110", pairIds, ["A", "B"]);
+  assert.deepEqual(layout, blindLayout("soak-1110", pairIds, ["A", "B"]), "同一个运行键布局不变");
+  assert.ok(layout.every((pair) => pair.left !== pair.right && ["A", "B"].includes(pair.left)));
+  const html = renderBlindReviewPage({
+    runKey: "soak-1110",
+    sections: layout.map((pair, index) => ({
+      id: pair.caseId,
+      title: `${index + 1}. 保温杯 · 痛点开场`,
+      notes: [{ label: "商家原话", text: "卖 <保温杯>" }],
+      leftSrc: `review/${pair.caseId}-L.mp4`,
+      rightSrc: `review/${pair.caseId}-R.mp4`,
+    })),
+  });
+  assert.equal(html.match(/<section /gu)?.length, 6);
+  assert.match(html, /name="bottle-pain-overall" value="left"/u);
+  assert.match(html, /<video src="review\/tintTrio-pain-R\.mp4"/u);
+  assert.match(html, /卖 &lt;保温杯&gt;/u, "说明文字要转义");
+  assert.doesNotMatch(html, /A 组|B 组|OpenAI|-a\.mp4|-b\.mp4/u, "页面里看不出哪段是哪一组");
+  assert.match(html, /"votes-" \+ "soak-1110" \+ "\.json"/u);
 });

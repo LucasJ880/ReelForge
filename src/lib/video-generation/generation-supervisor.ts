@@ -30,7 +30,10 @@ import {
   getConsistencyLocks,
   resolveStyleTemplate,
 } from "@/lib/video-generation/style-templates";
-import { analyzeVisualReferences } from "@/lib/video-generation/visual-reference-analysis";
+import {
+  analyzeVisualReferences,
+  type VisualReferenceAnalysis,
+} from "@/lib/video-generation/visual-reference-analysis";
 import { buildBrandPackagingPlan } from "@/lib/video-generation/brand-packaging";
 import { buildClipPlacementPlan } from "@/lib/video-generation/clip-placement-planner";
 import { planUnifiedSegments } from "@/lib/video-generation/segment-planner-adapter";
@@ -95,6 +98,11 @@ export function normalizePostProductionSettings(
  */
 export async function buildPlan(
   request: UnifiedVideoGenerationRequest,
+  options: {
+    /// 建故事板时已经看过图的盘点（StoryboardRun.visualReference）：给了就不再重新看图。
+    /// 不给 = 照旧现看；出方案预览（/plan，那时还没有故事板）不传。
+    visualRefs?: VisualReferenceAnalysis;
+  } = {},
 ): Promise<VideoGenerationPlan> {
   const postProduction = normalizePostProductionSettings(request);
   /// 1. Ensure assets are classified. UI 大概率已经跑过 /api/video-generation/classify-asset；
@@ -116,7 +124,9 @@ export async function buildPlan(
       classifiedAssets,
       onDegraded: degradations.record,
     }),
-    analyzeVisualReferences(classifiedAssets, request.rawPrompt, degradations.record),
+    options.visualRefs
+      ? Promise.resolve(options.visualRefs)
+      : analyzeVisualReferences(classifiedAssets, request.rawPrompt, degradations.record),
   ]);
 
   /// 3. Brand packaging

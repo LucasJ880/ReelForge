@@ -938,3 +938,132 @@ test("关着口播：精简固定写「不要旁白」；旧路径里模型给�
   assert.match(groundedLean, /Audio: real environment ambience only, no background music, no narration\./u);
   assert.doesNotMatch(groundedLean, /speaking the quoted dialogue lines/u);
 });
+
+// ---------------------------------------------------------------------------
+// 出方案并成一次（第二步，storyboard-direction.ts）：建故事板一次看图调用，派发视频不再重新看图
+// ---------------------------------------------------------------------------
+
+const DIRECTION_REFERENCE = {
+  isRealLocation: false,
+  locationDescription: null,
+  signageText: null,
+  signageKind: null,
+  keyFeatures: ["teal braided rope", "single knot loop"],
+  productDescription: LLM_PRODUCT,
+  viewsCovered: ["product on white", "knot detail"],
+};
+
+function withProductPhotos(t: TestContext) {
+  patch(t, db.mediaAsset as unknown as Record<string, unknown>, {
+    findMany: async () => [
+      { id: "asset-1", url: "https://example.public.blob.vercel-storage.com/petToy/1.png", mimeType: "image/png", userId: "owner-1" },
+      { id: "asset-2", url: "https://example.public.blob.vercel-storage.com/petToy/2.png", mimeType: "image/png", userId: "owner-1" },
+    ],
+  });
+}
+
+test("建故事板（有商品图）：一次看图调用同时出镜头卡、英译与盘点；盘点随 run 落库", async (t) => {
+  useEnv(t, LLM_ENV);
+  withProductPhotos(t);
+  const systems: string[] = [];
+  mock.method(openai.chat.completions, "create", (async (params: CreateParams) => {
+    systems.push(String(params.messages[0]?.content ?? ""));
+    return ok({
+      shots: [CARD, CARD, CARD, CARD],
+      english: "A golden retriever runs in with a teal rope toy, plays tug of war, then naps chewing the knot.",
+      reference: DIRECTION_REFERENCE,
+    });
+  }) as never);
+  t.after(() => mock.restoreAll());
+  const created = captureRunCreate(t);
+  await assert.rejects(
+    createStoryboardRun({ ...RUN_INPUT, idempotencyKey: "direction-run", sourceAssetIds: ["asset-1", "asset-2"] }),
+    /stop after create/,
+  );
+  assert.equal(systems.length, 1, "只调一次模型（此前是镜头卡 + 英译两次，且都没看图）");
+  assert.match(systems[0] ?? "", /you can SEE the merchant's real photos/);
+  assert.deepEqual(created[0].planningDegradations, []);
+  assert.deepEqual(created[0].visualReference, { ...DIRECTION_REFERENCE, photoCount: 2 });
+  const frames = (created[0].frames as { create: Array<{ prompt: string }> }).create;
+  assert.ok(frames.every((frame) => frame.prompt.includes("SHOT CARD: ")), "镜头卡进了每一帧");
+  assert.ok(frames.every((frame) => frame.prompt.includes("A golden retriever runs in with a teal rope toy")), "英译进了每一帧");
+});
+
+test("建故事板：合并调用只给了镜头卡 → 只补跑英译；盘点留空（派发时现看），不记降级", async (t) => {
+  useEnv(t, LLM_ENV);
+  withProductPhotos(t);
+  mock.method(console, "warn", () => undefined);
+  const systems: string[] = [];
+  mock.method(openai.chat.completions, "create", (async (params: CreateParams) => {
+    const system = String(params.messages[0]?.content ?? "");
+    systems.push(system);
+    if (system.includes("You translate a small business owner's request")) {
+      return ok({ english: "A golden retriever plays tug of war with a teal rope toy." });
+    }
+    return ok({ shots: [CARD, CARD, CARD, CARD] });
+  }) as never);
+  t.after(() => mock.restoreAll());
+  const created = captureRunCreate(t);
+  await assert.rejects(
+    createStoryboardRun({ ...RUN_INPUT, idempotencyKey: "partial-direction-run", sourceAssetIds: ["asset-1", "asset-2"] }),
+    /stop after create/,
+  );
+  assert.equal(systems.length, 2, "合并调用 + 只补英译；镜头卡不重跑");
+  assert.ok(systems[1]?.includes("You translate a small business owner's request"));
+  assert.equal(Object.hasOwn(created[0], "visualReference"), false, "没看出东西就不落库");
+  assert.deepEqual(created[0].planningDegradations, []);
+});
+
+test("建故事板：合并调用整次失败 → 退回原来的两次调用，结果与合并前一样；STORYBOARD_DIRECTION=off 也走原路径", async (t) => {
+  useEnv(t, LLM_ENV);
+  withProductPhotos(t);
+  mock.method(console, "warn", () => undefined);
+  let first = true;
+  const systems: string[] = [];
+  mock.method(openai.chat.completions, "create", (async (params: CreateParams) => {
+    const system = String(params.messages[0]?.content ?? "");
+    systems.push(system);
+    if (first) {
+      first = false;
+      throw apiError(500, "500 upstream error");
+    }
+    if (system.includes("You translate a small business owner's request")) {
+      return ok({ english: "A golden retriever plays tug of war with a teal rope toy." });
+    }
+    return ok({ shots: [CARD, CARD, CARD, CARD] });
+  }) as never);
+  t.after(() => mock.restoreAll());
+  const created = captureRunCreate(t);
+  await assert.rejects(
+    createStoryboardRun({ ...RUN_INPUT, idempotencyKey: "failed-direction-run", sourceAssetIds: ["asset-1", "asset-2"] }),
+    /stop after create/,
+  );
+  assert.equal(systems.length, 3, "失败的合并调用 + 原来的镜头卡与英译");
+  assert.deepEqual(created[0].planningDegradations, []);
+  const frames = (created[0].frames as { create: Array<{ prompt: string }> }).create;
+  assert.ok(frames.every((frame) => frame.prompt.includes("SHOT CARD: ")));
+
+  process.env.STORYBOARD_DIRECTION = "off";
+  t.after(() => {
+    delete process.env.STORYBOARD_DIRECTION;
+  });
+  systems.length = 0;
+  await assert.rejects(
+    createStoryboardRun({ ...RUN_INPUT, idempotencyKey: "legacy-run", sourceAssetIds: ["asset-1", "asset-2"] }),
+    /stop after create/,
+  );
+  assert.equal(systems.length, 2);
+  assert.ok(systems.every((system) => !system.includes("you can SEE the merchant's real photos")), "开关关着不走合并调用");
+});
+
+test("派发视频：带上故事板存的盘点就不再重新看图，商品描述用存下来的那一句", async (t) => {
+  useEnv(t, LLM_ENV);
+  const calls = stubOpenAi(t, (stage) => ok(GOOD[stage as Exclude<Stage, "shotCards">]));
+  const stored = { ...DIRECTION_REFERENCE, productDescription: "A stored description of the teal rope toy from storyboard time.", photoCount: 2 };
+  const plan = await buildPlan(petToyRequest(), { visualRefs: stored });
+  assert.deepEqual([...calls], ["brief"], "只剩创意简报一次调用");
+  assert.equal(plan.consistencyBible?.productDescription, stored.productDescription);
+  assert.deepEqual(plan.planningDegradations, []);
+  const prompt = plan.segments.find((s) => s.type === "ai_generated_clip")?.prompt ?? "";
+  assert.match(prompt, /A stored description of the teal rope toy from storyboard time\./);
+});

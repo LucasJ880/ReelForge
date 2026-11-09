@@ -96,7 +96,8 @@ test("自填品牌名：plan 与 dispatch 两个入口都在构建计划之前�
   ]) {
     const source = read(file);
     const guard = source.indexOf("canUseRequestedBrandName(");
-    const build = source.indexOf("buildPlan(request)");
+    /// dispatch 现在带第二个参数（读回故事板的视觉盘点），所以只认到「buildPlan(request」为止
+    const build = source.indexOf("buildPlan(request");
     assert.ok(guard > 0 && guard < build, `${file}：品牌名检查必须在 buildPlan 之前`);
   }
 });

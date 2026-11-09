@@ -45,10 +45,8 @@ export interface VisualReferenceAnalysis {
   photoCount: number;
 }
 
-const SYSTEM_PROMPT = `You are a location scout and product analyst for an AI video production. You will see reference photos uploaded by a client. Extract a precise visual inventory so that a video generator can faithfully reproduce what is in the photos.
-
-Return strict JSON:
-{
+/// 视觉盘点的字段说明（analyzeVisualReferences 与 storyboard-direction 的合并调用共用同一份措辞）
+export const VISUAL_REFERENCE_JSON_SPEC = `{
   "isRealLocation": true/false — true if the photos show a real place (storefront, shop interior, restaurant, venue...),
   "locationDescription": "if isRealLocation: one dense English paragraph (50-90 words) describing the place exactly as photographed: storefront facade (materials, colors, sign), interior layout, furniture with materials and colors, flooring, lighting fixtures, decor. Be faithful — never invent items not visible. null if not a location",
   "signageText": "the exact readable text on the storefront sign or logo, verbatim (e.g. 'Meow Club'), null if none",
@@ -56,13 +54,57 @@ Return strict JSON:
   "keyFeatures": ["3-6 distinctive photographable features of the place or product, each 2-6 words, e.g. 'natural wood cat climbing tree'"],
   "productDescription": "if any photo shows a product for sale: its exact color/material/shape/details in 25-50 words, else null",
   "viewsCovered": ["one short entry PER PHOTO describing the view it covers, in photo order, e.g. 'storefront exterior at night', 'interior: cat cabin wall and seating corner'"]
-}
+}`;
+
+const SYSTEM_PROMPT = `You are a location scout and product analyst for an AI video production. You will see reference photos uploaded by a client. Extract a precise visual inventory so that a video generator can faithfully reproduce what is in the photos.
+
+Return strict JSON:
+${VISUAL_REFERENCE_JSON_SPEC}
 
 RULES:
 - Describe only what is actually visible in the photos.
 - Ignore any social-media watermarks or usernames overlaid on the photos — they are not part of the location.
 - signageText must be verbatim, keep original language and capitalization.
 - viewsCovered must have exactly one entry per photo, in the same order as the photos.`;
+
+/**
+ * 模型返回的视觉盘点 → VisualReferenceAnalysis（只收认得的字段，其余丢弃）。
+ * 也给 storyboard-direction 的合并调用、以及从 StoryboardRun.visualReference 读回用。
+ */
+export function normalizeVisualReference(data: Record<string, unknown>, photoCount: number): VisualReferenceAnalysis {
+  const str = (v: unknown): string | null =>
+    typeof v === "string" && v.trim().length > 0 ? v.trim() : null;
+  const kindRaw = str(data.signageKind);
+  return {
+    isRealLocation: data.isRealLocation === true,
+    locationDescription: str(data.locationDescription),
+    signageText: str(data.signageText),
+    signageKind: kindRaw === "product_print" || kindRaw === "storefront" ? kindRaw : null,
+    keyFeatures: Array.isArray(data.keyFeatures)
+      ? data.keyFeatures.map(String).filter((s) => s.trim().length > 0).slice(0, 6)
+      : [],
+    productDescription: str(data.productDescription),
+    viewsCovered: Array.isArray(data.viewsCovered)
+      ? data.viewsCovered.map(String).filter((s) => s.trim().length > 0).slice(0, 8)
+      : [],
+    photoCount,
+  };
+}
+
+/**
+ * 读回存在 StoryboardRun.visualReference 里的盘点（建故事板时那次看图调用的结果）。
+ * null / 旧数据 / 形状不对 / 既没商品描述也没场所描述（等于没看出东西）→ null，调用方照旧现看一遍图。
+ */
+export function readStoredVisualReference(value: unknown): VisualReferenceAnalysis | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const photoCount = typeof record.photoCount === "number" && Number.isInteger(record.photoCount) && record.photoCount > 0
+    ? Math.min(record.photoCount, 8)
+    : 0;
+  if (photoCount === 0) return null;
+  const analysis = normalizeVisualReference(record, photoCount);
+  return analysis.productDescription || analysis.locationDescription ? analysis : null;
+}
 
 export async function analyzeVisualReferences(
   assets: UploadedAsset[],
@@ -85,27 +127,7 @@ export async function analyzeVisualReferences(
       `The client's request: "${briefHint.slice(0, 400)}"\nAnalyze the ${images.length} reference photo(s) and return the JSON now.`,
     );
 
-    const str = (v: unknown): string | null =>
-      typeof v === "string" && v.trim().length > 0 ? v.trim() : null;
-
-    const kindRaw = str(data.signageKind);
-    return {
-      isRealLocation: data.isRealLocation === true,
-      locationDescription: str(data.locationDescription),
-      signageText: str(data.signageText),
-      signageKind:
-        kindRaw === "product_print" || kindRaw === "storefront"
-          ? kindRaw
-          : null,
-      keyFeatures: Array.isArray(data.keyFeatures)
-        ? data.keyFeatures.map(String).filter((s) => s.trim().length > 0).slice(0, 6)
-        : [],
-      productDescription: str(data.productDescription),
-      viewsCovered: Array.isArray(data.viewsCovered)
-        ? data.viewsCovered.map(String).filter((s) => s.trim().length > 0).slice(0, 8)
-        : [],
-      photoCount: images.length,
-    };
+    return normalizeVisualReference(data, images.length);
   } catch (err) {
     console.warn(
       "[visual-reference-analysis] vision failed; continuing without:",

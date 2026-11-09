@@ -1627,6 +1627,10 @@ model PublishRecord {
   /// TikTok 侧的贴文/视频 id；运营人工上传成功后回填
   externalPostId String?
   publishUrl     String?
+  /// 发布到哪个账号（运营自己起的账号标签，如「Aivora 好物号 01」）。
+  /// 抖音矩阵：同一条成片只能登记给一个账号（publish-service 规定，防矩阵号之间发同一条片）。
+  /// 历史行为 null。
+  accountLabel   String?
 
   status        PublishStatus @default(PENDING)
   publishedAt   DateTime?

@@ -46,6 +46,8 @@ export const targetPlatformSchema = z.enum([
   "instagram_reels",
   "youtube_shorts",
   "generic_vertical",
+  /// 抖音（2026-11-09）：字幕让开底部约 20% 与右侧按钮列，成片烧入常驻「AI生成」角标
+  "douyin",
 ]);
 
 export const aspectRatioSchema = z.enum(["9:16", "16:9", "1:1"]);

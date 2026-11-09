@@ -30,6 +30,8 @@ export const submitPostSchema = z.object({
   externalPostId: z.string().min(1),
   publishUrl: z.string().url().optional(),
   operatorNote: z.string().max(500).optional(),
+  /// 发布到哪个账号（抖音矩阵登记用；旧流程不传）
+  accountLabel: z.string().trim().min(1).max(60).optional(),
 });
 
 export const businessMetricsImportSchema = z.object({

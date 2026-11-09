@@ -130,7 +130,7 @@ export async function composeFinalVideoForStitch(args: {
             select: {
               round: {
                 select: {
-                  deliveryOrder: { select: { productInput: true } },
+                  deliveryOrder: { select: { productInput: true, targetPlatform: true } },
                 },
               },
             },
@@ -160,6 +160,8 @@ export async function composeFinalVideoForStitch(args: {
   const warnings: string[] = [];
   /// 派发时持久化的各 AI 段台词；旧计划没有 → null，字幕按计划时长重切
   const voiceoverChunks = readDirectorPlanVoiceoverChunks(fv.brief?.directorPlan);
+  /// 目标平台：抖音成片字幕让开界面安全区，并烧入常驻「AI生成」角标
+  const platform = fv.brief?.contentAngle?.round?.deliveryOrder?.targetPlatform ?? null;
 
   // ---------------- b-roll ----------------
   const brollSegments = extractBrollClaimSegments(fv.segments);
@@ -188,6 +190,7 @@ export async function composeFinalVideoForStitch(args: {
         clips,
         frameRate: BROLL_FRAME_RATE,
         postProduction,
+        platform,
         extractThumbnail: true,
         budget: args.budget,
         checkpoint: args.checkpoint,
@@ -212,6 +215,7 @@ export async function composeFinalVideoForStitch(args: {
       clips: assemblyClipsToTimeline(inputs.clips, aiTailTrimSec),
       postProduction,
       voiceoverChunks,
+      platform,
       extractThumbnail: true,
       budget: args.budget,
       checkpoint: args.checkpoint,
@@ -235,6 +239,7 @@ export async function composeFinalVideoForStitch(args: {
     clips: legacySegmentsToTimeline(fv.segments, aiTailTrimSec),
     postProduction,
     voiceoverChunks,
+    platform,
     extractThumbnail: true,
     budget: args.budget,
     checkpoint: args.checkpoint,

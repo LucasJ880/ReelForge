@@ -1,3 +1,5 @@
+import { captionMarginsFor } from "@/lib/video-generation/platform-safe-zone";
+
 type AspectRatio = "9:16" | "16:9" | "1:1";
 type CaptionPosition = "top" | "center" | "bottom";
 type CaptionStyle = "word_by_word" | "karaoke" | "plain";
@@ -622,13 +624,25 @@ export function renderAssCaptions(
     style: CaptionStyle;
     /** 口播 / 字幕语言（如 zh-CN）：写进 Script Info，并在词与词之间都没有字母时决定是否留空格 */
     language?: string;
+    /** 目标平台：有界面安全区的平台（抖音）字幕让开底部文案区与右侧按钮列；不传 = 原边距 */
+    platform?: string | null;
   },
 ): string {
   const resolution = assResolution(options.aspectRatio);
   const fontSize = options.aspectRatio === "9:16" ? 58 : 48;
   const outline = options.style === "plain" ? 2 : 4;
   const bold = options.style === "plain" ? 0 : -1;
-  const marginV = options.aspectRatio === "9:16" ? 150 : 90;
+  /// 平台安全区只改边距；没有专门规则的平台输出与之前逐字节一致
+  const safeMargins = captionMarginsFor({
+    platform: options.platform,
+    aspectRatio: options.aspectRatio,
+    width: resolution.width,
+    height: resolution.height,
+    position: options.position,
+  });
+  const marginL = safeMargins?.marginL ?? 80;
+  const marginR = safeMargins?.marginR ?? 80;
+  const marginV = safeMargins?.marginV ?? (options.aspectRatio === "9:16" ? 150 : 90);
   const alignment = assAlignment(options.position);
   const language = options.language?.trim().replace(/[\r\n]+/gu, " ");
   const cjkHint = language ? /^(zh|ja|ko)/iu.test(language) : null;
@@ -647,9 +661,9 @@ WrapStyle: 0
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Captions,${CAPTION_FONT_FAMILY},${fontSize},${ASS_WHITE},${ASS_GOLD},&H90000000,&H50000000,${bold},0,0,0,100,100,0,0,1,${outline},1,${alignment},80,80,${marginV},1${
+Style: Captions,${CAPTION_FONT_FAMILY},${fontSize},${ASS_WHITE},${ASS_GOLD},&H90000000,&H50000000,${bold},0,0,0,100,100,0,0,1,${outline},1,${alignment},${marginL},${marginR},${marginV},1${
     karaoke
-      ? `\nStyle: Karaoke,${CAPTION_FONT_FAMILY},${fontSize},${ASS_GOLD},${ASS_WHITE},&H90000000,&H50000000,-1,0,0,0,100,100,0,0,1,4,1,${alignment},80,80,${marginV},1`
+      ? `\nStyle: Karaoke,${CAPTION_FONT_FAMILY},${fontSize},${ASS_GOLD},${ASS_WHITE},&H90000000,&H50000000,-1,0,0,0,100,100,0,0,1,4,1,${alignment},${marginL},${marginR},${marginV},1`
       : ""
   }
 

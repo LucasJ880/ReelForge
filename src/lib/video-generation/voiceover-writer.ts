@@ -13,6 +13,8 @@ export interface VoiceoverDraftInput {
 }
 
 export interface VoiceoverDraftDeps {
+  /// 调了 AI 却没写成（超时 / 输出不合格 / 报错）时回调一次原因；LLM 没配置是配置状态，不算
+  onDegraded?: (reason: string) => void;
   llmAvailable?: () => boolean;
   chat?: typeof chatJsonByTier;
   timeoutMs?: number;
@@ -67,13 +69,24 @@ export async function writeVoiceoverScript(
         timer = setTimeout(() => resolve(null), deps.timeoutMs ?? DRAFT_TIMEOUT_MS);
       }),
     ]);
-    if (!result) return null;
+    if (!result) {
+      deps.onDegraded?.(`timed out after ${deps.timeoutMs ?? DRAFT_TIMEOUT_MS}ms`);
+      return null;
+    }
     const raw = result.data && typeof result.data === "object" ? (result.data as { script?: unknown }).script : null;
     const script = typeof raw === "string" ? raw.replace(/\s+/gu, english ? " " : "").trim() : "";
-    if (!script || measure(script, english) > Math.ceil(budget * 1.15)) return null;
+    if (!script) {
+      deps.onDegraded?.("output rejected (no script in the response)");
+      return null;
+    }
+    if (measure(script, english) > Math.ceil(budget * 1.15)) {
+      deps.onDegraded?.(`output rejected (over the ${budget} length budget)`);
+      return null;
+    }
     return script;
   } catch (error) {
     console.warn("[voiceover-writer] draft failed; keeping template:", (error as Error).message);
+    deps.onDegraded?.((error as Error).message);
     return null;
   } finally {
     if (timer) clearTimeout(timer);

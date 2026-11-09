@@ -24,6 +24,9 @@ export const PLANNING_STAGES: readonly PlanningStage[] = [
   "consistency_bible",
   "segment_prompts",
   "shot_cards",
+  "story_english",
+  "presenter_reference",
+  "frame_prompt",
 ];
 
 export const PLANNING_FALLBACK_BY_STAGE: Record<PlanningStage, PlanningFallback> = {
@@ -37,7 +40,28 @@ export const PLANNING_FALLBACK_BY_STAGE: Record<PlanningStage, PlanningFallback>
   segment_prompts: "heuristic_segment_prompts",
   /// 故事板按模板节奏出帧
   shot_cards: "template_beats",
+  /// 商家原话（中文）原样进了「全程英文」的出片提示词
+  story_english: "original_wording",
+  /// 第一帧没带主播照片
+  presenter_reference: "no_presenter_reference",
+  /// 这一帧的提示词被截到供应商上限
+  frame_prompt: "trimmed_prompt",
 };
+
+/**
+ * 往已有的记录里并入一条（出帧阶段才发现的降级：run 早就建好了，只能读出来再写回去）。
+ * 同一步只留第一条——同一轮故事板逐帧提交，同一个问题会重复出现；返回 null 表示不用写库。
+ */
+export function mergePlanningDegradation(
+  existing: unknown,
+  degradation: PlanningDegradation,
+): PlanningDegradation[] | null {
+  const current = readPlanningDegradations(existing);
+  if (current.some((entry) => entry.stage === degradation.stage)) return null;
+  return [...current, degradation].sort(
+    (a, b) => PLANNING_STAGES.indexOf(a.stage) - PLANNING_STAGES.indexOf(b.stage),
+  );
+}
 
 /// 原因进方案 JSON、进库：压成一行、抹掉疑似密钥（与能力状态的运维 note 同一规则），截到这么长。
 const REASON_MAX_CHARS = 300;

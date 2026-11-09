@@ -116,6 +116,11 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
             <div className="flex w-full max-w-sm flex-col items-center gap-3 py-16 text-center">
               <ProcessingRefresher />
               <p className="text-body text-muted-foreground">{copy.processing}</p>
+              {item.waitingMinutes !== null ? (
+                <p data-testid="library-waiting-long" className="text-pretty text-meta text-gold">
+                  {copy.waitingLong.replace("{n}", String(item.waitingMinutes))}
+                </p>
+              ) : null}
               <div className="flex w-full items-center gap-3">
                 <div className="min-w-0 flex-1">
                   <Progress value={item.progress} aria-label={`${displayTitle} ${copy.progress}`} />

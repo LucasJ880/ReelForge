@@ -42,6 +42,11 @@ interface AudioCaptionControlsProps {
    * （起稿本身一直是本地确定性模板，见 generateVoiceoverScript——这里不许暗示 AI 在写。）
    */
   draftFromTemplate?: boolean;
+  /**
+   * 这一次真调了 AI 却没写成（超时 / 输出不合格 / 报错），现在的稿是模板退回来的：写明白，别让商家以为是 AI 写的。
+   * 与 draftFromTemplate（AI 写作整体暂停）是两回事，同时为真时只显示暂停那条。
+   */
+  draftFellBack?: boolean;
   /** AI 正在写口播稿：按钮转圈、禁用，避免连点 */
   regenerating?: boolean;
   /**
@@ -265,6 +270,7 @@ export function AudioCaptionControls({
   onChange,
   onRegenerate,
   draftFromTemplate = false,
+  draftFellBack = false,
   regenerating = false,
   wordTimestampsAvailable = false,
 }: AudioCaptionControlsProps) {
@@ -357,6 +363,15 @@ export function AudioCaptionControls({
                 {english
                   ? "AI writing is paused: this draft comes from a template, so tailor it to your product before generating."
                   : "AI 写作暂停：这份口播稿按模板起稿，请按你的产品改一改再生成。"}
+              </span>
+            </p>
+          ) : draftFellBack ? (
+            <p data-testid="voiceover-fallback-notice" className="flex items-start gap-2 text-meta text-muted-foreground">
+              <TickGlyph tone="fault" className={cn("mt-[0.3em]", tickToneClass("fault"))} />
+              <span className="text-pretty">
+                {english
+                  ? "AI couldn't write the script this time, so this draft comes from a template. Tailor it to your product, or try generating again."
+                  : "这次 AI 没写成口播稿，现在这份是按模板起的。请按你的产品改一改，或再点一次生成。"}
               </span>
             </p>
           ) : null}

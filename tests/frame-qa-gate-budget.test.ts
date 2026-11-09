@@ -14,6 +14,7 @@ import {
   __test__ as gateTest,
   decideFrameQaGate,
   decideFromVerdict,
+  isFrameQaInfraFailure,
   frameQaBudgetUsage,
   readFrameQaBlockCount,
   runWithFrameQaBudget,
@@ -145,14 +146,66 @@ test("[frame-qa-gate] 免费重抽上限：第 2 次仍拦截，第 3 次检出�
   assert.equal((detail.issues as unknown[]).length, 1, "本该拦截的问题帧原样留档");
 });
 
-test("[frame-qa-gate] 门禁自身失败（超时 / vision 异常）→ SKIPPED 落库并保留历史拦截次数", () => {
+test("[frame-qa-gate] 门禁自身失败（超时 / vision 异常）→ 放行但落 UNVERIFIED（没检成 ≠ 跳过），保留历史拦截次数", () => {
   const decision = decideFromVerdict({ verdict: SKIP_VERDICT, priorBlockCount: 1, checkedAt: NOW });
-  assert.equal(decision.action, "pass");
+  assert.equal(decision.action, "pass", "质检坏了不能变成管线单点故障");
   if (decision.action !== "pass") return;
-  assert.equal(decision.successData.frameQaStatus, FRAME_QA_STATUS.SKIPPED);
+  assert.equal(decision.successData.frameQaStatus, FRAME_QA_STATUS.UNVERIFIED);
   const detail = detailOf(decision.successData as Record<string, unknown>);
+  assert.equal(detail.status, FRAME_QA_STATUS.UNVERIFIED);
+  assert.equal(detail.checked, false);
   assert.equal(detail.skipReason, "门禁超时（>45s）");
   assert.equal(detail.blockCount, 1);
+});
+
+test("[frame-qa-gate] 10 月事故形状：OpenAI 429 欠费 → UNVERIFIED，不再记成 SKIPPED", () => {
+  const reason =
+    "门禁执行异常：429 You have no credits remaining. Add credits to continue using the API at https://platform.openai.com/settings/organization/billing/.";
+  assert.equal(isFrameQaInfraFailure(reason), true);
+  const decision = decideFromVerdict({
+    verdict: { ...SKIP_VERDICT, skipReason: reason, summary: `帧质检跳过：${reason}` },
+    priorBlockCount: 0,
+    checkedAt: NOW,
+  });
+  assert.equal(decision.action, "pass");
+  if (decision.action !== "pass") return;
+  assert.equal(decision.successData.frameQaStatus, FRAME_QA_STATUS.UNVERIFIED);
+});
+
+test("[frame-qa-gate] 本来就不该检的原因仍是 SKIPPED，不算质检故障", () => {
+  for (const reason of ["门禁未启用（mock 模式或未配置）", "供应商未返回视频地址", "视频 URL 不可下载", null, undefined]) {
+    assert.equal(isFrameQaInfraFailure(reason), false, String(reason));
+  }
+  const decision = decideFromVerdict({
+    verdict: { ...SKIP_VERDICT, skipReason: "门禁未启用（mock 模式或未配置）" },
+    priorBlockCount: 0,
+    checkedAt: NOW,
+  });
+  assert.equal(decision.action === "pass" && decision.successData.frameQaStatus, FRAME_QA_STATUS.SKIPPED);
+});
+
+test("[frame-qa-gate] 没检成时叫醒运维一次，带任务号与原因；检过了（通过 / 拦截）不告警", async () => {
+  process.env.FRAME_QA_OUTSIDE_BUDGET = "inline";
+  const alerts: Array<{ jobId: string; reason: string }> = [];
+  const alertUnverified = async (jobId: string, reason: string) => {
+    alerts.push({ jobId, reason });
+  };
+  const failing = deps({ runFrameTextQa: async () => SKIP_VERDICT, alertUnverified });
+  const unverified = await decideFrameQaGate(
+    { jobId: "job_unverified", provider: VideoProvider.SEEDANCE_I2V, videoUrl: "https://x/y.mp4" },
+    failing.d,
+  );
+  assert.equal(unverified.action === "pass" && unverified.successData.frameQaStatus, FRAME_QA_STATUS.UNVERIFIED);
+  assert.deepEqual(alerts, [{ jobId: "job_unverified", reason: "门禁超时（>45s）" }]);
+
+  const passing = deps({ alertUnverified });
+  const passed = await decideFrameQaGate(
+    { jobId: "job_ok", provider: VideoProvider.SEEDANCE_I2V, videoUrl: "https://x/y.mp4" },
+    passing.d,
+  );
+  assert.equal(passed.action === "pass" && passed.successData.frameQaStatus, FRAME_QA_STATUS.PASSED);
+  assert.equal(alerts.length, 1, "通过的段不告警");
+  delete process.env.FRAME_QA_OUTSIDE_BUDGET;
 });
 
 test("[frame-qa-gate] readFrameQaBlockCount 容忍坏数据", () => {

@@ -29,6 +29,18 @@ const NOTICES: Record<PlanningStage, { zh: string; en: string }> = {
     zh: "这次 AI 没写成每一帧的拍法，分镜按通用节奏出图，前后镜头的动作可能接不上。确认前可以重做不满意的帧。",
     en: "AI couldn't plan how to shoot each frame this time, so frames follow a standard rhythm and actions may not carry over between shots. Redo any frame you don't like before approving.",
   },
+  story_english: {
+    zh: "这次 AI 没把你的描述译成英文，出片时直接用了原话，画面对描述的理解可能会差一些。",
+    en: "AI couldn't translate your description for the video model this time, so your original wording is used and the video may follow it less closely.",
+  },
+  presenter_reference: {
+    zh: "这次 AI 没拿到你选的出镜人物照片，第一帧没带人物参考，出镜的人可能和照片不一样。",
+    en: "AI couldn't load your presenter photo this time, so the first frame was drawn without it and the person may not match your photo.",
+  },
+  frame_prompt: {
+    zh: "这次 AI 画其中一帧时，画面要求太长被截短了，这一帧可能漏掉部分要求。确认前可以重做不满意的帧。",
+    en: "AI couldn't take in everything asked of one frame this time: the instructions were too long and got shortened, so it may miss some details. Redo any frame you don't like before approving.",
+  },
 };
 
 export function planningDegradationNotice(stage: PlanningStage, locale: "zh" | "en"): string {

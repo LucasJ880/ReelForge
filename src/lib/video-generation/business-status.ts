@@ -194,6 +194,19 @@ function computeProgressHint(
 }
 
 /**
+ * 「等得比平时久」的线（2026-11-09）。正常 15 秒成片端到端 P50 约 12 分钟、P90 约 36 分钟；
+ * 10 月有两条在合作方那边挂了 5 小时以上，期间页面只有一根不动的进度条。过了这条线就把真话
+ * 告诉商家：已经等了多久、可以继续等也可以取消重提。与运维保活告警（sweep-service）同一量级。
+ */
+export const RUNNING_LONG_THRESHOLD_MS = 45 * 60_000;
+
+/** 在飞段已等待的分钟数；没在飞、或还没到「比平时久」的线 → null。 */
+export function runningLongMinutes(runningElapsedMs: number | null | undefined): number | null {
+  if (typeof runningElapsedMs !== "number" || runningElapsedMs < RUNNING_LONG_THRESHOLD_MS) return null;
+  return Math.floor(runningElapsedMs / 60_000);
+}
+
+/**
  * 页面辅助：把 brief 的 videoJobs 汇总成 computeProgressHint 需要的段内进度输入。
  * - runningProviderProgress：在飞段 lastProgress 的最大值（多段并行时取推进最快的）
  * - runningElapsedMs：在飞段中最早 submittedAt 距 now 的时长

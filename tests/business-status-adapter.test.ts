@@ -2,9 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { FinalVideoStatus, VideoBriefStatus, VideoJobStatus } from "@prisma/client";
 import {
+  RUNNING_LONG_THRESHOLD_MS,
+  containsBannedCustomerTerm,
   deriveBusinessStatus,
+  runningLongMinutes,
   __test__,
 } from "../src/lib/video-generation/business-status";
+import { getPlatformCopy } from "../src/i18n/platform-copy";
 
 const { LABELS } = __test__;
 
@@ -124,4 +128,25 @@ test("business-status: progressHint 单调（planning < generating < assembling 
   assert.ok(planning.progressHint < generating.progressHint);
   assert.ok(generating.progressHint < assembling.progressHint);
   assert.ok(assembling.progressHint < ready.progressHint);
+});
+
+test("等得比平时久：过了 45 分钟才报已等待分钟数；没在飞或还早都是 null（10 月两条 5 小时任务的形状）", () => {
+  assert.equal(RUNNING_LONG_THRESHOLD_MS, 45 * 60_000);
+  assert.equal(runningLongMinutes(null), null);
+  assert.equal(runningLongMinutes(undefined), null);
+  assert.equal(runningLongMinutes(12.5 * 60_000), null, "P50 的正常等待不打扰");
+  assert.equal(runningLongMinutes(44 * 60_000 + 59_000), null);
+  assert.equal(runningLongMinutes(45 * 60_000), 45);
+  assert.equal(runningLongMinutes(308.2 * 60_000), 308);
+});
+
+test("等得比平时久的提示：中英文都带分钟占位、说明可以取消，且不带内部术语", () => {
+  for (const locale of ["zh-CN", "en-US"] as const) {
+    const copy = getPlatformCopy(locale).library;
+    assert.ok(copy.waitingLong.includes("{n}"), locale);
+    assert.equal(containsBannedCustomerTerm(copy.waitingLong), false, locale);
+  }
+  const zh = getPlatformCopy("zh-CN").library;
+  assert.ok(zh.waitingLong.includes(`「${zh.cancelVideo}」`), "提示里的按钮名要和真按钮一字不差");
+  assert.doesNotMatch(getPlatformCopy("en-US").library.waitingLong, /[㐀-鿿]/);
 });

@@ -329,6 +329,21 @@ function sameState(a: Pick<CapabilityObservation, "status" | "reason"> | undefin
   return Boolean(a && a.status === b.status && a.reason === b.reason);
 }
 
+/**
+ * 状态翻转时叫醒运维（ops-alert-service）。状态没变不加载告警模块；任何失败都吞掉——
+ * 告警不能拖垮回写，回写不能拖垮客户请求。
+ */
+async function alertCapabilityTransition(prev: CapabilityRecord | null | undefined, next: CapabilityRecord): Promise<void> {
+  if (prev?.status === next.status) return;
+  try {
+    const { capabilityTransitionAlert, sendOpsAlert } = await import("@/lib/services/ops-alert-service");
+    const alert = capabilityTransitionAlert(prev, next);
+    if (alert) await sendOpsAlert(alert);
+  } catch (error) {
+    console.warn(`[capabilities] ${next.key} 状态翻转告警失败（已忽略）：`, (error as Error).message);
+  }
+}
+
 async function writeRuntime(
   key: CapabilityKey,
   observation: CapabilityObservation,
@@ -345,6 +360,7 @@ async function writeRuntime(
   await withTimeout(store.write(next), WRITE_TIMEOUT_MS, "capability write");
   cachedRecords().set(key, next);
   lastRuntimeWrite.set(key, now.getTime());
+  await alertCapabilityTransition(prev, next);
 }
 
 /**
@@ -412,6 +428,9 @@ export async function recordCapabilityObservations(
     }
   });
   rememberCapabilityRecords(written);
+  for (const record of written) {
+    await alertCapabilityTransition(previous.get(record.key), record);
+  }
   return written;
 }
 

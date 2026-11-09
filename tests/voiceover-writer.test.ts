@@ -47,3 +47,24 @@ test("退回模板：AI 不可用、抛错、超时、空稿、超长都返回 n
   assert.equal(await writeVoiceoverScript(input, { llmAvailable: () => true, chat: reply("") as never }), null);
   assert.equal(await writeVoiceoverScript(input, { llmAvailable: () => true, chat: reply("很长".repeat(60)) as never }), null);
 });
+
+test("没写成要说得出原因：抛错 / 超时 / 空稿 / 超长各回调一次；AI 没配置与空描述不算降级", async () => {
+  const reasons: string[] = [];
+  const onDegraded = (reason: string) => void reasons.push(reason);
+  const available = () => true;
+
+  await writeVoiceoverScript(input, { llmAvailable: available, chat: (async () => { throw new Error("429 no credits"); }) as never, onDegraded });
+  await writeVoiceoverScript(input, { llmAvailable: available, chat: (() => new Promise(() => undefined)) as never, timeoutMs: 10, onDegraded });
+  await writeVoiceoverScript(input, { llmAvailable: available, chat: reply("") as never, onDegraded });
+  await writeVoiceoverScript(input, { llmAvailable: available, chat: reply("很长".repeat(60)) as never, onDegraded });
+  assert.equal(reasons.length, 4);
+  assert.equal(reasons[0], "429 no credits");
+  assert.match(reasons[1] ?? "", /timed out/);
+  assert.match(reasons[2] ?? "", /no script/);
+  assert.match(reasons[3] ?? "", /length budget/);
+
+  const quiet: string[] = [];
+  await writeVoiceoverScript(input, { llmAvailable: () => false, chat: reply("x") as never, onDegraded: (reason) => void quiet.push(reason) });
+  await writeVoiceoverScript({ ...input, prompt: " " }, { llmAvailable: available, chat: reply("x") as never, onDegraded: (reason) => void quiet.push(reason) });
+  assert.deepEqual(quiet, []);
+});

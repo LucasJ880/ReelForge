@@ -554,6 +554,25 @@ export async function claimStitchTask(): Promise<ClaimedStitchTask | null> {
 }
 
 /**
+ * 成片合成失败 → 叫醒运维（按成片一天一条）。合成失败不会自动重试，商家只能自己点重试，
+ * 而此前唯一的痕迹是 Vercel 日志。任何失败只记日志，不影响状态写入。
+ */
+async function alertStitchFailed(finalVideoId: string, failure: string): Promise<void> {
+  try {
+    const { sendOpsAlert } = await import("./ops-alert-service");
+    await sendOpsAlert({
+      kind: "stitch_failed",
+      dedupeKey: `stitch-failed:${finalVideoId}`,
+      window: "day",
+      title: "成片合成失败",
+      lines: [`成片 ${finalVideoId}`, `原因：${failure}`, "各段素材都在，商家可在成品库点重试（不重新生成、不重复扣额度）"],
+    });
+  } catch (err) {
+    console.warn(`[stitch] 合成失败告警未发出（已忽略）:`, (err as Error).message);
+  }
+}
+
+/**
  * 唯一的成功写入点（外部 runner 回调与进程内 / 本地合成共用）：
  *   - 成功：内容审核 → 写 stitchedVideoUrl + thumbnailUrl + subtitleFileUrl + status=READY
  *           → brief QA_PENDING + finalVideoUrl / finalThumbnailUrl（markBriefReady）
@@ -637,6 +656,7 @@ export async function finishStitchTask(args: {
     if (finished.count === 0) {
       return staleStitchAttempt(finalVideoId, fv.status);
     }
+    await alertStitchFailed(finalVideoId, failure);
     return {
       finalVideoId,
       ok: false,

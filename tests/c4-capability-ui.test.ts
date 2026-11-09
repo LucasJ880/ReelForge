@@ -147,6 +147,28 @@ test("口播稿：写作暂停时按钮写明「按模板」，并提示这份�
   const normal = renderToStaticMarkup(React.createElement(AudioCaptionControls, { ...props, english: false }));
   assert.match(normal, /生成口播稿/);
   assert.doesNotMatch(normal, /按模板|voiceover-template-notice/);
+  /// 2026-11-09：这一次真调了 AI 却没写成 → 写明现在是模板稿（以前静默退回，商家以为是 AI 写的）
+  assert.doesNotMatch(normal, /voiceover-fallback-notice/);
+  const fellBack = renderToStaticMarkup(React.createElement(AudioCaptionControls, { ...props, english: false, draftFellBack: true }));
+  assert.match(fellBack, /data-testid="voiceover-fallback-notice"/);
+  assert.match(fellBack, /这次 AI 没写成口播稿，现在这份是按模板起的/);
+  assert.match(fellBack, /生成口播稿/, "按钮仍是「生成口播稿」：可以再点一次重试");
+  const fellBackEn = renderToStaticMarkup(
+    React.createElement(AudioCaptionControls, {
+      ...props,
+      value: { ...props.value, voiceoverScript: "Start with the real result." },
+      english: true,
+      draftFellBack: true,
+    }),
+  );
+  assert.match(fellBackEn, /AI couldn(&#x27;|')t write the script this time/);
+  assert.doesNotMatch(fellBackEn, /[㐀-鿿]/);
+  /// AI 写作整体暂停时只说暂停那一条，不叠两条提示
+  const both = renderToStaticMarkup(
+    React.createElement(AudioCaptionControls, { ...props, english: false, draftFromTemplate: true, draftFellBack: true }),
+  );
+  assert.match(both, /voiceover-template-notice/);
+  assert.doesNotMatch(both, /voiceover-fallback-notice/);
 
   const studio = read("src/components/video-generation/streamlined-video-studio.tsx");
   assert.match(studio, /featureGate\(capabilities, "narrationDraft"\)\.status === "blocked"/);

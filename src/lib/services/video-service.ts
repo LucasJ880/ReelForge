@@ -371,6 +371,26 @@ async function failDirectSubmission(args: {
       finishedAt: new Date(),
     },
   });
+  if (acknowledgementUnknown) {
+    /// 提交确认未知：为了不重复计费，系统不自动重投，商家看到的是「请联系管理员核对」——
+    /// 所以必须真的有人被通知到（此前只有一行日志）。按任务一天一条；失败只记日志。
+    try {
+      const { sendOpsAlert } = await import("./ops-alert-service");
+      await sendOpsAlert({
+        kind: "submit_ack_unknown",
+        dedupeKey: `submit-ack-unknown:${args.jobId}`,
+        window: "day",
+        title: "出片提交确认未知，已停止自动重试",
+        lines: [
+          `任务 ${args.jobId}（${args.providerId ?? "供应商未知"}，阶段 ${failure.stage}）`,
+          `报错：${failure.message}`,
+          "需要人工到供应商后台核对是否已建单：已建单等它出片，没建单让商家重提",
+        ],
+      });
+    } catch (err) {
+      console.warn(`[video] 提交确认未知告警未发出（已忽略）:`, (err as Error).message);
+    }
+  }
   const job = await db.videoJob.findUnique({ where: { id: args.jobId } });
   if (!job) throw new Error("VideoJob disappeared after submission failure");
   return job;

@@ -2,7 +2,8 @@
  * 客户使用指南（2026-10-28，CEO 要的 user guide；版式学 LibTV「学院」：一张上手主卡 + 教程卡片墙）。
  *
  * 纯数据、无服务端依赖：服务端页面与客户端组件都能引用。用词与界面按钮逐字一致
- *（「上传产品图」「一致性故事板」「生成视频」「重做这一段」「换字幕样式 / BGM」「下载成片」），
+ *（「上传产品图」「一致性故事板」「生成视频」「重做这一段」「换字幕 / BGM / 片尾落款」「下载成片」
+ * 「换个开头」「用同样的素材再做一条」），
  * 界面改名时同步改这里。封面只用仓库里已公开的样片 / 故事板静帧，不放客户素材。
  */
 import type { Locale } from "@/i18n/config";
@@ -61,14 +62,15 @@ const ARTICLES: readonly ArticleSource[] = [
           {
             heading: "2. 用一句话说清楚你想拍什么",
             body: "像跟摄影师说话一样写：谁、在哪、做什么、想让客户记住哪一点。例如「午后客厅太刺眼，拉一下斑马帘，屋里马上柔和下来」。",
+            tip: "写好之后，下面会出现「换个开头」：痛点开场、结果前置、细节特写开场、前后对比开场。点一个，同一件商品就换一种开场方式拍。",
           },
           {
             heading: "3. 看「一致性故事板」",
-            body: "Aivora 先给每个镜头写好焦段、机位和动作，再出 4 帧故事板。哪一帧不满意，只重抽那一帧，可以在「重做前补充要求」里写清楚要怎么改。",
+            body: "Aivora 先给每个镜头写好焦段、机位和动作，再出 4 帧故事板，一般两三分钟出齐。哪一帧不满意，只重抽那一帧，可以在「重做前补充要求」里写清楚要怎么改。",
           },
           {
             heading: "4. 确认后点「生成视频」",
-            body: "故事板确认了才会开拍，视频按故事板一镜一镜拍。生成要几分钟到十几分钟，可以先去做别的，完成后会出现在「成品库」。",
+            body: "故事板确认了才会开拍，视频按故事板一镜一镜拍。一般 10–15 分钟出片，少数要半小时以上。不用守着页面：做好了页面上会提示你，成片也会出现在「成品库」。",
           },
           {
             heading: "5. 在「成品库」下载",
@@ -90,14 +92,15 @@ const ARTICLES: readonly ArticleSource[] = [
           {
             heading: "2. Describe the video in one sentence",
             body: "Write it like you would brief a camera operator: who, where, what happens, and the one thing customers should remember.",
+            tip: "Once it is written, “Change the opening” appears below: open on the problem, result first, open on a detail, or before and after. Pick one to film the same product with a different opening.",
           },
           {
             heading: "3. Check the storyboard",
-            body: "Aivora writes each shot (lens, camera position, action) and draws 4 storyboard frames. Redo only the frame you don't like, and say what to change before it redraws.",
+            body: "Aivora writes each shot (lens, camera position, action) and draws 4 storyboard frames, usually within 2–3 minutes. Redo only the frame you don't like, and say what to change before it redraws.",
           },
           {
             heading: "4. Approve, then Generate video",
-            body: "Filming starts only after you approve the storyboard, and each shot follows its frame. It takes a few minutes; the result lands in the Library.",
+            body: "Filming starts only after you approve the storyboard, and each shot follows its frame. Most videos take 10–15 minutes and a few take over half an hour. You don't need to stay on the page: we tell you when it's done, and the result lands in the Library.",
           },
           {
             heading: "5. Download from the Library",
@@ -173,6 +176,15 @@ const ARTICLES: readonly ArticleSource[] = [
           { heading: "为什么不再加品牌尾卡", body: "结尾贴一帧联系卡，画风和前面对不上，看着像两条片子拼在一起；换了商品，卡还是同一张。现在商品上印着什么，成片里就是什么。" },
           { heading: "怎么拍，logo 才清楚", steps: ["让 logo 正对镜头，在画面里占一块明显的位置", "光线均匀，不反光，不被手或包装挡住", "多拍一两个角度（正面、45°），字和图形更容易对上"] },
           { heading: "生成时怎么处理", body: "生成时会要求保留商品上原有的 logo 和字样，不额外添加别的文字或 logo。个别镜头里小字可能有细微变形：在故事板阶段重抽那一帧最省钱，成片里不满意就用「重做这一段」。" },
+          {
+            heading: "想在结尾带上品牌名：片尾落款",
+            steps: [
+              "成片做好后，打开成片详情，找到「换字幕 / BGM / 片尾落款」",
+              "勾上「片尾落款」，填品牌名和一句行动指引（比如「主页看更多」）",
+              "点「重拼成片」，一两分钟后换成带落款的版本",
+            ],
+            tip: "落款是最后两秒压在画面上的两行字，不另加一帧，也不扣额度。只在你勾了的那条成片上出现，随时可以关掉再重拼。",
+          },
         ],
         cta: "去创作",
       },
@@ -184,6 +196,15 @@ const ARTICLES: readonly ArticleSource[] = [
           { heading: "Why there is no brand end card", body: "A contact card pasted at the end never matches the look of the shots before it, and it stays the same whatever product you film. Now what is printed on the product is what appears in the video." },
           { heading: "Shoot so the logo reads", steps: ["Turn the logo toward the camera and give it a clear share of the frame", "Use even light with no glare, and keep hands and packaging off it", "Add one or two more angles (front, 45°) so lettering and marks line up"] },
           { heading: "What happens during generation", body: "Generation is told to keep the logo and lettering already on the product and to add no other text or logos. Small lettering can still drift slightly in a shot: redoing that storyboard frame is the cheapest fix, and in the Library you can redo just that segment." },
+          {
+            heading: "Want your brand name at the end: the sign-off",
+            steps: [
+              "When the video is done, open it and find “Change captions / BGM / sign-off”",
+              "Tick “Brand sign-off” and enter your brand name and a call to action (for example “See more on our profile”)",
+              "Re-assemble; a minute or two later the video has the sign-off",
+            ],
+            tip: "The sign-off is two lines over the last two seconds of footage. No extra frame is added and nothing counts against your allowance. It only appears on the videos you tick, and you can turn it off and re-assemble at any time.",
+          },
         ],
         cta: "Open Create",
       },
@@ -197,8 +218,8 @@ const ARTICLES: readonly ArticleSource[] = [
     copy: {
       "zh-CN": {
         title: "成品库：下载、重做一段、换字幕和音乐",
-        summary: "成片不满意不用整条重来：只重做有问题的那一段，或者只换字幕样式和背景音乐。",
-        features: ["成品库", "重做这一段", "换字幕样式 / BGM", "下载成片"],
+        summary: "成片不满意不用整条重来：只重做有问题的那一段，或者只换字幕样式和背景音乐。满意的，用同样的素材再做一条。",
+        features: ["成品库", "重做这一段", "换字幕 / BGM / 片尾落款", "用同样的素材再做一条", "下载成片"],
         sections: [
           { heading: "下载", body: "「下载成片」拿 MP4；「下载字幕（SRT）」拿单独的字幕文件，方便发到不同平台。" },
           {
@@ -206,14 +227,16 @@ const ARTICLES: readonly ArticleSource[] = [
             steps: ["在成片详情里选中有问题的那一段，点「重做这一段」", "在「想让这一段怎么改」写一句（可不填）", "点「确认重做（扣 1 段）」"],
             tip: "重做期间旧成片照常可看可下载；新的一段成功后才会替换进去。",
           },
-          { heading: "只换字幕样式 / BGM", body: "「换字幕样式 / BGM」只重新合成，不重新生成画面，不计生成额度；没成功会自动回到旧成片。" },
+          { heading: "只换字幕、音乐或加片尾落款", body: "「换字幕 / BGM / 片尾落款」只重新合成，不重新生成画面，不计生成额度；没成功会自动回到旧成片。" },
+          { heading: "同一件商品再拍一条", body: "成片详情里点「用同样的素材再做一条」，商品图、描述、时长和画幅都会带回创作页。在那里点「换个开头」换一种开场方式，就是一条新的变体。" },
+          { heading: "告诉我们这条怎么样", body: "成片详情里有「这条成片怎么样？」。不满意的话选一下哪里不对（商品不像、画面或动作不自然、没按你说的拍、口播或字幕有问题）。评价只用来改进出片质量，不影响这条成片，随时可以改。" },
         ],
         cta: "打开成品库",
       },
       "en-US": {
         title: "Library: download, redo one segment, change captions or music",
-        summary: "No need to redo a whole video: redo only the segment that is off, or just change the caption style and music.",
-        features: ["Library", "Redo this segment", "Captions / BGM", "Download"],
+        summary: "No need to redo a whole video: redo only the segment that is off, or just change the caption style and music. For the ones you like, make another with the same assets.",
+        features: ["Library", "Redo this segment", "Captions / BGM / sign-off", "Make another with the same assets", "Download"],
         sections: [
           { heading: "Download", body: "Download the MP4, or the captions as an SRT file for platforms that want them separately." },
           {
@@ -221,7 +244,9 @@ const ARTICLES: readonly ArticleSource[] = [
             steps: ["Open the video, pick the segment that is off and choose Redo", "Optionally say how it should change", "Confirm (uses 1 segment)"],
             tip: "The old video stays viewable and downloadable; the new segment replaces it only once it succeeds.",
           },
-          { heading: "Change captions or music only", body: "This re-assembles the video without filming anything new, so it does not use generation credit; if it fails you keep the old video." },
+          { heading: "Change captions or music, or add a sign-off", body: "“Change captions / BGM / sign-off” re-assembles the video without filming anything new, so it does not use generation credit; if it fails you keep the old video." },
+          { heading: "Film the same product again", body: "In the video's page choose “Make another with the same assets”: the product photos, description, length and aspect ratio come back to Create. Use “Change the opening” there to pick a different opening, and you have a new variant." },
+          { heading: "Tell us how it turned out", body: "The video's page asks “How is this video?”. If it is not good, pick what went wrong (product looks wrong, unnatural visuals or motion, not what you described, voiceover or captions). Ratings are only used to improve output quality; they do not change the video, and you can update them anytime." },
         ],
         cta: "Open the Library",
       },
@@ -296,7 +321,7 @@ const ARTICLES: readonly ArticleSource[] = [
         summary: "什么时候扣额度、失败怎么退、取消要不要钱——一页说清。",
         features: ["本月额度", "失败退回", "取消"],
         sections: [
-          { heading: "什么时候扣额度", body: "点「生成视频」提交时预留额度；故事板、重抽故事板帧、换字幕样式 / BGM 都不扣视频额度。重做一段扣 1 段。" },
+          { heading: "什么时候扣额度", body: "点「生成视频」提交时预留额度；故事板、重抽故事板帧、换字幕 / BGM / 片尾落款都不扣视频额度。重做一段扣 1 段。" },
           { heading: "失败自动退回", body: "生成失败（包括供应商那边出错）会自动把额度退回本月，不需要找客服。" },
           { heading: "取消永远免费", body: "任何一轮都可以取消；已经产出的图片和素材会保留在历史里，随时可以用同样的输入重新生成。" },
           { heading: "AI 生成标注", body: "成片画面由 AI 生成，发布时请按平台要求保留或添加 AI 生成标注。" },

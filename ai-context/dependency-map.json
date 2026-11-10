@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T04:33:30.984Z",
+  "generatedAt": "2026-11-10T04:43:42.975Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -19568,6 +19568,27 @@
         "node:test",
         "@prisma/client",
         "next/server"
+      ]
+    },
+    {
+      "file": "tests/guide-matches-ui.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:test",
+        "@/i18n/platform-copy",
+        "@/lib/create/hook-angles",
+        "@/lib/guide/guide-articles"
+      ],
+      "localImports": [
+        "@/i18n/platform-copy",
+        "@/lib/create/hook-angles",
+        "@/lib/guide/guide-articles"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:test"
       ]
     },
     {

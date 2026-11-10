@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T04:33:30.987Z",
+  "generatedAt": "2026-11-10T04:43:42.978Z",
   "areas": {
     "unknown": [
       ".claude/launch.json",
@@ -1969,6 +1969,7 @@
       "tests/growth-notification.test.ts",
       "tests/growth-public-routes.test.ts",
       "tests/growth-tracked-link.test.ts",
+      "tests/guide-matches-ui.test.ts",
       "tests/h1-secondary-api-contract.test.ts",
       "tests/h1-secondary-contract-group-a.test.ts",
       "tests/h1-secondary-contract-group-c.test.ts",

@@ -229,6 +229,9 @@ test("取数只用只读查询：过去 24 小时、询盘只算询盘页（含�
   patch(t, anyDb.videoJob, "count", record("videoJob.count", 2));
   patch(t, anyDb.videoBrief, "findMany", record("videoBrief.findMany", []));
   patch(t, anyDb.videoBrief, "count", record("videoBrief.count", 1));
+  patch(t, anyDb.videoFeedback, "findMany", record("videoFeedback.findMany", [
+    { userId: "user-1", rating: "up", reasons: [], note: null, updatedAt: new Date("2026-10-25T08:00:00.000Z") },
+  ]));
   patch(t, anyDb.batchJob, "findMany", record("batchJob.findMany", [{ userId: "user-1" }]));
   patch(t, anyDb.deliveryOrder, "findMany", record("deliveryOrder.findMany", [{ createdById: "user-1" }, { createdById: "user-2" }]));
   patch(t, anyDb.adminUser, "findMany", record("adminUser.findMany", [
@@ -284,4 +287,32 @@ test("C1：汇总带上自助注册与待开通的询盘页（日志版账号邮
   assert.match(full.text, /待开通的询盘页（不限窗口，管理员面板开通）\/ Inquiry pages awaiting activation: 1/);
   const logged = buildFounderDigest(sampleData(), { day: "2026-10-25", redact: true });
   assert.doesNotMatch(logged.text, /new@shop\.test/);
+});
+
+test("成片评价：有评价时出一节（满意只计数、不满意列原因）；日志版不写商家补充的话；读不到评价时不出这一节", () => {
+  const videoFeedback = {
+    up: 3,
+    down: 1,
+    downItems: [
+      {
+        at: new Date("2026-10-25T05:00:00.000Z"),
+        owner: "merchant@example.com",
+        reasons: ["unnatural_motion", "product_mismatch"] as const,
+        note: "倒水的时候水流到杯子外面了",
+      },
+    ],
+  };
+  const full = buildFounderDigest(sampleData({ videoFeedback: { ...videoFeedback, downItems: videoFeedback.downItems.map((item) => ({ ...item, reasons: [...item.reasons] })) } }), { day: "2026-10-25" });
+  assert.match(full.text, /成片评价 \/ Video ratings: 4（满意 3 · 不满意 1 · 满意率 75%）/);
+  assert.match(full.text, /不满意 · .*merchant@example\.com · 画面或动作不自然、商品不像 · 倒水的时候水流到杯子外面了/);
+
+  const logged = buildFounderDigest(sampleData({ videoFeedback: { ...videoFeedback, downItems: videoFeedback.downItems.map((item) => ({ ...item, reasons: [...item.reasons] })) } }), { day: "2026-10-25", redact: true });
+  assert.match(logged.text, /满意率 75%/);
+  assert.doesNotMatch(logged.text, /倒水的时候/, "日志版不写商家随手写的补充");
+  assert.doesNotMatch(logged.text, /merchant@example\.com/, "日志版账号邮箱打码");
+
+  const none = buildFounderDigest(sampleData({ videoFeedback: { up: 0, down: 0, downItems: [] } }), { day: "2026-10-25" });
+  assert.match(none.text, /成片评价 \/ Video ratings: 0\n {2}无 \/ none/);
+  assert.doesNotMatch(buildFounderDigest(sampleData({ videoFeedback: null }), { day: "2026-10-25" }).text, /成片评价/);
+  assert.doesNotMatch(buildFounderDigest(sampleData(), { day: "2026-10-25" }).text, /成片评价/);
 });

@@ -73,6 +73,7 @@ import {
   PRODUCT_LINK_ENTRY_ENABLED,
 } from "@/lib/create/entry-policy";
 import { HOOK_ANGLES, applyHookAngle, detectHookAngle, stripHookAngle } from "@/lib/create/hook-angles";
+import { SIGNOFF_BRAND_MAX, SIGNOFF_CTA_MAX } from "@/lib/video-generation/brand-signoff";
 import { loadVoiceoverDraft, saveVoiceoverDraft } from "@/lib/video-generation/voiceover-draft-storage";
 import { awaitVoiceoverDraft } from "@/lib/video-generation/voiceover-draft-wait";
 import {
@@ -152,6 +153,15 @@ const ZH_COPY = {
   rowSpecs: "视频规格",
   rowEnding: "结尾联系方式",
   rowAudio: "口播与字幕",
+  rowSignoff: "片尾落款",
+  signoffToggle: "最后两秒带上品牌名",
+  signoffHint: "在成片最后两秒的画面上压一行品牌名和一句行动指引，不另加一帧。只对这一条生效；成片出来后也可以在成品库里加或去掉。",
+  signoffBrand: "品牌名",
+  signoffBrandPlaceholder: "例：NORDA",
+  signoffCta: "行动指引（可选）",
+  signoffCtaPlaceholder: "例：主页看更多",
+  signoffRequired: "开启片尾落款要填品牌名，或者把它关掉。",
+  summarySignoff: "落款",
   audioHint: "口播由成片直接说出，口播稿可随时修改；字幕在成片完成后按实际时长生成。",
   summaryVoiceover: "口播",
   summaryCaptions: "字幕",
@@ -273,6 +283,15 @@ const EN_COPY: StudioCopy = {
   rowSpecs: "Specs",
   rowEnding: "End frame",
   rowAudio: "Voice & captions",
+  rowSignoff: "Brand sign-off",
+  signoffToggle: "Show the brand name for the last two seconds",
+  signoffHint: "Your brand name and a call to action appear over the last two seconds of footage. No extra frame is added. It applies to this video only, and you can add or remove it later from the Library.",
+  signoffBrand: "Brand name",
+  signoffBrandPlaceholder: "e.g. NORDA",
+  signoffCta: "Call to action (optional)",
+  signoffCtaPlaceholder: "e.g. See more on our profile",
+  signoffRequired: "Enter a brand name for the sign-off, or turn it off.",
+  summarySignoff: "Sign-off",
   audioHint: "The video speaks your editable script; captions are timed to the finished video.",
   summaryVoiceover: "Voiceover",
   summaryCaptions: "Captions",
@@ -507,6 +526,15 @@ export function StreamlinedVideoStudio({
     }));
   const [plan, setPlan] = useState<VideoGenerationPlan | null>(null);
   const [planRequestKey, setPlanRequestKey] = useState<string | null>(null);
+  /// 片尾落款：默认不带。预填只取商家自己工作区的品牌包（默认的那个优先），不取全局包——
+  /// 10-28 的「保温杯配窗帘厂 logo」就是别人的品牌被默认带上了。
+  const ownBrandForSignoff = useMemo(() => {
+    const own = brandPackages.filter((entry) => entry.scope === "workspace");
+    return own.find((entry) => entry.isDefault) ?? own[0] ?? null;
+  }, [brandPackages]);
+  const [signoffEnabled, setSignoffEnabled] = useState(false);
+  const [signoffBrand, setSignoffBrand] = useState(ownBrandForSignoff?.brandName ?? "");
+  const [signoffCta, setSignoffCta] = useState(ownBrandForSignoff?.cta ?? "");
   const [storyboard, setStoryboard] = useState<StoryboardRunView | null>(null);
   const [storyboardFrameBusy, setStoryboardFrameBusy] = useState<string | null>(null);
   const [approvingStoryboard, setApprovingStoryboard] = useState(false);
@@ -1148,6 +1176,10 @@ export function StreamlinedVideoStudio({
         position: captionPosition,
         exportSrt,
       },
+      /// 没勾就不带这个键：请求与方案缓存键和之前一模一样
+      ...(signoffEnabled && signoffBrand.trim()
+        ? { signoff: { enabled: true, brandName: signoffBrand.trim(), cta: signoffCta.trim() || null } }
+        : {}),
     });
   }
 
@@ -1158,6 +1190,7 @@ export function StreamlinedVideoStudio({
         ? "Add a voiceover script or turn native voiceover off."
         : "请填写口播稿，或关闭原生口播。";
     }
+    if (signoffEnabled && !signoffBrand.trim()) return copy.signoffRequired;
     return null;
   }
 
@@ -1659,7 +1692,7 @@ export function StreamlinedVideoStudio({
   ];
   /// 写作 / 看图能力暂停时，在卡下明说镜头怎么规划、质检是否照常（C4 · 诚实说明）
   const capabilityDegraded = shotsFromTemplate || frameQaPaused;
-  const moreSummary = `${copy.summaryVoiceover} ${voiceoverEnabled ? copy.on : copy.off} · ${copy.summaryCaptions} ${captionsEnabled ? copy.on : copy.off}`;
+  const moreSummary = `${copy.summaryVoiceover} ${voiceoverEnabled ? copy.on : copy.off} · ${copy.summaryCaptions} ${captionsEnabled ? copy.on : copy.off}${signoffEnabled ? ` · ${copy.summarySignoff} ${copy.on}` : ""}`;
 
   /// 错误与额度提醒：没有故事板时贴在提示卡下面，有故事板时进底部操作条——同一份元素只渲染一处
   const statusNotices = (
@@ -2181,6 +2214,50 @@ export function StreamlinedVideoStudio({
               draftFellBack={voiceoverDraftFellBack}
             />
           </TicketRow>
+          {/* 片尾落款（2026-11-10）：最后两秒在画面上压品牌名 + 行动指引；每条单独勾、默认不带。
+              和下面已下线的尾卡不是一回事：不另加一帧，文字由合成直接烧上去。 */}
+          <TicketRow data-testid="streamlined-signoff" label={copy.rowSignoff} optional={copy.optional}>
+            <label className="flex cursor-pointer items-center justify-between gap-4 text-body text-foreground">
+              {copy.signoffToggle}
+              <input
+                type="checkbox"
+                checked={signoffEnabled}
+                disabled={locked}
+                className="size-4 accent-primary"
+                onChange={(event) => setSignoffEnabled(event.target.checked)}
+              />
+            </label>
+            <p className="text-meta text-muted-foreground">{copy.signoffHint}</p>
+            {signoffEnabled ? (
+              <div className="grid gap-3 @md:grid-cols-2">
+                <label className="block text-meta font-medium text-muted-foreground">
+                  {copy.signoffBrand}
+                  <input
+                    type="text"
+                    value={signoffBrand}
+                    maxLength={SIGNOFF_BRAND_MAX}
+                    disabled={locked}
+                    placeholder={copy.signoffBrandPlaceholder}
+                    aria-invalid={!signoffBrand.trim()}
+                    className={SIGNOFF_INPUT_CLASS}
+                    onChange={(event) => setSignoffBrand(event.target.value)}
+                  />
+                </label>
+                <label className="block text-meta font-medium text-muted-foreground">
+                  {copy.signoffCta}
+                  <input
+                    type="text"
+                    value={signoffCta}
+                    maxLength={SIGNOFF_CTA_MAX}
+                    disabled={locked}
+                    placeholder={copy.signoffCtaPlaceholder}
+                    className={SIGNOFF_INPUT_CLASS}
+                    onChange={(event) => setSignoffCta(event.target.value)}
+                  />
+                </label>
+              </div>
+            ) : null}
+          </TicketRow>
           {/* 品牌尾卡入口 A 级下线（2026-10-28，见 brand-end-card-policy.ts）：品牌跟着商品走，不再在片尾贴卡 */}
           {BRAND_END_CARD_ENTRY_ENABLED ? (
             <TicketRow
@@ -2320,6 +2397,9 @@ export function StreamlinedVideoStudio({
 }
 
 /// 卡下芯片与「试试这些」共用一套外观（学 Runway 模型芯片：约 38px 高、12px 圆角、二级面）
+const SIGNOFF_INPUT_CLASS =
+  "mt-2 h-(--control-height) w-full rounded-(--radius-md) x-well border-input px-3 text-body text-foreground outline-none placeholder:text-tertiary focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-50";
+
 const CHIP_CLASS =
   "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-(--radius-lg) border border-border bg-raised px-3 text-meta font-medium text-foreground transition-colors duration-fast ease-out hover:border-border-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none [&_svg]:size-3.5 [&_svg]:shrink-0 [&_svg]:text-muted-foreground";
 

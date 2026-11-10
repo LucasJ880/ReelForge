@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T05:05:04.205Z",
+  "generatedAt": "2026-11-10T05:10:54.625Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -15807,6 +15807,7 @@
     {
       "file": "src/lib/video-generation/generation-supervisor.ts",
       "imports": [
+        "@/lib/video-generation/brand-signoff",
         "node:crypto",
         "@/lib/video-generation/input-classifier",
         "@/lib/video-generation/asset-classifier",
@@ -15827,6 +15828,7 @@
         "@/types/video-generation"
       ],
       "localImports": [
+        "@/lib/video-generation/brand-signoff",
         "@/lib/video-generation/input-classifier",
         "@/lib/video-generation/asset-classifier",
         "@/lib/video-generation/creative-strategist",
@@ -17615,7 +17617,8 @@
         "@/lib/schemas/unified-input",
         "@/lib/video-generation/brand-signoff",
         "@/lib/video-generation/restitch-patch",
-        "@/types/video-generation"
+        "@/types/video-generation",
+        "@/lib/video-generation/generation-supervisor"
       ],
       "localImports": [
         "@/lib/media/media-fonts",
@@ -17623,7 +17626,8 @@
         "@/lib/schemas/unified-input",
         "@/lib/video-generation/brand-signoff",
         "@/lib/video-generation/restitch-patch",
-        "@/types/video-generation"
+        "@/types/video-generation",
+        "@/lib/video-generation/generation-supervisor"
       ],
       "externalImports": [
         "node:assert/strict",

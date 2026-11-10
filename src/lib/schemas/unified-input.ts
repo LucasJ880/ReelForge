@@ -190,6 +190,8 @@ export const unifiedVideoGenerationRequestSchema = z.object({
   consistencyLockIds: z.array(z.string().max(60)).max(8).nullable().optional(),
   audio: audioSettingsSchema.optional(),
   captions: captionSettingsSchema.optional(),
+  /// 片尾落款：创作时就勾上的，随方案进后期快照，成片合成时直接烧（不用等成片出来再重拼）
+  signoff: signoffSettingsSchema.optional(),
   advancedOptions: z.record(z.string(), z.unknown()).nullable().optional(),
   deliveryOrderId: z.string().nullable().optional(),
 });

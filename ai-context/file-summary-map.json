@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T05:05:04.200Z",
+  "generatedAt": "2026-11-10T05:10:54.619Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -18029,7 +18029,7 @@
         "default"
       ],
       "lineCount": 322,
-      "sizeBytes": 17649,
+      "sizeBytes": 17650,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -23956,8 +23956,8 @@
         "StudioReadings",
         "StreamlinedVideoStudio"
       ],
-      "lineCount": 2697,
-      "sizeBytes": 115983,
+      "lineCount": 2777,
+      "sizeBytes": 120705,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -27841,8 +27841,8 @@
         "supportedDurationSchema",
         "userTypeSchema"
       ],
-      "lineCount": 450,
-      "sizeBytes": 14373,
+      "lineCount": 452,
+      "sizeBytes": 14551,
       "notes": "Schema / validation; area=media-processing"
     },
     {
@@ -32358,6 +32358,7 @@
         "__test__"
       ],
       "imports": [
+        "@/lib/video-generation/brand-signoff",
         "node:crypto",
         "@/lib/video-generation/input-classifier",
         "@/lib/video-generation/asset-classifier",
@@ -32382,8 +32383,8 @@
         "buildPlan",
         "__test__"
       ],
-      "lineCount": 293,
-      "sizeBytes": 10997,
+      "lineCount": 304,
+      "sizeBytes": 11440,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -34225,8 +34226,8 @@
         "CaptionStyle",
         "CaptionPosition"
       ],
-      "lineCount": 543,
-      "sizeBytes": 18076,
+      "lineCount": 545,
+      "sizeBytes": 18296,
       "notes": "Shared TypeScript types; area=media-processing"
     },
     {
@@ -35268,11 +35269,12 @@
         "@/lib/schemas/unified-input",
         "@/lib/video-generation/brand-signoff",
         "@/lib/video-generation/restitch-patch",
-        "@/types/video-generation"
+        "@/types/video-generation",
+        "@/lib/video-generation/generation-supervisor"
       ],
       "importantSymbols": [],
-      "lineCount": 161,
-      "sizeBytes": 9129,
+      "lineCount": 205,
+      "sizeBytes": 12190,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -39231,7 +39233,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 125,
-      "sizeBytes": 5887,
+      "sizeBytes": 5888,
       "notes": "Unit / integration test; area=tests"
     },
     {

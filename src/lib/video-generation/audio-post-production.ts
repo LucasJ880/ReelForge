@@ -343,14 +343,24 @@ export type CaptionPlanSegment = {
  *      voiceoverChunks（与各段数量一致才用——它就是每段被要求念的那句）；旧数据没有 chunk 时按
  *      **计划**时长重切（同一规则），裁尾造成的实测不等长不会把边界吸偏。
  *   2. 没有背字幕的段（b-roll / 全是上传片段）→ 整片按字重均分（1025 之前的行为）。
+ *   0.（2026-11-10）调用方给了语音识别的时间（speechWords）且对得上口播稿 → 字幕跟着人声走，上面两条都不用。
  */
 export function planCaptionCues(args: {
   script: string;
   segments: ReadonlyArray<CaptionPlanSegment>;
   captionSpanSec: number;
   voiceoverChunks?: ReadonlyArray<string> | null;
-}): { cues: CaptionCue[]; source: "chunks" | "planned" | "uniform" } {
+  /**
+   * 成片里实际语音的逐字 / 逐词时间（相对成片开头）。给了、且和口播稿对得上，字幕就跟着人声走（source = "speech"）；
+   * 没给或对不上（alignCuesToSpeech 返回 null），照旧走下面按字数摊的三条路。
+   */
+  speechWords?: ReadonlyArray<SpokenWord> | null;
+}): { cues: CaptionCue[]; source: "speech" | "chunks" | "planned" | "uniform" } {
   const captionSpanMs = Math.max(1, Math.round(args.captionSpanSec * 1_000));
+  if (args.speechWords && args.speechWords.length > 0) {
+    const aligned = alignCuesToSpeech(args.script, args.speechWords, { spanMs: captionSpanMs });
+    if (aligned) return { cues: aligned.cues, source: "speech" };
+  }
   const windows = captionWindowsFromSegments(args.segments, captionSpanMs);
   if (windows.length === 0) {
     return { cues: buildDeterministicCues(args.script, args.captionSpanSec), source: "uniform" };
@@ -492,6 +502,185 @@ export function buildTimedCues(
     cues[index].endMs = Math.min(cues[index].endMs, Math.max(cues[index].startMs + 1, nextStart));
   }
   return cues;
+}
+
+/* ── 按真实语音对齐（2026-11-10）──────────────────────────────────────────
+ *
+ * 没有时间戳时，字幕只能把口播稿按字数摊满整段（planCaptionCues 的 chunks / planned / uniform 三条路）。
+ * 可出片模型不会匀速把话说满一整段：实测 6 条 15 秒成片，两句口播常在 7–10 秒内说完，
+ * 第二句字幕却要等到 6–10 秒才换上去——人声说完了，字幕还停在上一句（6 条里 5 条偏晚，平均差约 2 秒）。
+ *
+ * 这里吃语音识别给的逐字 / 逐词时间，把口播稿的每一句对到它真正被说出来的那一段：
+ *   - 字幕的字以口播稿为准。识别会写错字（抿→米、变→遍）、会出繁体，所以识别结果只拿来取时间；
+ *     两边按「字 / 词」做最长公共子序列，对得上的才算数，对不上的字按同一句里的语速外推。
+ *   - 一句都没对上的句子夹在前后两句之间；对上的字不到一半就整体放弃（返回 null，调用方照旧按字数摊）。
+ *   - 字幕比人声早一点点出现、说完多留一会儿；两句离得近就直接接上，不闪。
+ * 纯函数：识别从哪来（哪家接口、还是本机 whisper）由调用方决定。
+ */
+
+/** 语音识别出的一个字 / 词及其起止时间（毫秒，相对成片开头）。 */
+export type SpokenWord = CaptionWord;
+
+/** 字幕比人声早出现这么多：读的人需要一点预备 */
+const SPEECH_LEAD_MS = 120;
+/** 一句说完之后字幕多留这么久 */
+const SPEECH_LINGER_MS = 500;
+/** 上一句字幕收掉、下一句还没出，中间空得比这短就直接接上，不闪一下 */
+const SPEECH_BRIDGE_MS = 700;
+/** 对上的字不到这个比例：识别不可信（背景声太大 / 说的不是这份稿），放弃对齐 */
+const SPEECH_MIN_COVERAGE = 0.5;
+/** 估不出语速时每个字 / 词按这么长算 */
+const SPEECH_FALLBACK_UNIT_MS = 250;
+
+const CJK_UNIT = "\\p{Script=Han}\\p{Script=Hiragana}\\p{Script=Katakana}\\p{Script=Hangul}";
+const ALIGNMENT_UNIT = new RegExp(`[${CJK_UNIT}]|(?:(?![${CJK_UNIT}])[\\p{L}\\p{N}])+`, "gu");
+
+/** 对齐单位：中日韩一字一个，其它文字一词一个；不分大小写、全半角。标点与空白不参与。 */
+function alignmentUnits(text: string): string[] {
+  return text.normalize("NFKC").toLowerCase().match(ALIGNMENT_UNIT) ?? [];
+}
+
+function longestCommonSubsequence(left: string[], right: string[]): Array<[number, number]> {
+  const rows = left.length;
+  const cols = right.length;
+  const table: Uint16Array[] = Array.from({ length: rows + 1 }, () => new Uint16Array(cols + 1));
+  for (let row = rows - 1; row >= 0; row--) {
+    for (let col = cols - 1; col >= 0; col--) {
+      table[row][col] =
+        left[row] === right[col]
+          ? table[row + 1][col + 1] + 1
+          : Math.max(table[row + 1][col], table[row][col + 1]);
+    }
+  }
+  const pairs: Array<[number, number]> = [];
+  let row = 0;
+  let col = 0;
+  while (row < rows && col < cols) {
+    if (left[row] === right[col]) {
+      pairs.push([row, col]);
+      row++;
+      col++;
+    } else if (table[row + 1][col] >= table[row][col + 1]) {
+      row++;
+    } else {
+      col++;
+    }
+  }
+  return pairs;
+}
+
+export function alignCuesToSpeech(
+  script: string,
+  words: ReadonlyArray<SpokenWord>,
+  options: { spanMs: number; minCoverage?: number },
+): { cues: CaptionCue[]; coverage: number } | null {
+  const spanMs = Math.round(options.spanMs);
+  if (!Number.isFinite(spanMs) || spanMs <= 0) return null;
+  const chunks = readableChunks(script);
+  if (chunks.length === 0) return null;
+
+  /// 口播稿侧：每个单位记下属于第几句
+  const scriptUnits: Array<{ key: string; chunk: number }> = [];
+  chunks.forEach((chunk, index) => {
+    for (const key of alignmentUnits(chunk)) scriptUnits.push({ key, chunk: index });
+  });
+  if (scriptUnits.length === 0) return null;
+
+  /// 识别侧：一个词里有多个单位（英文短语、几个汉字并成一个 token）时，时间在词内均分
+  const spoken: Array<{ key: string; startMs: number; endMs: number }> = [];
+  for (const word of [...words].sort((a, b) => a.startMs - b.startMs || a.endMs - b.endMs)) {
+    if (!Number.isFinite(word.startMs) || !Number.isFinite(word.endMs)) continue;
+    if (word.startMs < 0 || word.endMs < word.startMs || word.startMs >= spanMs) continue;
+    const keys = alignmentUnits(word.text);
+    if (keys.length === 0) continue;
+    const endMs = Math.min(word.endMs, spanMs);
+    const step = (endMs - word.startMs) / keys.length;
+    keys.forEach((key, index) => {
+      spoken.push({
+        key,
+        startMs: Math.round(word.startMs + step * index),
+        endMs: Math.round(word.startMs + step * (index + 1)),
+      });
+    });
+  }
+  if (spoken.length === 0) return null;
+
+  const pairs = longestCommonSubsequence(
+    scriptUnits.map((unit) => unit.key),
+    spoken.map((unit) => unit.key),
+  );
+  const coverage = pairs.length / scriptUnits.length;
+  if (coverage < (options.minCoverage ?? SPEECH_MIN_COVERAGE)) return null;
+
+  /// 每一句被说出来的时段：首尾对上的字定位置，句首 / 句尾没对上的字按这一句的语速外推
+  const firstUnitOfChunk: number[] = [];
+  scriptUnits.forEach((unit, index) => {
+    if (firstUnitOfChunk[unit.chunk] === undefined) firstUnitOfChunk[unit.chunk] = index;
+  });
+  const unitCountOfChunk = chunks.map(
+    (_, index) => scriptUnits.filter((unit) => unit.chunk === index).length,
+  );
+  const spans: Array<{ startMs: number; endMs: number } | null> = chunks.map(() => null);
+  chunks.forEach((_, chunk) => {
+    const matched = pairs.filter(([unitIndex]) => scriptUnits[unitIndex].chunk === chunk);
+    if (matched.length === 0) return;
+    const [firstUnit, firstSpoken] = matched[0];
+    const [lastUnit, lastSpoken] = matched[matched.length - 1];
+    const heardMs = spoken[lastSpoken].endMs - spoken[firstSpoken].startMs;
+    const unitMs =
+      matched.length >= 2 && heardMs > 0
+        ? heardMs / (lastUnit - firstUnit + 1)
+        : SPEECH_FALLBACK_UNIT_MS;
+    const leading = firstUnit - firstUnitOfChunk[chunk];
+    const trailing = firstUnitOfChunk[chunk] + unitCountOfChunk[chunk] - 1 - lastUnit;
+    spans[chunk] = {
+      startMs: spoken[firstSpoken].startMs - leading * unitMs,
+      endMs: spoken[lastSpoken].endMs + trailing * unitMs,
+    };
+  });
+
+  /// 一个字都没对上的句子：夹在前后两句之间，连着几句就按字数分这段空档
+  for (let chunk = 0; chunk < spans.length; chunk++) {
+    if (spans[chunk]) continue;
+    let next = chunk;
+    while (next < spans.length && !spans[next]) next++;
+    const gapStart = chunk > 0 ? (spans[chunk - 1] as { endMs: number }).endMs : 0;
+    const gapEnd = next < spans.length ? (spans[next] as { startMs: number }).startMs : spanMs;
+    const weights = chunks.slice(chunk, next).map(readableWeight);
+    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+    let cursor = gapStart;
+    for (let index = chunk; index < next; index++) {
+      const share = (Math.max(0, gapEnd - gapStart) * weights[index - chunk]) / totalWeight;
+      spans[index] = { startMs: cursor, endMs: cursor + share };
+      cursor += share;
+    }
+    chunk = next - 1;
+  }
+
+  /// 时段 → 字幕：早一点出现、说完多留一会儿；不重叠、不倒退、不出界
+  const cues: CaptionCue[] = [];
+  let previousStart = -1;
+  spans.forEach((span, index) => {
+    const { startMs, endMs } = span as { startMs: number; endMs: number };
+    const cueStart = Math.min(
+      Math.max(0, previousStart + 1, Math.round(startMs) - SPEECH_LEAD_MS),
+      Math.max(0, spanMs - 1),
+    );
+    previousStart = cueStart;
+    cues.push({
+      index: index + 1,
+      text: chunks[index],
+      startMs: cueStart,
+      endMs: Math.round(endMs) + SPEECH_LINGER_MS,
+    });
+  });
+  cues.forEach((cue, index) => {
+    const limit = index + 1 < cues.length ? cues[index + 1].startMs : spanMs;
+    const readable = Math.max(cue.endMs, cue.startMs + MIN_READABLE_CUE_MS);
+    cue.endMs = Math.max(cue.startMs + 1, Math.min(limit, readable));
+    if (index + 1 < cues.length && limit - cue.endMs < SPEECH_BRIDGE_MS) cue.endMs = Math.max(cue.endMs, limit);
+  });
+  return { cues, coverage };
 }
 
 function srtTimestamp(ms: number): string {

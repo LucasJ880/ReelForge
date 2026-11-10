@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T04:33:30.978Z",
+  "generatedAt": "2026-11-10T04:43:42.968Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -26331,8 +26331,8 @@
         "guideArticles",
         "guideArticle"
       ],
-      "lineCount": 407,
-      "sizeBytes": 21365,
+      "lineCount": 432,
+      "sizeBytes": 24872,
       "notes": "Utility / helper module"
     },
     {
@@ -37236,6 +37236,24 @@
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
+      "path": "tests/guide-matches-ui.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:test",
+        "@/i18n/platform-copy",
+        "@/lib/create/hook-angles",
+        "@/lib/guide/guide-articles"
+      ],
+      "importantSymbols": [],
+      "lineCount": 49,
+      "sizeBytes": 2558,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
       "path": "tests/h1-secondary-api-contract.test.ts",
       "type": "test",
       "area": "tests",
@@ -39223,7 +39241,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 787,
-      "sizeBytes": 42286,
+      "sizeBytes": 42301,
       "notes": "Unit / integration test; hits Prisma DB; NextAuth session check; area=tests"
     },
     {

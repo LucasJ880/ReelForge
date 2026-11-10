@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T04:33:30.977Z",
+  "generatedAt": "2026-11-10T04:43:42.967Z",
   "package": {
     "name": "aivora",
     "version": "0.2.0"
@@ -41,7 +41,7 @@
     "Apify TikTok scraper (^2.23.0)"
   ],
   "fileTotals": {
-    "total": 2166,
+    "total": 2167,
     "byType": {
       "unknown": 516,
       "doc": 442,
@@ -60,7 +60,7 @@
       "provider": 22,
       "service": 92,
       "type": 2,
-      "test": 405
+      "test": 406
     },
     "byArea": {
       "unknown": 953,
@@ -85,7 +85,7 @@
       "wizard": 1,
       "i18n": 17,
       "ai-providers": 22,
-      "tests": 405
+      "tests": 406
     }
   },
   "routes": {

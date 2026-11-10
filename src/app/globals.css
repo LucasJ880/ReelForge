@@ -123,7 +123,8 @@
     box-shadow: var(--shadow-well);
   }
 
-  /* 2026-10-28 学 LibTV：原「行情墙」1px 接缝拼格改成有间距的卡片网格——每格自己一张中性卡 */
+  /* 卡片网格：名字是 10-24「行情墙」留下的，样子 2026-10-28 学 LibTV 时已经换掉——不再是 1px 接缝拼格，
+     而是有间距的网格、每格自己一张中性卡。现行材质，可以继续用。角标 .x-frame 2026-11-10 删除（10-28 起就不画任何东西）。 */
   .x-wall {
     display: grid;
     gap: var(--space-3);
@@ -134,16 +135,6 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-card);
     background-color: var(--surface);
-  }
-
-  .x-frame {
-    position: relative;
-  }
-
-  /* 角标装饰（行情大屏的取景框）2026-10-28 退役：LibTV 的卡片不带装饰线 */
-  .x-frame::before,
-  .x-frame::after {
-    content: none;
   }
 
   /* 小标签：2026-10-28 起不再等宽大写，就是一行小字（LibTV 的界面字都是系统字） */

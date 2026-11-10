@@ -121,5 +121,5 @@ npm run context:find -- "..."
   壳层数字来自同一个脉搏（`/api/exchange/pulse`），读数口径只从读数注册表取；状态词只从 `state-vocab` 取，「成交」只留给询盘。
 - 眉题/kicker 一律禁止；页面标题自己承重。
 - 要用户再点一次确认的事用 `ConfirmDialog`（`src/components/ui/confirm-dialog.tsx`），按钮写动作本身；`window.confirm` / `alert` 禁用（有门禁测试）。工作区正文 14px。
-- `.x-wall` / `.x-beam` / `.x-hatch` / `.x-frame` 是 10-24 的旧材质，存量还在约 15 个组件里：新界面不要再用，清理单独提。
+- `.x-wall` 名字是 10-24 的，样子早换了：现在是有间距的卡片网格，现行材质可以用。`.x-beam`（生成中的边框光束）与 `.x-hatch`（已取消的斜纹）只表示状态，不当装饰。`.x-frame` 已删。
 - 方向契约在 `src/app/layout.tsx` body 首子节点的 HTML 注释里（grep `aivora-abyss-exchange`）。

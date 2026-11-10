@@ -135,7 +135,7 @@ export default async function ExchangeWallPage() {
         </span>
       </header>
 
-      <dl className="x-wall x-frame grid-cols-2 md:grid-cols-5">
+      <dl className="x-wall grid-cols-2 md:grid-cols-5">
         {cells.map((cell) => (
           <div key={cell.label} className="flex min-w-0 flex-col gap-[clamp(8px,0.8vw,14px)] px-[clamp(14px,1.5vw,26px)] py-[clamp(12px,1.4vw,24px)] last:col-span-2 md:last:col-span-1">
             <dt className="font-mono text-[clamp(11px,0.8vw,15px)] uppercase tracking-wider text-muted-foreground">{cell.label}</dt>

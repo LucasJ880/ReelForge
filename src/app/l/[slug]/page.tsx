@@ -119,7 +119,7 @@ export default async function LeadPage({ params, searchParams }: PageProps) {
           ) : null}
         </section>
 
-        <div className="x-panel x-frame min-w-0">
+        <div className="x-panel min-w-0">
           <LeadCaptureForm
             locale={locale}
             slug={page.slug}

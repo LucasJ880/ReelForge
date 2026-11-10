@@ -98,7 +98,7 @@ export interface PostProductionPlan {
    * 片尾落款（2026-11-10）：最后约两秒在真实画面上压品牌名 + 行动指引。可选；旧快照没有 = 不落款。
    * 形状见 lib/video-generation/brand-signoff 的 signoffSettingsSchema。
    */
-  signoff?: { enabled: boolean; brandName: string; cta?: string | null };
+  signoff?: { enabled: boolean; brandName: string; cta?: string | null; logo?: boolean };
 }
 
 // ---------- Uploaded asset model ----------
@@ -206,7 +206,7 @@ export interface UnifiedVideoGenerationRequest {
   /// 后期确定性字幕；缺省时关闭。
   captions?: CaptionSettings;
   /// 片尾落款（最后两秒压品牌名 + 行动指引）；缺省 / 关着 = 不带。形状见 brand-signoff 的 signoffSettingsSchema。
-  signoff?: { enabled: boolean; brandName: string; cta?: string | null };
+  signoff?: { enabled: boolean; brandName: string; cta?: string | null; logo?: boolean };
   /// Phase 1 不开放高级选项；保留字段
   advancedOptions?: Record<string, unknown> | null;
   /// 关联到已有 DeliveryOrder（continuation 场景）；缺省时 supervisor 会新建

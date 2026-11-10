@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T05:10:54.619Z",
+  "generatedAt": "2026-11-10T05:20:39.231Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -18028,8 +18028,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 322,
-      "sizeBytes": 17650,
+      "lineCount": 324,
+      "sizeBytes": 17740,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -22812,8 +22812,8 @@
         "SignoffCopy",
         "RestitchForm"
       ],
-      "lineCount": 307,
-      "sizeBytes": 12491,
+      "lineCount": 342,
+      "sizeBytes": 14558,
       "notes": "React component; client component; area=ffmpeg"
     },
     {
@@ -23956,8 +23956,8 @@
         "StudioReadings",
         "StreamlinedVideoStudio"
       ],
-      "lineCount": 2777,
-      "sizeBytes": 120705,
+      "lineCount": 2810,
+      "sizeBytes": 122594,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -24354,8 +24354,8 @@
         "PlatformCopy",
         "getPlatformCopy"
       ],
-      "lineCount": 1174,
-      "sizeBytes": 77603,
+      "lineCount": 1178,
+      "sizeBytes": 77911,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -26704,8 +26704,8 @@
         "StitchCompositionError",
         "MediaBudget"
       ],
-      "lineCount": 962,
-      "sizeBytes": 35899,
+      "lineCount": 1007,
+      "sizeBytes": 37728,
       "notes": "Utility / helper module; area=ffmpeg"
     },
     {
@@ -30403,9 +30403,12 @@
         "resolveAiTailTrimSeconds",
         "assemblyClipsToTimeline",
         "legacySegmentsToTimeline",
+        "resolveSignoffLogoUrl",
         "composeFinalVideoForStitch"
       ],
       "imports": [
+        "@/lib/video-generation/brand-signoff",
+        "@/types/video-generation",
         "node:fs/promises",
         "node:os",
         "node:path",
@@ -30413,8 +30416,8 @@
         "@/lib/media/stitch-pipeline",
         "@/lib/schemas/director-plan",
         "@/lib/video-generation/tail-trim",
-        "@/types/video-generation",
         "./stitch-service",
+        "@/lib/services/workspace-brand-package-service",
         "@/lib/services/broll-assembly-service",
         "@/lib/video-generation/assembly-executor"
       ],
@@ -30424,10 +30427,11 @@
         "resolveAiTailTrimSeconds",
         "assemblyClipsToTimeline",
         "legacySegmentsToTimeline",
+        "resolveSignoffLogoUrl",
         "composeFinalVideoForStitch"
       ],
-      "lineCount": 249,
-      "sizeBytes": 9396,
+      "lineCount": 282,
+      "sizeBytes": 11065,
       "notes": "Business logic service; area=ffmpeg"
     },
     {
@@ -30540,8 +30544,8 @@
         "StitchDecision",
         "StitchAttemptLostError"
       ],
-      "lineCount": 1805,
-      "sizeBytes": 68767,
+      "lineCount": 1831,
+      "sizeBytes": 70068,
       "notes": "Business logic service; hits Prisma DB; area=ffmpeg"
     },
     {
@@ -31791,6 +31795,9 @@
         "signoffWindow",
         "SignoffGeometry",
         "signoffGeometry",
+        "SignoffLogoGeometry",
+        "signoffLogoGeometry",
+        "buildSignoffLogoFilter",
         "sanitizeSignoffText",
         "renderSignoffAss"
       ],
@@ -31808,8 +31815,8 @@
         "SignoffSettings",
         "SignoffGeometry"
       ],
-      "lineCount": 145,
-      "sizeBytes": 6159,
+      "lineCount": 204,
+      "sizeBytes": 9067,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -32383,8 +32390,8 @@
         "buildPlan",
         "__test__"
       ],
-      "lineCount": 304,
-      "sizeBytes": 11440,
+      "lineCount": 305,
+      "sizeBytes": 11501,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -32969,8 +32976,8 @@
         "mergeRestitchPatch",
         "restitchPatchIsNoop"
       ],
-      "lineCount": 100,
-      "sizeBytes": 4185,
+      "lineCount": 106,
+      "sizeBytes": 4349,
       "notes": "Utility / helper module; area=ffmpeg"
     },
     {
@@ -34227,7 +34234,7 @@
         "CaptionPosition"
       ],
       "lineCount": 545,
-      "sizeBytes": 18296,
+      "sizeBytes": 18328,
       "notes": "Shared TypeScript types; area=media-processing"
     },
     {
@@ -35270,11 +35277,12 @@
         "@/lib/video-generation/brand-signoff",
         "@/lib/video-generation/restitch-patch",
         "@/types/video-generation",
-        "@/lib/video-generation/generation-supervisor"
+        "@/lib/video-generation/generation-supervisor",
+        "@/lib/services/stitch-composer"
       ],
       "importantSymbols": [],
-      "lineCount": 205,
-      "sizeBytes": 12190,
+      "lineCount": 265,
+      "sizeBytes": 16489,
       "notes": "Unit / integration test; area=tests"
     },
     {

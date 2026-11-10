@@ -79,13 +79,19 @@ export function mergeRestitchPatch(
 }
 
 function normalizeSignoff(signoff: NonNullable<PostProductionPlan["signoff"]>): NonNullable<PostProductionPlan["signoff"]> {
-  return { enabled: signoff.enabled, brandName: signoff.brandName.trim(), cta: signoff.cta?.trim() || null };
+  return {
+    enabled: signoff.enabled,
+    brandName: signoff.brandName.trim(),
+    cta: signoff.cta?.trim() || null,
+    /// 没勾就不带这个键：没用过 Logo 的快照形状和之前一样
+    ...(signoff.logo ? { logo: true } : {}),
+  };
 }
 
 /** 落款对成片有没有影响的那部分：关着的两份（不管里面存了什么字）视为相同。 */
 function signoffEffect(signoff: PostProductionPlan["signoff"]): string {
   return signoff?.enabled && signoff.brandName.trim()
-    ? JSON.stringify([signoff.brandName.trim(), signoff.cta?.trim() || null])
+    ? JSON.stringify([signoff.brandName.trim(), signoff.cta?.trim() || null, Boolean(signoff.logo)])
     : "off";
 }
 

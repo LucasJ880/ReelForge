@@ -1546,6 +1546,8 @@ export async function composeAndPersistTimeline(params: {
   /// 目标平台（抖音：字幕安全区 + 默认烧「AI生成」角标）与角标显式开关，原样交给合成管线
   platform?: string | null;
   aiBadge?: boolean;
+  /// 片尾落款要带的品牌 Logo 的地址（调用方按成片主人取的；没有 = 不带）。下载不下来就不带 Logo，落款文字照常
+  signoffLogoUrl?: string | null;
   extractThumbnail?: boolean;
   budget?: MediaBudget;
   checkpoint?: () => Promise<void>;
@@ -1583,10 +1585,34 @@ export async function composeAndPersistTimeline(params: {
       });
     }
 
+    /// 落款 Logo 是点缀：格式不支持或下载失败都只是不带它，成片与落款文字不受影响
+    let signoffLogoPath: string | null = null;
+    if (params.signoffLogoUrl) {
+      const logoExt = (path.extname(safePathFromUrl(params.signoffLogoUrl) ?? "") || "").toLowerCase();
+      if ([".png", ".jpg", ".jpeg", ".webp"].includes(logoExt)) {
+        const localLogo = path.join(tmpDir, `signoff-logo${logoExt}`);
+        try {
+          await downloadToFile(params.signoffLogoUrl, localLogo, { index: params.clips.length, budget: params.budget });
+          signoffLogoPath = localLogo;
+        } catch (error) {
+          console.warn("[stitch] sign-off logo download failed; composing without it", {
+            finalVideoId: params.finalVideoId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      } else {
+        console.warn("[stitch] sign-off logo format not supported; composing without it", {
+          finalVideoId: params.finalVideoId,
+          ext: logoExt || "(none)",
+        });
+      }
+    }
+
     const composed = await composeTimeline({
       clips: localClips,
       aspectRatio: params.aspectRatio,
       postProduction: params.postProduction ?? null,
+      signoffLogoPath,
       captionWindowSec: params.captionWindowSec ?? null,
       voiceoverChunks: params.voiceoverChunks ?? null,
       platform: params.platform ?? null,

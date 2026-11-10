@@ -497,6 +497,8 @@ export interface VisionAnalyzeOptions {
   detail?: "low" | "high" | "auto";
   /** 正文 token 上限（5.x 系落到 max_completion_tokens，并另加思考余量，见 completionTokenBudget）。 */
   maxTokens?: number;
+  /** 用哪一档的回退链看图：缺省 vision；fast 换响应时间（fast 档的模型同样支持图像输入）。 */
+  tier?: "vision" | "fast";
 }
 
 export const VISION_DEFAULT_DETAIL: NonNullable<VisionAnalyzeOptions["detail"]> = "low";
@@ -521,7 +523,8 @@ export async function analyzeImages(
   userPrompt: string,
   options: VisionAnalyzeOptions = {},
 ): Promise<ChatJsonResult<Record<string, unknown>>> {
-  const chain = resolveFallbackChain("vision");
+  const tier = options.tier ?? "vision";
+  const chain = resolveFallbackChain(tier);
   let urls = imageUrls.slice(0, VISION_MAX_IMAGES);
   let inlineTried = false;
   let lastErr: unknown = null;
@@ -541,7 +544,7 @@ export async function analyzeImages(
       const fallbackUsed = i > 0;
       if (fallbackUsed) {
         console.warn(
-          `[openai] stage=vision model=${candidate} fallback=true (preferred=${chain[0]})`,
+          `[openai] stage=vision tier=${tier} model=${candidate} fallback=true (preferred=${chain[0]})`,
         );
       }
       /// C4 · 「AI 看图」实时回写（画面质检、参考图理解都走这里）。

@@ -664,12 +664,14 @@ export async function createStoryboardRun(
     productImageCount: assets.length,
     personImageCount: personAssetIds.length,
     voiceoverScript: input.voiceoverScript ?? null,
+    /// 看图写卡（STORYBOARD_SHOT_CARDS_VISION=on 才生效）要用的商家实拍
+    productImageUrls: assets.map((asset) => asset.url),
   };
   /// 出方案并成一次（11-09，storyboard-direction.ts）：有商品图的单条故事板先试一次看图调用，同时出镜头卡、
   /// 原话英译与视觉盘点；哪一样没用上就只补跑那一样原来的单独调用，整次没用上（返回 null）就全走原路径。
   const direction = isBatchRun
     ? null
-    : await designStoryboardDirection({ ...shotCardInput, productImageUrls: assets.map((asset) => asset.url) });
+    : await designStoryboardDirection(shotCardInput);
   const [shotCards, storyEnglish] = await Promise.all([
     isBatchRun
       ? Promise.resolve(null)

@@ -24,7 +24,7 @@ import type {
 } from "./types";
 
 /** analyzeImages 的可选参数：只有精度与输出上限，图与提示词走位置参数。 */
-export type AiVisionCallOptions = Pick<AiVisionAnalyzeOptions, "detail" | "maxTokens">;
+export type AiVisionCallOptions = Pick<AiVisionAnalyzeOptions, "detail" | "maxTokens" | "tier">;
 
 let cached: AiProvider | null = null;
 

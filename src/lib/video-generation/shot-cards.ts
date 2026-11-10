@@ -15,7 +15,7 @@
  * 每张卡加「首态 / 地点 / 谁说话」，字段按重要性排——出帧画的是首态那一刻，视频从这一帧开始演；
  * Kling 2500 字截断时先丢声音与构图，动作和尾态最后才丢。建故事板时把口播稿一起给 LLM，按台词顺序排镜头（台词原文不进卡）。
  */
-import { chatJsonByTier, isLLMAvailable, isLLMForcedMock } from "@/lib/ai";
+import { analyzeImages, chatJsonByTier, isLLMAvailable, isLLMForcedMock } from "@/lib/ai";
 import {
   planningDegradation,
   type RecordPlanningDegradation,
@@ -213,6 +213,8 @@ export interface DesignShotCardsInput {
   personImageCount: number;
   /// 已定的口播稿（创作台出故事板时带上）：只用来按台词顺序排镜头、标谁说话，原文不进卡。
   voiceoverScript?: string | null;
+  /// 商家实拍的地址（不含主播照）。给了、且「看图写卡」开着时，这次调用会把前几张图一起交给模型。
+  productImageUrls?: readonly string[];
 }
 
 export interface DesignShotCardsDeps {
@@ -220,6 +222,10 @@ export interface DesignShotCardsDeps {
   llmAvailable?: () => boolean;
   chat?: typeof chatJsonByTier;
   timeoutMs?: number;
+  /// 看图写卡（缺省读 STORYBOARD_SHOT_CARDS_VISION）与它用的看图调用、超时
+  vision?: boolean;
+  analyze?: typeof analyzeImages;
+  visionTimeoutMs?: number;
   /// 调了 LLM 却没用上（失败 / 超时 / 输出不合格）时记一条；不传 = 只打日志
   onDegraded?: RecordPlanningDegradation;
 }
@@ -251,6 +257,78 @@ export function buildShotCardUserPrompt(input: DesignShotCardsInput): string {
 }
 
 /**
+ * 看图写卡（2026-11-10，轻量版）。缺省关，STORYBOARD_SHOT_CARDS_VISION=on 打开。
+ *
+ * 镜头卡的规则要求「商品必须和照片一致」，但这次调用历来只有文字——它不知道照片里是什么。
+ * 11-10 真机冒烟的第一对盲评里，看着图写的卡（当时由合并调用产出）在商品一致、道具与物理上胜过没有卡的那条。
+ * 把镜头卡、英译、盘点捆成一次调用的做法（storyboard-direction.ts）量下来太重：中位 47 秒、十次里一次残缺。
+ * 这里只做一件事：镜头卡这一次调用自己带上商品图，用 fast 档看图（英译照旧单独并行跑）。
+ *
+ * 兜底：看图那次失败 / 超时 / 输出不合格，就在剩下的时间里按原来的纯文字方式再写一次（不记降级）；
+ * 纯文字那次也没用上，才按原来的口径记一条 shot_cards 降级、退回模板节奏。所以最坏情况与今天一样。
+ * 量测（11-10，评测集 10 个品类各一次，只调模型）：看图 10/10 合格、0 次退回、中位 16.3 秒 / P90 32.2 秒；
+ * 纯文字 10/10 合格、中位 14.4 秒 / P90 31.3 秒。看图的卡会写出照片里才有的细节（配色、材质、五金），
+ * 纯文字的卡只有商家描述里的词。成片是否因此更好没有经过真机对照，所以缺省关。
+ */
+export function shotCardsVisionEnabled(env: Record<string, string | undefined> = process.env): boolean {
+  return env.STORYBOARD_SHOT_CARDS_VISION?.trim().toLowerCase() === "on";
+}
+
+/// 看图写卡的超时：与纯文字相同。11-10 用评测集 10 个品类量过（fast 档、3 张图）：中位 16.3 秒、最慢 32.2 秒，
+/// 纯文字是中位 14.4 秒、最慢 31.3 秒——35 秒会把慢的那一类用例卡在线上。超时后纯文字再写一次最多 40 秒，
+/// 合计仍在故事板路由 maxDuration 120 之内。
+const VISION_DESIGN_TIMEOUT_MS = 40_000;
+/// 一次最多带几张商品图：三张足够认清外观，再多只是拖慢
+const VISION_DESIGN_MAX_IMAGES = 3;
+
+export const SHOT_CARD_VISION_NOTE =
+  "You can SEE the merchant's real product photos this time. Use them: in every card the product's shape, scale, colors, materials and printed marks must agree with what the photos actually show. Never describe a product detail the photos do not show.";
+
+/** 看着商品图写镜头卡；任何没用上的情况都返回 null（调用方接着走纯文字）。永不抛出。 */
+async function designShotCardsWithVision(
+  input: DesignShotCardsInput,
+  images: readonly string[],
+  deps: DesignShotCardsDeps,
+): Promise<StoryboardShotCard[] | null> {
+  const analyze = deps.analyze ?? analyzeImages;
+  const timeoutMs = deps.visionTimeoutMs ?? VISION_DESIGN_TIMEOUT_MS;
+  const startedAt = Date.now();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const result = await Promise.race([
+      analyze(
+        [...images],
+        `${SHOT_CARD_SYSTEM_PROMPT}\n\n${SHOT_CARD_VISION_NOTE}`,
+        [
+          buildShotCardUserPrompt({ ...input, productImageCount: images.length }),
+          `You are shown the ${images.length} product photo(s) below, in upload order.`,
+        ].join("\n"),
+        { tier: "fast", maxTokens: 2500 },
+      ),
+      new Promise<null>((resolve) => {
+        timer = setTimeout(() => resolve(null), timeoutMs);
+      }),
+    ]);
+    if (!result) {
+      console.warn(`[shot-cards] vision design timed out after ${timeoutMs}ms; writing the cards from text only`);
+      return null;
+    }
+    const cards = normalizeShotCards(result.data, input.beats.length);
+    if (!cards) {
+      console.warn("[shot-cards] vision output rejected; writing the cards from text only");
+      return null;
+    }
+    console.log(`[shot-cards] vision design ok in ${Date.now() - startedAt}ms (${images.length} photo(s))`);
+    return cards;
+  } catch (error) {
+    console.warn("[shot-cards] vision design failed; writing the cards from text only:", (error as Error).message);
+    return null;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/**
  * 建故事板时设计镜头卡。任何失败都返回 null（调用方退回旧的模板节奏，不影响出帧）；调了 LLM 的失败同时交给 deps.onDegraded。
  */
 export async function designStoryboardShotCards(
@@ -261,6 +339,12 @@ export async function designStoryboardShotCards(
   if (!enabled || input.beats.length === 0 || !input.story.trim()) return null;
   const available = deps.llmAvailable ?? (() => isLLMAvailable() && !isLLMForcedMock());
   if (!available()) return null;
+  /// 看图写卡（缺省关）：有商品图才试；没用上就接着走下面的纯文字调用
+  const images = (input.productImageUrls ?? []).slice(0, VISION_DESIGN_MAX_IMAGES);
+  if ((deps.vision ?? shotCardsVisionEnabled()) && images.length > 0) {
+    const seen = await designShotCardsWithVision(input, images, deps);
+    if (seen) return seen;
+  }
   const chat = deps.chat ?? chatJsonByTier;
   const timeoutMs = deps.timeoutMs ?? DESIGN_TIMEOUT_MS;
   let timer: ReturnType<typeof setTimeout> | undefined;

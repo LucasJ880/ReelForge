@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T05:25:35.153Z",
+  "generatedAt": "2026-11-10T05:35:18.755Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -18028,8 +18028,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 324,
-      "sizeBytes": 17740,
+      "lineCount": 329,
+      "sizeBytes": 18247,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -39240,8 +39240,8 @@
         "@/lib/services/unified-library-service"
       ],
       "importantSymbols": [],
-      "lineCount": 125,
-      "sizeBytes": 5888,
+      "lineCount": 135,
+      "sizeBytes": 6821,
       "notes": "Unit / integration test; area=tests"
     },
     {

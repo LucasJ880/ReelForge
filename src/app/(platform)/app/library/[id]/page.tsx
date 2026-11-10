@@ -121,12 +121,13 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
       <section aria-label={copy.view} className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
         <div className="x-panel flex min-w-0 justify-center p-4 sm:p-6">
           {item.videoUrl ? (
-            <div className="relative w-fit max-w-full">
+            <div className="flex min-w-0 max-w-full flex-col items-center gap-3">
               {/* 只重拼在途：旧成片照常可看，但要说清新的一版正在合成，并自己刷新——
                   之前这段时间页面一动不动、合成完也不换片，商家以为没生效（2026-11-10 线上反馈）。
-                  video 带 key：成片地址一换就重新加载，不沿用浏览器里那条旧的。 */}
+                  提示放在播放器**外面**：播放器那一层是 AI 角标的定位基准，提示塞进去会把角标顶到
+                  提示的字上（同一天的第二条线上反馈：两行字叠在一起）。 */}
               {item.restitchInFlight ? (
-                <div className="mb-3 max-w-xs" data-testid="reassembling-notice">
+                <div className="w-full max-w-sm" data-testid="reassembling-notice">
                   <ProcessingRefresher intervalMs={6_000} />
                   <p role="status" className="flex items-start gap-2 text-pretty text-meta text-accent">
                     <span className="x-live mt-1.5 shrink-0" aria-hidden />
@@ -134,17 +135,21 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
                   </p>
                 </div>
               ) : null}
-              <video
-                key={item.videoUrl}
-                controls
-                preload="metadata"
-                poster={item.thumbnailUrl ?? undefined}
-                className="max-h-[72vh] w-auto max-w-full rounded-(--radius-md)"
-                src={item.videoUrl}
-              >
-                {copy.cannotPlay}
-              </video>
-              <AiGeneratedLabel className="pointer-events-none absolute left-3 top-3" />
+              {/* 这一层只装播放器和压在它左上角的 AI 角标；别的东西不要放进来。
+                  video 带 key：成片地址一换就重新加载，不沿用浏览器里那条旧的。 */}
+              <div className="relative w-fit max-w-full" data-testid="library-player">
+                <video
+                  key={item.videoUrl}
+                  controls
+                  preload="metadata"
+                  poster={item.thumbnailUrl ?? undefined}
+                  className="max-h-[72vh] w-auto max-w-full rounded-(--radius-md)"
+                  src={item.videoUrl}
+                >
+                  {copy.cannotPlay}
+                </video>
+                <AiGeneratedLabel className="pointer-events-none absolute left-3 top-3" />
+              </div>
             </div>
           ) : item.status === "generating" || item.status === "assembling" ? (
             /// 生成中 / 合成中：阶段说明 + 已等多久 + 一般多久 + 进度条，15 秒自动刷新（合成阶段之前不刷新，

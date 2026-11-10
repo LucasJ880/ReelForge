@@ -97,8 +97,18 @@ test("不是重新合成：合成完回到 READY、第一次合成（没有上�
 
 test("详情页：重新合成期间提示并自动刷新；成片地址一换播放器就重新加载", async () => {
   const detail = await readFile("src/app/(platform)/app/library/[id]/page.tsx", "utf8");
-  assert.match(detail, /\{item\.restitchInFlight \? \(\s*<div className="mb-3 max-w-xs" data-testid="reassembling-notice">\s*<ProcessingRefresher intervalMs=\{6_000\} \/>/);
+  assert.match(detail, /\{item\.restitchInFlight \? \(\s*<div className="w-full max-w-sm" data-testid="reassembling-notice">\s*<ProcessingRefresher intervalMs=\{6_000\} \/>/);
   assert.match(detail, /<video\s+key=\{item\.videoUrl\}/);
+  /// 提示必须在播放器那一层的外面：那一层是 AI 角标（absolute left-3 top-3）的定位基准，
+  /// 提示放进去会把角标顶到提示的字上（2026-11-10 线上反馈：两行字叠在一起）。
+  const player = detail.indexOf('data-testid="library-player"');
+  const playerEnd = detail.indexOf("</div>", detail.indexOf("<AiGeneratedLabel", player));
+  const notice = detail.indexOf('data-testid="reassembling-notice"');
+  assert.ok(player > 0 && notice > 0 && notice < player, "提示在播放器之前、之外");
+  const playerLayer = detail.slice(player, playerEnd);
+  assert.match(playerLayer, /<video[\s\S]*<AiGeneratedLabel className="pointer-events-none absolute left-3 top-3" \/>/);
+  assert.doesNotMatch(playerLayer, /restitchInFlight|role="status"/, "播放器那一层只装视频和角标");
+  assert.doesNotMatch(detail, /process\.env\.NODE_ENV/, "不留本地调试用的条件");
 });
 
 test("登录失效后去登录页：带上原来的页面，并说明是失效；外部地址不带", () => {

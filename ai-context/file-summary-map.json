@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T05:20:39.231Z",
+  "generatedAt": "2026-11-10T05:25:35.153Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -41,8 +41,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 113,
-      "sizeBytes": 8338,
+      "lineCount": 120,
+      "sizeBytes": 10218,
       "notes": "Documentation; area=media-processing"
     },
     {
@@ -10264,8 +10264,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 91,
-      "sizeBytes": 6412,
+      "lineCount": 118,
+      "sizeBytes": 8792,
       "notes": "Documentation"
     },
     {
@@ -30430,8 +30430,8 @@
         "resolveSignoffLogoUrl",
         "composeFinalVideoForStitch"
       ],
-      "lineCount": 282,
-      "sizeBytes": 11065,
+      "lineCount": 280,
+      "sizeBytes": 11095,
       "notes": "Business logic service; area=ffmpeg"
     },
     {
@@ -36283,8 +36283,8 @@
         "../src/lib/video-generation/platform-safe-zone"
       ],
       "importantSymbols": [],
-      "lineCount": 153,
-      "sizeBytes": 6678,
+      "lineCount": 154,
+      "sizeBytes": 6786,
       "notes": "Unit / integration test; area=tests"
     },
     {

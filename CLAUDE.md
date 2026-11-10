@@ -62,6 +62,33 @@ npm run context:find -- "..."
 7. **每一轮任务都必须可取消**，取消要清幂等键、保留素材。失败不能只给「重试」。
 8. **旧代码清理顺序 A→B→C 不跳级**，删除 PR 单独提，不与功能改动混。
 
+## 4.5 运行开关与 2026-11 新增功能的落点
+
+改这些行为先找开关，别直接改代码路径。环境变量只在部署那一刻读入，改完要重新部署才生效。
+
+| 开关（Vercel 环境变量） | 缺省 | 作用 |
+|---|---|---|
+| `PLANNING_FULL_LLM=on` | 关 | 出方案退回完整模型链路（缺省是精简版：一条片最多 7 次模型调用） |
+| `STORYBOARD_SHOT_CARDS_VISION=on` | 关 | 看着商品图写镜头卡。11-10 盲评与纯文字卡打平，线上已关 |
+| `STORYBOARD_DIRECTION=on` | 关 | 建故事板时合并一次看图调用。首次真机只成功一部分，所以缺省关 |
+| `FRAME_QA_ENABLED=on` | 关 | 成片画面质检（依赖 OpenAI 看图）。20 条真跑 0 次拦截后缺省关 |
+| `SHUYU_FALLBACK_TO_RUNWAY=off` | 开（配了 Runway 密钥时） | 关掉「Shuyu 失败后改交 Runway」 |
+| `OPS_ALERT_WEBHOOK_URL` | 未配 | 运维告警的群机器人地址；没配只进日志（`[ops-alert]`） |
+| `PROGRESS_SEGMENT_EXPECTED_MIN` | 10 | 进度条估算用的出片典型分钟数（实测中位数） |
+
+| 功能 | 从哪看起 |
+|---|---|
+| 等待体验（进度估算、预计时间、做好了提示） | `src/lib/video-generation/business-status.ts`、`src/components/exchange/use-ready-announcement.ts` |
+| 登录失效后自动回登录页 | `src/components/exchange/use-pulse.ts`（脉搏接口回 401 就整页跳转） |
+| 成片评价（满意 / 不满意 + 原因） | `src/lib/contracts/video-feedback.ts`，表 `VideoFeedback`，`npm run report:feedback` |
+| 换个开头（同一商品换一种开场） | `src/lib/create/hook-angles.ts` |
+| 用同样的素材再做一条 | 成片详情 → `/app/create?retry=<订单 id>` |
+| 片尾落款（品牌名 + 行动指引 + 可选 Logo） | `src/lib/video-generation/brand-signoff.ts`；存在后期快照的 `signoff` 键；Logo 由 `stitch-composer` 按成片主人取 |
+| 只重新合成（换字幕 / BGM / 落款，不扣额度） | `src/lib/video-generation/restitch-patch.ts`、`stitch-service` 的 `prepareRestitch` / `commitRestitch` |
+
+供应商现状（2026-11-10）：生产只留 Shuyu（出图、出片）、Runway（备用出片、出故事板图）、OpenAI（出方案）三把付费密钥；
+抠图、商品链接抓取、素材库、配音、内容审核这几条线路已下线（`RETIRED_CAPABILITY_KEYS`）。
+
 ## 5. 交付门
 
 改完代码，**先自己验证再报完成**：`npm run typecheck` + `npm run lint` + 相关 test 全绿，

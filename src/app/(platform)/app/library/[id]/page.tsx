@@ -30,6 +30,8 @@ import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
 import { libraryRowState } from "@/lib/exchange/state-vocab";
 import { HOOK_ANGLES } from "@/lib/create/hook-angles";
+import { concurrentWaitCount } from "@/lib/library/concurrent-wait";
+import { loadProductionCounts } from "@/lib/services/exchange-readings";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +59,11 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
   const canMakeAnother = canAct && item.source === "order" && item.status === "ready";
   const canRate = canAct && item.status === "ready" && Boolean(item.videoUrl);
   const canRestitch = Boolean(canAct && item.briefId && item.canRestitch && item.restitchDefaults);
+  /// 只在这条正在生成时才查「同时在生成几条」（与壳层同一个读数）；查询失败由页面的错误边界接住，不吞成「只有一条」
+  const concurrent = concurrentWaitCount({
+    status: item.status,
+    generating: item.status === "generating" && !item.isShowcase ? (await loadProductionCounts(session.user.id)).generating : null,
+  });
   const canRedoSegment = Boolean(canAct && item.briefId && item.segments.some((segment) => segment.canRedo));
   /// 评价读不到（表还没建、库抖动）不挡详情页
   const feedback = canRate && item.briefId ? await getVideoFeedback(item.briefId).catch(() => null) : null;
@@ -162,6 +169,12 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
               <p className="text-pretty text-body text-muted-foreground">
                 {item.status === "assembling" ? copy.waitingAssembling : copy.waitingGenerating}
               </p>
+              {/* 连着提交了几条：线路按顺序处理，后面的会明显慢——说清楚是在排队，不是卡住了 */}
+              {concurrent !== null ? (
+                <p data-testid="library-waiting-concurrent" className="text-pretty text-meta text-muted-foreground">
+                  {copy.waitingConcurrent.replace("{n}", String(concurrent))}
+                </p>
+              ) : null}
               {item.waitingMinutes !== null ? (
                 <p data-testid="library-waiting-long" className="text-pretty text-meta text-gold">
                   {copy.waitingLong.replace("{n}", String(item.waitingMinutes))}

@@ -12,6 +12,8 @@ const eslintConfig = [
       "docs/evidence/**",
       "playwright-report/**",
       "test-results/**",
+      /// tmp 不进仓库（.gitignore）：本机的一次性脚本不该让 npm run lint 变红
+      "tmp/**",
     ],
   },
   ...nextCoreWebVitals,

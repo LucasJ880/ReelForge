@@ -138,9 +138,14 @@ export function StoryboardWorkflowPanel({
               ? english
                 ? "Locked for video generation. These frames keep product identity and scene continuity stable."
                 : "已锁定用于视频生成；以下画面会约束产品外观与场景连续性。"
-              : english
-                ? `${generatedCount}/${expectedCount} keyframes ready. Review every frame before video generation.`
-                : `关键帧已完成 ${generatedCount}/${expectedCount}。确认每一帧后才会进入视频生成。`}
+              : run.status === "GENERATING" && generatedCount < expectedCount
+                /// 预期时间（2026-11-10 实测，近 21 天 197 帧）：单帧中位约 2 分钟、九成在 4 分钟内，几帧同时画。
+                ? english
+                  ? `${generatedCount}/${expectedCount} keyframes ready. The frames are drawn at the same time and usually all arrive within 3–5 minutes. You can leave this page; coming back to Create picks this round up again.`
+                  : `关键帧已完成 ${generatedCount}/${expectedCount}。几帧同时在画，一般三五分钟出齐；可以先离开这页，回到「创作」会自动接上这一轮。`
+                : english
+                  ? `${generatedCount}/${expectedCount} keyframes ready. Review every frame before video generation.`
+                  : `关键帧已完成 ${generatedCount}/${expectedCount}。确认每一帧后才会进入视频生成。`}
           </p>
           {/* 镜头卡没写成、分镜退回通用节奏时如实说一句（与方案卡「请注意」同色）；锁定后不再提醒 */}
           {!approved && run.degradedStages?.includes("shot_cards") ? (
@@ -209,9 +214,12 @@ export function StoryboardWorkflowPanel({
                     <span className="text-meta">
                       {failed
                         ? frame.errorMessage ?? (english ? "Frame failed" : "此分镜生成失败")
-                        : english
-                          ? "Drawing this frame"
-                          : "正在绘制此分镜"}
+                        : frame?.status === "QUEUED" && !regenerating
+                          /// 还没交给出图服务的帧别说「正在绘制」：几秒后才轮到它
+                          ? english ? "Queued, starting shortly" : "排队中，马上开始"
+                          : english
+                            ? "Drawing this frame"
+                            : "正在绘制此分镜"}
                     </span>
                   </div>
                 )}

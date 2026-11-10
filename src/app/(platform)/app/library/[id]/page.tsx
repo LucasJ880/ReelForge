@@ -111,11 +111,14 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
               </video>
               <AiGeneratedLabel className="pointer-events-none absolute left-3 top-3" />
             </div>
-          ) : item.status === "generating" ? (
-            /// 生成中：进度条 + 百分比，15 秒自动刷新一次（学 LibTV 的任务卡，不用手动刷新）
-            <div className="flex w-full max-w-sm flex-col items-center gap-3 py-16 text-center">
+          ) : item.status === "generating" || item.status === "assembling" ? (
+            /// 生成中 / 合成中：阶段说明 + 已等多久 + 一般多久 + 进度条，15 秒自动刷新（合成阶段之前不刷新，
+            /// 商家得手动刷才看得到成片）。预期时间是实测口径，写在文案旁的注释里。
+            <div className="flex w-full max-w-sm flex-col items-center gap-3 py-16 text-center" data-testid="library-waiting">
               <ProcessingRefresher />
-              <p className="text-body text-muted-foreground">{copy.processing}</p>
+              <p className="text-pretty text-body text-muted-foreground">
+                {item.status === "assembling" ? copy.waitingAssembling : copy.waitingGenerating}
+              </p>
               {item.waitingMinutes !== null ? (
                 <p data-testid="library-waiting-long" className="text-pretty text-meta text-gold">
                   {copy.waitingLong.replace("{n}", String(item.waitingMinutes))}
@@ -127,6 +130,16 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
                 </div>
                 <span className="w-11 shrink-0 text-right font-mono text-data tabular-nums text-accent">{item.progress}%</span>
               </div>
+              {item.elapsedMinutes !== null && item.waitingMinutes === null ? (
+                <p data-testid="library-waiting-elapsed" className="font-mono text-data tabular-nums text-tertiary">
+                  {item.elapsedMinutes > 0 ? copy.waitingElapsed.replace("{n}", String(item.elapsedMinutes)) : copy.waitingJustStarted}
+                </p>
+              ) : null}
+            </div>
+          ) : item.status === "planning" ? (
+            <div className="py-16 text-center">
+              <ProcessingRefresher />
+              <p className="text-body text-muted-foreground">{copy.waitingQueued}</p>
             </div>
           ) : (
             <p className="py-16 text-center text-body text-muted-foreground">

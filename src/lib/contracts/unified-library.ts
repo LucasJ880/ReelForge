@@ -81,6 +81,9 @@ export const unifiedLibraryRowSchema = z.object({
   /// 还在生成、且在飞段已经等了很久（≥ RUNNING_LONG_THRESHOLD_MS）时的已等待分钟数；否则 null。
   /// 详情页据此如实告诉商家「比平时久，可以取消重提」，不再只转进度条（2026-11-09）。
   waitingMinutes: z.number().int().min(0).nullable().default(null),
+  /// 还在生成时，在飞段已经等了几分钟（不设门槛，从 0 起）；不在生成 → null。
+  /// 等待页从第一分钟起就写「已等 N 分钟 · 一般多久」，不让商家对着一根进度条猜（2026-11-10）。
+  elapsedMinutes: z.number().int().min(0).nullable().default(null),
 });
 
 export type UnifiedLibraryRow = z.infer<typeof unifiedLibraryRowSchema>;

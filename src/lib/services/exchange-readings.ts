@@ -307,14 +307,40 @@ export async function loadPulse(
     select: { id: true, failuresAckedAt: true },
   });
   const since = needsAttentionSince(now, workspace?.failuresAckedAt);
-  const [production, needsAttention, newLeads, quota, tape] = await Promise.all([
+  const [production, needsAttention, newLeads, quota, tape, latestReady] = await Promise.all([
     loadProductionCounts(userId),
     countNeedsAttention(userId, since),
     workspace ? countNewLeads(workspace.id) : Promise.resolve(0),
     loadVideoQuota(userId),
     loadTape(userId, locale),
+    /// 只是给「成片做好了」提示用的点缀：读不到就当没有，不能拖垮整份脉搏
+    loadLatestReady(userId, now).catch(() => null),
   ]);
-  return { ...production, needsAttention, newLeads, quota, tape, at: now.toISOString() };
+  return { ...production, needsAttention, newLeads, quota, tape, latestReady, at: now.toISOString() };
+}
+
+const LATEST_READY_WINDOW_MS = 24 * 60 * 60_000;
+
+/**
+ * 最近做好的一条单条成片（24 小时内）。壳层拿它判断「有新成片做好了」并提示商家；
+ * 一次带索引的 findFirst，不扫成品库。批量成片不在这里：批次有自己的生产带与进度。
+ */
+async function loadLatestReady(userId: string, now: Date): Promise<ExchangePulse["latestReady"]> {
+  const brief = await db.videoBrief.findFirst({
+    where: {
+      ...ownedBriefWhere(userId),
+      finalVideo: { status: "READY", finishedAt: { gte: new Date(now.getTime() - LATEST_READY_WINDOW_MS) } },
+    },
+    orderBy: { finalVideo: { finishedAt: "desc" } },
+    select: {
+      finalVideo: { select: { finishedAt: true } },
+      contentAngle: { select: { round: { select: { deliveryOrder: { select: { id: true, title: true } } } } } },
+    },
+  });
+  const order = brief?.contentAngle?.round?.deliveryOrder;
+  const finishedAt = brief?.finalVideo?.finishedAt;
+  if (!order || !finishedAt) return null;
+  return { id: order.id, title: order.title, at: finishedAt.toISOString() };
 }
 
 /* ── 需要处理：成品库列出的那一批，与徽标同一个 where ─────────────────── */

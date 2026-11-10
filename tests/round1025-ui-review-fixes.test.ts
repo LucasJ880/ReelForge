@@ -143,6 +143,7 @@ test("LENS-4 需要处理列表：英文界面的标题用英文模板名", asyn
   stub(t, calls, "videoBrief", "findMany", () => []);
   stub(t, calls, "videoJob", "count", () => 1);
   stub(t, calls, "videoBrief", "count", () => 0);
+  stub(t, calls, "videoBrief", "findFirst", () => null);
   const en = await loadNeedsAttention("user-1", { locale: "en-US" });
   assert.equal(en.items[0]!.title, "Roller blind #8 · Value Proof");
   const zh = await loadNeedsAttention("user-1");

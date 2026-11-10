@@ -40,6 +40,11 @@ export type ExchangePulse = {
   /** 本月（UTC 自然月）视频派发用量与生效上限。 */
   quota: { used: number; limit: number; plan: PulsePlan };
   tape: TapeEntry[];
+  /**
+   * 最近 24 小时内做好的最新一条单条成片（id = 成品库行 id）；没有就是 null。
+   * 壳层据此在成片做好时提示商家（useReadyAnnouncement），不计入任何读数。
+   */
+  latestReady?: { id: string; title: string; at: string } | null;
   /** 服务端读数时刻（ISO）。 */
   at: string;
 };

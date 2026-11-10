@@ -11,6 +11,7 @@ import {
   checkLiveRelease,
   classifyUploadOutcome,
   contrastRatio,
+  judgeSupersession,
   optionColorProblem,
   parseSmokeSession,
   planStaleSessionCheck,
@@ -271,4 +272,37 @@ test("冒烟判定：只有明确报 behind 才判红；老部署不报字段、
   assert.equal(schemaBehindProblem({ schema: "not_checked" }), null);
   assert.equal(schemaBehindProblem({ ok: true }), null);
   assert.equal(schemaBehindProblem(null), null);
+});
+
+// ---------------------------------------------------------------------------
+// 要测的部署被更新的部署顶替（11-09：连续合并，较旧版本的成功事件后到，较新版本的冒烟被取消，
+// 留下的那轮等满 5 分钟报红，线上那一版一次都没测到）
+// ---------------------------------------------------------------------------
+
+test("顶替判定：线上提交在要测的之后（compare 返回 ahead）→ 改测线上这一版", () => {
+  assert.deepEqual(judgeSupersession({ expected: SHA_A, live: SHA_B, compareStatus: "ahead" }), {
+    kind: "superseded",
+    live: SHA_B,
+  });
+  assert.deepEqual(judgeSupersession({ expected: ` ${SHA_A.toUpperCase()} `, live: SHA_B.toUpperCase(), compareStatus: "ahead" }), {
+    kind: "superseded",
+    live: SHA_B,
+  });
+});
+
+test("顶替判定：线上还是更旧的版本、分叉、读不到、或就是这一版 → 照旧等，不改判", () => {
+  for (const compareStatus of ["behind", "diverged", "identical", null, undefined, 404, "AHEAD"]) {
+    assert.deepEqual(judgeSupersession({ expected: SHA_A, live: SHA_B, compareStatus }), { kind: "wait" }, String(compareStatus));
+  }
+  assert.deepEqual(judgeSupersession({ expected: SHA_A, live: SHA_A, compareStatus: "ahead" }), { kind: "wait" });
+  assert.deepEqual(judgeSupersession({ expected: SHA_A, live: null, compareStatus: "ahead" }), { kind: "wait" });
+});
+
+test("工作流把只读 token 交给冒烟，开跑前的顶替判定接在 global-setup 里", async () => {
+  const workflow = await readFile(new URL("../.github/workflows/prod-smoke.yml", import.meta.url), "utf8");
+  assert.match(workflow, /PROD_SMOKE_GITHUB_TOKEN: \$\{\{ github\.token \}\}/);
+  assert.match(workflow, /contents: read/);
+  const setup = await readFile(new URL("../e2e/prod-smoke.global-setup.ts", import.meta.url), "utf8");
+  assert.match(setup, /judgeSupersession\(/);
+  assert.match(setup, /process\.env\.PROD_SMOKE_EXPECTED_RELEASE = verdict\.live/);
 });

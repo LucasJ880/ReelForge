@@ -39,6 +39,29 @@ export function checkLiveRelease(health: unknown, expected: string): LiveRelease
   return live === expected.trim().toLowerCase() ? { kind: "match", live } : { kind: "other", live };
 }
 
+/**
+ * 这次要测的部署是不是已经被更新的部署顶替了。
+ *
+ * 11-09 连续合并四个 PR：Vercel 十几秒内先后部署了两个版本，较旧那个版本的「部署成功」事件反而后到，
+ * 把较新版本的冒烟挤掉取消了；留下来的这条等的是较旧的版本，而别名已经在较新的版本上——等满 5 分钟报红，
+ * 结果线上那一版一次都没被测到。
+ *
+ * 判据用 GitHub 的 compare 接口（`compare/<要测的>...<线上的>`）返回的 status：
+ *   ahead     线上的提交在要测的之后（要测的是它的祖先）→ 已被顶替，改测线上这一版；
+ *   behind    线上还是更旧的版本 → 别名还没切过来，继续等；
+ *   identical / diverged / 其它 / 读不到 → 不改判，继续按原来的等。
+ */
+export type ReleaseSupersession =
+  | { kind: "superseded"; live: string }
+  | { kind: "wait" };
+
+export function judgeSupersession(args: { expected: string; live: string | null; compareStatus: unknown }): ReleaseSupersession {
+  const expected = args.expected.trim().toLowerCase();
+  const live = args.live?.trim().toLowerCase() ?? null;
+  if (!live || live === expected) return { kind: "wait" };
+  return args.compareStatus === "ahead" ? { kind: "superseded", live } : { kind: "wait" };
+}
+
 export function readRelease(health: unknown): string | null {
   if (!health || typeof health !== "object") return null;
   const release = (health as { release?: unknown }).release;

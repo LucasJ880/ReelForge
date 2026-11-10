@@ -28,6 +28,8 @@ permissions:
 
 # Vercel 每个部署会发好几条 deployment_status（pending → success，预览也发）。
 # 按「环境 + 状态」分组：只有新的生产成功才取消还在跑的旧冒烟（旧部署已经不在别名上了）。
+# 注意事件不保证按提交先后到达：11-09 连续合并时，较旧版本的成功事件后到，反而取消了较新版本的冒烟。
+# 留下来的那一轮会在开跑前发现自己要测的版本已被顶替，改测线上这一版（global-setup 的 judgeSupersession）。
 concurrency:
   group: prod-smoke-${{ github.event.deployment.environment || 'manual' }}-${{ github.event.deployment_status.state || 'dispatch' }}
   cancel-in-progress: true
@@ -84,6 +86,8 @@ jobs:
         env:
           PROD_SMOKE_EMAIL: ${{ secrets.PROD_SMOKE_EMAIL }}
           PROD_SMOKE_PASSWORD: ${{ secrets.PROD_SMOKE_PASSWORD }}
+          # 只读：要测的部署被更新的部署顶替时，用它问 GitHub 两个提交的先后（见 e2e/prod-smoke.global-setup.ts）
+          PROD_SMOKE_GITHUB_TOKEN: ${{ github.token }}
         run: |
           if [ -z "$PROD_SMOKE_EMAIL" ] || [ -z "$PROD_SMOKE_PASSWORD" ]; then
             echo "::warning::没配 PROD_SMOKE_EMAIL / PROD_SMOKE_PASSWORD：只跑了未登录检查，上传、下拉、会话都没测。"

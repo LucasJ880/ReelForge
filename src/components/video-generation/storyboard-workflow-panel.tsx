@@ -139,10 +139,11 @@ export function StoryboardWorkflowPanel({
                 ? "Locked for video generation. These frames keep product identity and scene continuity stable."
                 : "已锁定用于视频生成；以下画面会约束产品外观与场景连续性。"
               : run.status === "GENERATING" && generatedCount < expectedCount
-                /// 预期时间（2026-11-10 实测，近 21 天 197 帧）：单帧中位约 2 分钟、九成在 4 分钟内，几帧同时画。
+                /// 预期时间（2026-11-10 实测）：页面开着时四帧在 15 秒内全部交出、同时在画，近 21 天 10 轮人工创作
+                /// 都在 1.7–3.3 分钟出齐（中位 2.3 分钟）。只靠后台推进的（批量 / 机器任务）要 4–10 分钟，不在这句话的范围里。
                 ? english
-                  ? `${generatedCount}/${expectedCount} keyframes ready. The frames are drawn at the same time and usually all arrive within 3–5 minutes. You can leave this page; coming back to Create picks this round up again.`
-                  : `关键帧已完成 ${generatedCount}/${expectedCount}。几帧同时在画，一般三五分钟出齐；可以先离开这页，回到「创作」会自动接上这一轮。`
+                  ? `${generatedCount}/${expectedCount} keyframes ready. The frames are drawn at the same time and usually all arrive within 2–3 minutes. You can leave this page; coming back to Create picks this round up again.`
+                  : `关键帧已完成 ${generatedCount}/${expectedCount}。几帧同时在画，一般两三分钟出齐；可以先离开这页，回到「创作」会自动接上这一轮。`
                 : english
                   ? `${generatedCount}/${expectedCount} keyframes ready. Review every frame before video generation.`
                   : `关键帧已完成 ${generatedCount}/${expectedCount}。确认每一帧后才会进入视频生成。`}

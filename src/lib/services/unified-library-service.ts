@@ -173,6 +173,10 @@ export function isCancelledOrderJobs(jobStatuses: readonly string[]): boolean {
   );
 }
 
+function earliestDate(candidate: Date | null | undefined, fallback: Date): Date {
+  return candidate && candidate.getTime() < fallback.getTime() ? candidate : fallback;
+}
+
 export function deriveMakingProcess(
   evidence: MakingProcessEvidence,
 ): MakingProcessStep[] {
@@ -186,7 +190,9 @@ export function deriveMakingProcess(
   const brief: MakingProcessStep = {
     key: "brief",
     status: briefFailed ? "failed" : "completed",
-    timestamp: evidence.briefCreatedAt ?? evidence.orderCreatedAt,
+    /// 订单与 brief 是点「生成视频」时才建的，比故事板晚；商家定下创作方向与素材其实是在建故事板那一刻。
+    /// 之前第 1 步的时间比第 2 步还晚（01 需求确认 21:11 → 02 分镜设计 21:10）。
+    timestamp: earliestDate(evidence.storyboardCreatedAt, evidence.briefCreatedAt ?? evidence.orderCreatedAt),
     summary: briefFailed ? "brief_failed" : "brief_locked",
   };
 

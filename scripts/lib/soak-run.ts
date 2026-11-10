@@ -977,6 +977,7 @@ function planComparisonSection(comparison: SoakPlanComparison): string[] {
     ),
     "",
     "- 出方案阶段耗时的口径：A 组建故事板是线上接口往返（含镜头卡与原话英译两次模型调用）；B 组是本机建、不调模型。「生成视频」那一下线上都会重出一遍方案（调模型），B 组只是把其中 AI 段的提示词正文换成本机算的，所以这一列两组都含模型调用，不代表砍掉 OpenAI 之后的耗时。",
+    "- 两组进成片提示词的差别（线上缺省是精简出方案，一致性设定与段提示词本来就不调模型）：镜头卡对模板节拍、原话英译对商家原话、商品描述来自看图对不看图。",
     `- 配对：共 ${comparison.pairs} 对，两组都出了成片、可以盲评的 ${comparison.pairsReady} 对`,
     ...(comparison.tallies.length === 0
       ? ["- 盲评：还没有票（把盲评页导出的 JSON 交给 tally 子命令）"]

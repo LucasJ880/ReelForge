@@ -21,6 +21,7 @@
  * 同时进质量评审的 warning（商家看得到）并打一行运维日志。
  */
 
+import { signoffActive } from "@/lib/video-generation/brand-signoff";
 import { randomUUID } from "node:crypto";
 import { classifyInput } from "@/lib/video-generation/input-classifier";
 import { classifyAsset } from "@/lib/video-generation/asset-classifier";
@@ -87,6 +88,16 @@ export function normalizePostProductionSettings(
       position: captions?.position ?? "bottom",
       exportSrt: captions?.exportSrt ?? false,
     },
+    /// 片尾落款：开着且有品牌名才进快照；没勾的成片快照里不多这个键（与之前逐字节一致）
+    ...(signoffActive(request.signoff)
+      ? {
+          signoff: {
+            enabled: true,
+            brandName: request.signoff.brandName.trim(),
+            cta: request.signoff.cta?.trim() || null,
+          },
+        }
+      : {}),
   };
 }
 

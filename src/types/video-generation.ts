@@ -205,6 +205,8 @@ export interface UnifiedVideoGenerationRequest {
   audio?: AudioSettings;
   /// 后期确定性字幕；缺省时关闭。
   captions?: CaptionSettings;
+  /// 片尾落款（最后两秒压品牌名 + 行动指引）；缺省 / 关着 = 不带。形状见 brand-signoff 的 signoffSettingsSchema。
+  signoff?: { enabled: boolean; brandName: string; cta?: string | null };
   /// Phase 1 不开放高级选项；保留字段
   advancedOptions?: Record<string, unknown> | null;
   /// 关联到已有 DeliveryOrder（continuation 场景）；缺省时 supervisor 会新建

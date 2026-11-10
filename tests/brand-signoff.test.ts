@@ -158,3 +158,47 @@ test("界面：默认不带；落款有变化才提交；预填只取商家自�
   assert.match(pipeline, /signoffActive\(signoff\) \? signoffWindow\(totalSec, captionWindowSec\) : null/);
   assert.match(pipeline, /"SIGNOFF_FONT_MISSING"/);
 });
+
+test("创作时就勾落款：随请求进方案的后期快照；没勾时快照里不多这个键", async () => {
+  const { normalizePostProductionSettings } = await import("@/lib/video-generation/generation-supervisor");
+  const { unifiedVideoGenerationRequestSchema } = await import("@/lib/schemas/unified-input");
+  const request = {
+    userType: "platform" as const,
+    rawPrompt: "橄榄色蜡帆布卷口背包，拍一个人在山路上停下来拿出外套穿上。",
+    attachments: [],
+    selectedDuration: 15 as const,
+    selectedAspectRatio: "9:16" as const,
+    selectedBrandEndingMode: "none" as const,
+    language: "zh-CN",
+  };
+  const plain = normalizePostProductionSettings(request);
+  assert.equal("signoff" in plain, false);
+
+  const signed = normalizePostProductionSettings({ ...request, signoff: { enabled: true, brandName: " NORDA ", cta: " 主页看更多 " } });
+  assert.deepEqual(signed.signoff, { enabled: true, brandName: "NORDA", cta: "主页看更多" });
+  assert.deepEqual({ ...signed, signoff: undefined }, { ...plain, signoff: undefined }, "除了落款，其余后期设置不变");
+  /// 关着的、没品牌名的都不进快照
+  assert.equal("signoff" in normalizePostProductionSettings({ ...request, signoff: { enabled: false, brandName: "NORDA" } }), false);
+  assert.equal("signoff" in normalizePostProductionSettings({ ...request, signoff: { enabled: true, brandName: "  " } }), false);
+  /// 快照能被落库时用的校验原样解析回来
+  assert.deepEqual(postProductionPlanSchema.parse(signed).signoff, signed.signoff);
+
+  assert.equal(unifiedVideoGenerationRequestSchema.safeParse({ ...request, signoff: { enabled: true, brandName: "NORDA" } }).success, true);
+  assert.equal(unifiedVideoGenerationRequestSchema.safeParse({ ...request, signoff: { enabled: true, brandName: "" } }).success, false);
+  assert.equal(unifiedVideoGenerationRequestSchema.safeParse(request).success, true);
+});
+
+test("创作页：落款默认不带、预填只取自己工作区的品牌包、没勾时请求里没有这个键、勾了没填品牌名不让提交", async () => {
+  const studio = await readFile("src/components/video-generation/streamlined-video-studio.tsx", "utf8");
+  assert.match(studio, /const \[signoffEnabled, setSignoffEnabled\] = useState\(false\);/);
+  assert.match(studio, /brandPackages\.filter\(\(entry\) => entry\.scope === "workspace"\)/);
+  assert.match(
+    studio,
+    /\.\.\.\(signoffEnabled && signoffBrand\.trim\(\)\s*\? \{ signoff: \{ enabled: true, brandName: signoffBrand\.trim\(\), cta: signoffCta\.trim\(\) \|\| null \} \}\s*: \{\}\)/,
+  );
+  assert.match(studio, /if \(signoffEnabled && !signoffBrand\.trim\(\)\) return copy\.signoffRequired;/);
+  assert.match(studio, /data-testid="streamlined-signoff"/);
+  /// 派发时落库的是服务端按请求重建的方案（不是客户端传来的那份）
+  const dispatch = await readFile("src/app/api/video-generation/dispatch/route.ts", "utf8");
+  assert.match(dispatch, /videoGenerationPlan: plan as unknown as object,/);
+});

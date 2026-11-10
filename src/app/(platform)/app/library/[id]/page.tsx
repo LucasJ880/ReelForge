@@ -29,6 +29,7 @@ import { libraryDisplayTitle } from "@/lib/library/display-title";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
 import { libraryRowState } from "@/lib/exchange/state-vocab";
+import { HOOK_ANGLES } from "@/lib/create/hook-angles";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +56,8 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
   /// 再做一条 / 评价：只对本人的单条成片（样片、批量条目不出现）
   const canMakeAnother = canAct && item.source === "order" && item.status === "ready";
   const canRate = canAct && item.status === "ready" && Boolean(item.videoUrl);
+  const canRestitch = Boolean(canAct && item.briefId && item.canRestitch && item.restitchDefaults);
+  const canRedoSegment = Boolean(canAct && item.briefId && item.segments.some((segment) => segment.canRedo));
   /// 评价读不到（表还没建、库抖动）不挡详情页
   const feedback = canRate && item.briefId ? await getVideoFeedback(item.briefId).catch(() => null) : null;
   /// 片尾落款第一次勾选时预填的品牌名 / 行动指引：只取商家自己工作区的品牌包（默认的那个优先），
@@ -212,6 +215,22 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
                 </Button>
               ) : null}
             </div>
+            {/* 换个开头再做一条：同一件商品换一种开场，是跑量最常见的下一步——带着素材和描述直接回创作页，开头方向已经选好 */}
+            {canMakeAnother ? (
+              <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={copy.hookAgain} data-testid="hook-again">
+                <span className="mr-1 text-meta text-tertiary">{copy.hookAgain}</span>
+                {HOOK_ANGLES.map((angle) => (
+                  <Button
+                    key={angle.id}
+                    render={<Link href={`/app/create?retry=${encodeURIComponent(item.id)}&hook=${angle.id}`} />}
+                    variant="outline"
+                    size="xs"
+                  >
+                    {angle[locale === "en-US" ? "en" : "zh"].label}
+                  </Button>
+                ))}
+              </div>
+            ) : null}
             {/* 授权配乐（CC BY）的署名跟着交付走：紧挨下载按钮，发布时照抄即可 */}
             {item.bgmAttribution ? (
               <p className="x-well flex items-start gap-2 rounded-(--radius-md) px-3 py-2 text-meta text-muted-foreground" data-testid="bgm-attribution">
@@ -258,9 +277,21 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
               </div>
             ) : null}
             {canRate && item.briefId ? (
-              <VideoFeedbackPanel briefId={item.briefId} initial={feedback} copy={copy.feedback} />
+              <VideoFeedbackPanel
+                briefId={item.briefId}
+                initial={feedback}
+                copy={copy.feedback}
+                /// 不满意之后按原因指到这一页上真能做的动作（做不了的不出现）
+                nextTargets={{
+                  restitch: canRestitch ? "#captions-music" : null,
+                  redo_segment: canRedoSegment ? "#segment-redo" : null,
+                  make_another: canMakeAnother ? `/app/create?retry=${encodeURIComponent(item.id)}` : null,
+                }}
+              />
             ) : null}
             {/* P05-B 只重拼：READY 成片换字幕样式 / BGM，零生成计费；失败自动回滚到旧成片 */}
+            {/* 页内锚点（评价面板的「下一步」跳到这里）：零高度，抵掉这一列的间距，不占位置 */}
+            {canRestitch ? <span id="captions-music" aria-hidden className="-mb-4 block h-0 scroll-mt-24" /> : null}
             {canAct && item.briefId && item.canRestitch && item.restitchDefaults ? (
               <RestitchForm
                 briefId={item.briefId}
@@ -283,6 +314,7 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
               />
             ) : null}
             {/* P05-C 重做某一段：扣 1 段；新段拼进成片前旧成片一直保留；没做成退回 */}
+            {canRedoSegment ? <span id="segment-redo" aria-hidden className="-mb-4 block h-0 scroll-mt-24" /> : null}
             {canAct && item.briefId && item.segments.some((segment) => segment.canRedo || segment.redo !== "none") ? (
               <SegmentRedoPanel
                 briefId={item.briefId}

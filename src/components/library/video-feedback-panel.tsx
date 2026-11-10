@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, ThumbsDown, ThumbsUp } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Loader2, ThumbsDown, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { feedbackNextSteps, type FeedbackNextStep } from "@/lib/library/feedback-next-steps";
 import {
   VIDEO_FEEDBACK_NOTE_MAX,
   VIDEO_FEEDBACK_REASONS,
@@ -26,21 +28,30 @@ export type VideoFeedbackCopy = {
   savedUp: string;
   savedDown: string;
   failed: string;
+  /** 不满意记下之后，按原因给出的下一步 */
+  nextTitle: string;
+  nextSteps: Record<FeedbackNextStep, string>;
 };
+
+/** 这条成片上现在能做的动作；值是去处（页内锚点或创作页地址），null = 这条做不了。 */
+export type VideoFeedbackNextTargets = Record<FeedbackNextStep, string | null>;
 
 /**
  * 成片评价（2026-11-10）：满意 / 不满意，不满意时选原因、可补一句。
  * 满意一点就记；不满意先选原因再提交（原因才是有用的那部分）。记过的评价回来还在，可以改。
- * 不满意记下之后把下一步指给商家：同页的「重做这一段」和「用同样的素材再做一条」。
+ * 不满意记下之后按原因把下一步指给商家（feedbackNextSteps）：字幕问题 → 只重新合成；
+ * 商品 / 动作问题 → 重做这一段；没按描述拍 → 带着素材再做一条。先便宜的、后贵的。
  */
 export function VideoFeedbackPanel({
   briefId,
   initial,
   copy,
+  nextTargets,
 }: {
   briefId: string;
   initial: VideoFeedbackView | null;
   copy: VideoFeedbackCopy;
+  nextTargets?: VideoFeedbackNextTargets;
 }) {
   const [saved, setSaved] = useState<VideoFeedbackView | null>(initial);
   const [choice, setChoice] = useState<VideoFeedbackRating | null>(initial?.rating ?? null);
@@ -86,6 +97,15 @@ export function VideoFeedbackPanel({
       (saved.note ?? "") !== note.trim() ||
       saved.reasons.length !== reasons.length ||
       saved.reasons.some((reason) => !reasons.includes(reason)));
+
+  const nextSteps =
+    nextTargets && saved?.rating === "down" && !downDirty
+      ? feedbackNextSteps(saved.reasons, {
+          restitch: Boolean(nextTargets.restitch),
+          redo_segment: Boolean(nextTargets.redo_segment),
+          make_another: Boolean(nextTargets.make_another),
+        })
+      : [];
 
   return (
     <section
@@ -178,6 +198,34 @@ export function VideoFeedbackPanel({
         <p role="status" className={cn("text-pretty text-meta", message.tone === "error" ? "text-danger" : "text-muted-foreground")}>
           {message.text}
         </p>
+      ) : null}
+      {/* 记下不满意之后（没有待提交的改动时）：按原因给下一步，一点就到 */}
+      {nextSteps.length > 0 ? (
+        <div className="flex flex-col gap-2" data-testid="feedback-next-steps">
+          <p className="text-meta text-muted-foreground">{copy.nextTitle}</p>
+          <div className="flex flex-wrap gap-2">
+            {nextSteps.map((step) => {
+              const target = (nextTargets as VideoFeedbackNextTargets)[step] as string;
+              const content = (
+                <>
+                  {copy.nextSteps[step]}
+                  <ArrowRight aria-hidden />
+                </>
+              );
+              return (
+                <Button
+                  key={step}
+                  size="sm"
+                  variant="outline"
+                  data-next-step={step}
+                  render={target.startsWith("#") ? <a href={target} /> : <Link href={target} />}
+                >
+                  {content}
+                </Button>
+              );
+            })}
+          </div>
+        </div>
       ) : null}
     </section>
   );

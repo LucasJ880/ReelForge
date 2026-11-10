@@ -107,6 +107,95 @@ export async function loadCreateRetryPrefill(
   return { orderId: order.id, prompt, durationSec, aspectRatio, productAssets };
 }
 
+/** 创作页「接着拍这些商品」的一格：点了就是 /app/create?retry=<orderId>。 */
+export interface RecentCreateSource {
+  orderId: string;
+  /** 当时写的描述（原样；调用方自己去掉开头方向 / 尺寸行再截短显示） */
+  prompt: string;
+  /** 第一张商品图 */
+  thumbnailUrl: string;
+  imageCount: number;
+}
+
+/**
+ * 最近拍过的商品（2026-11-10）：商家回来多半是给同一件商品再拍一条，不该每次重新传图、重新写描述。
+ * 不建新表——「一件商品」就是以前某一单用过的那组商品图：按属主取最近的单条创作订单，
+ * 同一组图（看第一张）只留最近一次，带回去走的仍是 loadCreateRetryPrefill 那条已有的路。
+ * 只读、只按属主；图片已不归本人的那一单不出现。任何失败由调用方兜成空列表。
+ */
+export async function listRecentCreateSources(userId: string, limit = 4): Promise<RecentCreateSource[]> {
+  const orders = await db.deliveryOrder.findMany({
+    where: { createdById: userId, productCategory: "unified_input" },
+    orderBy: { createdAt: "desc" },
+    take: 24,
+    select: {
+      id: true,
+      productInput: true,
+      rounds: {
+        orderBy: { roundIndex: "desc" },
+        take: 1,
+        select: {
+          angles: {
+            orderBy: { sortOrder: "asc" },
+            take: 1,
+            select: {
+              videoBrief: {
+                select: { storyboardRun: { select: { userId: true, sourcePrompt: true, inputAssetIds: true } } },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+  const candidates: Array<{ orderId: string; prompt: string; assetIds: string[] }> = [];
+  const seenFirstAsset = new Set<string>();
+  for (const order of orders) {
+    const storyboard = order.rounds[0]?.angles[0]?.videoBrief?.storyboardRun ?? null;
+    if (!storyboard || storyboard.userId !== userId) continue;
+    const assetIds = [...new Set(storyboard.inputAssetIds)];
+    if (assetIds.length === 0 || seenFirstAsset.has(assetIds[0])) continue;
+    const prompt = (rawPromptFrom(order.productInput) ?? storyboard.sourcePrompt ?? "").trim();
+    if (!prompt) continue;
+    seenFirstAsset.add(assetIds[0]);
+    candidates.push({ orderId: order.id, prompt: prompt.slice(0, MAX_PROMPT_CHARS), assetIds });
+    if (candidates.length >= limit * 2) break;
+  }
+  if (candidates.length === 0) return [];
+  const firstAssets = await db.mediaAsset.findMany({
+    where: { id: { in: candidates.map((candidate) => candidate.assetIds[0]) }, userId },
+    select: { id: true, url: true, mimeType: true },
+  });
+  const urlById = new Map(
+    firstAssets
+      .filter((asset) => asset.mimeType.toLowerCase().startsWith("image/"))
+      .map((asset) => [asset.id, asset.url]),
+  );
+  return candidates
+    .filter((candidate) => urlById.has(candidate.assetIds[0]))
+    .slice(0, limit)
+    .map((candidate) => ({
+      orderId: candidate.orderId,
+      prompt: candidate.prompt,
+      thumbnailUrl: urlById.get(candidate.assetIds[0]) as string,
+      imageCount: candidate.assetIds.length,
+    }));
+}
+
+/**
+ * 给创作页用的可选装饰：读不到就当没有，并留一行日志——页面照常能创作。
+ * 页面加载器不许把服务失败吞成空数据（RF-012：那会让「坏了」看起来像「你什么都没有」）；
+ * 这一条不显示任何「你还没有…」的空态，读不到只是这一行不出现，所以在服务层兜住、把原因记下来。
+ */
+export async function loadRecentCreateSourcesOrNone(userId: string, limit = 4): Promise<RecentCreateSource[]> {
+  try {
+    return await listRecentCreateSources(userId, limit);
+  } catch (error) {
+    console.warn("[create] recent sources unavailable:", error instanceof Error ? error.message : String(error));
+    return [];
+  }
+}
+
 function rawPromptFrom(productInput: unknown): string | null {
   if (!productInput || typeof productInput !== "object" || Array.isArray(productInput)) {
     return null;

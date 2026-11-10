@@ -85,6 +85,11 @@ npm run context:find -- "..."
 | 换个开头（同一商品换一种开场） | `src/lib/create/hook-angles.ts` |
 | 用同样的素材再做一条 | 成片详情 → `/app/create?retry=<订单 id>` |
 | 片尾落款（品牌名 + 行动指引 + 可选 Logo） | `src/lib/video-generation/brand-signoff.ts`；存在后期快照的 `signoff` 键；Logo 由 `stitch-composer` 按成片主人取 |
+| 不满意之后的下一步（按原因指到重拼 / 重做一段 / 再做一条） | `src/lib/library/feedback-next-steps.ts`、`video-feedback-panel.tsx`；详情页锚点 `#captions-music` / `#segment-redo` |
+| 换个开头再做一条（详情页直达） | 成片详情 → `/app/create?retry=<订单 id>&hook=<开头 id>`，创作页用 `applyHookAngle` 换上 |
+| 接着拍这些商品（空白创作页复用以前那一单的商品图和描述，不建新表） | `listRecentCreateSources`（`create-retry-prefill-service.ts`） |
+| 商品尺寸（描述末尾补一行「商品实际大小：…」） | `src/lib/create/product-size.ts` |
+| 品牌页的片尾落款预览（与合成同一套版式） | `src/components/brand/signoff-preview.tsx` |
 | 字幕跟着人声走（按语音识别对齐） | `alignCuesToSpeech`（`src/lib/video-generation/audio-post-production.ts`）、`src/lib/providers/openai-transcription.ts`；日志搜 `[captions]` |
 | 只重新合成（换字幕 / BGM / 落款，不扣额度） | `src/lib/video-generation/restitch-patch.ts`、`stitch-service` 的 `prepareRestitch` / `commitRestitch` |
 

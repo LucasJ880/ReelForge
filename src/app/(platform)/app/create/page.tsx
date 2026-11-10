@@ -8,7 +8,9 @@ import { isBrollRouteAvailable } from "@/lib/services/broll-assembly-service";
 import { getCapabilities } from "@/lib/services/capability-status-service";
 import { authOptions } from "@/lib/auth";
 import { contactEmail } from "@/lib/config/contact";
-import { loadCreateRetryPrefill } from "@/lib/services/create-retry-prefill-service";
+import { loadCreateRetryPrefill, loadRecentCreateSourcesOrNone } from "@/lib/services/create-retry-prefill-service";
+import { stripProductSize } from "@/lib/create/product-size";
+import { applyHookAngle, HOOK_ANGLES, stripHookAngle } from "@/lib/create/hook-angles";
 import { resolveOwnedImageAssets } from "@/lib/services/media-asset-service";
 import { readMachineVideoTaskPrefill } from "@/lib/services/machine-video-task-service";
 import { countFinished, loadExchangeReadings, loadProductionCounts, loadVideoQuota } from "@/lib/services/exchange-readings";
@@ -34,12 +36,14 @@ export default async function PlatformCreatePage({
     prompt?: string;
     guide?: string;
     retry?: string;
+    /// 换个开头再做一条（成片详情页带过来）：只和 retry 一起生效
+    hook?: string;
     machineTask?: string;
   }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/create");
-  const [{ productImageResultId, styleTemplate, prompt, guide, retry, machineTask }, locale, routeState] = await Promise.all([
+  const [{ productImageResultId, styleTemplate, prompt, guide, retry, hook, machineTask }, locale, routeState] = await Promise.all([
     searchParams,
     getServerLocale(),
     getCustomerRouteRehearsalState("create"),
@@ -65,6 +69,17 @@ export default async function PlatformCreatePage({
   const machineAssets = machinePrefill?.assetIds.length
     ? await loadMachineTaskAssets(session.user.id, machinePrefill.assetIds, locale)
     : [];
+  const hookAngle = HOOK_ANGLES.find((angle) => angle.id === hook)?.id ?? null;
+  /// 「接着拍这些商品」：只在空白创作页上用得着（带着预填进来的不查）；读不到由服务层记日志、当作没有，不拦创作
+  const recentSources = routeState === "empty" || result || retryPrefill || machinePrefill
+    ? []
+    : (await loadRecentCreateSourcesOrNone(session.user.id)).map((source) => ({
+        orderId: source.orderId,
+        /// 标题 = 当时描述的第一行，去掉我们补的「开头方向」和「尺寸」那两行
+        title: Array.from(stripProductSize(stripHookAngle(source.prompt)).split("\n")[0] ?? "").slice(0, 40).join(""),
+        thumbnailUrl: absoluteAssetUrl(source.thumbnailUrl),
+        imageCount: source.imageCount,
+      }));
   const retryAssets: UploadedAsset[] = (retryPrefill?.productAssets ?? []).map((asset, index) => ({
     id: asset.id,
     assetId: asset.id,
@@ -107,7 +122,12 @@ export default async function PlatformCreatePage({
       <StreamlinedVideoStudio
         initialAssets={initialAssets}
         initialStyleTemplateId={styleTemplate}
-        initialPrompt={(retryPrefill?.prompt || machinePrefill?.prompt || prompt)?.slice(0, 4000) ?? ""}
+        initialPrompt={
+          retryPrefill?.prompt && hookAngle
+            /// 带回的描述换上选好的开头方向（原来带着别的方向就替换掉）；超长时 applyHookAngle 原样返回
+            ? applyHookAngle(retryPrefill.prompt.slice(0, 4000), hookAngle, locale === "en-US" ? "en" : "zh")
+            : (retryPrefill?.prompt || machinePrefill?.prompt || prompt)?.slice(0, 4000) ?? ""
+        }
         initialDurationSec={supportedDuration(retryPrefill?.durationSec ?? machinePrefill?.durationSec)}
         initialAspectRatio={supportedAspect(retryPrefill?.aspectRatio ?? machinePrefill?.aspectRatio)}
         initialVoiceoverScript={machinePrefill?.voiceoverScript ?? ""}
@@ -117,6 +137,7 @@ export default async function PlatformCreatePage({
             : null
         }
         retryOfOrderId={retryPrefill?.orderId ?? null}
+        recentSources={recentSources}
         brandPackages={brandPackages}
         canSelectVideoRoute={false}
         showInternalVideoRoutes={false}

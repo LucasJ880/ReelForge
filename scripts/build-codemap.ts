@@ -77,6 +77,9 @@ const EXCLUDED_DIRS = new Set([
 const EXCLUDED_SUBPATHS = [
   // 已生成的视频/图片产物（占用 50M+，不应进 prompt）
   "public/generated",
+  // 各会话的 git worktree 是整个仓库的副本：一进索引，每个文件就多出十几份重复路径，
+  // 索引从约 1 MB 涨到 53 MB（2026-11-10 实测 5 万多条来自这里），context:find 的前十名全是副本。
+  ".claude/worktrees",
 ];
 
 const MEDIA_EXTENSIONS = new Set([

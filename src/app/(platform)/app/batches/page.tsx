@@ -58,9 +58,12 @@ export default async function PlatformBatchesPage() {
         readingStat("pausedBatches", production?.pausedBatches ?? 0, locale),
         readingStat("filled7d", readings?.filled7d ?? 0, locale),
         readingStat("failed7d", readings?.failed7d ?? 0, locale),
-        readingStat("batchCompletion", formatRate(completion), locale, { params: { n: batches.length } }),
+        /// 一个批次都没有时不写「近 0 批」
+        batches.length > 0
+          ? readingStat("batchCompletion", formatRate(completion), locale, { params: { n: batches.length } })
+          : { ...readingStat("batchCompletion", formatRate(completion), locale, { params: { n: 0 } }), caption: copy.board.completionNoBatches },
       ]}
-      scope={copy.board.scope.replace("{n}", String(batches.length))}
+      scope={batches.length > 0 ? copy.board.scope.replace("{n}", String(batches.length)) : copy.board.scopeNoBatches}
     >
       {batches.length === 0 ? (
         <EmptyState

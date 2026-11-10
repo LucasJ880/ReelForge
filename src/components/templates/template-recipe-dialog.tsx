@@ -51,8 +51,8 @@ export function TemplateRecipeDialog({
     ? [
         lockedParams.duration ? `${lockedParams.duration}s` : null,
         lockedParams.aspectRatio ?? null,
-        lockedParams.stability === "high" ? (english ? "Stability first" : "稳定优先") : lockedParams.stability ? (english ? "Creative balance" : "创意均衡") : null,
-        lockedParams.humanInteraction === "none" ? (english ? "No people" : "无真人") : lockedParams.humanInteraction ? (english ? "Controlled interaction" : "交互受控") : null,
+        lockedParams.stability === "high" ? (english ? "Reliable" : "出片稳") : lockedParams.stability ? (english ? "More variety" : "变化多") : null,
+        lockedParams.humanInteraction === "none" ? (english ? "No people" : "无真人") : lockedParams.humanInteraction ? (english ? "People on camera" : "有真人出镜") : null,
       ].filter((value): value is string => Boolean(value))
     : [];
 
@@ -62,7 +62,7 @@ export function TemplateRecipeDialog({
         render={
           <Button type="button" variant={triggerVariant} size="sm">
             <BookOpenText aria-hidden />
-            {english ? "View recipe" : "查看质量配方"}
+            {english ? "How it's shot" : "看这套拍法"}
           </Button>
         }
       />

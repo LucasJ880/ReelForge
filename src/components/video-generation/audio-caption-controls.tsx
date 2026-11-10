@@ -5,6 +5,11 @@ import { TickGlyph, tickToneClass } from "@/components/exchange/status-tick";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { bgmAttributionForTrack } from "@/lib/video-generation/bgm-attribution";
+import {
+  assessVoiceoverLength,
+  voiceoverBudget,
+  voiceoverLengthHint,
+} from "@/lib/video-generation/voiceover-budget";
 import type {
   BgmTrackId,
   CaptionPosition,
@@ -35,6 +40,13 @@ interface AudioCaptionControlsProps {
   value: AudioCaptionControlValue;
   english: boolean;
   disabled?: boolean;
+  /**
+   * 故事板出来之后为 true：口播开不开决定了镜头里有没有人对着镜头说话（画面已定），这个开关不能再动；
+   * 口播稿的措辞、声音风格、字幕、配乐不改画面，照样能改。
+   */
+  voiceoverToggleLocked?: boolean;
+  /** 这条片的时长：口播稿下面按它提示「说不说得完」。不传就不提示。 */
+  durationSec?: number;
   onChange: (next: AudioCaptionControlValue) => void;
   onRegenerate: () => void;
   /**
@@ -251,7 +263,7 @@ export function generateVoiceoverScript(input: VoiceoverScriptInput): string {
       englishHook(input.templateId),
       prompt,
       cta,
-      Math.max(12, Math.floor(input.durationSec * 2.2)),
+      voiceoverBudget(input.durationSec, true),
     );
   }
 
@@ -259,7 +271,7 @@ export function generateVoiceoverScript(input: VoiceoverScriptInput): string {
     chineseHook(input.templateId),
     prompt,
     cta,
-    input.durationSec * 4,
+    voiceoverBudget(input.durationSec, false),
   );
 }
 
@@ -267,6 +279,8 @@ export function AudioCaptionControls({
   value,
   english,
   disabled = false,
+  voiceoverToggleLocked = false,
+  durationSec,
   onChange,
   onRegenerate,
   draftFromTemplate = false,
@@ -278,6 +292,9 @@ export function AudioCaptionControls({
     onChange({ ...value, ...patch });
   };
   const bgmAttribution = bgmAttributionForTrack(value.bgmTrackId);
+  const scriptLength = durationSec
+    ? assessVoiceoverLength(value.voiceoverScript, durationSec, english ? "en-US" : "zh-CN")
+    : null;
 
   return (
     // 下单票第 06 行：编号与标题由所在行承担，这里只放控件（不再自带卡片外壳）。
@@ -301,7 +318,7 @@ export function AudioCaptionControls({
             <input
               type="checkbox"
               checked={value.voiceoverEnabled}
-              disabled={disabled}
+              disabled={disabled || voiceoverToggleLocked}
               className="mt-1 size-4 accent-primary"
               onChange={(event) => update({ voiceoverEnabled: event.target.checked })}
             />
@@ -318,9 +335,24 @@ export function AudioCaptionControls({
                 className="mt-2 min-h-32 w-full resize-y rounded-(--radius-md) x-well border-input px-3 py-2 text-body leading-relaxed text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50"
                 onChange={(event) => update({ voiceoverScript: event.target.value })}
               />
-              <span className="mt-1 block text-right font-mono text-meta tabular-nums">
-                {value.voiceoverScript.length} / 2000
-              </span>
+              {/* 按时长提示说不说得完（同一把尺：voiceover-budget）；2000 只是接口上限，不给商家看 */}
+              {scriptLength && value.voiceoverEnabled ? (
+                <span
+                  data-testid="voiceover-length-hint"
+                  data-fit={scriptLength.fit}
+                  aria-live="polite"
+                  className={cn(
+                    "mt-1 block text-pretty text-meta font-normal tabular-nums",
+                    scriptLength.fit === "over"
+                      ? "text-danger"
+                      : scriptLength.fit === "tight"
+                        ? "text-gold"
+                        : "text-tertiary",
+                  )}
+                >
+                  {voiceoverLengthHint(scriptLength, durationSec ?? 0, english)}
+                </span>
+              ) : null}
             </label>
 
             <div className="space-y-3">

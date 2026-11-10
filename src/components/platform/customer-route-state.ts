@@ -52,7 +52,7 @@ export const CUSTOMER_ROUTE_FALLBACK_AREAS = {
   status: "create",
 } as const satisfies Record<CustomerRouteId, CustomerRouteId>;
 
-/** 骨架屏的读数墙格数：与该页真实行情头的读数格数一致，切页不跳。 */
+/** 骨架屏的读数格数：与该页真实页头的读数格数一致，切页不跳。0 = 这页没有读数（2026-11-10：品牌、模板库），骨架也不画。 */
 export const CUSTOMER_ROUTE_WALL_CELLS = {
   create: 4,
   createImages: 4,
@@ -62,10 +62,10 @@ export const CUSTOMER_ROUTE_WALL_CELLS = {
   racing: 4,
   library: 4,
   libraryDetail: 4,
-  templates: 4,
+  templates: 0,
   plan: 4,
   wins: 4,
-  brands: 3,
+  brands: 0,
   leads: 3,
   status: 4,
 } as const satisfies Record<CustomerRouteId, number>;

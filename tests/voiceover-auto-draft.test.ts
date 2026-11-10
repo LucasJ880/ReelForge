@@ -43,7 +43,9 @@ test("出故事板：口播稿还停在模板（或正有一份在写）就先�
 test("起稿只有一份：离开输入框、「生成口播稿」、出故事板前共用；写的时候主按钮如实说", async () => {
   const studio = await readFile(STUDIO, "utf8");
   assert.match(studio, /if \(voiceoverDraftRef\.current\) return voiceoverDraftRef\.current;/);
-  assert.match(studio, /const script = await draftVoiceoverWithAi\(\);\s*if \(!script\) applyTemplate\(\);\s*invalidatePlan\(\);/);
+  /// 2026-11-10：有故事板时重写口播稿只让方案预览失效（invalidate 取 KeepingStoryboard 那一个），不丢故事板
+  assert.match(studio, /const invalidate = hasStoryboard \? invalidatePlanKeepingStoryboard : invalidatePlan;/);
+  assert.match(studio, /const script = await draftVoiceoverWithAi\(\);\s*if \(!script\) applyTemplate\(\);\s*invalidate\(\);/);
   assert.equal((studio.match(/fetch\("\/api\/video-generation\/voiceover-draft"/g) ?? []).length, 1);
   assert.match(studio, /planningShots \? \(voiceoverDrafting \? copy\.writingVoiceover : copy\.planningShots\)/);
   assert.match(studio, /writingVoiceover: "正在写口播稿…",/);

@@ -169,7 +169,7 @@ test("各页读数都从注册表与 exchange-readings 取，不再各算各的"
   assert.doesNotMatch(newBatch, /monthlyVideoLimit|filled30d \}/);
 
   const batches = readFileSync("src/app/(platform)/app/batches/page.tsx", "utf8");
-  // 1025 · B2.1：没有批次也开场读数（零就写零），所以读数不再挂在 production 非空上
+  // 读数不挂在 production 非空上（有批次时零照样写零）；2026-11-10 起一个批次都没有时不摆读数
   assert.match(batches, /readingStat\("activeBatches", production\?\.activeBatches \?\? 0, locale\)/);
   assert.doesNotMatch(batches, /new Set\(\["EXPANDING", "RUNNING", "PAUSED"\]\)/, "进行中批次不含暂停");
 
@@ -178,7 +178,8 @@ test("各页读数都从注册表与 exchange-readings 取，不再各算各的"
     assert.match(wall, new RegExp(`readingName\\("${id}", locale\\)`));
   }
   const templates = readFileSync("src/app/(platform)/app/templates/page.tsx", "utf8");
-  assert.match(templates, /readingStat\("filled30d", readings\?\.filled30d \?\? 0, locale\)/);
+  /// 2026-11-10：模板库页头不再摆读数（条数在筛选条上，成片数在成品库）；更不许在这里另算一套
+  assert.match(templates, /readings=\{\[\]\}/);
   assert.doesNotMatch(templates, /completedCount: true/, "近 30 天成片不按批次创建时间另算");
 
   const shell = readFileSync("src/components/platform/platform-shell.tsx", "utf8");

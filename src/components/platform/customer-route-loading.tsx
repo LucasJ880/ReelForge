@@ -16,8 +16,8 @@ const WALL_COLUMNS: Record<number, string> = {
 };
 
 /**
- * 加载骨架按行情头的结构画（1025 · B2）：大标题 → 副标题 → 读数墙（格数与该页一致）→ 口径行 → 正文面板。
- * 不画眉题短条——真实页面没有眉题，骨架画了就会在切页时跳一下。
+ * 加载骨架按页头的结构画（1025 · B2）：大标题 → 副标题 → 读数（格数与该页一致；这页没有读数就不画）→ 正文面板。
+ * 不画眉题短条——真实页面没有眉题，骨架画了就会在切页时跳一下。口径行 2026-11-10 起收进悬停提示，骨架同步去掉。
  */
 export async function CustomerRouteLoading({
   route,
@@ -44,7 +44,7 @@ export async function CustomerRouteLoading({
           <Skeleton className="h-4 w-full max-w-[62ch] motion-reduce:animate-none" />
           <Skeleton className="h-4 w-3/5 max-w-[40ch] motion-reduce:animate-none" />
         </div>
-        <div className="space-y-2">
+        {cells > 0 ? (
           <div className={cn("x-wall grid-cols-2", WALL_COLUMNS[cells])} data-skeleton="readings">
             {Array.from({ length: cells }, (_, index) => (
               <div key={index} className="space-y-3 px-5 py-4">
@@ -54,8 +54,7 @@ export async function CustomerRouteLoading({
               </div>
             ))}
           </div>
-          <Skeleton className="h-3 w-full max-w-md motion-reduce:animate-none" />
-        </div>
+        ) : null}
       </header>
       {(route === "batches" || route === "batchDetail") && (
         <Progress

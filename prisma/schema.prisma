@@ -766,6 +766,24 @@ model ContentReport {
   @@index([targetBriefId])
 }
 
+/// 商家对一条成片的评价（2026-11-10）。成片画面质检缺省关掉之后，这是唯一来自真人的质量读数：
+/// 满意 / 不满意，不满意时带原因（见 src/lib/contracts/video-feedback.ts 的 VIDEO_FEEDBACK_REASONS）。
+/// 一条成片一行，商家改主意就覆盖。独立的表、没有外键：表还没建时只有评价功能不可用，别的查询不受影响。
+model VideoFeedback {
+  id           String   @id @default(cuid())
+  videoBriefId String   @unique
+  userId       String
+  /// "up" | "down"
+  rating       String
+  reasons      String[] @default([])
+  note         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([rating, createdAt(sort: Desc)])
+}
+
 enum AdEditPlanStatus {
   DRAFT
   READY

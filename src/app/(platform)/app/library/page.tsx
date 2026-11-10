@@ -439,7 +439,8 @@ export default async function PlatformLibraryPage({
             <section aria-label={copy.sectionReady} className="space-y-3">
               <SectionHead title={copy.sectionReady} count={readyVideoRows.length} />
               {/* 成片是舞台：竖版 9:16 原比例展示，不裁成横版缩略图 */}
-              <ul className="grid min-w-0 grid-cols-1 gap-3 min-[420px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" aria-label={copy.listLabel}>
+              {/* 手机上也是两列：竖版封面一列一条时，29 条成片要划 27 屏才到底 */}
+              <ul className="grid min-w-0 grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" aria-label={copy.listLabel}>
                 {readyVideoRows.map((row) => {
                   const href = detailHref(row);
                   return (

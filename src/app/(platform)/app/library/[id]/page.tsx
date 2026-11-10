@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, Music, Send } from "lucide-react";
+import { ArrowLeft, CopyPlus, Music, Send } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { contactEmail } from "@/lib/config/contact";
 import { getUnifiedLibraryItem } from "@/lib/services/unified-library-service";
@@ -13,6 +13,8 @@ import { SEGMENT_REDO_NOTE_MAX } from "@/lib/video-generation/segment-redo";
 import { CancelVideoButton } from "@/components/library/cancel-video-button";
 import { AiGeneratedLabel } from "@/components/compliance/ai-generated-label";
 import { ReportContentButton } from "@/components/library/report-content-button";
+import { VideoFeedbackPanel } from "@/components/library/video-feedback-panel";
+import { getVideoFeedback } from "@/lib/services/video-feedback-service";
 import { VideoDownloadLink } from "@/components/library/video-download-link";
 import { SubtitleDownloadLink } from "@/components/library/subtitle-download-link";
 import { MakingProcessTimeline } from "@/components/library/making-process-timeline";
@@ -49,6 +51,11 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
   const canCancel = !item.isShowcase && (item.status === "generating" || item.status === "paused");
   /// P05-C 某一段在重做：成片本身 READY，取消只针对这次重做（取消服务只动候选行）
   const canCancelRedo = !item.isShowcase && !canCancel && item.redoInFlight;
+  /// 再做一条 / 评价：只对本人的单条成片（样片、批量条目不出现）
+  const canMakeAnother = canAct && item.source === "order" && item.status === "ready";
+  const canRate = canAct && item.status === "ready" && Boolean(item.videoUrl);
+  /// 评价读不到（表还没建、库抖动）不挡详情页
+  const feedback = canRate && item.briefId ? await getVideoFeedback(item.briefId).catch(() => null) : null;
   /// 单条成片的 title 是商家整段描述：标题只放第一句，全文落到副标题
   const displayTitle = libraryDisplayTitle(item.title);
   return (
@@ -164,6 +171,13 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
                   {copy.douyinKit}
                 </Button>
               ) : null}
+              {/* 再做一条：带着这条的商品图、描述、时长画幅回创作页（同一个商品换个拍法是最常见的下一步） */}
+              {canMakeAnother ? (
+                <Button render={<Link href={`/app/create?retry=${encodeURIComponent(item.id)}`} />} variant="outline" size="sm" data-testid="make-another">
+                  <CopyPlus aria-hidden />
+                  {copy.makeAnother}
+                </Button>
+              ) : null}
             </div>
             {/* 授权配乐（CC BY）的署名跟着交付走：紧挨下载按钮，发布时照抄即可 */}
             {item.bgmAttribution ? (
@@ -203,9 +217,15 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
             ) : null}
             {canAct && item.briefId ? (
               <div className="flex flex-wrap gap-2 border-t border-border pt-4">
-                <VideoActions briefId={item.briefId} failedSceneCount={item.failedSceneCount} canRetry={item.canRetry} contactEmail={contactEmail()} />
+                {/* 已成片、没有失败片段时没有进度可刷新，也没有可重试的：这一组按钮不出现 */}
+                {item.status !== "ready" || item.canRetry ? (
+                  <VideoActions briefId={item.briefId} failedSceneCount={item.failedSceneCount} canRetry={item.canRetry} showRefresh={item.status !== "ready"} contactEmail={contactEmail()} />
+                ) : null}
                 <ReportContentButton briefId={item.briefId} />
               </div>
+            ) : null}
+            {canRate && item.briefId ? (
+              <VideoFeedbackPanel briefId={item.briefId} initial={feedback} copy={copy.feedback} />
             ) : null}
             {/* P05-B 只重拼：READY 成片换字幕样式 / BGM，零生成计费；失败自动回滚到旧成片 */}
             {canAct && item.briefId && item.canRestitch && item.restitchDefaults ? (

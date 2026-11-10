@@ -65,6 +65,7 @@
     "frame:qa": "tsx scripts/frame-qa.ts",
     "eval:video": "tsx scripts/eval/video-golden-set.ts",
     "eval:shot-cards": "tsx --env-file=.env.local scripts/eval/shot-card-latency.ts",
+    "report:feedback": "tsx --env-file=.env.local scripts/ops/video-feedback-report.ts",
     "demo:rehearsal": "tsx scripts/demo-rehearsal-e2e.ts",
     "demo:sunny-investor": "tsx scripts/sunny-shutter-investor-demo.ts",
     "demo:sunny-investor:v21": "tsx scripts/sunny-shutter-investor-demo-v21.ts",

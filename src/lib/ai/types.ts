@@ -107,6 +107,11 @@ export interface AiVisionAnalyzeOptions {
   detail?: "low" | "high" | "auto";
   /** 回答 token 上限，默认 1200（帧质检 JSON 信封够用；长结构化输出自己加）。 */
   maxTokens?: number;
+  /**
+   * 用哪一档模型看图：缺省 "vision"（最强、最慢）。"fast" 走 fast 档的回退链（同样支持图像输入），
+   * 给「要看图但更在乎响应时间」的调用用，例如建故事板时看着商品图写镜头卡。volcengine 忽略此项。
+   */
+  tier?: "vision" | "fast";
 }
 
 /**

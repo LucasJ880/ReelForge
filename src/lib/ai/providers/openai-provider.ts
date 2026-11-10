@@ -87,6 +87,7 @@ export class OpenAiProvider implements AiProvider {
     return legacyAnalyzeImages(options.imageUrls, options.system, options.user, {
       detail: options.detail,
       maxTokens: options.maxTokens,
+      tier: options.tier,
     });
   }
 

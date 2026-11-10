@@ -41,6 +41,17 @@
  *           「帧质检去留依据」「出方案对照」，并生成 A/B 盲评页 blind-review.html（左右随机、不显示组别，沿用评测集的盲评页）。
  *   tally   读盲评页导出的票（--votes <JSON>），揭盲算 B 组的胜 / 平 / 负；票存进运行目录，之后的 report 会带上。
  *
+ * 镜头卡是怎么写的（11-10 起线上有「看图写镜头卡」开关 STORYBOARD_SHOT_CARDS_VISION，缺省关）：
+ *   - 报告把 A/B 对照按 A 组镜头卡的写法分层：纯文字写卡 / 看图写卡（开关生效后建的）/ 合并看图调用出了结果 / 卡没用上退回模板。
+ *     开关什么时候生效脚本查不到（那是线上的环境变量，要重新部署才生效），由人用 --vision-since <带时区的 ISO 时刻> 给，
+ *     给一次就记在运行目录里。看图那次调用失败时线上会静默退回纯文字写卡、库里不留标记，逐条要查线上日志。
+ *     --direction-until <时刻> 同理：「合并看图调用」缺省开着的那段时间（#37 部署到 #38 部署之间）建的 A 组条目单独成一层。
+ *     部署时刻可以这样查：gh api "repos/<owner>/<repo>/deployments?environment=Production" 再看各次的 statuses。
+ *   - 重拍轮（跨运行的镜头卡对照）：run --run-key <新键> --baseline <对照轮> [--pairs 4] --vision-since <时刻>
+ *     只投对照轮里「纯文字写卡、已成片」那几对的 A 组（同品类、同角度、同一批商品图、同口播稿），
+ *     report 生成「对照轮的 A（纯文字卡）对这一轮的 A（看图卡）」的盲评页，tally 揭盲给看图卡的胜 / 平 / 负。
+ *     真提交前必须给 --vision-since，而且现在要晚于它——没生效就投，出来的还是纯文字卡，钱白花。
+ *
  * run 的参数：
  *   --run-key <名字>            必填，小写字母 / 数字 / 连字符，如 soak-1110
  *   --wave morning|noon|evening|all   这次投哪一波（真提交时必填；all = 不分波，冒烟用）
@@ -78,6 +89,7 @@ import {
   SOAK_WAVE_LABELS,
   assertManifestMatches,
   assignRunwayRoutes,
+  cardRerunBlocker,
   deriveSoakOutcome,
   estimateSoakSpend,
   expandSoakItems,
@@ -85,19 +97,22 @@ import {
   initialSoakRecord,
   isSoakInFlight,
   nextSoakStep,
+  parseVisionSince,
   parseWave,
   renderSoakReport,
   retrySoakRecord,
+  selectCardRerunItems,
   selectSoakItems,
   soakBlindPairs,
   soakBlindTally,
+  soakCardPairs,
   soakDispatchBody,
   soakIdempotencyKey,
   soakStoryboardBody,
   soakSubmitAllowance,
   summarizeSoak,
   type SoakAttempt,
-  type SoakBlindTally,
+  type SoakBallot,
   type SoakFirstPassInput,
   type SoakItem,
   type SoakManifest,
@@ -184,6 +199,22 @@ interface RunContext {
   items: SoakItem[];
   /// 清单是否已经落盘（= 这个 run-key 真提交过）
   persisted: boolean;
+  /// 镜头卡对照的重拍轮：对照轮的运行键与它落盘的记录
+  baseline: { runKey: string; records: SoakRecord[] } | null;
+  /// 看图写卡开关的生效时刻（--vision-since 给的，或上次记在运行目录里的）
+  visionSince: string | null;
+  /// 合并看图调用关掉的时刻（--direction-until，同样记在运行目录里）
+  directionUntil: string | null;
+}
+
+/** 读一轮已经真提交过的运行的记录（重拍轮拿它当对照）。 */
+function loadRunRecords(runKey: string): SoakRecord[] {
+  const dir = join(OUTPUT_ROOT, runKey);
+  if (!existsSync(join(dir, "manifest.json"))) throw new Error(`对照轮 ${runKey} 还没真提交过（在 ${relative(REPO, dir)} 下找不到清单）`);
+  return readJson<SoakManifest>(join(dir, "manifest.json")).items.map((item) => {
+    const path = join(dir, "items", `${item.id}.json`);
+    return existsSync(path) ? readJson<SoakRecord>(path) : initialSoakRecord(item);
+  });
 }
 
 function runContext(flags: Flags): RunContext {
@@ -197,8 +228,26 @@ function runContext(flags: Flags): RunContext {
   const manifestPath = join(runDir, "manifest.json");
   const manifest = existsSync(manifestPath) ? readJson<SoakManifest>(manifestPath) : null;
   const selecting = ["arms", "cases", "angles", "limit", "runway"].some((name) => flags[name] !== undefined);
+  const settingsPath = join(runDir, "settings.json");
+  type Settings = { visionSince?: string | null; directionUntil?: string | null };
+  const settings = existsSync(settingsPath) ? readJson<Settings>(settingsPath) : {};
+  const baselineFlag = flag(flags, "baseline");
+  if (manifest && baselineFlag && manifest.baseline?.runKey !== baselineFlag) {
+    throw new Error(`${runKey} 的清单不是拿 ${baselineFlag} 当对照建的：换 --run-key`);
+  }
+  const baselineKey = manifest ? (manifest.baseline?.runKey ?? null) : baselineFlag;
+  /// 重拍轮没单独给的时刻沿用对照轮记下的那一份（两轮看的是同一个线上、同一批部署）
+  const baselineSettingsPath = baselineKey ? join(OUTPUT_ROOT, baselineKey, "settings.json") : null;
+  const inherited = baselineSettingsPath && existsSync(baselineSettingsPath) ? readJson<Settings>(baselineSettingsPath) : {};
+  const visionSince = parseVisionSince(flag(flags, "vision-since")) ?? settings.visionSince ?? inherited.visionSince ?? null;
+  const directionUntil =
+    parseVisionSince(flag(flags, "direction-until"), "--direction-until") ?? settings.directionUntil ?? inherited.directionUntil ?? null;
+  const baseline = baselineKey ? { runKey: baselineKey, records: loadRunRecords(baselineKey) } : null;
   let items = manifest?.items ?? [];
-  if (!manifest || selecting) {
+  if (baseline && !manifest) {
+    if (selecting) throw new Error("重拍轮（--baseline）只用 --pairs 定对数，不和 --arms / --cases / --angles / --limit / --runway 混用");
+    items = selectCardRerunItems(baseline.records, visionSince, intFlag(flags, "pairs", 4), directionUntil);
+  } else if (!manifest || selecting) {
     const limit = flag(flags, "limit");
     items = assignRunwayRoutes(
       selectSoakItems(expandSoakItems(cases), {
@@ -211,14 +260,27 @@ function runContext(flags: Flags): RunContext {
     );
     if (manifest) assertManifestMatches(manifest, items);
   }
-  return { runKey, runDir, cases: new Map(cases.map((item) => [item.id, item])), items, persisted: manifest !== null };
+  return { runKey, runDir, cases: new Map(cases.map((item) => [item.id, item])), items, persisted: manifest !== null, baseline, visionSince, directionUntil };
+}
+
+/** 把这次给的看图写卡生效时刻记进运行目录（目录建了才记），之后的 report / run 不用再给。 */
+function persistSettings(context: RunContext): void {
+  if (context.persisted && (context.visionSince || context.directionUntil)) {
+    writeJson(join(context.runDir, "settings.json"), { visionSince: context.visionSince, directionUntil: context.directionUntil });
+  }
 }
 
 function persistManifest(context: RunContext): void {
   if (context.persisted) return;
   mkdirSync(context.runDir, { recursive: true });
   copyFileSync(CASES_FILE, join(context.runDir, "cases.json"));
-  const manifest: SoakManifest = { version: 1, runKey: context.runKey, createdAt: nowIso(), items: context.items };
+  const manifest: SoakManifest = {
+    version: 1,
+    runKey: context.runKey,
+    createdAt: nowIso(),
+    items: context.items,
+    baseline: context.baseline ? { runKey: context.baseline.runKey } : null,
+  };
   writeJson(join(context.runDir, "manifest.json"), manifest);
   context.persisted = true;
 }
@@ -439,6 +501,7 @@ async function refreshAttempt(db: Db, attempt: SoakAttempt): Promise<void> {
       approvedAt: true,
       errorMessage: true,
       planningDegradations: true,
+      visualReference: true,
       frames: {
         orderBy: [{ ordinal: "asc" }, { attempt: "asc" }],
         select: { ordinal: true, attempt: true, isCurrent: true, status: true, submissionState: true, planId: true, errorCode: true },
@@ -486,6 +549,7 @@ async function refreshAttempt(db: Db, attempt: SoakAttempt): Promise<void> {
         entry && typeof entry === "object" && "stage" in entry && typeof entry.stage === "string" ? [entry.stage] : [],
       )
     : [];
+  storyboard.hasVisualReference = run.visualReference !== null;
   if (run.status !== "GENERATING") storyboard.readyAt ??= nowIso();
   if (run.approvedAt) storyboard.approvedAt = iso(run.approvedAt);
   const brief = run.videoBrief;
@@ -801,6 +865,19 @@ async function commandRun(flags: Flags): Promise<void> {
   loadEnv();
   const waveFlag = flag(flags, "wave");
   const wave = waveFlag === null ? null : parseWave(waveFlag);
+  if (context.baseline && !context.persisted) {
+    /// 重拍轮第一次定清单前，先按库里的事实刷新对照轮的记录（只读、只在内存里）：对照轮可能还在跑，
+    /// 它落盘的记录也可能是旧版脚本写的（没有「合并看图调用」那个标记），不刷新会把不该当对照的条目选进来
+    const { db } = await import("@/lib/db");
+    try {
+      for (const record of context.baseline.records) {
+        for (const attempt of [...record.history, record.current]) await refreshAttempt(db, attempt);
+      }
+    } finally {
+      await db.$disconnect();
+    }
+    context.items = selectCardRerunItems(context.baseline.records, context.visionSince, intFlag(flags, "pairs", 4), context.directionUntil);
+  }
   const records = loadRecords(context);
   /// --retry：失败 / 已取消的换新一次尝试；只在内存里换，真提交时才随记录落盘
   const retried = flags.retry === true ? records.filter((record) => retrySoakRecord(record)).length : 0;
@@ -829,6 +906,11 @@ async function commandRun(flags: Flags): Promise<void> {
   console.log(`[soak] ${context.runKey}：共 ${context.items.length} 条（${groupCounts}；Shuyu ${context.items.length - runwayCount} / Runway ${runwayCount}），${SOAK_DURATION_SEC} 秒 9:16 中文口播，每条 ${SOAK_FRAMES_PER_ITEM} 帧故事板 + 1 条视频`);
   console.log(`[soak] 出帧套餐 ${prices.imagePlan.planId}（${prices.frameUnitPoints ?? "?"} 点/张），视频套餐 ${prices.videoPlan.planId} ${prices.videoPlan.displayName}（${SOAK_DURATION_SEC} 秒 ${prices.videoUnitPoints} 点）`);
   console.log(`[soak] ${frameRoute.note}`);
+  if (context.baseline) {
+    console.log(
+      `[soak] 镜头卡对照的重拍轮：对照 ${context.baseline.runKey}，只投 A 组 ${context.items.length} 条（${context.items.map((item) => item.pairId).join("、")}）；看图写卡生效时刻 ${context.visionSince ?? "还没给（--vision-since）"}`,
+    );
+  }
   for (const name of SOAK_WAVES) {
     const subset = records.filter((record) => record.wave === name);
     const sub = estimateOf(subset);
@@ -853,6 +935,14 @@ async function commandRun(flags: Flags): Promise<void> {
   }
 
   if (wave === null) throw new Error("真提交要说清投哪一波：--wave morning|noon|evening|all");
+  if (context.baseline) {
+    /// 开关没生效就投，线上写的还是纯文字卡，这几条的钱白花。脚本查不到线上的环境变量，只能卡住时刻
+    const blocker = cardRerunBlocker(context.visionSince, new Date());
+    if (blocker) throw new Error(blocker);
+    console.log(
+      `[soak] 注意：脚本只核对了时刻（现在晚于 ${context.visionSince}），核对不了线上的 STORYBOARD_SHOT_CARDS_VISION 是否真的生效。投之前先确认线上日志里出现过 [shot-cards] vision design ok`,
+    );
+  }
   const gate = checkBudgetGate({
     estimate,
     maxPoints: parsePositiveLimit(flag(flags, "max-points")),
@@ -877,6 +967,7 @@ async function commandRun(flags: Flags): Promise<void> {
   try {
     const session = await openSession(flags, db);
     persistManifest(context);
+    persistSettings(context);
     const neededCases = [...new Set(scope.map((record) => record.caseId))].map((id) => context.cases.get(id)!);
     const lane: LaneContext = {
       context,
@@ -1049,28 +1140,38 @@ function firstPassFromCsv(runKey: string, records: readonly SoakRecord[], csvPat
 const blindKeyPath = (context: RunContext) => join(context.runDir, "blind-key.json");
 const votesDir = (context: RunContext) => join(context.runDir, "votes");
 
-/** 已经交回来的票（tally 子命令存进运行目录的），按盲评布局揭盲成 B 组的胜平负。 */
-function storedBlindTallies(context: RunContext): SoakBlindTally[] {
-  if (!existsSync(blindKeyPath(context)) || !existsSync(votesDir(context))) return [];
+/** 盲评布局与已经交回来的票（tally 子命令存进运行目录的）；还没生成过盲评页就是 null。 */
+function storedBlind(context: RunContext): { layout: BlindPair[]; ballots: SoakBallot[] } | null {
+  if (!existsSync(blindKeyPath(context))) return null;
   const { layout } = readJson<{ layout: BlindPair[] }>(blindKeyPath(context));
-  return readdirSync(votesDir(context))
-    .filter((name) => name.endsWith(".json"))
-    .sort()
-    .map((name) => {
-      const file = readJson<{ reviewer?: string; votes: BlindVotes }>(join(votesDir(context), name));
-      return soakBlindTally(layout, file.votes, file.reviewer ?? "");
-    });
+  const ballots = existsSync(votesDir(context))
+    ? readdirSync(votesDir(context))
+        .filter((name) => name.endsWith(".json"))
+        .sort()
+        .map((name) => {
+          const file = readJson<{ reviewer?: string; votes: BlindVotes }>(join(votesDir(context), name));
+          return { reviewer: file.reviewer ?? "", votes: file.votes };
+        })
+    : [];
+  return { layout, ballots };
+}
+
+interface BlindSource {
+  pairId: string;
+  caseId: string;
+  angleId: SoakItem["angleId"];
+  videos: Record<string, string>;
 }
 
 /**
- * 盲评页：两组都出了成片的对，左右随机、不显示组别（沿用评测集的布局与页面）。成片下载到 review/<对>-L.mp4 / -R.mp4，
- * 文件名与页面里都不出现组别；哪边是哪组只记在 blind-key.json 里（别给评审人看）。返回进了页面的对数。
+ * 盲评页：左右随机、不显示哪边是哪一边（沿用评测集的布局与页面）。成片下载到 review/<对>-L.mp4 / -R.mp4，
+ * 文件名与页面里都不出现组别；哪边是哪一边只记在 blind-key.json 里（别给评审人看）。返回进了页面的对数。
+ * 出方案对照里两边是 A / B；镜头卡对照的重拍轮里两边是 text（对照轮的 A）/ vision（这一轮的 A）。
  */
-async function writeBlindReview(context: RunContext, records: readonly SoakRecord[]): Promise<number> {
-  const pairs = soakBlindPairs(records);
+async function writeBlindReview(context: RunContext, pairs: readonly BlindSource[], arms: readonly [string, string]): Promise<number> {
   if (pairs.length === 0) return 0;
-  const layout = blindLayout(context.runKey, pairs.map((pair) => pair.pairId), ["A", "B"]);
-  writeJson(blindKeyPath(context), { runKey: context.runKey, layout });
+  const layout = blindLayout(context.runKey, pairs.map((pair) => pair.pairId), arms);
+  writeJson(blindKeyPath(context), { runKey: context.runKey, arms, layout });
   const reviewDir = join(context.runDir, "review");
   mkdirSync(reviewDir, { recursive: true });
   const sections = [];
@@ -1078,10 +1179,10 @@ async function writeBlindReview(context: RunContext, records: readonly SoakRecor
     const pair = pairs.find((entry) => entry.pairId === placed.caseId)!;
     const sides = [["L", placed.left], ["R", placed.right]] as const;
     let complete = true;
-    for (const [side, group] of sides) {
+    for (const [side, arm] of sides) {
       const file = join(reviewDir, `${pair.pairId}-${side}.mp4`);
       if (existsSync(file)) continue;
-      const response = await fetch(pair.videos[group as "A" | "B"], { signal: AbortSignal.timeout(120_000) }).catch(() => null);
+      const response = await fetch(pair.videos[arm], { signal: AbortSignal.timeout(120_000) }).catch(() => null);
       if (!response?.ok) {
         console.log(`[soak] ${pair.pairId} 成片下载失败（HTTP ${response?.status ?? "无答复"}），这一对先不进盲评页`);
         complete = false;
@@ -1121,17 +1222,34 @@ async function commandReport(flags: Flags): Promise<void> {
         for (const attempt of [...record.history, record.current]) await refreshAttempt(db, attempt);
         if (record.current.storyboard.requestedAt || record.history.length > 0) writeJson(recordPath(context, record.id), record);
       }
+      /// 对照轮的记录只在内存里刷新（不改它的运行目录）
+      for (const record of context.baseline?.records ?? []) {
+        for (const attempt of [...record.history, record.current]) await refreshAttempt(db, attempt);
+      }
     } finally {
       await db.$disconnect();
     }
   }
-  const blindPairs = flags["no-blind-page"] === true ? 0 : await writeBlindReview(context, records);
+  persistSettings(context);
+  const blindPairs =
+    flags["no-blind-page"] === true
+      ? 0
+      : context.baseline
+        ? await writeBlindReview(
+            context,
+            soakCardPairs(context.baseline.records, records, context.visionSince, context.directionUntil).ready,
+            ["text", "vision"],
+          )
+        : await writeBlindReview(context, soakBlindPairs(records), ["A", "B"]);
   const csv = flag(flags, "qa-csv");
   const now = new Date();
   const summary = summarizeSoak(records, {
     now,
     firstPass: csv ? firstPassFromCsv(context.runKey, records, resolve(csv)) : null,
-    blindTallies: storedBlindTallies(context),
+    blind: storedBlind(context),
+    visionSince: context.visionSince,
+    directionUntil: context.directionUntil,
+    baseline: context.baseline,
   });
   const text = renderSoakReport(context.runKey, summary, now);
   writeFileSync(join(context.runDir, "report.md"), `${text}\n`);
@@ -1158,12 +1276,14 @@ function commandTally(flags: Flags): void {
   if (!existsSync(blindKeyPath(context))) throw new Error("还没有盲评布局：先跑 report 生成盲评页");
   const { layout } = readJson<{ layout: BlindPair[] }>(blindKeyPath(context));
   const file = readJson<{ reviewer?: string; votes: BlindVotes }>(resolve(votesPath));
-  const tally = soakBlindTally(layout, file.votes, file.reviewer ?? "");
+  /// 出方案对照数 B 组的胜负；镜头卡对照的重拍轮数看图卡的胜负
+  const [arm, subject, title] = context.baseline ? (["vision", "看图卡", "镜头卡盲评（纯文字 对 看图）"] as const) : (["B", "B", "出方案盲评"] as const);
+  const tally = soakBlindTally(layout, file.votes, file.reviewer ?? "", arm);
   writeJson(join(votesDir(context), `${tally.reviewer.replace(/[^\p{L}\p{N}_-]/gu, "_")}.json`), { reviewer: tally.reviewer, votes: file.votes });
-  console.log(`# ${context.runKey} 出方案盲评（评审：${tally.reviewer}，评了 ${tally.pairsVoted} 对，共 ${layout.length} 对）\n`);
-  console.log("| 项 | B 胜 | 平 | B 负 |\n| --- | --- | --- | --- |");
+  console.log(`# ${context.runKey} ${title}（评审：${tally.reviewer}，评了 ${tally.pairsVoted} 对，共 ${layout.length} 对）\n`);
+  console.log(`| 项 | ${subject} 胜 | 平 | ${subject} 负 |\n| --- | --- | --- | --- |`);
   for (const row of tally.rows) console.log(`| ${row.label} | ${row.win} | ${row.tie} | ${row.loss} |`);
-  console.log(`\n[soak] 票已存进运行目录；再跑 report --run-key ${context.runKey} 会把它带进「出方案对照」`);
+  console.log(`\n[soak] 票已存进运行目录；再跑 report --run-key ${context.runKey} 会把它带进报告（出方案对照按 A 组镜头卡的写法分层给数）`);
 }
 
 async function main(): Promise<void> {

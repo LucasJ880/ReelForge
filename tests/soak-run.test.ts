@@ -10,6 +10,7 @@ import {
   assertManifestMatches,
   assignRunwayRoutes,
   blankSoakAttempt,
+  cardRerunBlocker,
   deriveSoakOutcome,
   estimateSoakSpend,
   expandSoakItems,
@@ -21,9 +22,13 @@ import {
   percentile,
   renderSoakReport,
   retrySoakRecord,
+  parseVisionSince,
+  selectCardRerunItems,
   selectSoakItems,
+  shotCardSource,
   soakBlindPairs,
   soakBlindTally,
+  soakCardPairs,
   soakDispatchBody,
   soakEndToEndMs,
   soakIdempotencyKey,
@@ -612,7 +617,8 @@ test("出方案对照：两组各自的成功率、P50 / P90、出方案阶段�
   assert.deepEqual(tally.rows.find((row) => row.id === "hook"), { id: "hook", label: "前 2 秒钩子", win: 0, tie: 0, loss: 1 });
   assert.equal(tally.rows.length, 7, "六项 + 整体");
 
-  const summary = summarizeSoak(records, { now: new Date(at(60)), blindTallies: [tally] });
+  const ballots = [{ reviewer: " 小王 ", votes: { "bottle-pain": { overall: "left", hook: "right" }, "earbuds-pain": { overall: "tie" } } } as const];
+  const summary = summarizeSoak(records, { now: new Date(at(60)), blind: { layout, ballots } });
   const [a, b] = summary.planComparison.groups;
   assert.deepEqual(
     [a.key, a.started, a.succeeded, a.failed, a.successRate, a.p50Ms, a.storyboardCreateP50Ms, a.dispatchRequestP50Ms, a.localPlanP50Ms, a.degradedStoryboards],
@@ -627,8 +633,19 @@ test("出方案对照：两组各自的成功率、P50 / P90、出方案阶段�
   assert.match(report, /## 出方案对照/u);
   assert.match(report, /\| B 组（不调 OpenAI 出方案） \| 4 \| 3 \| 1 \| 0 \| 75\.0% \| 15\.0 分 \| 15\.0 分 \| 2\.0 秒 \| 58\.0 秒 \| 0\.3 秒 \| 0 \|/u);
   assert.match(report, /共 4 对，两组都出了成片、可以盲评的 3 对/u);
-  assert.match(report, /\| 整体 \| 1 \| 1 \| 0 \|/u);
-  assert.match(report, /数字小结：A 组成功率 100\.0%、P50 12\.0 分 \/ P90 12\.0 分；B 组成功率 75\.0%、P50 15\.0 分 \/ P90 15\.0 分；盲评整体（小王）B 胜 1 \/ 平 1 \/ 负 0。/u);
+  /// 第一对的 A 组镜头卡超时退回了模板（上面记了 shot_cards 降级），单独成一层，不和纯文字写卡的三对混成一个数
+  assert.deepEqual(
+    summary.planComparison.strata.map((stratum) => [stratum.source, stratum.pairs, stratum.pairsReady, stratum.a.succeeded, stratum.b.succeeded]),
+    [["text", 3, 2, 3, 2], ["fallback", 1, 1, 1, 1]],
+  );
+  assert.match(report, /\| 纯文字写卡 \| 3 \| 3 \/ 3 \| 12\.0 分 \| 2 \/ 3 \| 15\.0 分 \| 2 \| 小王：B 胜 0 \/ 平 1 \/ 负 0 \|/u);
+  assert.match(report, /\| 卡没用上、退回模板节拍 \| 1 \| 1 \/ 1 \| 12\.0 分 \| 1 \/ 1 \| 15\.0 分 \| 1 \| 小王：B 胜 1 \/ 平 0 \/ 负 0 \|/u);
+  assert.match(report, /盲评 · A 组镜头卡：纯文字写卡 · 评审 小王（评了 1 对）/u);
+  assert.match(report, /没有给看图写卡开关的生效时刻（--vision-since）/u);
+  assert.match(
+    report,
+    /数字小结：A 组成功率 100\.0%、P50 12\.0 分 \/ P90 12\.0 分；B 组成功率 75\.0%、P50 15\.0 分 \/ P90 15\.0 分；纯文字写卡 3 对的盲评整体（小王：B 胜 0 \/ 平 1 \/ 负 0）；卡没用上、退回模板节拍 1 对的盲评整体（小王：B 胜 1 \/ 平 0 \/ 负 0）。/u,
+  );
   assert.match(renderSoakReport("soak-1110", summarizeSoak(records, { now: new Date(at(60)) }), new Date(at(60))), /盲评待评/u);
 });
 
@@ -653,4 +670,144 @@ test("盲评页：左右按运行键随机、页面与文件名里不出现组�
   assert.match(html, /卖 &lt;保温杯&gt;/u, "说明文字要转义");
   assert.doesNotMatch(html, /A 组|B 组|OpenAI|-a\.mp4|-b\.mp4/u, "页面里看不出哪段是哪一组");
   assert.match(html, /"votes-" \+ "soak-1110" \+ "\.json"/u);
+});
+
+test("镜头卡写法分层：按建故事板的时刻与开关生效时刻的先后判，降级与合并调用另算；开关前后的波次不混成一个数", async () => {
+  const items = (await loadItems()).slice(0, 8);
+  const since = parseVisionSince("2026-11-10T02:00:00Z");
+  assert.equal(since, "2026-11-10T02:00:00.000Z");
+  assert.equal(parseVisionSince("2026-11-10T10:00:00+08:00"), "2026-11-10T02:00:00.000Z");
+  assert.equal(parseVisionSince(null), null);
+  assert.throws(() => parseVisionSince("2026-11-10 02:00"), /带时区的 ISO 时刻/u, "不带时区的时刻含糊，不收");
+  assert.throws(() => parseVisionSince("soon"), /带时区的 ISO 时刻/u);
+
+  /// 4 对都成片。第 1 对：合并看图调用出了结果；第 2 对：开关生效前建的；第 3、4 对：生效后建的（01:00 起 +90 分 = 02:30）
+  const records = items.map((item) => recordAt(item, "ready", 12));
+  records[0].current.storyboard.hasVisualReference = true;
+  for (const record of records.slice(4)) record.current.storyboard.requestedAt = at(90);
+  for (const record of records.slice(4)) record.current.video.finishedAt = at(102);
+  const sourceOf = (index: number, visionSince: string | null) => shotCardSource(records[index].current, visionSince);
+  assert.deepEqual([sourceOf(0, since), sourceOf(2, since), sourceOf(4, since), sourceOf(6, since)], ["direction", "text", "vision", "vision"]);
+  assert.equal(sourceOf(4, null), "text", "没给生效时刻就不认作看图卡");
+  /// 合并看图调用没存下盘点的那种（11-10 的 bottle-pain-a）：库里认不出，靠它关掉的部署时刻认
+  const early = recordAt(items[2], "ready", 12);
+  assert.equal(shotCardSource(early.current, since), "text");
+  assert.equal(shotCardSource(early.current, since, at(10)), "direction", "在合并调用关掉之前建的");
+  assert.equal(shotCardSource(early.current, since, at(0)), "text", "正好在关掉那一刻及之后建的不算");
+  assert.throws(() => parseVisionSince("yesterday", "--direction-until"), /--direction-until 要给带时区的 ISO 时刻/u);
+  assert.equal(shotCardSource(recordAt(items[0], "pending").current, since), null);
+  const degraded = recordAt(items[4], "ready", 12);
+  Object.assign(degraded.current.storyboard, { requestedAt: at(90), degradedStages: ["shot_cards"], hasVisualReference: true });
+  assert.equal(shotCardSource(degraded.current, since), "fallback", "线上记了镜头卡降级 = 实际没有卡，优先于其它判断");
+
+  const layout = [
+    { caseId: "bottle-pain", left: "A", right: "B" },
+    { caseId: "earbuds-pain", left: "A", right: "B" },
+    { caseId: "serum-pain", left: "B", right: "A" },
+    { caseId: "tintTrio-pain", left: "A", right: "B" },
+  ];
+  /// 这位评审每一对都选了左边
+  const votes = Object.fromEntries(layout.map((pair) => [pair.caseId, { overall: "left" as const }]));
+  const summary = summarizeSoak(records, { now: new Date(at(120)), visionSince: since, blind: { layout, ballots: [{ reviewer: "小李", votes }] } });
+  assert.equal(summary.planComparison.visionSince, since);
+  assert.deepEqual(
+    summary.planComparison.strata.map((stratum) => [stratum.source, stratum.pairs, stratum.pairsReady, stratum.tallies.map((tally) => tally.rows.at(-1))]),
+    [
+      ["text", 1, 1, [{ id: "overall", label: "整体", win: 0, tie: 0, loss: 1 }]],
+      ["vision", 2, 2, [{ id: "overall", label: "整体", win: 1, tie: 0, loss: 1 }]],
+      ["direction", 1, 1, [{ id: "overall", label: "整体", win: 0, tie: 0, loss: 1 }]],
+    ],
+  );
+  const report = renderSoakReport("soak-1110", summary, new Date(at(120)));
+  assert.match(report, /\| 看图写卡（开关生效后建的） \| 2 \| 2 \/ 2 \| 12\.0 分 \| 2 \/ 2 \| 12\.0 分 \| 2 \| 小李：B 胜 1 \/ 平 0 \/ 负 1 \|/u);
+  assert.match(report, /看图写卡开关的生效时刻按 2026-11-10T02:00:00\.000Z 算（人给的）/u);
+  assert.match(report, /失败时线上会静默退回纯文字写卡、库里不留标记/u);
+  assert.match(
+    report,
+    /纯文字写卡 1 对的盲评整体（小李：B 胜 0 \/ 平 0 \/ 负 1）；看图写卡（开关生效后建的） 2 对的盲评整体（小李：B 胜 1 \/ 平 0 \/ 负 1）；合并看图调用开着时建的 1 对的盲评整体（小李：B 胜 0 \/ 平 0 \/ 负 1）。/u,
+  );
+
+  /// 没给生效时刻：生效后建的两对会和纯文字写卡混在一层，报告要说明
+  const unlabelled = summarizeSoak(records, { now: new Date(at(120)) });
+  assert.deepEqual(unlabelled.planComparison.strata.map((stratum) => [stratum.source, stratum.pairs]), [["text", 3], ["direction", 1]]);
+  assert.match(renderSoakReport("soak-1110", unlabelled, new Date(at(120))), /否则会和纯文字写卡混在一层/u);
+});
+
+test("镜头卡对照的重拍轮：只挑对照轮里纯文字卡、已成片的 A 组；两边都成片且这一轮确实建在开关生效之后才配对；揭盲数看图卡的胜平负", async () => {
+  const items = (await loadItems()).slice(0, 12);
+  const since = "2026-11-10T02:00:00.000Z";
+  /// 对照轮（早波）6 对：第 1 对走了合并看图调用，第 2 对的卡退回了模板，第 3 对的 A 没成片，第 4–6 对正常
+  const baseline = items.map((item) => recordAt(item, "ready", 12));
+  baseline[0].current.storyboard.hasVisualReference = true;
+  baseline[2].current.storyboard.degradedStages = ["shot_cards"];
+  baseline[4] = recordAt(items[4], "video_failed");
+
+  const picked = selectCardRerunItems(baseline, since, 4);
+  assert.deepEqual(picked.map((item) => item.id), ["tintTrio-pain-a", `${items[8].pairId}-a`, `${items[10].pairId}-a`], "不够 4 对就有几对取几对");
+  assert.ok(picked.every((item) => item.group === "A" && item.route === "buddy"));
+  assert.deepEqual(selectCardRerunItems(baseline, since, 1).map((item) => item.pairId), ["tintTrio-pain"]);
+  assert.throws(() => selectCardRerunItems(baseline.slice(0, 6), since, 0), /正整数/u);
+  assert.throws(() => selectCardRerunItems(baseline.slice(0, 6), since, 4), /没法配对/u);
+  /// 对照轮自己若是开关生效后建的，它的 A 组已经是看图卡，不能再当纯文字对照
+  const lateBaseline = baseline.map((record) => ({ ...record, current: { ...record.current, storyboard: { ...record.current.storyboard, requestedAt: at(90) } } }));
+  assert.throws(() => selectCardRerunItems(lateBaseline, since, 4), /没法配对/u);
+  /// 对照轮里建在合并调用开着那段时间的条目也不能当纯文字对照
+  assert.throws(() => selectCardRerunItems(baseline, since, 4, at(5)), /没法配对/u);
+
+  /// 这一轮：第 1 条在开关生效后建、成片；第 2 条建早了；第 3 条的卡退回了模板
+  const rerun = picked.map((item) => recordAt(item, "ready", 12));
+  for (const record of rerun) {
+    record.current.storyboard.requestedAt = at(90);
+    record.current.video.finishedAt = at(104);
+    record.current.video.finalVideoUrl = `https://example.com/rerun-${record.id}.mp4`;
+  }
+  rerun[1].current.storyboard.requestedAt = at(30);
+  rerun[2].current.storyboard.degradedStages = ["shot_cards"];
+  const pairs = soakCardPairs(baseline, rerun, since);
+  assert.deepEqual(pairs.ready, [
+    {
+      pairId: "tintTrio-pain",
+      caseId: "tintTrio",
+      angleId: "pain",
+      videos: { text: "https://example.com/tintTrio-pain-a.mp4", vision: "https://example.com/rerun-tintTrio-pain-a.mp4" },
+    },
+  ]);
+  assert.deepEqual(pairs.excluded, [
+    { pairId: items[8].pairId, reason: "这一轮建在看图写卡开关生效之前" },
+    { pairId: items[10].pairId, reason: "这一轮的卡没用上、退回了模板节拍" },
+  ]);
+  assert.deepEqual(
+    soakCardPairs(baseline, rerun, null).excluded.map((entry) => entry.reason).slice(0, 1),
+    ["没给看图写卡的生效时刻（--vision-since），不能认定这一轮是看图卡"],
+  );
+  const inFlight = [recordAt(picked[0], "rendering")];
+  inFlight[0].current.storyboard.requestedAt = at(90);
+  assert.deepEqual(soakCardPairs(baseline, inFlight, since).excluded, [{ pairId: "tintTrio-pain", reason: "这一轮还没出结果" }]);
+
+  /// 揭盲：左边是看图卡，评审整体选左、钩子选右
+  const layout = [{ caseId: "tintTrio-pain", left: "vision", right: "text" }];
+  const ballots = [{ reviewer: "小王", votes: { "tintTrio-pain": { overall: "left" as const, hook: "right" as const } } }];
+  assert.deepEqual(soakBlindTally(layout, ballots[0].votes, "小王", "vision").rows.at(-1), { id: "overall", label: "整体", win: 1, tie: 0, loss: 0 });
+  assert.deepEqual(soakBlindTally(layout, ballots[0].votes, "小王", "vision").rows[0], { id: "hook", label: "前 2 秒钩子", win: 0, tie: 0, loss: 1 });
+
+  const summary = summarizeSoak(rerun, { now: new Date(at(120)), visionSince: since, baseline: { runKey: "soak-1110", records: baseline }, blind: { layout, ballots } });
+  assert.deepEqual(
+    [summary.cardComparison?.baselineRunKey, summary.cardComparison?.pairs, summary.cardComparison?.pairsReady, summary.cardComparison?.excluded.length],
+    ["soak-1110", 3, 1, 2],
+  );
+  const report = renderSoakReport("soak-1110v", summary, new Date(at(120)));
+  assert.match(report, /## 镜头卡对照（纯文字 对 看图）/u);
+  assert.doesNotMatch(report, /## 出方案对照/u, "重拍轮没有 B 组，不出出方案对照");
+  assert.match(report, /这一轮投了 3 对，两边都成片、可以盲评的 1 对/u);
+  assert.match(report, /\| 整体 \| 1 \| 0 \| 0 \|/u);
+  assert.match(report, /数字小结：1 对可比；盲评整体（小王：看图卡 胜 1 \/ 平 0 \/ 负 0）。/u);
+  assert.equal(summarizeSoak(rerun, { now: new Date(at(120)) }).cardComparison, null, "不是重拍轮就没有这一节");
+});
+
+test("重拍轮开工前的拦截：没给看图写卡的生效时刻、或现在还早于它，都不许投", () => {
+  const since = "2026-11-10T02:00:00.000Z";
+  assert.match(cardRerunBlocker(null, new Date("2026-11-10T05:00:00Z")) ?? "", /必须给 --vision-since/u);
+  assert.match(cardRerunBlocker(since, new Date("2026-11-10T01:59:59Z")) ?? "", /现在还早于 --vision-since（2026-11-10T02:00:00\.000Z）/u);
+  assert.equal(cardRerunBlocker(since, new Date("2026-11-10T02:00:00Z")), null);
+  assert.equal(cardRerunBlocker(since, new Date("2026-11-10T04:30:00Z")), null);
 });

@@ -17,7 +17,13 @@
  *   - 没有商品图、批量故事板、镜头卡或英译的开关关着：不走这里，原路径原样。
  *   补跑的调用自己会记降级（shot_cards / story_english），所以这里不另记。
  *
- * 退路：STORYBOARD_DIRECTION=off 一键退回合并前的两次调用（没有经过真机出片对照，留个不用回滚代码的开关）。
+ * **缺省关（2026-11-10）。** 上线后第一次真实执行（压测冒烟 A 组）的线上日志：
+ *   `[storyboard-direction] partial result … { cards: true, english: false, reference: false }`
+ * ——只用上了镜头卡，英译与盘点两样没通过校验，随后补跑了一次英译；建故事板整体约 59 秒，比合并前慢。
+ * 同一个用例在本机重跑三样都能出，说明是不稳定而不是必然失败。一次样本既证明不了它更好，也已经证明它更慢，
+ * 所以先默认关掉，等用评测集量过「三样齐全率」和耗时再决定：STORYBOARD_DIRECTION=on 打开。
+ * 这次同时把返回格式改成 reference → english → shots 的顺序并写明三样必填（原先示例里 english 与 reference
+ * 是空值，模型可能照抄），并在日志里记下耗时与每一样没用上的原因，下次能直接从日志判断。
  */
 import { analyzeImages, isLLMAvailable, isLLMForcedMock } from "@/lib/ai";
 import {
@@ -45,9 +51,9 @@ const DIRECTION_MAX_IMAGES = 8;
 
 type EnvLike = Record<string, string | undefined>;
 
-/** 合并调用是否生效：缺省开；STORYBOARD_DIRECTION=off 退回两次调用。镜头卡或英译任一开关关着也不走合并。 */
+/** 合并调用是否生效：缺省关；STORYBOARD_DIRECTION=on 打开。镜头卡或英译任一开关关着也不走合并。 */
 export function storyboardDirectionEnabled(env: EnvLike = process.env): boolean {
-  if (env.STORYBOARD_DIRECTION?.trim().toLowerCase() === "off") return false;
+  if (env.STORYBOARD_DIRECTION?.trim().toLowerCase() !== "on") return false;
   return storyboardShotCardsEnabled(env) && storyEnglishEnabled(env);
 }
 
@@ -60,15 +66,17 @@ export const STORYBOARD_DIRECTION_SYSTEM_PROMPT = `${SHOT_CARD_RULES}
 
 This time you can SEE the merchant's real photos. Use them: in every card the product's shape, scale, colors, materials and printed marks, and the place if the photos show one, must agree with what the photos actually show. Never describe a product detail the photos do not show.
 
-In the same JSON also return two more keys.
+Your JSON has THREE required keys. Write them in this order and fill every one of them — never leave "english" empty and never leave "reference" empty:
 
-"english": the merchant's description translated into English for a video-generation prompt. Keep every fact exactly as given: the product and its details, who appears, where it happens, every action and its order, the mood and the payoff. Do not add, drop, explain or embellish anything. Keep brand names and any text printed on the product exactly as written. Plain present-tense English sentences, no markdown, no lists. If the description is already in English, return it unchanged.
-
-"reference": a precise visual inventory of the photos so a video generator can faithfully reproduce what is in them:
+1. "reference": a precise visual inventory of the photos so a video generator can faithfully reproduce what is in them. It is an object with exactly these fields:
 ${VISUAL_REFERENCE_JSON_SPEC}
 Describe only what is actually visible. Ignore social-media watermarks or usernames overlaid on the photos. signageText must be verbatim. viewsCovered has exactly one entry per photo, in photo order.
 
-Return JSON only: {"shots":[{"startState":"","action":"","endState":"","location":"","voice":"","lens":"","camera":"","composition":"","light":"","sound":""}],"english":"","reference":{}}`;
+2. "english": the merchant's description translated into English for a video-generation prompt. Keep every fact exactly as given: the product and its details, who appears, where it happens, every action and its order, the mood and the payoff. Do not add, drop, explain or embellish anything. Keep brand names and any text printed on the product exactly as written. Plain present-tense English sentences, no markdown, no lists. If the description is already in English, return it unchanged.
+
+3. "shots": the shot cards described above, one per beat.
+
+Return JSON only, shaped like: {"reference":{"isRealLocation":false,"locationDescription":null,"signageText":null,"signageKind":null,"keyFeatures":["..."],"productDescription":"...","viewsCovered":["..."]},"english":"...","shots":[{"startState":"...","action":"...","endState":"...","location":"...","voice":"...","lens":"...","camera":"...","composition":"...","light":"...","sound":"..."}]}`;
 
 export interface StoryboardDirectionInput extends DesignShotCardsInput {
   /// 商家实拍（不含主播照）；按上传顺序，最多看前 8 张
@@ -112,6 +120,28 @@ export function parseStoryboardDirection(
   };
 }
 
+/** 没用上的那几样各是什么情况（只描述形状，不带内容）：缺键 / 空值 / 类型不对 / 有内容但没过校验。 */
+export function describeDirectionGaps(data: unknown, direction: StoryboardDirection): Record<string, string> {
+  const record = data && typeof data === "object" && !Array.isArray(data) ? (data as Record<string, unknown>) : null;
+  if (!record) return { response: "not a JSON object" };
+  const shape = (value: unknown, key: string): string => {
+    if (!(key in record)) return "key missing";
+    if (value === null) return "null";
+    if (typeof value === "string") return value.trim() ? `string(${value.length}) rejected by validation` : "empty string";
+    if (Array.isArray(value)) return `array(${value.length}) rejected by validation`;
+    if (typeof value === "object") {
+      const keys = Object.keys(value as object);
+      return keys.length === 0 ? "empty object" : `object(${keys.length} keys) rejected by validation`;
+    }
+    return typeof value;
+  };
+  const gaps: Record<string, string> = {};
+  if (!direction.cards) gaps.shots = shape(record.shots, "shots");
+  if (!direction.storyEnglish) gaps.english = shape(record.english, "english");
+  if (!direction.visualReference) gaps.reference = shape(record.reference, "reference");
+  return gaps;
+}
+
 /**
  * 一次看图调用同时出镜头卡、原话英译与视觉盘点。
  * 返回 null = 根本没走合并（开关关着 / 没有商品图 / 没有节拍或描述 / LLM 不可用）或整次调用失败——调用方三样全走原路径。
@@ -129,6 +159,7 @@ export async function designStoryboardDirection(
   const analyze = deps.analyze ?? analyzeImages;
   const timeoutMs = deps.timeoutMs ?? DIRECTION_TIMEOUT_MS;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  const startedAt = Date.now();
   try {
     const user = [
       buildShotCardUserPrompt({ ...input, productImageCount: images.length }),
@@ -141,7 +172,7 @@ export async function designStoryboardDirection(
       }),
     ]);
     if (!result) {
-      console.warn("[storyboard-direction] timed out; falling back to the separate shot-card and translation calls");
+      console.warn(`[storyboard-direction] timed out after ${timeoutMs}ms; falling back to the separate shot-card and translation calls`);
       return null;
     }
     const direction = parseStoryboardDirection(result.data, {
@@ -149,12 +180,18 @@ export async function designStoryboardDirection(
       beatCount: input.beats.length,
       photoCount: images.length,
     });
+    const elapsedMs = Date.now() - startedAt;
     if (!direction.cards || !direction.storyEnglish || !direction.visualReference) {
+      /// 每一样没用上的原因写进日志（只写形状，不写内容）：下次从日志就能判断是模型没写、写了空的还是没译
       console.warn("[storyboard-direction] partial result; missing parts fall back individually", {
+        elapsedMs,
         cards: Boolean(direction.cards),
         english: Boolean(direction.storyEnglish),
         reference: Boolean(direction.visualReference),
+        why: describeDirectionGaps(result.data, direction),
       });
+    } else {
+      console.log(`[storyboard-direction] ok in ${elapsedMs}ms (cards, english, reference)`);
     }
     return direction;
   } catch (error) {

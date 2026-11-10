@@ -505,6 +505,22 @@ async function countFailed(userId: string, range: Range): Promise<number> {
   return batch + orders;
 }
 
+/**
+ * 已登记发布（成品库第三格）：本人单条成片里，登记过发布且没撤销的条数（一条成片登记多个平台也只算一条）。
+ * 状态集合与 publish-service 的 ACTIVE_PUBLISH_STATUSES 相同；这里不引那个模块（读数层不依赖发布服务）。
+ */
+export async function countPublishRegistered(userId: string): Promise<number> {
+  const rows = await db.publishRecord.findMany({
+    where: {
+      status: { in: ["PENDING", "DOWNLOADED", "UPLOADED", "PUBLISHED"] },
+      videoBrief: ownedBriefWhere(userId),
+    },
+    distinct: ["videoBriefId"],
+    select: { videoBriefId: true },
+  });
+  return rows.length;
+}
+
 /** 成品（成品库 03 格）：全部已成片视频 + 已出图的单图 / 轮播 + 纯文案帖；短视频帖是「待生产」不算。 */
 export async function countFinished(userId: string): Promise<number> {
   const [videos, posts] = await Promise.all([

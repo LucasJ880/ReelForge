@@ -51,3 +51,23 @@ test("代码索引不收各会话的 worktree 副本", async () => {
   assert.ok(!summary.includes(".claude/worktrees/"), "索引里不该有 worktree 路径（重建：npm run codemap:build）");
   assert.ok(summary.length < 5_000_000, `索引不该再涨到几十 MB，现在 ${summary.length} 字节`);
 });
+
+test("批量向导：说明不出现内部术语，不凭空写模型名，预计耗时与单条等待页同口径", async () => {
+  const wizard = await readFile("src/components/batch/batch-create-wizard.tsx", "utf8");
+  for (const word of ["质量锁定模板", "个配方", "风格配方", "设定生产规模", "seed 将被持久化", "供应商实时可用性", "提交供应商后"]) {
+    assert.ok(!wizard.includes(word), `批量向导里不该出现「${word}」`);
+  }
+  assert.doesNotMatch(wizard, /Aivora 视频通道 · Seedance 2\.0/);
+  assert.match(wizard, /一条一般 10–15 分钟；提交后在批次页看每一条的进度/);
+});
+
+test("成品库第三格是真实读数（已登记发布），不再恒为「—」，说明里没有已停用的品牌封装", async () => {
+  const page = await readFile("src/app/(platform)/app/library/page.tsx", "utf8");
+  assert.match(page, /readingName\("publishRegistered", locale\)/);
+  assert.match(page, /value: publishRegistered,/);
+  assert.doesNotMatch(page, /copy\.workflowDeliverHint, value: "—"/);
+  const readings = await readFile("src/lib/services/exchange-readings.ts", "utf8");
+  assert.match(readings, /export async function countPublishRegistered\(userId: string\)/);
+  assert.match(readings, /distinct: \["videoBriefId"\]/);
+  assert.doesNotMatch(getPlatformCopy("zh-CN").library.workflowDeliverHint, /品牌封装/);
+});

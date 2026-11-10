@@ -7,6 +7,7 @@ import { authOptions } from "@/lib/auth";
 import { loadUnifiedLibrary, type UnifiedLibraryRow } from "@/lib/services/unified-library-service";
 import {
   countFinished,
+  countPublishRegistered,
   loadNeedsAttention,
   loadProductionCounts,
   type NeedsAttentionItem,
@@ -86,7 +87,7 @@ export default async function PlatformLibraryPage({
   const [routeState, locale] = await Promise.all([getCustomerRouteRehearsalState("library"), getServerLocale()]);
   const empty = routeState === "empty";
   /// 行标题里的模板名按界面语言取（英文界面不挂中文模板名）
-  const [library, attention, production, finished, brandPackages, pendingStoryboard] = await Promise.all([
+  const [library, attention, production, finished, brandPackages, pendingStoryboard, publishRegistered] = await Promise.all([
     empty ? Promise.resolve({ rows: [] as UnifiedLibraryRow[], truncated: false, perSourceLimit: 0 }) : loadUnifiedLibrary(userId, { locale }),
     empty ? Promise.resolve({ items: [] as NeedsAttentionItem[], total: 0 }) : loadNeedsAttention(userId, { locale }),
     empty ? Promise.resolve(EMPTY_PRODUCTION) : loadProductionCounts(userId),
@@ -94,6 +95,8 @@ export default async function PlatformLibraryPage({
     listWorkspaceBrandPackagesForUser(userId),
     /// 还没走完的一轮故事板（出帧中 / 等确认 / 已确认没派发 / 有帧失败）：只读一行
     empty ? Promise.resolve(null) : peekPendingStoryboardForUser(userId),
+    /// 第三格读数：读不到不挡成品库（按 0 显示）
+    empty ? Promise.resolve(0) : countPublishRegistered(userId).catch(() => 0),
   ]);
   const preferredBrandPackage = brandPackages.find((brandPackage) => brandPackage.isDefault)
     ?? brandPackages[0]
@@ -138,7 +141,8 @@ export default async function PlatformLibraryPage({
   const workflow: QuoteStat[] = [
     { label: `01 · ${readingName("generating", locale)}`, caption: readingFormula("generating", locale), value: production.generating, tone: production.generating > 0 ? "live" : "neutral", href: "/app/batches" },
     { label: `02 · ${readingName("finished", locale)}`, caption: readingFormula("finished", locale), value: finished, tone: finished > 0 ? "filled" : "neutral" },
-    { label: `03 · ${copy.workflowDeliver}`, caption: copy.workflowDeliverHint, value: "—" },
+    /// 第三格：之前恒为「—」、说明写着已停用的品牌封装。现在是真实读数：登记过发布的成片条数
+    { label: `03 · ${readingName("publishRegistered", locale)}`, caption: readingFormula("publishRegistered", locale), value: publishRegistered, tone: publishRegistered > 0 ? "filled" : "neutral" },
   ];
 
   return (

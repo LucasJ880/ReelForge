@@ -285,9 +285,10 @@ export function BatchCreateWizard({
   }, [count, selectedTemplate]);
   const perImage =
     uploaded.length > 0 ? (totalSlots / uploaded.length).toFixed(1) : "0";
+  /// 预计耗时与单条等待页同一口径（platform-copy library.waitingGenerating：一般 10–15 分钟一条）
   const estimateText = english
-    ? "Live ETA appears after provider submission"
-    : "提交供应商后显示实时预计完成时间";
+    ? "Usually 10–15 minutes per video; follow each one on the batch page after you submit"
+    : "一条一般 10–15 分钟；提交后在批次页看每一条的进度";
   const totalVideoCount = queueTotalCount(queuedGroups, count);
   /// 报价来自 VideoRouteSelector 实时回传的所选套餐;拿不到时不编数字。
   const estimatedPartnerPoints =
@@ -763,12 +764,12 @@ export function BatchCreateWizard({
                 <CardTitle>{english ? "Choose one consistent style" : "选择统一风格"}</CardTitle>
                 <CardDescription>
                   {english
-                    ? "Search every quality-locked recipe in this step without scrolling through oversized cards."
-                    : "在当前步骤内搜索全部质量锁定模板，不必滚动浏览大尺寸卡片。"}
+                    ? "Search by name or use case and pick one way to shoot; the whole batch follows it."
+                    : "按名字或使用场景搜索，选一种拍法，这一批都按它拍。"}
                 </CardDescription>
               </div>
               <Badge variant="secondary" className="shrink-0 font-mono">
-                {templates.length} {english ? "recipes" : "个配方"}
+                {templates.length} {english ? "styles" : "种拍法"}
               </Badge>
             </CardHeader>
             <CardContent className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -852,7 +853,7 @@ export function BatchCreateWizard({
                   })}
                   {visibleTemplates.length === 0 && (
                     <div className="rounded-(--radius-md) border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
-                      {english ? "No recipes match this search." : "没有匹配当前搜索的风格配方。"}
+                      {english ? "Nothing matches. Try another word." : "没有匹配的拍法，换个词试试。"}
                     </div>
                   )}
                 </div>
@@ -893,8 +894,8 @@ export function BatchCreateWizard({
                       ?? (selectedTemplate.sampleImage || selectedTemplate.sampleVideo
                       ? (english ? "Dedicated Aivora sample available." : "已有独立 Aivora 样片。")
                       : (english
-                        ? "No dedicated sample yet. The recipe is available, but Aivora will not reuse another template's image as a preview."
-                        : "暂无独立样片；配方仍可使用，但不会拿其他模板画面冒充预览。"))}
+                        ? "No sample for this style yet. You can still use it."
+                        : "这种拍法还没有样片，仍然可以用。"))}
                   </p>
                   {!hasEnoughImages ? (
                     <div
@@ -903,8 +904,8 @@ export function BatchCreateWizard({
                     >
                       <p>
                         {english
-                          ? `This recipe needs at least ${minimumImages} product images. You have ${uploaded.length}; add ${missingImages} more.`
-                          : `这个配方每条至少需要 ${minimumImages} 张产品图。当前已有 ${uploaded.length} 张，还需 ${missingImages} 张。`}
+                          ? `This style needs at least ${minimumImages} product images per video. You have ${uploaded.length}; add ${missingImages} more.`
+                          : `这种拍法每条至少需要 ${minimumImages} 张产品图。当前已有 ${uploaded.length} 张，还需 ${missingImages} 张。`}
                       </p>
                       <Button
                         type="button"
@@ -934,7 +935,7 @@ export function BatchCreateWizard({
         {step === 2 && (
           <>
             <CardHeader>
-              <CardTitle>{english ? "Set production scale" : "设定生产规模"}</CardTitle>
+              <CardTitle>{english ? "How many videos" : "做多少条"}</CardTitle>
               <CardDescription>
                 {english ? "Optionally name the product, then confirm how many videos to generate." : "可选填产品名称，并确认本批次需要生成的视频数量。"}
               </CardDescription>
@@ -1013,7 +1014,7 @@ export function BatchCreateWizard({
                 />
                 <p className="text-meta text-muted-foreground">
                   {selectedRouteAvailable === null
-                    ? (english ? "Checking live provider availability…" : "正在检查供应商实时可用性…")
+                    ? (english ? "Checking whether this route is available right now…" : "正在检查这条线路现在能不能用…")
                     : selectedRouteAvailable
                       ? !showProviderPoints
                         ? (english
@@ -1060,7 +1061,7 @@ export function BatchCreateWizard({
             <CardHeader>
               <CardTitle>{english ? "Review batch" : "确认批次"}</CardTitle>
               <CardDescription>
-                {english ? "Check assets, template, and scale before submitting." : "提交前复核素材、模板与生产规模。"}
+                {english ? "One last look before you submit: photos, style and count." : "提交前再看一眼：图片、拍法、数量。"}
               </CardDescription>
             </CardHeader>
             <CardContent className="mx-auto w-full max-w-2xl space-y-5">
@@ -1079,7 +1080,7 @@ export function BatchCreateWizard({
                           : `${queuedGroups.length + 1} 组共 ${totalVideoCount} 条`)
                       : (english ? `${count} videos` : `${count} 条`),
                   ],
-                  [english ? "Average coverage" : "平均覆盖", english ? `Each image about ${perImage} times` : `每张图片约 ${perImage} 次`],
+                  [english ? "Photo usage" : "图片使用", english ? `Each photo is used about ${perImage} times` : `每张图大约用 ${perImage} 次`],
                   [
                     english ? "Video route" : "视频线路",
                     videoRouteId === "buddy"
@@ -1087,7 +1088,7 @@ export function BatchCreateWizard({
                         ? showProviderPoints
                           ? `Aivora · ${planSummary.displayName} · ${planSummary.resolution}`
                           : `${english ? "Aivora video route" : "Aivora 视频通道"} · ${planSummary.resolution}`
-                        : (english ? "Aivora video route · Seedance 2.0" : "Aivora 视频通道 · Seedance 2.0")
+                        : (english ? "Aivora video route" : "Aivora 视频通道")
                       : (english ? "Official direct route" : "官方直连线路"),
                   ],
                   /// 客户看额度（成片条数），内部角色才看供应商积分
@@ -1122,8 +1123,8 @@ export function BatchCreateWizard({
               </Button>
               <p className="rounded-(--radius-md) bg-muted p-4 text-meta leading-6 text-muted-foreground">
                 {english
-                  ? "Asset assignment, template version, and seed are persisted after submission. One failed video never blocks the rest; retry it individually or in bulk from the monitor."
-                  : "提交后素材分配、模板版本和 seed 将被持久化。单条失败不会阻塞其他视频，可在监控页单独或批量重试。"}
+                  ? "After you submit, which photos and which style each video uses are recorded. One failed video never holds up the rest; retry it on its own or all together from the batch page."
+                  : "提交后，每条视频用哪几张图、按哪种拍法都会记下来。某一条失败不影响其他条，可以在批次页单独重试，也可以一起重试。"}
               </p>
             </CardContent>
           </>

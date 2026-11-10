@@ -74,6 +74,7 @@ import {
 } from "@/lib/create/entry-policy";
 import { HOOK_ANGLES, applyHookAngle, detectHookAngle, stripHookAngle } from "@/lib/create/hook-angles";
 import { applyProductSize, detectProductSize, PRODUCT_SIZE_MAX, stripProductSize } from "@/lib/create/product-size";
+import { BGM_CATALOG } from "@/lib/video-generation/bgm-catalog";
 import { SIGNOFF_BRAND_MAX, SIGNOFF_CTA_MAX } from "@/lib/video-generation/brand-signoff";
 import { loadVoiceoverDraft, saveVoiceoverDraft } from "@/lib/video-generation/voiceover-draft-storage";
 import { awaitVoiceoverDraft } from "@/lib/video-generation/voiceover-draft-wait";
@@ -165,6 +166,7 @@ const ZH_COPY = {
   signoffLogo: "在品牌名上方带上 Logo",
   signoffLogoHint: "用你默认品牌包里的 Logo，垫白底，和文字一起淡入。",
   summarySignoff: "落款",
+  summaryBgm: "配乐",
   audioHint: "口播由成片直接说出，口播稿可随时修改；字幕在成片完成后按实际时长生成。",
   summaryVoiceover: "口播",
   summaryCaptions: "字幕",
@@ -307,6 +309,7 @@ const EN_COPY: StudioCopy = {
   signoffLogo: "Show the logo above the brand name",
   signoffLogoHint: "Uses the logo from your default brand package on a white plate; it fades in with the text.",
   summarySignoff: "Sign-off",
+  summaryBgm: "Music",
   audioHint: "The video speaks your editable script; captions are timed to the finished video.",
   summaryVoiceover: "Voiceover",
   summaryCaptions: "Captions",
@@ -1750,7 +1753,9 @@ export function StreamlinedVideoStudio({
   ];
   /// 写作 / 看图能力暂停时，在卡下明说镜头怎么规划、质检是否照常（C4 · 诚实说明）
   const capabilityDegraded = shotsFromTemplate || frameQaPaused;
-  const moreSummary = `${copy.summaryVoiceover} ${voiceoverEnabled ? copy.on : copy.off} · ${copy.summaryCaptions} ${captionsEnabled ? copy.on : copy.off}${signoffEnabled ? ` · ${copy.summarySignoff} ${copy.on}` : ""}`;
+  /// 选了配乐就在「更多设置」的摘要里写出是哪一首：收起来也看得见这条片会带音乐
+  const bgmTrack = bgmTrackId === "none" ? null : BGM_CATALOG.find((track) => track.id === bgmTrackId) ?? null;
+  const moreSummary = `${copy.summaryVoiceover} ${voiceoverEnabled ? copy.on : copy.off} · ${copy.summaryCaptions} ${captionsEnabled ? copy.on : copy.off}${bgmTrack ? ` · ${copy.summaryBgm} ${bgmTrack[english ? "en" : "zh"]}` : ""}${signoffEnabled ? ` · ${copy.summarySignoff} ${copy.on}` : ""}`;
 
   /// 错误与额度提醒：没有故事板时贴在提示卡下面，有故事板时进底部操作条——同一份元素只渲染一处
   const statusNotices = (

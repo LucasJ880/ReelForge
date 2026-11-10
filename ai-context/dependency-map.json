@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T04:48:45.561Z",
+  "generatedAt": "2026-11-10T05:05:04.205Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -21697,6 +21697,25 @@
         "node:test",
         "@prisma/client",
         "next-auth"
+      ]
+    },
+    {
+      "file": "tests/restitch-feedback-and-session-expiry.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:test",
+        "@/lib/exchange/pulse",
+        "@/lib/services/unified-library-service"
+      ],
+      "localImports": [
+        "@/lib/exchange/pulse",
+        "@/lib/services/unified-library-service"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:test"
       ]
     },
     {

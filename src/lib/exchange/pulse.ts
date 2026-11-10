@@ -54,6 +54,15 @@ export const PULSE_INTERVAL_MS = 30_000;
 export const PULSE_REFRESH_EVENT = "aivora:pulse-refresh";
 
 /**
+ * 登录失效后去哪：带上当前页面，登录完回到原处；reason=expired 让登录页说明原因。
+ * 纯函数（壳层的 usePulse 在脉搏接口回 401 时用它整页跳转）。
+ */
+export function sessionExpiredLoginUrl(pathname: string, search = ""): string {
+  const from = pathname.startsWith("/") && !pathname.startsWith("//") ? `${pathname}${search}` : "/app";
+  return `/login?from=${encodeURIComponent(from)}&reason=expired`;
+}
+
+/**
  * 让壳层马上重读脉搏：批次提交 / 取消、单条派发成功后调一下。
  * 壳层不在（比如大屏）时这是空操作。
  */

@@ -78,6 +78,9 @@ export const unifiedLibraryRowSchema = z.object({
   segments: z.array(unifiedLibrarySegmentSchema).default([]),
   /// P05-C 有一段正在重做（生成中或等换上成片）：这时不能再重做别的段，也不能只重拼。
   redoInFlight: z.boolean().default(false),
+  /// 只重拼在途（2026-11-10）：按新的字幕 / 配乐 / 片尾落款重新合成中。这时详情页仍放着旧成片，
+  /// 必须说清「正在重新合成」并自动刷新——之前页面一动不动，商家以为没生效。
+  restitchInFlight: z.boolean().default(false),
   /// 还在生成、且在飞段已经等了很久（≥ RUNNING_LONG_THRESHOLD_MS）时的已等待分钟数；否则 null。
   /// 详情页据此如实告诉商家「比平时久，可以取消重提」，不再只转进度条（2026-11-09）。
   waitingMinutes: z.number().int().min(0).nullable().default(null),

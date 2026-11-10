@@ -120,7 +120,20 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
         <div className="x-panel flex min-w-0 justify-center p-4 sm:p-6">
           {item.videoUrl ? (
             <div className="relative w-fit max-w-full">
+              {/* 只重拼在途：旧成片照常可看，但要说清新的一版正在合成，并自己刷新——
+                  之前这段时间页面一动不动、合成完也不换片，商家以为没生效（2026-11-10 线上反馈）。
+                  video 带 key：成片地址一换就重新加载，不沿用浏览器里那条旧的。 */}
+              {item.restitchInFlight ? (
+                <div className="mb-3 max-w-xs" data-testid="reassembling-notice">
+                  <ProcessingRefresher intervalMs={6_000} />
+                  <p role="status" className="flex items-start gap-2 text-pretty text-meta text-accent">
+                    <span className="x-live mt-1.5 shrink-0" aria-hidden />
+                    {copy.restitchInFlight}
+                  </p>
+                </div>
+              ) : null}
               <video
+                key={item.videoUrl}
                 controls
                 preload="metadata"
                 poster={item.thumbnailUrl ?? undefined}

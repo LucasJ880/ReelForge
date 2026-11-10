@@ -169,7 +169,7 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
               <p className="text-pretty text-body text-muted-foreground">
                 {item.status === "assembling" ? copy.waitingAssembling : copy.waitingGenerating}
               </p>
-              {/* 连着提交了几条：线路按顺序处理，后面的会明显慢——说清楚是在排队，不是卡住了 */}
+              {/* 同时在做几条：各做各的，偶尔有一条慢很多（见 concurrent-wait.ts）——多说一句，免得以为卡住了 */}
               {concurrent !== null ? (
                 <p data-testid="library-waiting-concurrent" className="text-pretty text-meta text-muted-foreground">
                   {copy.waitingConcurrent.replace("{n}", String(concurrent))}

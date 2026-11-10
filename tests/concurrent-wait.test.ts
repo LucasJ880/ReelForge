@@ -5,8 +5,8 @@ import { concurrentWaitCount } from "../src/lib/library/concurrent-wait";
 import { getPlatformCopy } from "../src/i18n/platform-copy";
 
 /**
- * 2026-11-10：生产数据里单独一条中位 11 分钟出片，连着提交 3–4 条时后面的要 30–67 分钟。
- * 等待页要说清楚「在排队」，不让人以为卡住了。
+ * 2026-11-10：出片中位约 12 分钟，20 条里有 4 条用了 30–67 分钟，慢的和提交先后无关（各做各的）。
+ * 同时做几条时等待页多说一句，不让人以为卡住了——但不能把它说成「排队一条一条出」，那不是事实。
  */
 test("只有这一条在生成：不多说；两条以上：说清楚有几条", () => {
   assert.equal(concurrentWaitCount({ status: "generating", generating: 1 }), null);
@@ -31,5 +31,9 @@ test("详情页：数字用壳层同一个「生成中」读数，只在这条�
   for (const locale of ["zh-CN", "en-US"] as const) {
     assert.match(getPlatformCopy(locale).library.waitingConcurrent, /\{n\}/);
   }
-  assert.match(getPlatformCopy("zh-CN").library.waitingConcurrent, /排队/);
+  /// 不再声称「排队一条一条出」：对着真实任务和合作方的起止时间核过，几条是各做各的
+  assert.doesNotMatch(getPlatformCopy("zh-CN").library.waitingConcurrent, /排队|一条一条/);
+  assert.doesNotMatch(getPlatformCopy("en-US").library.waitingConcurrent, /one after another|queue/i);
+  assert.match(getPlatformCopy("zh-CN").library.waitingConcurrent, /各做各的/);
+  assert.match(getPlatformCopy("zh-CN").library.waitingConcurrent, /不影响其它几条/);
 });

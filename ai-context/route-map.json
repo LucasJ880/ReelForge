@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-28T17:01:49.750Z",
+  "generatedAt": "2026-11-10T04:19:43.568Z",
   "routes": [
     {
       "routePath": "/",
@@ -201,6 +201,15 @@
     {
       "routePath": "/api/briefs/[id]/ad-plan",
       "filePath": "src/app/api/briefs/[id]/ad-plan/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": true
+    },
+    {
+      "routePath": "/api/briefs/[id]/feedback",
+      "filePath": "src/app/api/briefs/[id]/feedback/route.ts",
       "kind": "api",
       "httpMethods": [
         "POST"
@@ -562,6 +571,33 @@
       "isDynamic": true
     },
     {
+      "routePath": "/api/library/[id]/douyin-kit",
+      "filePath": "src/app/api/library/[id]/douyin-kit/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": true
+    },
+    {
+      "routePath": "/api/machine/video-tasks",
+      "filePath": "src/app/api/machine/video-tasks/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/machine/video-tasks/[id]",
+      "filePath": "src/app/api/machine/video-tasks/[id]/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET"
+      ],
+      "isDynamic": true
+    },
+    {
       "routePath": "/api/onboarding",
       "filePath": "src/app/api/onboarding/route.ts",
       "kind": "api",
@@ -763,6 +799,24 @@
       "isDynamic": false
     },
     {
+      "routePath": "/api/upload/blob/complete",
+      "filePath": "src/app/api/upload/blob/complete/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/upload/blob/ticket",
+      "filePath": "src/app/api/upload/blob/ticket/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": false
+    },
+    {
       "routePath": "/api/video-generation/classify-asset",
       "filePath": "src/app/api/video-generation/classify-asset/route.ts",
       "kind": "api",
@@ -790,8 +844,26 @@
       "isDynamic": false
     },
     {
+      "routePath": "/api/video-generation/prompt-draft",
+      "filePath": "src/app/api/video-generation/prompt-draft/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": false
+    },
+    {
       "routePath": "/api/video-generation/routes",
       "filePath": "src/app/api/video-generation/routes/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/video-generation/routes/catalog",
+      "filePath": "src/app/api/video-generation/routes/catalog/route.ts",
       "kind": "api",
       "httpMethods": [
         "GET"
@@ -1091,6 +1163,13 @@
     {
       "routePath": "/app/library/[id]",
       "filePath": "src/app/(platform)/app/library/[id]/page.tsx",
+      "kind": "page",
+      "group": "platform",
+      "isDynamic": true
+    },
+    {
+      "routePath": "/app/library/[id]/douyin",
+      "filePath": "src/app/(platform)/app/library/[id]/douyin/page.tsx",
       "kind": "page",
       "group": "platform",
       "isDynamic": true

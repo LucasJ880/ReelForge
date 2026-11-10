@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-28T17:01:49.529Z",
+  "generatedAt": "2026-11-10T04:19:43.562Z",
   "package": {
     "name": "aivora",
     "version": "0.2.0"
@@ -41,63 +41,62 @@
     "Apify TikTok scraper (^2.23.0)"
   ],
   "fileTotals": {
-    "total": 54465,
+    "total": 2164,
     "byType": {
-      "unknown": 36984,
-      "doc": 6532,
-      "style": 180,
-      "prisma": 35,
-      "server-action": 34,
-      "test": 9982,
-      "workflow": 3,
+      "unknown": 516,
+      "doc": 442,
+      "style": 11,
+      "workflow": 4,
       "config": 9,
-      "schema": 58,
-      "script": 98,
-      "page": 65,
+      "schema": 63,
+      "prisma": 1,
+      "script": 109,
+      "page": 66,
       "layout": 5,
-      "api": 85,
-      "component": 113,
-      "i18n": 16,
-      "util": 160,
-      "provider": 20,
-      "service": 84,
-      "type": 2
+      "api": 93,
+      "component": 117,
+      "i18n": 17,
+      "util": 191,
+      "provider": 22,
+      "service": 92,
+      "type": 2,
+      "test": 404
     },
     "byArea": {
-      "unknown": 35502,
-      "media-processing": 3822,
-      "ffmpeg": 625,
-      "blob-storage": 349,
-      "auth": 883,
-      "payments": 162,
-      "upload": 211,
-      "demo": 1280,
-      "real-footage-ads": 350,
-      "video-generation": 253,
-      "metrics": 206,
-      "publishing": 173,
-      "admin": 154,
-      "wizard": 36,
-      "tests": 9982,
-      "marketing-site": 6,
-      "config": 10,
-      "shared": 306,
-      "prisma": 53,
-      "scripts": 52,
+      "unknown": 953,
+      "media-processing": 96,
+      "config": 11,
+      "ffmpeg": 16,
+      "shared": 336,
+      "prisma": 58,
+      "auth": 25,
+      "payments": 3,
+      "upload": 7,
+      "scripts": 61,
+      "demo": 9,
+      "real-footage-ads": 10,
+      "video-generation": 94,
+      "blob-storage": 12,
+      "admin": 5,
+      "marketing-site": 5,
+      "publishing": 3,
+      "metrics": 2,
       "shared-ui": 14,
-      "i18n": 16,
-      "ai-providers": 20
+      "wizard": 1,
+      "i18n": 17,
+      "ai-providers": 22,
+      "tests": 404
     }
   },
   "routes": {
-    "total": 156,
+    "total": 165,
     "byKind": {
       "error": 18,
       "layout": 5,
       "loading": 17,
       "not-found": 2,
-      "page": 28,
-      "api": 86
+      "page": 29,
+      "api": 94
     }
   },
   "importantFiles": [
@@ -183,6 +182,7 @@
     "test:phase34:routes": "npm run build && dotenv -e .env.local -- playwright test --config=playwright.phase34.config.ts",
     "test:final-acceptance": "dotenv -e .env.local -- playwright test --config=playwright.final-acceptance.config.ts",
     "test:final-acceptance:soak": "FINAL_ACCEPTANCE_SOAK_MS=300000 FINAL_ACCEPTANCE_MONITOR_DELAY_MS=30000 dotenv -e .env.local -- playwright test --config=playwright.final-acceptance.config.ts",
+    "test:prod-smoke": "playwright test --config=playwright.prod-smoke.config.ts",
     "db:generate": "prisma generate",
     "db:migrate": "node scripts/confirm-production-db.mjs db:migrate && dotenv -e .env.local -- prisma migrate dev",
     "db:migrate:deploy": "dotenv -e .env.local -- sh -c 'DATABASE_URL=\"$NEON_PRODUCTION_OWNER_DATABASE_URL\" prisma migrate deploy'",
@@ -219,6 +219,9 @@
     "brand:sunnyshutter:end-card": "tsx --env-file=.env.local scripts/generate-sunnyshutter-end-card.ts",
     "brand:sunnyshutter:business-card": "tsx --env-file=.env.local scripts/generate-sunnyshutter-business-card-endcard.ts",
     "frame:qa": "tsx scripts/frame-qa.ts",
+    "eval:video": "tsx scripts/eval/video-golden-set.ts",
+    "eval:shot-cards": "tsx --env-file=.env.local scripts/eval/shot-card-latency.ts",
+    "report:feedback": "tsx --env-file=.env.local scripts/ops/video-feedback-report.ts",
     "demo:rehearsal": "tsx scripts/demo-rehearsal-e2e.ts",
     "demo:sunny-investor": "tsx scripts/sunny-shutter-investor-demo.ts",
     "demo:sunny-investor:v21": "tsx scripts/sunny-shutter-investor-demo-v21.ts",
@@ -232,7 +235,8 @@
     "mode:check": "tsx scripts/check-real-mode.ts",
     "mode:check:strict": "tsx scripts/check-real-mode.ts -- --strict",
     "roadmap": "tsx scripts/roadmap.ts",
-    "test": "node --import tsx --test tests/**/*.test.ts"
+    "pretest": "node scripts/check-node-version.mjs",
+    "test": "node --import tsx --test tests/*.test.ts"
   },
   "excluded": {
     "dirs": [
@@ -254,7 +258,8 @@
       "tmp"
     ],
     "subpaths": [
-      "public/generated"
+      "public/generated",
+      ".claude/worktrees"
     ],
     "mediaExtensions": [
       ".7z",

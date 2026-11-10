@@ -1966,14 +1966,24 @@ export function StreamlinedVideoStudio({
 
         {uploadError ? <p role="alert" className="text-meta text-danger">{uploadError}</p> : null}
         {loadedFromStudio.length > 0 ? (
-          <p role="status" className="text-meta text-success">
-            {english
-              ? "Loaded from Product Image Studio as a product consistency reference."
-              : "已从产品图工作台载入，并作为产品一致性参考。"}
-            <span className="ml-1 font-mono text-muted-foreground">
-              {loadedFromStudio.map((asset) => asset.fileName).join("、")}
-            </span>
-          </p>
+          retryOfOrderId || machineTaskId ? (
+            /// 「重新生成 / 用同样的素材再做一条」带过来的是那条视频的商品图，不是产品图工作台的产物；
+            /// 之前照搬工作台那句话，还列出 product-image-1 这样的占位文件名。
+            <p role="status" className="text-meta text-success" data-testid="prefill-assets-notice">
+              {english
+                ? `Loaded ${loadedFromStudio.length} product photo${loadedFromStudio.length === 1 ? "" : "s"} from that video. Keep them, or add and remove as you like.`
+                : `已载入那条视频的 ${loadedFromStudio.length} 张商品图，可以直接用，也可以增删。`}
+            </p>
+          ) : (
+            <p role="status" className="text-meta text-success">
+              {english
+                ? "Loaded from Product Image Studio as a product consistency reference."
+                : "已从产品图工作台载入，并作为产品一致性参考。"}
+              <span className="ml-1 font-mono text-muted-foreground">
+                {loadedFromStudio.map((asset) => asset.fileName).join("、")}
+              </span>
+            </p>
+          )
         ) : null}
         {!storyboard ? statusNotices : null}
 

@@ -12,11 +12,14 @@ export function VideoActions({
   briefId,
   failedSceneCount,
   canRetry,
+  showRefresh = true,
   contactEmail = null,
 }: {
   briefId: string;
   failedSceneCount: number;
   canRetry: boolean;
+  /** 已成片没有进度可刷新：详情页对 ready 的成片传 false，只留「重试失败片段」。 */
+  showRefresh?: boolean;
   /** 对外联系邮箱（服务端取值传入）：重试撞上本月额度用完时给「联系我们」入口（审计 A7）。 */
   contactEmail?: string | null;
 }) {
@@ -73,16 +76,18 @@ export function VideoActions({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        disabled={refreshing || pending}
-        onClick={() => void post("refresh")}
-      >
-        {refreshing ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden /> : <RefreshCw aria-hidden />}
-        {t("shell.videoActions.refresh")}
-      </Button>
+      {showRefresh ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={refreshing || pending}
+          onClick={() => void post("refresh")}
+        >
+          {refreshing ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden /> : <RefreshCw aria-hidden />}
+          {t("shell.videoActions.refresh")}
+        </Button>
+      ) : null}
       {canRetry ? (
         <Button
           type="button"

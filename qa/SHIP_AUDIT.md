@@ -70,7 +70,7 @@ Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against 
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
-## API endpoint inventory (92/92 route files; 2026-10-28 删除旧中台 / 数字人 / persona 等 32 个；10-29 加线路目录；10-30 加直传 ticket / complete；11-08 加机器视频任务 2 个；11-09 加抖音发布包)
+## API endpoint inventory (93/93 route files; 2026-10-28 删除旧中台 / 数字人 / persona 等 32 个；10-29 加线路目录；10-30 加直传 ticket / complete；11-08 加机器视频任务 2 个；11-09 加抖音发布包；11-10 加成片评价)
 
 Middleware provides public/session boundaries. Phase 0 statically reviewed the endpoint guard calls, ownership lookup patterns, validators, and machine authentication. Full request/response schema snapshots and hostile-input execution belong to Phase 2.
 
@@ -142,6 +142,7 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | POST | `/api/briefs/[id]/render` | Operator | VERIFIED H1 light: success wiring + operator boundary |
 | GET, POST | `/api/briefs/[id]/render-status` | Session + ownership | VERIFIED H1 light: customer DTO wiring, shared 401 and ownership check |
 | POST | `/api/briefs/[id]/render-retry` | Session + ownership | VERIFIED H1 light: customer DTO wiring, shared 401 and ownership check |
+| POST | `/api/briefs/[id]/feedback` | Session + owner only | 2026-11-10：静态顺序测试（鉴权 → 校验 → 归属 → 落库）+ 本地预览实测 400 / 404 / 503（评价表未建）；落库成功路径待迁移后验证 |
 | POST | `/api/briefs/[id]/qa` | Reviewer | VERIFIED H1 light: dynamic success/auth + reviewer boundary |
 
 ### Batch generation and templates

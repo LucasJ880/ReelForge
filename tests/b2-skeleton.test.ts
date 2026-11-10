@@ -49,8 +49,9 @@ test("B2.1 行情头：主行动是必填插槽（可为 null）、模式切换�
   assert.match(header, /scope: React\.ReactNode;/);
   // 旧的自由插槽不复存在
   assert.doesNotMatch(header, /\bactions\?:|\bstats\?:|statsLabel/);
-  // 口径行永远渲染；副标题不留孤字
+  // 口径必填：有读数时悬停可见、读屏读到（2026-11-10 起不再单占一行）；副标题不留孤字
   assert.match(header, /data-slot="scope">\{scope\}/);
+  assert.match(header, /title=\{typeof scope === "string" \? scope : undefined\}/);
   assert.match(header, /text-pretty/);
 });
 
@@ -408,7 +409,10 @@ test("骨架按行情头结构画（无眉题短条、读数格数与页面一�
   assert.match(loading, /data-skeleton="quote-header">\s*<div className="max-w-4xl space-y-3">\s*<Skeleton className="h-11/);
   assert.equal(CUSTOMER_ROUTE_WALL_CELLS.batches, 5);
   assert.equal(CUSTOMER_ROUTE_WALL_CELLS.batchDetail, 6);
-  assert.equal(CUSTOMER_ROUTE_WALL_CELLS.brands, 3);
+  /// 2026-11-10：品牌、模板库页头不再放读数，骨架同步不画（否则加载完读数块消失，页面往上跳）
+  assert.equal(CUSTOMER_ROUTE_WALL_CELLS.brands, 0);
+  assert.equal(CUSTOMER_ROUTE_WALL_CELLS.templates, 0);
+  assert.match(loading, /\{cells > 0 \? \(/);
   const error = read("src/components/platform/customer-route-error.tsx");
   assert.match(error, /<TickGlyph tone="fault" \/>/);
   assert.doesNotMatch(error, /AlertTriangle/);

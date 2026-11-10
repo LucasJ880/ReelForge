@@ -52,17 +52,14 @@ export default async function PlatformBatchesPage() {
         </Button>
       }
       readingsLabel={copy.board.label}
-      /// 零就写零：没有批次时读数照样开场（DESIGN「没有数据的页也要开场读数」）。
-      readings={[
+      /// 有批次才开场读数（有批次时零照样写零）；一个批次都没有时不摆一排 0，空态直接上来（2026-11-10）。
+      readings={batches.length > 0 ? [
         readingStat("activeBatches", production?.activeBatches ?? 0, locale),
         readingStat("pausedBatches", production?.pausedBatches ?? 0, locale),
         readingStat("filled7d", readings?.filled7d ?? 0, locale),
         readingStat("failed7d", readings?.failed7d ?? 0, locale),
-        /// 一个批次都没有时不写「近 0 批」
-        batches.length > 0
-          ? readingStat("batchCompletion", formatRate(completion), locale, { params: { n: batches.length } })
-          : { ...readingStat("batchCompletion", formatRate(completion), locale, { params: { n: 0 } }), caption: copy.board.completionNoBatches },
-      ]}
+        readingStat("batchCompletion", formatRate(completion), locale, { params: { n: batches.length } }),
+      ] : []}
       scope={batches.length > 0 ? copy.board.scope.replace("{n}", String(batches.length)) : copy.board.scopeNoBatches}
     >
       {batches.length === 0 ? (

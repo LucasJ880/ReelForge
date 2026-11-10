@@ -40,17 +40,22 @@ export type QuoteHeaderProps = {
   secondaryActions?: React.ReactNode;
   /** 模式切换（视频 / 产品图）：和行动分开放，不占主行动的位置。 */
   modeSwitch?: React.ReactNode;
-  /** 读数墙：真实数字，零就写零；取不到写「—」，不放示例数字。 */
+  /**
+   * 读数：只放能让人接着做点什么的真实数字（生成中、额度、进行中的批次）；零就写零，取不到写「—」，不放示例数字。
+   * 没有这样的数字就传空数组——不为了「每页都有读数」硬凑（2026-11-10：品牌页的「品牌包 1 / 全局预设 0」、
+   * 模板库的目录条数都是这样撤掉的）。
+   */
   readings: QuoteStat[];
   readingsLabel: string;
-  /** 统计口径：一行写清楚这些数数的是什么。必填。 */
+  /** 统计口径：这些数数的是什么。必填；悬停在读数上可见、读屏照常读到，不再占一行。 */
   scope: React.ReactNode;
   className?: string;
 };
 
 /**
  * 页面头：每个工作区页面的开场。2026-10-28 学 LibTV：一个页面标题 + 一句说明 + 右侧行动；
- * 读数不再是一面大格子墙，而是一排紧凑的小数据卡（真实数字，零就写零）+ 一行小字统计口径。
+ * 读数不再是一面大格子墙，而是一排紧凑的小数据卡（真实数字，零就写零）。
+ * 2026-11-10：统计口径收进悬停提示；没有读数的页面这一块整个不渲染，正文直接上来。
  * 主行动 / 次要行动 / 模式切换各有插槽；不加眉题，标题自己承重。
  */
 export function QuoteHeader({
@@ -86,8 +91,8 @@ export function QuoteHeader({
           </div>
         ) : null}
       </div>
-      <div className="space-y-2">
-        {readings.length > 0 ? (
+      {readings.length > 0 ? (
+        <div title={typeof scope === "string" ? scope : undefined}>
           <dl aria-label={readingsLabel} className="flex flex-wrap gap-2">
             {readings.map((stat) => (
               <div
@@ -120,9 +125,9 @@ export function QuoteHeader({
               </div>
             ))}
           </dl>
-        ) : null}
-        <p className="text-meta text-tertiary text-pretty" data-slot="scope">{scope}</p>
-      </div>
+          <p className="sr-only" data-slot="scope">{scope}</p>
+        </div>
+      ) : null}
     </header>
   );
 }

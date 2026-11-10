@@ -32,10 +32,13 @@ test("品牌页不再承诺已经停用的片尾品牌卡会用在每条视频�
   assert.match(policy, /export const BRAND_END_CARD_ENTRY_ENABLED = false;/, "入口放回时，把品牌页的说明一起改回来");
 });
 
-test("一个批次都没有时，完成率不写「近 0 批」", async () => {
+test("一个批次都没有时，页头不摆一排 0，更不写「近 0 批」", async () => {
   const page = await readFile("src/app/(platform)/app/batches/page.tsx", "utf8");
   assert.match(page, /batches\.length > 0 \? copy\.board\.scope\.replace\("\{n\}", String\(batches\.length\)\) : copy\.board\.scopeNoBatches/);
-  assert.match(page, /caption: copy\.board\.completionNoBatches/);
+  /// 2026-11-10：读数只在有批次时开场；没有批次时空态直接上来
+  assert.match(page, /readings=\{batches\.length > 0 \? \[/);
+  assert.match(page, /\] : \[\]\}/);
+  assert.doesNotMatch(page, /params: \{ n: 0 \}/);
 });
 
 test("再做一条 / 重新生成带回的商品图，不说成「从产品图工作台载入」", async () => {

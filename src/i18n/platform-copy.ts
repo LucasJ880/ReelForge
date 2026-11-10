@@ -223,7 +223,7 @@ const zh = {
     flowSteps: [
       { title: "上传产品图", body: "可选但推荐：真实产品图会作为一致性参考，让产品外观更稳。" },
       { title: "设置创作方向", body: "选生成方式、画幅与时长，写清想拍什么；推荐值已替你锁好。" },
-      { title: "生成 AI 故事板", body: "先出 4 帧故事板，把产品外观和场景连续性锁定。" },
+      { title: "生成 AI 故事板", body: "先出一组故事板画面（15 秒 4 帧，更长的 5 帧），把产品外观和场景连续性定下来。" },
       { title: "确认每一帧", body: "逐帧核对，不满意的单独重画，满意了再往下走。" },
       { title: "Aivora 生成视频", body: "确认后开始生成，进度在成品库里跟踪，成片自动入库。" },
     ],
@@ -303,7 +303,7 @@ const zh = {
     kicker: "质量模板库",
     title: "模板库",
     /// 2026-11-10：说明文字改成商家听得懂的话（之前是「冻结镜头结构、真实性约束与失败边界」「失败分诊」这类内部说法）
-    subtitle: "每个模板是一套出过片的拍法：镜头怎么排、哪些画面不拍都定好了。挑一个接近你商品的，单条或批量套用。",
+    subtitle: "每个模板是一套出过片的拍法。挑一个接近你商品的，单条或批量套用。",
     recommended: "使用推荐模板",
     preparing: "模板正在准备中。先从单条创作开始。",
     start: "开始创作",
@@ -330,7 +330,7 @@ const zh = {
   batches: {
     kicker: "批量生产",
     title: "批量生产",
-    subtitle: "一次提交多条视频：同一批商品图，套同一种拍法。每个批次的进度、失败原因和重试都在这里。",
+    subtitle: "一次提交多条视频：同一批商品图，套同一种拍法。",
     new: "新建批次",
     empty: "还没有批次。从模板库选一个风格开始。",
     browse: "浏览模板库",
@@ -691,7 +691,7 @@ const zh = {
   brands: {
     /// 2026-11-10 如实写现状：片尾品牌卡 10-28 起对商家停用（brand-end-card-policy）；图文帖只沿用品牌包的画面风格
     ///（content-plan-store 取 compositionRecipe / photographyStyle），Logo 与联系方式目前不会自动出现在视频里。
-    subtitle: "可复用品牌包：存你的 Logo、行动指引和联系方式。视频里的品牌目前跟着商品走：商品照片上有 Logo，成片里就有；片尾品牌卡暂时停用。图文帖会沿用品牌包的画面风格。",
+    subtitle: "可复用品牌包：存你的 Logo、行动指引和联系方式。片尾品牌卡暂时停用；想在片尾带上品牌，出片时勾「片尾落款」。",
     readingsLabel: "品牌读数",
     scope: "统计口径：只数本工作区；全局预设由平台维护，只读可套用",
     anchorsReady: "可用产品锚点",
@@ -851,7 +851,7 @@ const en: CopyShape<typeof zh> = {
     flowSteps: [
       { title: "Upload product images", body: "Optional but recommended: real product photos anchor how the product looks." },
       { title: "Set the direction", body: "Pick the mode, aspect ratio and length, then describe the video; recommended values are pre-set." },
-      { title: "Generate the AI storyboard", body: "Four storyboard frames lock the product look and scene continuity first." },
+      { title: "Generate the AI storyboard", body: "A set of storyboard frames (4 for 15s, 5 for longer videos) locks the product look and scene continuity first." },
       { title: "Approve every frame", body: "Check each frame, redraw the ones you don't like, then move on." },
       { title: "Generate with Aivora", body: "Generation starts once you confirm; track it in the library, where the finished video lands." },
     ],
@@ -874,11 +874,11 @@ const en: CopyShape<typeof zh> = {
     presets: { white_studio: ["White studio", "Catalog and ecommerce hero"], lifestyle: ["Lifestyle", "Believable use setting"], luxury: ["Luxury", "Material and refined light"], social: ["Social ad", "Safe area for post text"], macro: ["Material macro", "Structure and detail close-up"] },
   },
   templates: {
-    kicker: "QUALITY TEMPLATE LIBRARY", title: "Template library", subtitle: "Each template is a proven way to shoot: the shot order and what to avoid are already set. Pick one close to your product and use it for one video or a batch.", recommended: "Use recommended template", preparing: "Templates are being prepared. Start with a single video.", start: "Start creating", filterLabel: "Filter templates", searchLabel: "Search templates", searchPlaceholder: "Search setting, industry, or camera style", all: "All", categoryLabel: "Template categories", empty: "No matching templates. Clear the filters to keep browsing.", clear: "Clear filters", listLabel: "Style templates", lockedCount: "{visible} / {total} quality-locked", sample: "Aivora generated sample", stable: "Reliable", balanced: "More variety", noHuman: "No people", controlledHuman: "People on camera", useSingle: "Use for one", useBatch: "Use for batch",
+    kicker: "QUALITY TEMPLATE LIBRARY", title: "Template library", subtitle: "Each template is a proven way to shoot. Pick one close to your product and use it for one video or a batch.", recommended: "Use recommended template", preparing: "Templates are being prepared. Start with a single video.", start: "Start creating", filterLabel: "Filter templates", searchLabel: "Search templates", searchPlaceholder: "Search setting, industry, or camera style", all: "All", categoryLabel: "Template categories", empty: "No matching templates. Clear the filters to keep browsing.", clear: "Clear filters", listLabel: "Style templates", lockedCount: "{visible} / {total} quality-locked", sample: "Aivora generated sample", stable: "Reliable", balanced: "More variety", noHuman: "No people", controlledHuman: "People on camera", useSingle: "Use for one", useBatch: "Use for batch",
     categories: { "电商带货": "Ecommerce selling", "电商展示": "Ecommerce", "质感特写": "Material detail", "生活方式": "Lifestyle", UGC: "UGC", "开箱": "Unboxing", "奢品": "Luxury", "使用演示": "Use demo", "爆款广告": "Performance ads", "对比转化": "Before / after", "包装展示": "Packaging", "家居空间": "Home spaces", "工具户外": "Tools & outdoors", "旅行收纳": "Travel organization", "服饰穿搭": "Fashion styling", "社媒循环": "Social loop", "科技数码": "Consumer tech", "美妆护理": "Beauty care", "食品饮料": "Food & beverage", "自动化验收": "Automated acceptance" },
   },
   batches: {
-    kicker: "BATCH PRODUCTION", title: "Batch production", subtitle: "Submit many videos at once: the same product photos, one way of shooting. Progress, failure reasons and retries for every batch live here.", new: "New batch", empty: "No batches yet. Pick a style from the template library.", browse: "Browse templates", unnamed: "Untitled batch", completedTotal: "Completed / total", costSnapshot: "Cost snapshot", view: "View", listLabel: "Batch list", columns: { batch: "Batch", template: "Template", progress: "Ready", status: "Status", updated: "Updated", action: "Action" }, board: { label: "Batch readings", scope: "Ready and failed count single + batch videos; completion covers the latest {n} batches", scopeNoBatches: "Ready and failed count single + batch videos; no batches yet, so there is no completion rate", completionNoBatches: "No batches yet" }, newBoard: { label: "Readings before you order", scope: "Active batches exclude paused ones; the monthly allowance runs per UTC month and counts delivered videos only — failures and cancels are refunded" }, back: "Back to batches", monitorNav: "Batch monitor navigation", newSubtitle: "Upload product photos, pick a way to shoot, set the count, and submit once. Then follow each video's progress and failure reasons on the batch page.", statuses: batchStatusWords("en-US"),
+    kicker: "BATCH PRODUCTION", title: "Batch production", subtitle: "Submit many videos at once: the same product photos, one way of shooting.", new: "New batch", empty: "No batches yet. Pick a style from the template library.", browse: "Browse templates", unnamed: "Untitled batch", completedTotal: "Completed / total", costSnapshot: "Cost snapshot", view: "View", listLabel: "Batch list", columns: { batch: "Batch", template: "Template", progress: "Ready", status: "Status", updated: "Updated", action: "Action" }, board: { label: "Batch readings", scope: "Ready and failed count single + batch videos; completion covers the latest {n} batches", scopeNoBatches: "Ready and failed count single + batch videos; no batches yet, so there is no completion rate", completionNoBatches: "No batches yet" }, newBoard: { label: "Readings before you order", scope: "Active batches exclude paused ones; the monthly allowance runs per UTC month and counts delivered videos only — failures and cancels are refunded" }, back: "Back to batches", monitorNav: "Batch monitor navigation", newSubtitle: "Upload product photos, pick a way to shoot, set the count, and submit once. Then follow each video's progress and failure reasons on the batch page.", statuses: batchStatusWords("en-US"),
     monitor: {
       kicker: "BATCH MONITOR",
       batch: "Batch",
@@ -1129,7 +1129,7 @@ const en: CopyShape<typeof zh> = {
     emptyBody: "This page only compares the real performance (impressions, engagement, conversions) of posts you published. Until your publishing accounts' performance data is connected there is nothing to compare here, and we never show sample numbers.",
   },
   brands: {
-    subtitle: "A brand package keeps your logo, call to action and contact details. In videos the brand currently follows the product: if the logo is on the product photos, it is in the video; the branded end card is paused for now. Posts reuse the package's visual style.",
+    subtitle: "A brand package keeps your logo, call to action and contact details. The branded end card is paused for now; to close a video with your brand, tick the sign-off when you create it.",
     readingsLabel: "Brand readings",
     scope: "Counts this workspace only; global presets are maintained by the platform, read-only and ready to apply",
     anchorsReady: "Product anchors ready",

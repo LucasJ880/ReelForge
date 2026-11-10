@@ -237,6 +237,7 @@ const ZH_COPY = {
   readyHint: "失败任务会按系统规则处理，不会因为重复点击产生重复提交。",
   cancelRound: "取消这一轮",
   cancelRoundHint: "生成服务出问题时，可以随时取消这一轮，素材和描述会保留。",
+  finishingEditableHint: "画面已经定了。口播稿、字幕、配乐、片尾落款和出片线路，在点「生成视频」之前都还能在「更多设置」里改。",
   routeCheckingHint: "正在检查所选生成线路，请稍候。",
   routeUnavailableHint: "所选线路当前不可用，请在线路菜单中更换后再提交。",
   quotaHint: "提交时预占 1 条额度，失败与取消自动返还：本月已用 {used} / {limit} 条。",
@@ -368,6 +369,7 @@ const EN_COPY: StudioCopy = {
   readyHint: "Failed jobs follow safe recovery rules, and repeated clicks cannot create duplicate submissions.",
   cancelRound: "Cancel this round",
   cancelRoundHint: "If generation is having trouble, cancel this round anytime — your uploads and direction are kept.",
+  finishingEditableHint: "The shots are set. You can still change the script, captions, music, sign-off and video route under More settings until you generate the video.",
   routeCheckingHint: "Checking the selected generation route…",
   routeUnavailableHint: "The selected route is unavailable. Choose another route before submitting.",
   quotaHint: "Reserves 1 video at submission, refunded automatically on failure or cancel: {used} / {limit} used this month.",
@@ -871,6 +873,16 @@ export function StreamlinedVideoStudio({
     );
   }
 
+  /// 故事板出来之后改口播稿 / 声音 / 字幕 / 配乐：这些不改画面，派发那一刻才取值。
+  /// 只让本页的方案预览失效（派发时服务端照常重新出方案把关），故事板和已经出好的帧留着。
+  const invalidatePlanKeepingStoryboard = useCallback(() => {
+    interactedRef.current = true;
+    setPlan(null);
+    setPlanRequestKey(null);
+    setError(null);
+  }, []);
+  const hasStoryboard = storyboard !== null;
+
   const updateAudioCaptionSettings = useCallback((
     next: AudioCaptionControlValue,
   ) => {
@@ -880,8 +892,9 @@ export function StreamlinedVideoStudio({
       }
       return next;
     });
-    invalidatePlan();
-  }, [invalidatePlan]);
+    if (hasStoryboard) invalidatePlanKeepingStoryboard();
+    else invalidatePlan();
+  }, [hasStoryboard, invalidatePlan, invalidatePlanKeepingStoryboard]);
 
   /// 2026-10-28：「生成口播稿」由 AI 按商家原话写（/api/video-generation/voiceover-draft）；
   /// AI 不可用、超时或超长时退回本地模板稿（与之前同一份）。AI 稿视同用户确认过的稿，描述再改也不被模板覆盖。
@@ -935,15 +948,16 @@ export function StreamlinedVideoStudio({
       saveVoiceoverDraft(sessionStorage, rawPrompt, null);
       setAudioCaptionSettings((current) => ({ ...current, voiceoverScript: autoVoiceoverScript }));
     };
+    const invalidate = hasStoryboard ? invalidatePlanKeepingStoryboard : invalidatePlan;
     if (!rawPrompt.trim() || narrationFromTemplate) {
       applyTemplate();
-      invalidatePlan();
+      invalidate();
       return;
     }
     const script = await draftVoiceoverWithAi();
     if (!script) applyTemplate();
-    invalidatePlan();
-  }, [autoVoiceoverScript, draftVoiceoverWithAi, invalidatePlan, narrationFromTemplate, rawPrompt]);
+    invalidate();
+  }, [autoVoiceoverScript, draftVoiceoverWithAi, hasStoryboard, invalidatePlan, invalidatePlanKeepingStoryboard, narrationFromTemplate, rawPrompt]);
 
   useEffect(() => {
     if (!storyboard || storyboard.status !== "GENERATING") return;
@@ -1553,6 +1567,9 @@ export function StreamlinedVideoStudio({
     && selectedRouteAvailable === true;
   const configurationLocked = Boolean(storyboard);
   const locked = busy !== null || configurationLocked;
+  /// 不改画面的设置（口播稿、声音、字幕、配乐、片尾落款、出片线路）派发那一刻才取值：
+  /// 故事板出来之后照样能改，不用为了改一句口播丢掉整套故事板重来。只在提交途中锁住。
+  const finishingLocked = busy !== null;
   const currentRequestKey = rawPrompt.trim()
     ? JSON.stringify(buildRequest())
     : null;
@@ -2192,7 +2209,7 @@ export function StreamlinedVideoStudio({
               <CustomerRoutePicker
                 value={customerRoute}
                 onChange={setCustomerRoute}
-                disabled={locked}
+                disabled={finishingLocked}
                 active={moreOpen}
                 english={english}
               />
@@ -2220,7 +2237,9 @@ export function StreamlinedVideoStudio({
             <AudioCaptionControls
               value={audioCaptionSettings}
               english={english}
-              disabled={locked}
+              disabled={finishingLocked}
+              voiceoverToggleLocked={configurationLocked}
+              durationSec={selectedDuration}
               onChange={updateAudioCaptionSettings}
               onRegenerate={() => void regenerateVoiceoverScript()}
               regenerating={voiceoverDrafting}
@@ -2236,7 +2255,7 @@ export function StreamlinedVideoStudio({
               <input
                 type="checkbox"
                 checked={signoffEnabled}
-                disabled={locked}
+                disabled={finishingLocked}
                 className="size-4 accent-primary"
                 onChange={(event) => setSignoffEnabled(event.target.checked)}
               />
@@ -2250,7 +2269,7 @@ export function StreamlinedVideoStudio({
                     type="text"
                     value={signoffBrand}
                     maxLength={SIGNOFF_BRAND_MAX}
-                    disabled={locked}
+                    disabled={finishingLocked}
                     placeholder={copy.signoffBrandPlaceholder}
                     aria-invalid={!signoffBrand.trim()}
                     className={SIGNOFF_INPUT_CLASS}
@@ -2263,7 +2282,7 @@ export function StreamlinedVideoStudio({
                     type="text"
                     value={signoffCta}
                     maxLength={SIGNOFF_CTA_MAX}
-                    disabled={locked}
+                    disabled={finishingLocked}
                     placeholder={copy.signoffCtaPlaceholder}
                     className={SIGNOFF_INPUT_CLASS}
                     onChange={(event) => setSignoffCta(event.target.value)}
@@ -2282,7 +2301,7 @@ export function StreamlinedVideoStudio({
                     <input
                       type="checkbox"
                       checked={signoffLogo}
-                      disabled={locked}
+                      disabled={finishingLocked}
                       className="mt-1 size-4 shrink-0 accent-primary"
                       onChange={(event) => setSignoffLogo(event.target.checked)}
                     />
@@ -2361,7 +2380,11 @@ export function StreamlinedVideoStudio({
           <p className={cn("text-center text-meta", routeNeedsAttention ? "text-gold" : "text-tertiary")}>
             {statusHint}
           </p>
-        ) : null}
+        ) : (
+          <p className="text-center text-meta text-tertiary text-pretty" data-testid="finishing-editable-hint">
+            {copy.finishingEditableHint}
+          </p>
+        )}
         {workflowRail}
       </section>
 

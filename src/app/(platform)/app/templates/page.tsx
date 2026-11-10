@@ -10,7 +10,7 @@ import {
   type TemplateLibraryItem,
 } from "@/components/templates/template-library-grid";
 import { parseTemplateShots } from "@/components/templates/template-shot-timeline";
-import { TEMPLATE_LIBRARY_COPY, fillCount } from "@/components/templates/template-library-copy";
+import { TEMPLATE_LIBRARY_COPY } from "@/components/templates/template-library-copy";
 import { WorkspacePage } from "@/components/exchange/workspace-page";
 import { EmptyState } from "@/components/exchange/empty-state";
 import { Button } from "@/components/ui/button";
@@ -22,8 +22,6 @@ import {
 } from "@/lib/video-generation/template-sample";
 import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
 import { commerceTemplateSummary } from "@/lib/video-generation/commerce-template-catalog";
-import { readingStat } from "@/lib/exchange/readings-registry";
-import { loadExchangeReadings } from "@/lib/services/exchange-readings";
 
 export const dynamic = "force-dynamic";
 
@@ -76,10 +74,9 @@ export default async function PlatformTemplatesPage() {
     getServerLocale(),
   ]);
   const empty = routeState === "empty";
-  const [templates, usage, readings] = await Promise.all([
+  const [templates, usage] = await Promise.all([
     empty ? Promise.resolve([]) : listActiveStyleTemplates(),
     empty ? Promise.resolve(NO_USAGE) : loadTemplateUsage(session.user.id),
-    empty ? Promise.resolve(null) : loadExchangeReadings(session.user.id),
   ]);
   const copy = getPlatformCopy(locale).templates;
   const board = TEMPLATE_LIBRARY_COPY[locale].board;
@@ -99,8 +96,6 @@ export default async function PlatformTemplatesPage() {
     shots: parseTemplateShots(template.promptSkeleton),
     recentBatchCount: usage.bySlug.get(template.slug) ?? 0,
   }));
-  const sampleCount = items.filter((item) => item.sampleImage || item.sampleVideo).length;
-  const categoryCount = new Set(items.map((item) => item.category)).size;
 
   return (
     <WorkspacePage
@@ -118,12 +113,8 @@ export default async function PlatformTemplatesPage() {
         </Button>
       ) : undefined}
       readingsLabel={board.label}
-      readings={[
-        { ...readingStat("templates", items.length, locale), caption: fillCount(board.recipesCaption, categoryCount) },
-        { ...readingStat("verifiedSamples", sampleCount, locale), caption: fillCount(board.samplesCaption, items.length - sampleCount) },
-        { ...readingStat("templateBatches30d", usage.batches, locale), caption: fillCount(board.usedCaption, usage.bySlug.size) },
-        readingStat("filled30d", readings?.filled30d ?? 0, locale),
-      ]}
+      /// 模板条数与样片数在下面的筛选条上本来就有；近 30 天成片在成品库。页头不再重复一排（2026-11-10）。
+      readings={[]}
       scope={board.scope}
     >
       {templates.length === 0 ? (

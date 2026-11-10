@@ -94,24 +94,23 @@ npm run context:find -- "..."
 改完代码，**先自己验证再报完成**：`npm run typecheck` + `npm run lint` + 相关 test 全绿，
 把命令输出贴出来。失败就说失败，不要用「应该没问题」代替证据。
 
-## 6. 界面：Aivora Exchange 深海交易所（2026-10-24 定稿，取代 Aivora Glass）
+## 6. 界面：纯黑工作台 + 展厅首页（2026-11-10 对着代码核过）
 
-> **2026-10-28 起调整中**：首页改「展厅」（学 Seedance 2.5 官网，全屏视频 + 浅灰画廊），工作区换中性近黑 + LibTV 式分组侧栏；
-> 毛玻璃只允许在视频之上的 `.on-media` 规则里。详见 DESIGN.md 顶部说明与 `docs/reference/taste/`。下文与之冲突处以 DESIGN.md 顶部为准。
+完整规矩见根目录 **`DESIGN.md`**；它叠着三段历史（10-24 Exchange、10-28 白天 LibTV、10-28 晚 Runway），
+**以顶部「现行规矩速览」为准**。逆向参考在 `docs/reference/taste/`。速记：
 
-全站单一深色交易大厅，完整规矩见根目录 **`DESIGN.md`**（唯一事实来源）。速记：
-
-- 冷蓝近黑的场（`--bg`）+ 极淡工程网格；面板不透明（`.x-panel`），行情墙用 `.x-wall`
-  1px 接缝拼格，结构条用 `.x-pane`，下沉面用 `.x-well`。**不做毛玻璃、不铺光晕**，
+- 工作区是纯黑场（`--bg #000`）+ 冷调蓝灰不透明面板（`.x-panel`，下沉面 `.x-well`，结构条 `.x-pane`），白 8% 发丝线，没有工程网格。
+  公开首页是「展厅」（全屏视频 + 浅灰画廊，token 以 `--show-*` 开头）。**不做毛玻璃、不铺光晕**，只有视频之上的 `.on-media` 规则例外，
   有门禁测试守着（`backdrop-filter`、`#ff4d00`、glass/editorial 材质名一律禁止回流）。
-- 颜色只来自数据与媒体：信号青 `--accent`（实时/当前/主行动）、成片绿 `--success`、
-  赢家金 `--gold`（赢家与需要你处理的数字）、失败玫红 `--danger`、AI 鸢尾紫 `--iris`（只做标注）。
-  信号青上用深字 `--primary-foreground`。
-- 颜色/圆角/阴影字面量只住 `src/styles/tokens.css`；圆角 3/6/10；数字一律 tabular-nums。
-- 字体：Archivo（可变字宽，大而轻的标题与读数）+ Noto Sans SC（中文）/ Martian Mono（代码、时间、计数）。
-- 页面开场用 `QuoteHeader`（`src/components/exchange/`）：大而轻的标题 + 真实读数墙，零就写零，不放示例数字。
-  状态用 `StatusTick`（符号 + 颜色成对），批次进度用 `FillBar`。
-- 壳层是行情终端：顶部行情条 + 实时生产带（本工作区真实批次）+ 编号导轨 + 状态栏；`/wall` 是行情大屏。
+- 主行动是电光蓝紫实底白字（`--primary-fill`），一屏一个。颜色只来自数据与媒体：长春花蓝 `--accent`（实时/当前/链接/焦点）、
+  成片绿 `--success`、赢家金 `--gold`（赢家与需要你处理的数字）、失败玫红 `--danger`、AI 鸢尾紫 `--iris`（只做标注）。
+- 颜色/圆角/阴影字面量只住 `src/styles/tokens.css`；圆角：控件 6/8/12、卡片 20、主创作卡 24；数字一律 tabular-nums。
+- 字体：Archivo（标题与读数）+ Noto Sans SC（中文）/ Martian Mono（代码、时间、计数）。
+- 页面开场用 `WorkspacePage` / `QuoteHeader`（`src/components/exchange/`），创作页例外（对话框优先）。
+  读数只放能让人接着做点什么的真实数字（零就写零，不放示例数字）；没有就传空数组，不硬凑。口径写进 `scope`，悬停可见，不单占一行。
+  副标题一句话说清这页干什么，内部口径与规则解释不进页面正文。状态用 `StatusTick`（符号 + 颜色成对），批次进度用 `FillBar`。
+- 壳层是 240px 分组侧栏（创作 / 资产 / 帮助）+ 细顶栏（搜索、帮助、头像），移动端底部 tab 条；行情条、生产带、状态栏已退役，`/wall` 行情大屏仍在。
   壳层数字来自同一个脉搏（`/api/exchange/pulse`），读数口径只从读数注册表取；状态词只从 `state-vocab` 取，「成交」只留给询盘。
 - 眉题/kicker 一律禁止；页面标题自己承重。
+- `.x-wall` / `.x-beam` / `.x-hatch` / `.x-frame` 是 10-24 的旧材质，存量还在约 15 个组件里：新界面不要再用，清理单独提。
 - 方向契约在 `src/app/layout.tsx` body 首子节点的 HTML 注释里（grep `aivora-abyss-exchange`）。

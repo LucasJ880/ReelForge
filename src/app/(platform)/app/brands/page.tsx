@@ -44,9 +44,6 @@ export default async function PlatformBrandsPage() {
   ]);
   const copy = getPlatformCopy(locale).brands;
   const readyAnchors = anchors.filter((anchor) => anchor.status === "READY").length;
-  const workspacePackages = packages.filter((item) => item.scope !== "global");
-  const globalPackages = packages.length - workspacePackages.length;
-  const defaultPackage = workspacePackages.find((item) => item.isDefault) ?? null;
   return (
     <BrandPackageDraftProvider>
       <WorkspacePage
@@ -68,16 +65,7 @@ export default async function PlatformBrandsPage() {
                 },
               ]
             : []),
-          {
-            label: copy.packages,
-            value: workspacePackages.length,
-            caption: defaultPackage ? copy.defaultPackage.replace("{name}", defaultPackage.name) : copy.noDefault,
-          },
-          {
-            label: copy.presets,
-            value: globalPackages,
-            caption: copy.presetsCaption,
-          },
+          /// 「品牌包 N / 全局预设 N」不是能接着做什么的数字（下面的列表自己带计数），2026-11-10 撤掉
         ]}
         scope={copy.scope}
       >

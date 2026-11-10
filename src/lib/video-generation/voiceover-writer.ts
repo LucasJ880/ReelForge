@@ -4,6 +4,10 @@
  * 字数按时长封顶（中文约 4 字 / 秒，英文约 2.2 词 / 秒，与模板同一把尺）；任何失败都退回模板，界面不卡住。
  */
 import { chatJsonByTier, isLLMAvailable, isLLMForcedMock } from "@/lib/ai";
+import { voiceoverBudget } from "./voiceover-budget";
+
+/// 长度的尺子在 voiceover-budget（纯函数，界面也用同一份）；这里照旧导出，调用方不用改。
+export { voiceoverBudget };
 
 export interface VoiceoverDraftInput {
   prompt: string;
@@ -21,10 +25,6 @@ export interface VoiceoverDraftDeps {
 }
 
 const DRAFT_TIMEOUT_MS = 20_000;
-
-export function voiceoverBudget(durationSec: number, english: boolean): number {
-  return english ? Math.max(12, Math.floor(durationSec * 2.2)) : durationSec * 4;
-}
 
 function measure(text: string, english: boolean): number {
   return english ? text.split(/\s+/u).filter(Boolean).length : Array.from(text.replace(/\s+/gu, "")).length;

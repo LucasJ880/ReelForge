@@ -85,6 +85,27 @@ test("带进创作页的那段话：名字：卖点，尺寸另起一行；卖�
     productProfilePrompt({ name: "Travel mug", sellingPoints: "Keeps coffee hot for six hours.", size: "fits a cup holder" }, "en"),
     "Travel mug: Keeps coffee hot for six hours.\nActual product size: fits a cup holder",
   );
+  /// 冒号跟内容的语言走：英文界面里存的中文商品用全角冒号；尺寸那一行的引子仍跟界面语言（和创作页一致）
+  assert.equal(
+    productProfilePrompt({ ...product, size: null }, "en"),
+    "三支装丝绒唇釉：玫瑰、珊瑚、浆果三个颜色。",
+  );
+  assert.equal(productProfilePrompt({ name: "Travel mug", sellingPoints: "Keeps coffee hot.", size: null }, "zh"), "Travel mug: Keeps coffee hot.");
+});
+
+test("接口错误码在界面上有中英两份说法；接口里每个错误码都有对应", async () => {
+  const { getPlatformCopy } = await import("../src/i18n/platform-copy");
+  const routes = readFileSync("src/app/api/products/route.ts", "utf8") + readFileSync("src/app/api/products/[id]/route.ts", "utf8");
+  const codes = [...new Set([...routes.matchAll(/code: "([A-Z_]+)"/gu)].map((match) => match[1]))].filter((code) => code !== "INTERNAL_ERROR");
+  assert.deepEqual(codes.sort(), ["INVALID_IMAGES", "INVALID_INPUT", "LIMIT_REACHED", "NOT_FOUND", "NOT_IMPORTABLE", "UNAVAILABLE"]);
+  for (const locale of ["zh-CN", "en-US"] as const) {
+    const errors = getPlatformCopy(locale).products.errors as Record<string, string>;
+    for (const code of codes) assert.ok(errors[code]?.length > 0, `${locale} 缺 ${code}`);
+  }
+  assert.doesNotMatch(Object.values(getPlatformCopy("en-US").products.errors).join(""), /[\u3400-\u9fff]/u);
+  const ui = readFileSync("src/components/products/product-library.tsx", "utf8");
+  assert.doesNotMatch(ui, /result\.error/, "界面不直接显示接口里的原文");
+  assert.match(ui, /copy\.errors\[code as keyof Copy\["errors"\]\]/);
 });
 
 test("从拍过的描述拆草稿：去掉开头方向和尺寸行，第一句当名字，尺寸单独取出", () => {

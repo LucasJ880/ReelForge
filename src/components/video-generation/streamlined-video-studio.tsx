@@ -524,7 +524,9 @@ export function StreamlinedVideoStudio({
     ? initialStyleTemplateId
     : "auto";
 
-  const [showGuide, setShowGuide] = useState(true);
+  /// 首屏就按「是不是出过成片」决定：原来一律先渲染成 true，出过几十条片的商家每次打开创作页
+  /// 都先看到「第一次使用」提示条闪一下、等页面脚本跑完才消失，下面的内容跟着跳一下（2026-11-10）。
+  const [showGuide, setShowGuide] = useState(!returningUser);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [productAssets, setProductAssets] = useState<UploadedAsset[]>(initialProductAssets);
   const [referenceAssets, setReferenceAssets] = useState<UploadedAsset[]>(initialReferenceAssets);

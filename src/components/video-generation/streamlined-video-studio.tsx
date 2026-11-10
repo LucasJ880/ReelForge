@@ -161,6 +161,8 @@ const ZH_COPY = {
   signoffCta: "行动指引（可选）",
   signoffCtaPlaceholder: "例：主页看更多",
   signoffRequired: "开启片尾落款要填品牌名，或者把它关掉。",
+  signoffLogo: "在品牌名上方带上 Logo",
+  signoffLogoHint: "用你默认品牌包里的 Logo，垫白底，和文字一起淡入。",
   summarySignoff: "落款",
   audioHint: "口播由成片直接说出，口播稿可随时修改；字幕在成片完成后按实际时长生成。",
   summaryVoiceover: "口播",
@@ -291,6 +293,8 @@ const EN_COPY: StudioCopy = {
   signoffCta: "Call to action (optional)",
   signoffCtaPlaceholder: "e.g. See more on our profile",
   signoffRequired: "Enter a brand name for the sign-off, or turn it off.",
+  signoffLogo: "Show the logo above the brand name",
+  signoffLogoHint: "Uses the logo from your default brand package on a white plate; it fades in with the text.",
   summarySignoff: "Sign-off",
   audioHint: "The video speaks your editable script; captions are timed to the finished video.",
   summaryVoiceover: "Voiceover",
@@ -535,6 +539,9 @@ export function StreamlinedVideoStudio({
   const [signoffEnabled, setSignoffEnabled] = useState(false);
   const [signoffBrand, setSignoffBrand] = useState(ownBrandForSignoff?.brandName ?? "");
   const [signoffCta, setSignoffCta] = useState(ownBrandForSignoff?.cta ?? "");
+  /// Logo 只是一个开关：用哪张图由服务端在合成时按账号取（自己工作区的默认品牌包）
+  const signoffLogoUrl = ownBrandForSignoff?.logoAsset?.url ?? null;
+  const [signoffLogo, setSignoffLogo] = useState(false);
   const [storyboard, setStoryboard] = useState<StoryboardRunView | null>(null);
   const [storyboardFrameBusy, setStoryboardFrameBusy] = useState<string | null>(null);
   const [approvingStoryboard, setApprovingStoryboard] = useState(false);
@@ -1178,7 +1185,14 @@ export function StreamlinedVideoStudio({
       },
       /// 没勾就不带这个键：请求与方案缓存键和之前一模一样
       ...(signoffEnabled && signoffBrand.trim()
-        ? { signoff: { enabled: true, brandName: signoffBrand.trim(), cta: signoffCta.trim() || null } }
+        ? {
+            signoff: {
+              enabled: true,
+              brandName: signoffBrand.trim(),
+              cta: signoffCta.trim() || null,
+              ...(signoffLogo && signoffLogoUrl ? { logo: true } : {}),
+            },
+          }
         : {}),
     });
   }
@@ -2255,6 +2269,25 @@ export function StreamlinedVideoStudio({
                     onChange={(event) => setSignoffCta(event.target.value)}
                   />
                 </label>
+                {signoffLogoUrl ? (
+                  <label className="flex cursor-pointer items-start justify-between gap-4 text-meta text-muted-foreground @md:col-span-2" data-testid="streamlined-signoff-logo">
+                    <span className="flex min-w-0 items-center gap-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={signoffLogoUrl} alt="" className="h-8 w-auto max-w-24 shrink-0 rounded-(--radius-sm) bg-(--brand-tile) object-contain p-1" />
+                      <span className="min-w-0">
+                        <span className="block text-body text-foreground">{copy.signoffLogo}</span>
+                        <span className="block">{copy.signoffLogoHint}</span>
+                      </span>
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={signoffLogo}
+                      disabled={locked}
+                      className="mt-1 size-4 shrink-0 accent-primary"
+                      onChange={(event) => setSignoffLogo(event.target.checked)}
+                    />
+                  </label>
+                ) : null}
               </div>
             ) : null}
           </TicketRow>

@@ -1,3 +1,5 @@
+import { signoffActive } from "@/lib/video-generation/brand-signoff";
+import type { PostProductionPlan } from "@/types/video-generation";
 import { mkdir, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -109,6 +111,30 @@ export function legacySegmentsToTimeline(
   }));
 }
 
+/**
+ * 片尾落款要带的 Logo：只在落款开着且勾了「带 Logo」时取；取成片主人**自己工作区**的品牌包
+ *（默认的那个优先），不取全局包——10-28 的「保温杯配窗帘厂 logo」就是别人的品牌被带了进来。
+ * 取不到（没有品牌包 / 读库失败）= 不带 Logo，落款文字照常。
+ */
+export async function resolveSignoffLogoUrl(
+  postProduction: PostProductionPlan | null,
+  ownerUserId: string | null,
+): Promise<string | null> {
+  const signoff = postProduction?.signoff;
+  if (!signoffActive(signoff) || !signoff.logo || !ownerUserId) return null;
+  try {
+    const { listWorkspaceBrandPackagesForUser } = await import("@/lib/services/workspace-brand-package-service");
+    const own = (await listWorkspaceBrandPackagesForUser(ownerUserId)).filter((entry) => entry.scope === "workspace");
+    const pick = own.find((entry) => entry.isDefault) ?? own[0] ?? null;
+    return pick?.logoAsset?.url ?? null;
+  } catch (error) {
+    console.warn("[stitch] sign-off logo lookup failed; composing without it", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
+}
+
 export async function composeFinalVideoForStitch(args: {
   finalVideoId: string;
   budget?: MediaBudget;
@@ -130,7 +156,7 @@ export async function composeFinalVideoForStitch(args: {
             select: {
               round: {
                 select: {
-                  deliveryOrder: { select: { productInput: true, targetPlatform: true } },
+                  deliveryOrder: { select: { productInput: true, targetPlatform: true, createdById: true } },
                 },
               },
             },
@@ -162,6 +188,9 @@ export async function composeFinalVideoForStitch(args: {
   const voiceoverChunks = readDirectorPlanVoiceoverChunks(fv.brief?.directorPlan);
   /// 目标平台：抖音成片字幕让开界面安全区，并烧入常驻「AI生成」角标
   const platform = fv.brief?.contentAngle?.round?.deliveryOrder?.targetPlatform ?? null;
+  /// 片尾落款带 Logo：快照里只有一个开关，图片在这里按成片主人取——他自己工作区的默认品牌包。
+  const ownerUserId = fv.brief?.contentAngle?.round?.deliveryOrder?.createdById ?? null;
+  const signoffLogoUrl = await resolveSignoffLogoUrl(postProduction ?? null, ownerUserId);
 
   // ---------------- b-roll ----------------
   const brollSegments = extractBrollClaimSegments(fv.segments);
@@ -214,6 +243,7 @@ export async function composeFinalVideoForStitch(args: {
       aspectRatio: inputs.aspectRatio,
       clips: assemblyClipsToTimeline(inputs.clips, aiTailTrimSec),
       postProduction,
+      signoffLogoUrl,
       voiceoverChunks,
       platform,
       extractThumbnail: true,
@@ -238,6 +268,7 @@ export async function composeFinalVideoForStitch(args: {
     aspectRatio,
     clips: legacySegmentsToTimeline(fv.segments, aiTailTrimSec),
     postProduction,
+    signoffLogoUrl,
     voiceoverChunks,
     platform,
     extractThumbnail: true,

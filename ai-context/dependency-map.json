@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T05:10:54.625Z",
+  "generatedAt": "2026-11-10T05:20:39.237Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -14865,6 +14865,8 @@
     {
       "file": "src/lib/services/stitch-composer.ts",
       "imports": [
+        "@/lib/video-generation/brand-signoff",
+        "@/types/video-generation",
         "node:fs/promises",
         "node:os",
         "node:path",
@@ -14872,18 +14874,20 @@
         "@/lib/media/stitch-pipeline",
         "@/lib/schemas/director-plan",
         "@/lib/video-generation/tail-trim",
-        "@/types/video-generation",
         "./stitch-service",
+        "@/lib/services/workspace-brand-package-service",
         "@/lib/services/broll-assembly-service",
         "@/lib/video-generation/assembly-executor"
       ],
       "localImports": [
+        "@/lib/video-generation/brand-signoff",
+        "@/types/video-generation",
         "@/lib/db",
         "@/lib/media/stitch-pipeline",
         "@/lib/schemas/director-plan",
         "@/lib/video-generation/tail-trim",
-        "@/types/video-generation",
         "./stitch-service",
+        "@/lib/services/workspace-brand-package-service",
         "@/lib/services/broll-assembly-service",
         "@/lib/video-generation/assembly-executor"
       ],
@@ -17618,7 +17622,8 @@
         "@/lib/video-generation/brand-signoff",
         "@/lib/video-generation/restitch-patch",
         "@/types/video-generation",
-        "@/lib/video-generation/generation-supervisor"
+        "@/lib/video-generation/generation-supervisor",
+        "@/lib/services/stitch-composer"
       ],
       "localImports": [
         "@/lib/media/media-fonts",
@@ -17627,7 +17632,8 @@
         "@/lib/video-generation/brand-signoff",
         "@/lib/video-generation/restitch-patch",
         "@/types/video-generation",
-        "@/lib/video-generation/generation-supervisor"
+        "@/lib/video-generation/generation-supervisor",
+        "@/lib/services/stitch-composer"
       ],
       "externalImports": [
         "node:assert/strict",

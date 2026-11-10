@@ -150,7 +150,8 @@ test("只重拼：可以只改落款；口播仍然不能在这里改；落款�
 test("界面：默认不带；落款有变化才提交；预填只取商家自己工作区的品牌包", async () => {
   const form = await readFile("src/components/library/restitch-form.tsx", "utf8");
   assert.match(form, /useState\(Boolean\(savedSignoff\?\.enabled\)\)/);
-  assert.match(form, /\.\.\.\(signoffChanged\s*\? \{ signoff: \{ enabled: signoffEnabled, brandName: signoffBrand\.trim\(\), cta: signoffCta\.trim\(\) \|\| null \} \}\s*: \{\}\)/);
+  assert.match(form, /\.\.\.\(signoffChanged\s*\? \{\s*signoff: \{\s*enabled: signoffEnabled,\s*brandName: signoffBrand\.trim\(\),\s*cta: signoffCta\.trim\(\) \|\| null,/);
+  assert.match(form, /\.\.\.\(signoffLogo && logoAvailable \? \{ logo: true \} : \{\}\)/);
   assert.match(form, /disabled=\{unchanged \|\| submitting \|\| pending \|\| signoffInvalid\}/);
   const detail = await readFile("src/app/(platform)/app/library/[id]/page.tsx", "utf8");
   assert.match(detail, /packages\.filter\(\(entry\) => entry\.scope === "workspace"\)/);
@@ -194,11 +195,70 @@ test("创作页：落款默认不带、预填只取自己工作区的品牌包�
   assert.match(studio, /brandPackages\.filter\(\(entry\) => entry\.scope === "workspace"\)/);
   assert.match(
     studio,
-    /\.\.\.\(signoffEnabled && signoffBrand\.trim\(\)\s*\? \{ signoff: \{ enabled: true, brandName: signoffBrand\.trim\(\), cta: signoffCta\.trim\(\) \|\| null \} \}\s*: \{\}\)/,
+    /\.\.\.\(signoffEnabled && signoffBrand\.trim\(\)\s*\? \{\s*signoff: \{\s*enabled: true,\s*brandName: signoffBrand\.trim\(\),\s*cta: signoffCta\.trim\(\) \|\| null,/,
   );
+  assert.match(studio, /\.\.\.\(signoffLogo && signoffLogoUrl \? \{ logo: true \} : \{\}\)/);
   assert.match(studio, /if \(signoffEnabled && !signoffBrand\.trim\(\)\) return copy\.signoffRequired;/);
   assert.match(studio, /data-testid="streamlined-signoff"/);
   /// 派发时落库的是服务端按请求重建的方案（不是客户端传来的那份）
   const dispatch = await readFile("src/app/api/video-generation/dispatch/route.ts", "utf8");
   assert.match(dispatch, /videoGenerationPlan: plan as unknown as object,/);
+});
+
+test("落款带 Logo：只是一个开关，图片由服务端按成片主人取自己工作区的品牌包；取不到就不带", async () => {
+  const { signoffLogoGeometry, buildSignoffLogoFilter } = await import("@/lib/video-generation/brand-signoff");
+  /// 开关进校验；客户端传不了图片地址
+  assert.equal(signoffSettingsSchema.parse({ enabled: true, brandName: "NORDA", logo: true }).logo, true);
+  assert.equal(signoffSettingsSchema.safeParse({ enabled: true, brandName: "NORDA", logoUrl: "https://evil.example.com/x.png" }).success, false);
+
+  /// 落点：坐在文字块正上方、水平居中；有行动指引时文字块更高，Logo 跟着上移
+  const text = signoffGeometry({ width: 1080, height: 1920, captionPosition: "bottom" });
+  const withCta = signoffLogoGeometry({ width: 1080, height: 1920, captionPosition: "bottom", hasCta: true });
+  const noCta = signoffLogoGeometry({ width: 1080, height: 1920, captionPosition: "bottom", hasCta: false });
+  assert.ok(withCta.bottomY < noCta.bottomY && noCta.bottomY < text.y);
+  assert.ok(withCta.maxWidth <= 1080 * 0.45 && withCta.maxHeight <= 1080 * 0.1);
+
+  const filter = buildSignoffLogoFilter({ inputIndex: 2, sourceLabel: "[vsign]", outputLabel: "[vsignlogo]", geometry: withCta, startSec: 12.8 });
+  assert.match(filter, /^\[2:v:0\]scale=w=\d+:h=\d+:force_original_aspect_ratio=decrease/);
+  assert.match(filter, /drawbox=x=0:y=0:w=iw:h=ih:color=white@0\.94:t=fill:replace=1\[signplate\]/, "整块白底板，透明底的 Logo 也垫上");
+  assert.match(filter, /fade=t=in:st=12\.800:d=0\.250:alpha=1\[signlogo\]/);
+  assert.match(filter, /\[vsign\]\[signlogo\]overlay=x=\(W-w\)\/2:y=\d+-h:enable='gte\(t,12\.800\)':eof_action=repeat\[vsignlogo\]$/);
+
+  /// 滤镜串：Logo 叠在落款文字之后；没有 Logo 时与只有文字落款的滤镜串一致
+  const base = {
+    clips: [{ videoInput: 0, audioInput: 0, frames: 375, samples: 720_000 }],
+    width: 1080,
+    height: 1920,
+    fps: "25",
+    ass: null,
+    signoffAss: { path: "/tmp/w/brand-signoff.ass", fontsDir: "/fonts" },
+    audioPlanFilter: null,
+    audioPlanOutput: null,
+  };
+  const textOnly = buildTimelineFilterGraph(base);
+  const withLogo = buildTimelineFilterGraph({ ...base, signoffLogo: { inputIndex: 1, geometry: withCta, startSec: 12.8 } });
+  assert.deepEqual(buildTimelineFilterGraph({ ...base, signoffLogo: null }), textOnly);
+  assert.equal(withLogo.videoLabel, "[vsignlogo]");
+  assert.ok(withLogo.filterComplex.startsWith(textOnly.filterComplex));
+
+  /// 快照：勾了才有 logo 键；有没有 Logo 算一处改动
+  const plain = mergeRestitchPatch(BASE, parseRestitchPatch({ signoff: { enabled: true, brandName: "NORDA" } }));
+  assert.equal("logo" in plain.signoff!, false);
+  const logo = mergeRestitchPatch(plain, parseRestitchPatch({ signoff: { enabled: true, brandName: "NORDA", logo: true } }));
+  assert.equal(logo.signoff?.logo, true);
+  assert.equal(restitchPatchIsNoop(plain, logo), false);
+
+  /// 服务端取图：没开落款 / 没勾 Logo / 不知道主人 → 不查库直接不带
+  const { resolveSignoffLogoUrl } = await import("@/lib/services/stitch-composer");
+  assert.equal(await resolveSignoffLogoUrl(BASE, "user-1"), null);
+  assert.equal(await resolveSignoffLogoUrl(plain, "user-1"), null);
+  assert.equal(await resolveSignoffLogoUrl(logo, null), null);
+  const composer = await readFile("src/lib/services/stitch-composer.ts", "utf8");
+  assert.match(composer, /\.filter\(\(entry\) => entry\.scope === "workspace"\)/, "只取自己工作区的品牌包，不取全局包");
+  const service = await readFile("src/lib/services/stitch-service.ts", "utf8");
+  assert.match(service, /\[".png", ".jpg", ".jpeg", ".webp"\]\.includes\(logoExt\)/);
+  assert.match(service, /sign-off logo download failed; composing without it/);
+  const pipeline = await readFile("src/lib/media/stitch-pipeline.ts", "utf8");
+  /// Logo 输入必须排在 BGM 之前（BGM 约定是最后一个输入）
+  assert.ok(pipeline.indexOf("input.signoffLogoPath);") < pipeline.indexOf("bgmInputIndex: effects.bgmPath ? nextInput : undefined"));
 });

@@ -95,6 +95,7 @@ export function normalizePostProductionSettings(
             enabled: true,
             brandName: request.signoff.brandName.trim(),
             cta: request.signoff.cta?.trim() || null,
+            ...(request.signoff.logo ? { logo: true } : {}),
           },
         }
       : {}),

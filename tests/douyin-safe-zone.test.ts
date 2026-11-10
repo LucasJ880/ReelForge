@@ -143,7 +143,8 @@ test("[douyin] 导演方案的安全区说明按平台走，合成器把订单�
   assert.doesNotMatch(director, /central 80% to clear TikTok/);
 
   const composer = readFileSync("src/lib/services/stitch-composer.ts", "utf8");
-  assert.match(composer, /deliveryOrder: \{ select: \{ productInput: true, targetPlatform: true \} \}/);
+  /// 2026-11-10：多取一个 createdById（片尾落款的 Logo 按成片主人取）
+  assert.match(composer, /deliveryOrder: \{ select: \{ productInput: true, targetPlatform: true, createdById: true \} \}/);
   /// b-roll / assembly / legacy 三条分支都带上平台
   assert.equal(composer.match(/^\s+platform,$/gm)?.length, 3);
   const pipeline = readFileSync("src/lib/media/stitch-pipeline.ts", "utf8");

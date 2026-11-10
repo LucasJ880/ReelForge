@@ -32,7 +32,14 @@ import {
 } from "@/lib/video-generation/audio-post-production";
 import { measureSpeechSafeTailTrim } from "@/lib/video-generation/tail-trim";
 import { renderAiBadgeAss, shouldBurnAiBadge } from "@/lib/compliance/ai-generated-badge";
-import { renderSignoffAss, signoffActive, signoffWindow } from "@/lib/video-generation/brand-signoff";
+import {
+  buildSignoffLogoFilter,
+  renderSignoffAss,
+  signoffActive,
+  signoffLogoGeometry,
+  signoffWindow,
+  type SignoffLogoGeometry,
+} from "@/lib/video-generation/brand-signoff";
 import { probeMedia, runFfmpeg, type MediaProbe } from "./ffmpeg-bin";
 import { pickStitchFrameRate } from "./frame-rate";
 import { ensureMediaFonts } from "./media-fonts";
@@ -355,6 +362,8 @@ export function buildTimelineFilterGraph(args: {
   badgeAss?: { path: string; fontsDir: string } | null;
   /** 片尾落款（品牌名 + 行动指引，只在主片段最后两秒）；null / 不传 = 不烧，滤镜串与之前逐字节一致 */
   signoffAss?: { path: string; fontsDir: string } | null;
+  /** 落款上方的品牌 Logo（一路循环静帧输入）；null / 不传 = 不叠 */
+  signoffLogo?: { inputIndex: number; geometry: SignoffLogoGeometry; startSec: number } | null;
   /** buildAudioFilterPlan 的 filterComplex（以 [acat] 为原生音轨）；null = 不混音直接用 [acat] */
   audioPlanFilter: string | null;
   audioPlanOutput: string | null;
@@ -396,6 +405,18 @@ export function buildTimelineFilterGraph(args: {
       `${videoLabel}ass=filename='${escapeFfmpegFilterPath(args.signoffAss.path)}':fontsdir='${escapeFfmpegFilterPath(args.signoffAss.fontsDir)}'[vsign]`,
     );
     videoLabel = "[vsign]";
+  }
+  if (args.signoffLogo) {
+    parts.push(
+      buildSignoffLogoFilter({
+        inputIndex: args.signoffLogo.inputIndex,
+        sourceLabel: videoLabel,
+        outputLabel: "[vsignlogo]",
+        geometry: args.signoffLogo.geometry,
+        startSec: args.signoffLogo.startSec,
+      }),
+    );
+    videoLabel = "[vsignlogo]";
   }
   let audioLabel = "[acat]";
   if (args.audioPlanFilter && args.audioPlanOutput) {
@@ -488,6 +509,11 @@ export interface ComposeTimelineInput {
    */
   platform?: string | null;
   /**
+   * 片尾落款要带的品牌 Logo 的本地文件（已下载的图片）。只有落款开着、且快照里 signoff.logo 为 true 才会用；
+   * 不传 / 落款没开 = 不叠。图片由调用方按成片主人取（见 stitch-composer），这里只管叠。
+   */
+  signoffLogoPath?: string | null;
+  /**
    * 常驻「AI生成」角标的显式开关：true / false 以它为准；不传 = 按平台与部署开关决定
    *（见 compliance/ai-generated-badge 的 shouldBurnAiBadge）。
    */
@@ -510,7 +536,7 @@ export interface ComposeTimelineOutput {
   thumbnailPath: string | null;
   durationSec: number;
   captionWindowSec: number | null;
-  applied: { captions: boolean; audioMix: boolean; bgm: boolean; aiBadge: boolean; /** 片尾落款有没有烧上去 */ signoff?: boolean };
+  applied: { captions: boolean; audioMix: boolean; bgm: boolean; aiBadge: boolean; /** 片尾落款有没有烧上去 */ signoff?: boolean; /** 落款上的 Logo 有没有叠上去 */ signoffLogo?: boolean };
   clips: TimelineClipReport[];
   timings: Record<string, number>;
   /** 主编码的 ffmpeg stderr（logLevel=info 时含 libass 日志） */
@@ -822,6 +848,23 @@ export async function composeTimeline(
     return { videoInput, audioInput, frames: state.frames, samples: state.samples };
   });
 
+  /// 落款 Logo：一张静帧循环成与成片等长的一路输入（必须排在 BGM 之前——BGM 约定是最后一个输入）
+  let signoffLogo: { inputIndex: number; geometry: SignoffLogoGeometry; startSec: number } | null = null;
+  if (signoffAss && signoffSpan && signoff?.logo && input.signoffLogoPath) {
+    inputArgs.push("-loop", "1", "-framerate", fps, "-t", totalSec.toFixed(3), "-i", input.signoffLogoPath);
+    signoffLogo = {
+      inputIndex: nextInput++,
+      geometry: signoffLogoGeometry({
+        width,
+        height,
+        platform: input.platform,
+        captionPosition: effects.captions ? input.postProduction?.captions.position : null,
+        hasCta: Boolean(signoff.cta?.trim()),
+      }),
+      startSec: signoffSpan.startSec,
+    };
+  }
+
   /// Shuyu 口播属于生成模型的原生音轨（b-roll 是烘进去的配音），拼接只负责保留 / 标准化
   /// 并与 BGM 闪避混音，绝不叠另一家 TTS。concat 之后每段都有音轨（真实或补的静音），
   /// 原生音轨恒存在，不会再出现「判成无口播 → 人声被换成纯音乐」。
@@ -858,6 +901,7 @@ export async function composeTimeline(
     ass,
     badgeAss,
     signoffAss,
+    signoffLogo,
     audioPlanFilter,
     audioPlanOutput,
   });
@@ -944,6 +988,7 @@ export async function composeTimeline(
       bgm: Boolean(effects.bgmPath),
       aiBadge: Boolean(badgeAss),
       signoff: Boolean(signoffAss),
+      signoffLogo: Boolean(signoffLogo),
     },
     clips: states.map((state, index) => ({
       index,

@@ -65,7 +65,9 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
           .then((packages) => {
             const own = packages.filter((entry) => entry.scope === "workspace");
             const pick = own.find((entry) => entry.isDefault) ?? own[0] ?? null;
-            return pick ? { brandName: pick.brandName, cta: pick.cta } : null;
+            return pick
+              ? { brandName: pick.brandName, cta: pick.cta, packageName: pick.name, logoUrl: pick.logoAsset?.url ?? null }
+              : null;
           })
           .catch(() => null)
       : null;

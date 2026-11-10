@@ -25,6 +25,9 @@ export const signoffSettingsSchema = z
     enabled: z.boolean(),
     brandName: z.string().trim().max(SIGNOFF_BRAND_MAX),
     cta: z.string().trim().max(SIGNOFF_CTA_MAX).nullable().optional(),
+    /// 落款上方带不带品牌 Logo 图。只是一个开关：用哪张图由服务端在合成时取成片主人自己工作区的默认品牌包，
+    /// 客户端传不了图片地址（不给别人的品牌、也不给任意外链留口子）。
+    logo: z.boolean().optional(),
   })
   .strict()
   .refine((value) => !value.enabled || value.brandName.length > 0, {
@@ -91,6 +94,62 @@ export function signoffGeometry(args: {
     x: Math.round(args.width / 2),
     y: Math.round(args.height * yRatio),
   };
+}
+
+export interface SignoffLogoGeometry {
+  /// Logo 缩进这个框里（保持比例）
+  maxWidth: number;
+  maxHeight: number;
+  /// 白色底板的内边距（品牌 Logo 多半是给浅色背景设计的，直接压在画面上常常看不清）
+  pad: number;
+  /// 底板底边的 y（在落款文字块上方留一条缝）
+  bottomY: number;
+}
+
+/** Logo 的落点：水平居中，坐在落款文字块的正上方。 */
+export function signoffLogoGeometry(args: {
+  width: number;
+  height: number;
+  platform?: string | null;
+  captionPosition?: "top" | "center" | "bottom" | null;
+  hasCta: boolean;
+}): SignoffLogoGeometry {
+  const text = signoffGeometry(args);
+  const shortSide = Math.min(args.width, args.height);
+  /// 文字块高度：每行底板 ≈ 字号 + 一份内边距（2026-11-10 按本地合成出的画面量的：字号 67 / 45 的两行共约 136 像素）
+  const line = (fontSize: number) => fontSize + text.padding;
+  const textBlock = line(text.brandFontSize) + (args.hasCta ? line(text.ctaFontSize) : 0);
+  const maxHeight = Math.round(shortSide * 0.085);
+  return {
+    maxWidth: Math.round(args.width * 0.42),
+    maxHeight,
+    pad: Math.max(4, Math.round(maxHeight * 0.14)),
+    bottomY: text.y - textBlock - Math.round(shortSide * 0.012),
+  };
+}
+
+/**
+ * 把 Logo 叠到画面上的滤镜串（纯函数）。Logo 输入是一张循环成与成片等长的静帧：
+ * 缩进框里 → 垫一整块白色底板 → 透明度从落款开始那一刻淡入（之前全透明）→ 叠在文字块上方居中。
+ */
+export function buildSignoffLogoFilter(args: {
+  inputIndex: number;
+  sourceLabel: string;
+  outputLabel: string;
+  geometry: SignoffLogoGeometry;
+  startSec: number;
+}): string {
+  const { geometry } = args;
+  const start = args.startSec.toFixed(3);
+  const fade = (SIGNOFF_FADE_IN_MS / 1000).toFixed(3);
+  return (
+    `[${args.inputIndex}:v:0]scale=w=${geometry.maxWidth}:h=${geometry.maxHeight}:force_original_aspect_ratio=decrease:flags=lanczos,` +
+    `format=rgba,pad=iw+${geometry.pad * 2}:ih+${geometry.pad * 2}:${geometry.pad}:${geometry.pad}:color=white@0,split[signfg][signbase];` +
+    /// 整块白底板（连 Logo 自己的透明处也垫上）：pad 只给四周加边，透明底的 Logo 中间还是透的
+    `[signbase]drawbox=x=0:y=0:w=iw:h=ih:color=white@0.94:t=fill:replace=1[signplate];` +
+    `[signplate][signfg]overlay=format=auto,fade=t=in:st=${start}:d=${fade}:alpha=1[signlogo];` +
+    `${args.sourceLabel}[signlogo]overlay=x=(W-w)/2:y=${geometry.bottomY}-h:enable='gte(t,${start})':eof_action=repeat${args.outputLabel}`
+  );
 }
 
 function assTime(seconds: number): string {

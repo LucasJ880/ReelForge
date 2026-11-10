@@ -28,7 +28,7 @@ export interface RestitchDefaults {
   captions: CaptionSettings;
   bgm: { trackId: BgmTrackId; volume: number };
   /** 这条成片现在的片尾落款；没设过 = null */
-  signoff?: { enabled: boolean; brandName: string; cta?: string | null } | null;
+  signoff?: { enabled: boolean; brandName: string; cta?: string | null; logo?: boolean } | null;
 }
 
 export type SignoffCopy = {
@@ -39,6 +39,9 @@ export type SignoffCopy = {
   ctaLabel: string;
   ctaPlaceholder: string;
   brandRequired: string;
+  /** 「在品牌名上方带上 Logo」；{name} = 品牌包的名字 */
+  logoToggle: string;
+  logoHint: string;
 };
 
 const SELECT_CLASS =
@@ -59,7 +62,7 @@ export function RestitchForm({
   /** 已有品牌封装成片：提示换完要重新封装（服务端会清空旧封装） */
   branded?: boolean;
   /** 第一次勾选落款时预填的品牌名 / 行动指引：商家自己工作区的默认品牌包（不取全局包）；商家可以改 */
-  signoffSuggestion?: { brandName: string; cta: string | null } | null;
+  signoffSuggestion?: { brandName: string; cta: string | null; packageName?: string; logoUrl?: string | null } | null;
   signoffCopy: SignoffCopy;
   copy: {
     title: string;
@@ -87,11 +90,14 @@ export function RestitchForm({
   const [signoffEnabled, setSignoffEnabled] = useState(Boolean(savedSignoff?.enabled));
   const [signoffBrand, setSignoffBrand] = useState(savedSignoff?.brandName || signoffSuggestion?.brandName || "");
   const [signoffCta, setSignoffCta] = useState(savedSignoff?.cta ?? signoffSuggestion?.cta ?? "");
-  const signoffEffect = (enabled: boolean, brand: string, cta: string | null | undefined) =>
-    enabled && brand.trim() ? `${brand.trim()}\n${cta?.trim() ?? ""}` : "off";
+  /// Logo：只有自己的品牌包里有 Logo 才给这个选项；用哪张图由服务端按账号取，这里只传一个开关
+  const logoAvailable = Boolean(signoffSuggestion?.logoUrl);
+  const [signoffLogo, setSignoffLogo] = useState(Boolean(savedSignoff?.logo) && logoAvailable);
+  const signoffEffect = (enabled: boolean, brand: string, cta: string | null | undefined, logo: boolean) =>
+    enabled && brand.trim() ? `${brand.trim()}\n${cta?.trim() ?? ""}\n${logo ? "logo" : ""}` : "off";
   const signoffChanged =
-    signoffEffect(signoffEnabled, signoffBrand, signoffCta) !==
-    signoffEffect(Boolean(savedSignoff?.enabled), savedSignoff?.brandName ?? "", savedSignoff?.cta);
+    signoffEffect(signoffEnabled, signoffBrand, signoffCta, signoffLogo) !==
+    signoffEffect(Boolean(savedSignoff?.enabled), savedSignoff?.brandName ?? "", savedSignoff?.cta, Boolean(savedSignoff?.logo));
   const signoffInvalid = signoffEnabled && !signoffBrand.trim();
 
   const unchanged =
@@ -122,7 +128,14 @@ export function RestitchForm({
             bgm: { trackId: bgmTrackId, volume: bgmTrackId === "none" ? 0 : bgmVolume },
             /// 落款有变化才带上（没动过的老成片不平白多一个键）
             ...(signoffChanged
-              ? { signoff: { enabled: signoffEnabled, brandName: signoffBrand.trim(), cta: signoffCta.trim() || null } }
+              ? {
+                  signoff: {
+                    enabled: signoffEnabled,
+                    brandName: signoffBrand.trim(),
+                    cta: signoffCta.trim() || null,
+                    ...(signoffLogo && logoAvailable ? { logo: true } : {}),
+                  },
+                }
               : {}),
           },
         }),
@@ -282,6 +295,28 @@ export function RestitchForm({
                 onChange={(event) => setSignoffCta(event.target.value)}
               />
             </label>
+            {logoAvailable ? (
+              <label className="flex cursor-pointer items-start justify-between gap-4 text-meta text-muted-foreground" data-testid="restitch-signoff-logo">
+                <span className="flex min-w-0 items-center gap-3">
+                  {/* 预览用的就是合成时会取的那张：商家自己默认品牌包的 Logo */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={signoffSuggestion?.logoUrl ?? ""} alt="" className="h-8 w-auto max-w-24 shrink-0 rounded-(--radius-sm) bg-(--brand-tile) object-contain p-1" />
+                  <span className="min-w-0">
+                    <span className="block text-body text-foreground">
+                      {signoffCopy.logoToggle.replace("{name}", signoffSuggestion?.packageName ?? "")}
+                    </span>
+                    <span className="block">{signoffCopy.logoHint}</span>
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={signoffLogo}
+                  disabled={submitting}
+                  className="mt-1 size-4 shrink-0 accent-primary"
+                  onChange={(event) => setSignoffLogo(event.target.checked)}
+                />
+              </label>
+            ) : null}
             {signoffInvalid ? <p role="alert" className="text-meta text-danger">{signoffCopy.brandRequired}</p> : null}
           </>
         ) : null}

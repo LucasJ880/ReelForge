@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T04:43:42.968Z",
+  "generatedAt": "2026-11-10T04:48:45.555Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -18116,8 +18116,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 564,
-      "sizeBytes": 33089,
+      "lineCount": 568,
+      "sizeBytes": 33524,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -21403,8 +21403,8 @@
       "importantSymbols": [
         "BatchCreateWizard"
       ],
-      "lineCount": 1177,
-      "sizeBytes": 53109,
+      "lineCount": 1178,
+      "sizeBytes": 53208,
       "notes": "React component; client component"
     },
     {
@@ -24355,7 +24355,7 @@
         "getPlatformCopy"
       ],
       "lineCount": 1172,
-      "sizeBytes": 77230,
+      "sizeBytes": 77261,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -26218,8 +26218,8 @@
         "readingName",
         "readingFormula"
       ],
-      "lineCount": 115,
-      "sizeBytes": 6707,
+      "lineCount": 117,
+      "sizeBytes": 7060,
       "notes": "Utility / helper module"
     },
     {
@@ -28806,6 +28806,7 @@
         "loadNeedsAttention",
         "acknowledgeFailures",
         "ExchangeReadings",
+        "countPublishRegistered",
         "countFinished",
         "loadExchangeReadings"
       ],
@@ -28833,8 +28834,8 @@
         "batchFailureWhere",
         "orderFailureWhere"
       ],
-      "lineCount": 557,
-      "sizeBytes": 24144,
+      "lineCount": 573,
+      "sizeBytes": 24813,
       "notes": "Business logic service; hits Prisma DB"
     },
     {
@@ -38471,7 +38472,8 @@
       "type": "test",
       "area": "tests",
       "exports": [
-        "BRAND_END_CARD_ENTRY_ENABLED"
+        "BRAND_END_CARD_ENTRY_ENABLED",
+        "countPublishRegistered"
       ],
       "imports": [
         "node:assert/strict",
@@ -38480,10 +38482,11 @@
         "@/i18n/platform-copy"
       ],
       "importantSymbols": [
-        "BRAND_END_CARD_ENTRY_ENABLED"
+        "BRAND_END_CARD_ENTRY_ENABLED",
+        "countPublishRegistered"
       ],
-      "lineCount": 54,
-      "sizeBytes": 3053,
+      "lineCount": 74,
+      "sizeBytes": 4456,
       "notes": "Unit / integration test; area=tests"
     },
     {

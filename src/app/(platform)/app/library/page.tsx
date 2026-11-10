@@ -479,7 +479,8 @@ export default async function PlatformLibraryPage({
                             ) : (
                               <span>{row.aspectRatio ?? copy.aspectPending}</span>
                             )}
-                            <LocalTime iso={row.updatedAt.toISOString()} locale={locale} variant="date" />
+                            {/* 带上钟点：同一个商品连出几条时标题一模一样，只写「今天」分不清哪条是哪条 */}
+                            <LocalTime iso={row.updatedAt.toISOString()} locale={locale} variant="datetime" />
                           </p>
                           {row.bgmAttribution ? (
                             /* CC BY 配乐：署名随交付给客户（截断显示，选中复制得到全文） */

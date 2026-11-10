@@ -127,7 +127,7 @@ test("出过成片的账号不再自动弹新手引导；指南里的重开入�
 
 test("故事板出帧：写明一般多久，排队的帧不说「正在绘制」", async () => {
   const panel = await readFile("src/components/video-generation/storyboard-workflow-panel.tsx", "utf8");
-  assert.match(panel, /一般三五分钟出齐/);
+  assert.match(panel, /一般两三分钟出齐/);
   assert.match(panel, /frame\?\.status === "QUEUED" && !regenerating/);
   assert.match(panel, /排队中，马上开始/);
 });

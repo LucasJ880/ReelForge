@@ -165,3 +165,30 @@ test("library detail derives making-process steps only from persisted evidence",
   assert.ok(steps.every((step) => step.status === "completed"));
   assert.equal(steps[1]?.summary, "storyboard_approved");
 });
+
+test("制作过程：第 1 步的时间不晚于第 2 步（订单是点「生成视频」时才建的，比故事板晚）", () => {
+  const steps = deriveMakingProcess({
+    /// 真实顺序：建故事板 → 确认故事板 → 点生成视频（这时才有订单与 brief）
+    orderCreatedAt: new Date("2026-11-10T02:11:00.000Z"),
+    briefCreatedAt: new Date("2026-11-10T02:11:02.000Z"),
+    briefStatus: "RENDER_SUCCEEDED",
+    storyboardStatus: "APPROVED",
+    storyboardCreatedAt: new Date("2026-11-10T02:04:00.000Z"),
+    storyboardApprovedAt: new Date("2026-11-10T02:10:52.000Z"),
+    videoJobs: [{ status: "SUCCEEDED", submittedAt: new Date("2026-11-10T02:11:02.000Z"), finishedAt: new Date("2026-11-10T02:57:41.000Z") }],
+    finalVideoStatus: "READY",
+    finalVideoFinishedAt: new Date("2026-11-10T02:59:00.000Z"),
+    hasPlayableVideo: true,
+  });
+  assert.equal(steps[0]?.timestamp?.toISOString(), "2026-11-10T02:04:00.000Z", "需求确认 = 建故事板那一刻");
+  assert.ok(steps[0]!.timestamp!.getTime() <= steps[1]!.timestamp!.getTime());
+  /// 老数据（订单先于故事板、或没有故事板）照旧用 brief / 订单时间
+  const legacy = deriveMakingProcess({
+    orderCreatedAt: new Date("2026-07-20T10:00:00.000Z"),
+    briefCreatedAt: new Date("2026-07-20T10:01:00.000Z"),
+    briefStatus: "RENDER_SUCCEEDED",
+    videoJobs: [],
+    hasPlayableVideo: true,
+  });
+  assert.equal(legacy[0]?.timestamp?.toISOString(), "2026-07-20T10:01:00.000Z");
+});

@@ -467,15 +467,22 @@ export function pendingSoakSpend(record: Pick<SoakRecord, "current">): { frames:
 }
 
 /**
- * 估算，两组分开列：故事板帧与 Shuyu 视频按实时套餐单价算点数；Runway 没有可查的价目，单价（美元 / 条）由调用方给，
- * 没给就是「未定价」，预算闸会拒绝花钱。Runway 条目的故事板帧仍按 Shuyu 出图算（默认如此，见驱动里的说明）。
+ * 估算，两组分开列：Shuyu 的故事板帧与视频按实时套餐单价算点数；Runway 没有可查的价目，单价（美元）由调用方给，
+ * 没给就是「未定价」，预算闸会拒绝花钱。
+ * 故事板帧走哪家出图看账号，不看这条视频走哪条线路：在 Runway 灰度名单里的账号（或全员切 Runway 时）帧走 Runway、
+ * 按美元计，不扣 Shuyu 点数（11-10 冒烟实测：测试账号的 8 帧全走 Runway，每帧 20 credits = $0.20）。
  */
 export function estimateSoakSpend(args: {
   records: ReadonlyArray<Pick<SoakRecord, "current" | "route" | "group">>;
   frameUnitPoints: number | null;
   shuyuVideoUnitPoints: number | null;
   runwayVideoUnitUsd: number | null;
+  /// 这个账号的故事板帧走哪家出图；缺省 shuyu
+  frameRoute?: "shuyu" | "runway";
+  /// 帧走 Runway 时的单价（美元 / 帧）
+  runwayFrameUnitUsd?: number | null;
 }): SpendEstimate {
+  const runwayFrames = args.frameRoute === "runway";
   return estimateSpend(
     SOAK_GROUPS.flatMap((group) => {
       let frames = 0;
@@ -488,7 +495,9 @@ export function estimateSoakSpend(args: {
         else shuyuVideos += pending.videos;
       }
       return [
-        { armId: `${group.id} 组·故事板帧`, count: frames, unitPoints: args.frameUnitPoints, unitUsd: null },
+        runwayFrames
+          ? { armId: `${group.id} 组·故事板帧（Runway 出图）`, count: frames, unitPoints: null, unitUsd: args.runwayFrameUnitUsd ?? null }
+          : { armId: `${group.id} 组·故事板帧`, count: frames, unitPoints: args.frameUnitPoints, unitUsd: null },
         { armId: `${group.id} 组·Shuyu 视频`, count: shuyuVideos, unitPoints: args.shuyuVideoUnitPoints, unitUsd: null },
         { armId: `${group.id} 组·Runway 视频`, count: runwayVideos, unitPoints: null, unitUsd: args.runwayVideoUnitUsd },
       ];
@@ -673,7 +682,15 @@ export interface SoakSummary {
   failures: Array<{ id: string; stage: string; reason: string }>;
   /// 视频提交「确认未知」的条数（段的 submissionState = ACK_UNKNOWN，或派发回 SUBMISSION_ACK_UNKNOWN）
   videoAckUnknown: number;
-  frames: { total: number; failed: number; cancelled: number; ackUnknown: number; failureRate: number | null };
+  frames: {
+    total: number;
+    failed: number;
+    cancelled: number;
+    ackUnknown: number;
+    failureRate: number | null;
+    /// 各出图套餐的帧数（StoryboardFrame.planId；runway: 开头的是 Runway 出图、按美元计）
+    byPlan: Record<string, number>;
+  };
   /// 帧质检各状态的段数；没写状态的记在「(未写入)」
   frameQa: Record<string, number>;
   /// 计划走 Shuyu、实际有段落到别的线路（失败改交）的条数
@@ -872,6 +889,11 @@ export function summarizeSoak(
       cancelled: cancelledFrames,
       ackUnknown: allFrames.filter((frame) => frame.submissionState === "ACK_UNKNOWN").length,
       failureRate: allFrames.length === 0 ? null : failedFrames / allFrames.length,
+      byPlan: allFrames.reduce<Record<string, number>>((counts, frame) => {
+        const key = frame.planId ?? "(还没提交)";
+        counts[key] = (counts[key] ?? 0) + 1;
+        return counts;
+      }, {}),
     },
     frameQa,
     rerouted: started.filter(
@@ -977,6 +999,7 @@ function planComparisonSection(comparison: SoakPlanComparison): string[] {
     ),
     "",
     "- 出方案阶段耗时的口径：A 组建故事板是线上接口往返（含镜头卡与原话英译两次模型调用）；B 组是本机建、不调模型。「生成视频」那一下线上都会重出一遍方案（调模型），B 组只是把其中 AI 段的提示词正文换成本机算的，所以这一列两组都含模型调用，不代表砍掉 OpenAI 之后的耗时。",
+    "- 两组进成片提示词的差别（线上缺省是精简出方案，一致性设定与段提示词本来就不调模型）：镜头卡对模板节拍、原话英译对商家原话、商品描述来自看图对不看图。",
     `- 配对：共 ${comparison.pairs} 对，两组都出了成片、可以盲评的 ${comparison.pairsReady} 对`,
     ...(comparison.tallies.length === 0
       ? ["- 盲评：还没有票（把盲评页导出的 JSON 交给 tally 子命令）"]
@@ -1021,6 +1044,11 @@ export function renderSoakReport(runKey: string, summary: SoakSummary, generated
     `- 成功率 ${percent(summary.successRate)}，端到端 P50 ${minutes(summary.p50Ms)} / P90 ${minutes(summary.p90Ms)}（从点「生成故事板」到成片合成完成；故事板只靠线上每分钟一次的定时任务推进，比开着页面的商家略慢）`,
     `- 视频提交确认未知：${summary.videoAckUnknown} 条`,
     `- 故事板帧：共 ${summary.frames.total} 帧，失败 ${summary.frames.failed}（失败率 ${percent(summary.frames.failureRate)}），其中提交确认未知 ${summary.frames.ackUnknown}；另有 ${summary.frames.cancelled} 帧随取消停掉`,
+    `- 故事板出图走的套餐：${
+      Object.keys(summary.frames.byPlan).length === 0
+        ? "还没有帧"
+        : Object.entries(summary.frames.byPlan).map(([plan, count]) => `${plan} ${count} 帧`).join("，")
+    }${Object.keys(summary.frames.byPlan).some((plan) => plan.startsWith("runway:")) ? "（runway: 开头的按 Runway 美元计费，不扣 Shuyu 点数）" : ""}`,
     `- 帧质检：${qa.length === 0 ? "还没有段" : qa.map(([status, count]) => `${status} ${count}`).join("，")}`,
     (summary.frameQa.SKIPPED ?? 0) + (summary.frameQa["(未写入)"] ?? 0) > 0
       ? "- 注意：有段是 SKIPPED 或没写质检状态。没检不等于通过，先查原因（门禁没开、没给视频地址，还是轮 1 的 UNVERIFIED 改动没上线）。"

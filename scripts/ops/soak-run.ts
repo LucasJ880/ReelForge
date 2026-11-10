@@ -14,8 +14,10 @@
  *   - 帧质检照线上的设置开着跑，脚本不关、不绕。
  *
  * A/B 两组（同一件商品、同一个角度、同一批商品图，一对的两条在同一波、走同一条线路）：
- *   - A 组「调 OpenAI 出方案」：现状。建故事板与生成视频都调线上接口，镜头卡、原话英译、创意简报、看参考图、一致性设定、
- *     段提示词都由线上调模型出。
+ *   - A 组「调 OpenAI 出方案」：现状。建故事板与生成视频都调线上接口。线上从 11-09 起缺省是「精简出方案」
+ *     （src/lib/video-generation/planning-mode.ts）：调模型的只剩镜头卡、原话英译、创意简报、看商品图；一致性设定与
+ *     段提示词已是确定性模板（线上设了 PLANNING_FULL_LLM=on 才退回调模型）。所以两组进成片提示词的差别是三样：
+ *     镜头卡对模板节拍、原话英译对商家原话、PRODUCT 行的商品描述来自看图对不看图。
  *   - B 组「不调 OpenAI 出方案」：用的开关是 LLM_FORCE_MOCK=true（src/lib/providers/openai.ts 的 isLLMForcedMock），
  *     它是进程级的环境变量，没有按请求的版本，所以只能设在本机这个进程里，线上不动：
  *       1. 故事板在本机进程里建（createStoryboardRun，与线上路由调的是同一个 service，同样计一小时限流）：
@@ -23,8 +25,9 @@
  *       2. 生成视频仍调线上接口，但带上 confirmedPrompts（创作页「确认脚本」用的同一个字段）：本机在同一个开关下跑一遍
  *          buildPlan（创意简报、看参考图、一致性设定、段提示词全走启发式兜底），把 AI 段的提示词正文交上去盖掉线上的。
  *     做不到「线上完全不调 OpenAI」的地方（没有为此改生产代码）：
- *       - 线上派发照样会调模型重出一遍方案，只是 AI 段的提示词正文被盖掉。负面提示词（会拼进给视频模型的提示词）、
- *         派发前的质量把关（会不会被拦）仍来自线上那份调了模型的方案；
+ *       - 线上派发照样会出一遍方案并调模型（创意简报、看商品图），只是 AI 段的提示词正文被盖掉；派发前的质量把关
+ *         （会不会被拦）仍按线上那份方案判。负面提示词在精简出方案下是固定文案、两组相同；线上若设了
+ *         PLANNING_FULL_LLM=on，它就是模型写的、会拼进给视频模型的提示词，B 组盖不掉；
  *       - 所以 B 组「生成视频」那一下的用时仍含模型调用，不代表砍掉 OpenAI 之后的耗时；
  *       - B 组第 0 帧是本机代码、本机网络提交的（A 组是线上函数），故事板出图走哪家也按本机的环境变量判。
  *     这个开关在本机进程里还会关掉帧质检、内容审核、故事板自动评审的看图——但这三样本来就不在本机跑（质检与审核在线上，
@@ -43,6 +46,7 @@
  *   --wave morning|noon|evening|all   这次投哪一波（真提交时必填；all = 不分波，冒烟用）
  *   --arms / --cases / --angles / --limit N   只跑子集（第一次真提交时定下来，之后不用再给）；--limit 2 = 第一对的 A 与 B
  *   --runway <n>                其中 n 条（偶数，按对）点名走 Runway；要同时给 --runway-usd-per-video <单价> 与 --max-usd <上限>
+ *   --runway-usd-per-frame <单价>   账号的故事板帧走 Runway 出图时必填（估算会说明走哪家），同样要给 --max-usd
  *   --confirm-spend --max-points <上限>   真提交
  *   --base-url <线上地址>       真提交与取消时必填（或环境变量 SOAK_BASE_URL），如 https://reelforge-delta.vercel.app
  *   --account-file <路径>       测试账号文件，缺省 tmp/ceo-test-account.txt（两行：email: … / password: …）；不用 demo 账号
@@ -751,6 +755,31 @@ async function runLane(lane: LaneContext, record: SoakRecord): Promise<"finished
   return "paused";
 }
 
+/**
+ * 这个账号的故事板帧走哪家出图。看账号不看视频线路：在 Runway 灰度名单里（或全员切 Runway）的账号，帧走 Runway、
+ * 按美元计，不扣 Shuyu 点数——11-10 冒烟才发现测试账号就是这样，8 帧花了 160 credits（$1.60），不在点数估算里。
+ * 这里按本机的环境变量判（与线上判法同一个函数）；线上配置若不同，以报告里「故事板出图走的套餐」为准。
+ */
+async function storyboardFrameRoute(flags: Flags): Promise<{ route: "shuyu" | "runway"; note: string }> {
+  const file = resolve(REPO, flag(flags, "account-file") ?? "tmp/ceo-test-account.txt");
+  if (!existsSync(file)) {
+    return { route: "shuyu", note: "没找到测试账号文件，判断不了故事板帧走哪家出图，先按 Shuyu 估（真提交前必须能读到账号文件）" };
+  }
+  const { email } = loadCredentials(flags);
+  const { usesRunwayStoryboardImages } = await import("@/lib/video-generation/runway-rollout");
+  const { db } = await import("@/lib/db");
+  const user = await db.adminUser
+    .findUnique({ where: { email: email.trim().toLowerCase() }, select: { id: true } })
+    .catch(() => null)
+    .finally(() => db.$disconnect());
+  return usesRunwayStoryboardImages({ userId: user?.id ?? null, email })
+    ? {
+        route: "runway",
+        note: "这个测试账号的故事板帧走 Runway 出图（在灰度名单里或全员切了 Runway）：按美元计、不扣 Shuyu 点数，单价用 --runway-usd-per-frame 给（11-10 冒烟实测每帧 20 credits = 0.2 美元），上限用 --max-usd",
+      }
+    : { route: "shuyu", note: "这个测试账号的故事板帧走 Shuyu 出图，按点数计" };
+}
+
 async function livePrices() {
   const { getAvailableShuyuImagePlans, getShuyuBalance, resolveShuyuVideoPlan, shuyuVideoPlanPointsForDuration } =
     await import("@/lib/providers/shuyu");
@@ -782,14 +811,24 @@ async function commandRun(flags: Flags): Promise<void> {
 
   const prices = await livePrices();
   const runwayUnitUsd = parsePositiveLimit(flag(flags, "runway-usd-per-video"));
+  const runwayFrameUnitUsd = parsePositiveLimit(flag(flags, "runway-usd-per-frame"));
+  const frameRoute = await storyboardFrameRoute(flags);
   const estimateOf = (subset: readonly SoakRecord[]) =>
-    estimateSoakSpend({ records: subset, frameUnitPoints: prices.frameUnitPoints, shuyuVideoUnitPoints: prices.videoUnitPoints, runwayVideoUnitUsd: runwayUnitUsd });
+    estimateSoakSpend({
+      records: subset,
+      frameUnitPoints: prices.frameUnitPoints,
+      shuyuVideoUnitPoints: prices.videoUnitPoints,
+      runwayVideoUnitUsd: runwayUnitUsd,
+      frameRoute: frameRoute.route,
+      runwayFrameUnitUsd,
+    });
   const estimate = estimateOf(scope);
   const runwayCount = context.items.filter((item) => item.route === "runway").length;
 
   const groupCounts = SOAK_GROUPS.map((group) => `${group.id} 组 ${context.items.filter((item) => item.group === group.id).length}`).join(" / ");
   console.log(`[soak] ${context.runKey}：共 ${context.items.length} 条（${groupCounts}；Shuyu ${context.items.length - runwayCount} / Runway ${runwayCount}），${SOAK_DURATION_SEC} 秒 9:16 中文口播，每条 ${SOAK_FRAMES_PER_ITEM} 帧故事板 + 1 条视频`);
   console.log(`[soak] 出帧套餐 ${prices.imagePlan.planId}（${prices.frameUnitPoints ?? "?"} 点/张），视频套餐 ${prices.videoPlan.planId} ${prices.videoPlan.displayName}（${SOAK_DURATION_SEC} 秒 ${prices.videoUnitPoints} 点）`);
+  console.log(`[soak] ${frameRoute.note}`);
   for (const name of SOAK_WAVES) {
     const subset = records.filter((record) => record.wave === name);
     const sub = estimateOf(subset);
@@ -798,7 +837,7 @@ async function commandRun(flags: Flags): Promise<void> {
   console.log(`[soak] 这次的范围：${wave === null ? "全部三波" : wave === "all" ? "不分波" : `${SOAK_WAVE_LABELS[wave]}这一波`}，新投 ${queue.length} 条，续跑在途 ${resumable.length} 条${retried > 0 ? `（含重试 ${retried} 条）` : ""}`);
   for (const line of estimate.lines.filter((entry) => entry.count > 0)) {
     const unit = line.unitPoints !== null ? `${line.unitPoints} 点` : line.unitUsd !== null ? `$${line.unitUsd}` : "未定价";
-    console.log(`[soak]   ${line.armId}：${line.count} × ${unit} = ${line.unitPoints !== null ? `${line.points} 点` : line.unitUsd !== null ? `$${line.usd}` : "?"}`);
+    console.log(`[soak]   ${line.armId}：${line.count} × ${unit} = ${line.unitPoints !== null ? `${line.points} 点` : line.unitUsd !== null ? `$${Math.round(line.usd * 100) / 100}` : "?"}`);
   }
   console.log(`[soak] 合计预估 ${estimate.totalPoints} 点${estimate.totalUsd > 0 ? ` + $${estimate.totalUsd}（Runway 另计）` : ""}（实扣以 Shuyu 为准）`);
   console.log("[soak] 估算不含的部分：故事板帧提交确认未知时线上自动重提的那一帧；Shuyu 明确失败后线上自动改交 Runway 的那条视频（美元计）。");

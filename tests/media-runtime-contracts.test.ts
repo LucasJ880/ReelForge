@@ -178,18 +178,23 @@ test("[media-runtime] tracing：二进制 / 字体 / BGM 只进 5 个函数，�
   /// cron 只做帧质检：只要二进制，不背字体与配乐
   assert.deepEqual(mediaRuntimeTracingIncludes["/api/cron/poll-videos"], [binary]);
   assert.deepEqual(mediaRuntimeTracingIncludes["/api/cron/process-batches"], [binary]);
-  const bgmPath = BGM_TRACKS.find((track) => track.path)?.path;
+  /// 2026-11-10 曲库扩到 8 首：最早那一首按文件名列，其余在 public/audio/bgm 下用一条通配（只这一个目录，不是整包通配）
+  const bgmPaths = BGM_TRACKS.flatMap((track) => (track.path ? [track.path] : []));
+  assert.equal(bgmPaths.length, 8);
+  const bgmCovered = (includes: string[], bgmPath: string) =>
+    includes.includes(`./${bgmPath}`) ||
+    (includes.includes("./public/audio/bgm/*.mp3") && /^public\/audio\/bgm\/[a-z0-9-]+\.mp3$/.test(bgmPath));
   /// C3：stitch-dispatch 在 inprocess 下就是生产合成器（烧字幕 / 渲染尾卡 / 混 BGM）
   for (const route of ["/api/brand-packaging", "/api/health/media", "/api/cron/stitch-dispatch"]) {
     const includes = mediaRuntimeTracingIncludes[route];
     assert.ok(includes.includes(binary), route);
     assert.ok(includes.includes(`./${BUNDLED_CJK_FONT_CANDIDATES[2]}`), `${route} 字体`);
-    assert.ok(includes.includes(`./${bgmPath}`), `${route} BGM`);
+    for (const bgmPath of bgmPaths) assert.ok(bgmCovered(includes, bgmPath), `${route} BGM ${bgmPath}`);
     /// 不允许整包通配（ffmpeg-static 整包或整个字体包都会把函数撑大）
     assert.ok(!includes.some((p) => /node_modules\/[^/]+\/\*\*/.test(p)), route);
   }
   /// BGM 文件真实存在于仓库（被 gitignore 的话线上必 404）
-  assert.ok(existsSync(path.join(ROOT, String(bgmPath))));
+  for (const bgmPath of bgmPaths) assert.ok(existsSync(path.join(ROOT, bgmPath)), bgmPath);
 });
 
 test("[media-runtime] 4.3 两个 cron 设 maxDuration=300（C3：stitch-dispatch 合成函数同样 300，且与时间预算常量一致）", () => {

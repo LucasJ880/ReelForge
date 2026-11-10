@@ -16,6 +16,7 @@ import type {
   CaptionSettings,
   CaptionStyle,
 } from "@/types/video-generation";
+import { BgmPicker } from "@/components/video-generation/bgm-picker";
 
 /**
  * 成品库详情 · P05-B 只重拼：READY 成片换字幕样式 / 位置 / BGM。
@@ -43,6 +44,9 @@ export type SignoffCopy = {
   logoToggle: string;
   logoHint: string;
 };
+
+/// 与创作页的缺省配乐音量一致（streamlined-video-studio 的 bgmVolume: 0.2）
+const DEFAULT_BGM_VOLUME = 0.2;
 
 const SELECT_CLASS =
   "mt-2 h-(--control-height) w-full rounded-(--radius-md) x-well border-input px-3 text-body text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-50";
@@ -220,21 +224,24 @@ export function RestitchForm({
         </label>
       </div>
 
-      <label className="block text-meta font-medium text-muted-foreground">
-        <span className="flex items-center gap-2">
+      <div className="block text-meta font-medium text-muted-foreground">
+        <label htmlFor="restitch-bgm-track" className="flex items-center gap-2">
           <Music2 className="size-4" aria-hidden />
           {english ? "Background music" : "背景音乐"}
-        </span>
-        <select
+        </label>
+        <BgmPicker
+          id="restitch-bgm-track"
           value={bgmTrackId}
           disabled={submitting}
-          className={SELECT_CLASS}
-          onChange={(event) => setBgmTrackId(event.target.value as BgmTrackId)}
-        >
-          <option value="none">{english ? "No music" : "不添加音乐"}</option>
-          <option value="wholesome">Wholesome — Kevin MacLeod</option>
-        </select>
-      </label>
+          english={english}
+          selectClassName={SELECT_CLASS}
+          onChange={(next) => {
+            setBgmTrackId(next);
+            /// 原来没配乐的成片音量存的是 0：选了曲子却停在 0% 等于没加。给一个听得见又不抢口播的起始音量
+            if (next !== "none" && bgmVolume === 0) setBgmVolume(DEFAULT_BGM_VOLUME);
+          }}
+        />
+      </div>
       <label className="block text-meta font-medium text-muted-foreground">
         <span className="flex justify-between">
           <span>{english ? "Music volume" : "音乐音量"}</span>

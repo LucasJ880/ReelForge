@@ -13,18 +13,22 @@ import { BGM_TRACKS } from "../src/lib/video-generation/audio-post-production";
 
 const WHOLESOME = BGM_ATTRIBUTIONS.wholesome!;
 
-test("曲库里每首有音频文件的曲目都有署名，且署名写全标题 / 作者 / 来源 / 许可链接", () => {
+test("曲库里每首需要署名的曲目（CC BY）都有署名，且写全标题 / 作者 / 来源 / 许可链接；自有曲目不带署名", () => {
+  let licensed = 0;
   for (const track of BGM_TRACKS) {
-    if (track.path === null) {
+    /// 2026-11-10 起曲库里多了 Aivora 自有的生成配乐：没有第三方许可，不需要署名，也不该冒出一行署名
+    if (!track.license || !track.author) {
       assert.equal(bgmAttributionForTrack(track.id), null, track.id);
       continue;
     }
+    licensed++;
     const attribution = bgmAttributionForTrack(track.id);
     assert.ok(attribution, `${track.id} 缺署名`);
     assert.ok(attribution.includes(track.label), `${track.id} 署名缺曲名`);
     assert.ok(attribution.includes(track.author), `${track.id} 署名缺作者`);
     assert.ok(attribution.includes(track.license), `${track.id} 署名缺许可`);
   }
+  assert.equal(licensed, 1, "需要署名的目前只有 Wholesome");
   assert.match(WHOLESOME, /^"Wholesome" by Kevin MacLeod \(incompetech\.com\)/);
   assert.match(WHOLESOME, /CC BY 4\.0: https:\/\/creativecommons\.org\/licenses\/by\/4\.0\/$/);
 });

@@ -67,7 +67,9 @@ const CJK_FONT_FILES = [
   "./node_modules/@expo-google-fonts/noto-sans-sc/LICENSE_FONT",
   "./assets/fonts/NotoSansSC-Regular.*",
 ];
-const BGM_FILES = ["./scripts/assets/pet-kit-bgm.mp3"];
+/// 曲库文件（目录在 src/lib/video-generation/bgm-catalog.ts）。这里不 import 源码模块——构建配置出错会让整次部署失败，
+/// 所以写成固定的两条：最早那一首 + public/audio/bgm 下的整套；tests/bgm-catalog.test.ts 守着「目录里的每个文件都被这两条盖住」。
+const BGM_FILES = ["./scripts/assets/pet-kit-bgm.mp3", "./public/audio/bgm/*.mp3"];
 const MEDIA_RENDER_FILES = [FFMPEG_STATIC_BINARY, ...CJK_FONT_FILES, ...BGM_FILES];
 
 export const mediaRuntimeTracingIncludes: Record<string, string[]> = {

@@ -11,6 +11,7 @@
 
 import { signoffSettingsSchema } from "@/lib/video-generation/brand-signoff";
 import { z } from "zod";
+import { BGM_TRACK_IDS } from "@/lib/video-generation/bgm-catalog";
 import type { VoiceoverDrive } from "@/types/video-generation";
 
 export const SUPPORTED_DURATIONS = [15, 30, 60] as const;
@@ -151,7 +152,7 @@ export const voiceoverSettingsSchema = z
 
 export const bgmSettingsSchema = z
   .object({
-    trackId: z.enum(["none", "wholesome"]),
+    trackId: z.enum(BGM_TRACK_IDS),
     volume: z.number().min(0).max(0.35),
   })
   .strict();

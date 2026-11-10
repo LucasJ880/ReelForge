@@ -70,7 +70,7 @@ Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against 
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
-## API endpoint inventory (93/93 route files; 2026-10-28 删除旧中台 / 数字人 / persona 等 32 个；10-29 加线路目录；10-30 加直传 ticket / complete；11-08 加机器视频任务 2 个；11-09 加抖音发布包；11-10 加成片评价)
+## API endpoint inventory (95/95 route files; 2026-10-28 删除旧中台 / 数字人 / persona 等 32 个；10-29 加线路目录；10-30 加直传 ticket / complete；11-08 加机器视频任务 2 个；11-09 加抖音发布包；11-10 加成片评价、商品档案 2 个)
 
 Middleware provides public/session boundaries. Phase 0 statically reviewed the endpoint guard calls, ownership lookup patterns, validators, and machine authentication. Full request/response schema snapshots and hostile-input execution belong to Phase 2.
 
@@ -164,6 +164,8 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | GET | `/api/product-images/[id]` | Session + ownership | VERIFIED task status reconciliation; owner-scoped durable Shuyu polling |
 | POST | `/api/product-images/tasks/[taskId]/retry` | Session + ownership | VERIFIED confirmed-rejection-only retry with atomic durable task claim |
 | GET, POST | `/api/product-anchors` | Session; demo blocked (paid cutout) | PRD §5/M5 B1: 品牌页「锚定这个产品」入口；服务端资产 ID + 框选 roi 防抠错主体；同 SKU upsert 天然幂等；抠图失败落库为 FAILED+failureReason 不报 HTTP 错 |
+| GET, POST | `/api/products` | Session + owner only | 2026-11-10 商品档案：静态顺序测试（鉴权 → 校验 → 服务）；服务层全部按 userId 读写，存图前核对是本人的图片。本地预览实测（表未建时）：GET 503、缺字段 400 INVALID_INPUT、别人的 / 不存在的图 400 INVALID_IMAGES。迁移后本地预览实测（测试账号，连生产库）：从拍过的一单一键存、手填 + 直传一张图新建、列表读回，均成功 |
+| PATCH | `/api/products/[id]` | Session + owner only | 2026-11-10 商品档案：改字段或归档（只写 archivedAt，不删除）；别人的 / 已归档的回 404。本地预览实测：表未建时回 503；迁移后改卖点 / 尺寸成功、归档后列表与接口都不再返回这一条 |
 | POST | `/api/product-anchors/[id]/retry` | Session + ownership; demo blocked | PRD §5/M5 B1: FAILED 原地重跑 + PENDING_CUTOUT（key 后配）界面续跑；READY 短路不重复扣费 |
 | GET, PUT, POST | `/api/brand-packaging` | Session + workspace ownership | VERIFIED: tenant package listing/upsert plus owner-scoped optional post-production packaging |
 | POST | `/api/projects/[id]/logo/generate` | Operator | VERIFIED H1 light: success wiring + operator boundary |

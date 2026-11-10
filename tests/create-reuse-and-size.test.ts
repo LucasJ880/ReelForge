@@ -61,7 +61,7 @@ test("最近拍过的商品：只按属主读，同一组图只留最近一次�
   assert.equal(orderWhere[0].productCategory, "unified_input");
   assert.equal(assetWhere[0].userId, "owner-1", "图片也只认本人的");
   assert.deepEqual(sources.map((source) => source.orderId), ["o-5", "o-3"]);
-  assert.deepEqual(sources[0], { orderId: "o-5", prompt: "保温杯 通勤", thumbnailUrl: "/media/cup-1.jpg", imageCount: 2 });
+  assert.deepEqual(sources[0], { orderId: "o-5", prompt: "保温杯 通勤", thumbnailUrl: "/media/cup-1.jpg", firstAssetId: "cup-1", imageCount: 2 });
 });
 
 test("最近拍过的商品：一单都没有 → 空列表，不去查图片；数量封顶", async (t) => {
@@ -148,14 +148,20 @@ test("尺寸行和「换个开头」互不打架：各换各的，另一行留�
 test("创作页接线：空白页才摆最近的商品；三段进度跟着真实状态走", () => {
   const studio = readFileSync("src/components/video-generation/streamlined-video-studio.tsx", "utf8");
   assert.match(studio, /recentSources\.length > 0 && !storyboard && busy === null && !rawPrompt\.trim\(\) && productAssets\.length === 0/);
-  assert.match(studio, /href=\{`\/app\/create\?retry=\$\{encodeURIComponent\(source\.orderId\)\}`\}/, "走「再做一条」同一条路");
+  /// 2026-11-10 商品档案：这一行现在既有存好的商品也有最近拍过的一单，去处由页面给；拍过的一单仍走「再做一条」那条路
+  assert.match(studio, /<Link\s+href=\{source\.href\}/);
+  const createPage = readFileSync("src/app/(platform)/app/create/page.tsx", "utf8");
+  assert.match(createPage, /`\/app\/create\?retry=\$\{encodeURIComponent\(shortcut\.id\)\}`/, "走「再做一条」同一条路");
   assert.match(studio, /const storyboardStage = busy !== "storyboard" \? null : planningShots \? \(voiceoverDrafting \? 0 : 1\) : 2;/);
   assert.match(studio, /data-testid="storyboard-stages"/);
   assert.match(studio, /stages: \["写口播稿", "排镜头（约 40–60 秒）", "出故事板画面"\]/);
   assert.match(studio, /setRawPrompt\(applyProductSize\(rawPrompt, event\.target\.value, english \? "en" : "zh"\)\);\s+invalidatePlan\(\);/);
   assert.doesNotMatch(studio, /import (?!type )[^;]*from "@\/lib\/services\//, "客户端组件不引服务端模块");
   const page = readFileSync("src/app/(platform)/app/create/page.tsx", "utf8");
-  assert.match(page, /routeState === "empty" \|\| result \|\| retryPrefill \|\| machinePrefill\s+\? \[\]/, "带着预填进来的不查");
-  assert.match(page, /await loadRecentCreateSourcesOrNone\(session\.user\.id\)/, "读不到就不显示，不拦创作");
+  assert.match(page, /routeState === "empty" \|\| result \|\| retryPrefill \|\| machinePrefill \|\| productPrefill\s+\? \[\]/, "带着预填进来的不查");
+  /// 2026-11-10：改由 loadCreateShortcutsOrNone 读（存好的商品 + 最近拍过的），兜底仍在服务层
+  assert.match(page, /await loadCreateShortcutsOrNone\(session\.user\.id\)/, "读不到就不显示，不拦创作");
+  const shortcutService = readFileSync("src/lib/services/product-profile-service.ts", "utf8");
+  assert.match(shortcutService, /console\.warn\("\[create\] recent sources unavailable:"/, "兜底时留一行日志");
   assert.doesNotMatch(page, /\.catch\(\(\)\s*=>\s*(?:\[\]|null)\)/, "页面里不把失败吞成空数据（RF-012）；兜底在服务层并记日志");
 });

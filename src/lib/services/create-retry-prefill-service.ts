@@ -114,6 +114,8 @@ export interface RecentCreateSource {
   prompt: string;
   /** 第一张商品图 */
   thumbnailUrl: string;
+  /** 第一张商品图的素材 id：用来判断「这一件是不是已经存成商品档案了」 */
+  firstAssetId: string;
   imageCount: number;
 }
 
@@ -178,6 +180,7 @@ export async function listRecentCreateSources(userId: string, limit = 4): Promis
       orderId: candidate.orderId,
       prompt: candidate.prompt,
       thumbnailUrl: urlById.get(candidate.assetIds[0]) as string,
+      firstAssetId: candidate.assetIds[0],
       imageCount: candidate.assetIds.length,
     }));
 }

@@ -14,6 +14,8 @@ test("Phase1 unified journey：一级区只有一套 /app 路径", () => {
     /// 「战绩」入口暂时下线（2026-10-25 审计 B5）：表现数据回流没开，页面只能是零；
     /// /app/wins 路由保留可直达（见下一个测试），有真实数据后再放回导航。
     { label: "成品库", href: "/app/library" },
+    /// 2026-11-10 商品档案（用户确认：放在资产组，成品库和品牌之间）
+    { label: "商品", href: "/app/products" },
     { label: "品牌", href: "/app/brands" },
     { label: "模板库", href: "/app/templates" },
     /// 2026-10-28 客户使用指南（学 LibTV「学院」）

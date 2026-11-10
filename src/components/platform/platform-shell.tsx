@@ -13,6 +13,7 @@ import {
   Layers3,
   LogOut,
   NotebookText,
+  Package,
   Palette,
   Plus,
   Search,
@@ -50,6 +51,7 @@ const ICONS = {
   batches: Layers3,
   /// 战绩（wins）入口暂时下线（见 platform-routes）：放回导航时连同 Trophy 图标一起加回。
   library: Film,
+  products: Package,
   brands: Palette,
   templates: NotebookText,
   guide: BookOpen,
@@ -83,7 +85,7 @@ function emailInitial(email: string): string {
 /// 侧栏分组（学 LibTV）：顺序与 PLATFORM_PRIMARY_NAV 一致，快捷键 1–7 不变。
 const NAV_GROUPS: ReadonlyArray<{ id: "make" | "assets" | "help"; items: readonly PlatformNavId[] }> = [
   { id: "make", items: ["create", "batches"] },
-  { id: "assets", items: ["library", "brands", "templates"] },
+  { id: "assets", items: ["library", "products", "brands", "templates"] },
   { id: "help", items: ["guide"] },
 ];
 

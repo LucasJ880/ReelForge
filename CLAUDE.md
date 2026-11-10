@@ -87,7 +87,8 @@ npm run context:find -- "..."
 | 片尾落款（品牌名 + 行动指引 + 可选 Logo） | `src/lib/video-generation/brand-signoff.ts`；存在后期快照的 `signoff` 键；Logo 由 `stitch-composer` 按成片主人取 |
 | 不满意之后的下一步（按原因指到重拼 / 重做一段 / 再做一条） | `src/lib/library/feedback-next-steps.ts`、`video-feedback-panel.tsx`；详情页锚点 `#captions-music` / `#segment-redo` |
 | 换个开头再做一条（详情页直达） | 成片详情 → `/app/create?retry=<订单 id>&hook=<开头 id>`，创作页用 `applyHookAngle` 换上 |
-| 接着拍这些商品（空白创作页复用以前那一单的商品图和描述，不建新表） | `listRecentCreateSources`（`create-retry-prefill-service.ts`） |
+| 商品档案（侧栏「商品」：名字、卖点、尺寸、商品图存一次；独立新表 `ProductProfile`，没有外键，归档不删除） | 契约 `src/lib/contracts/product-profile.ts`，服务 `product-profile-service.ts`，页面 `/app/products`，接口 `/api/products`；创作页 `/app/create?product=<id>` |
+| 接着拍这些商品（空白创作页那一行：存好的商品在前，不够四格用最近拍过、还没存的补） | `loadCreateShortcutsOrNone`（`product-profile-service.ts`）、`listRecentCreateSources`（`create-retry-prefill-service.ts`） |
 | 商品尺寸（描述末尾补一行「商品实际大小：…」） | `src/lib/create/product-size.ts` |
 | 品牌页的片尾落款预览（与合成同一套版式） | `src/components/brand/signoff-preview.tsx` |
 | 配乐曲库（8 首；7 首由 Runway 生成配乐接口一次性生成、随仓库带，出片不调接口） | 目录 `src/lib/video-generation/bgm-catalog.ts`，文件 `public/audio/bgm/`，选曲组件 `bgm-picker.tsx`；加曲子：放文件 + 目录加一行 |
@@ -117,7 +118,7 @@ npm run context:find -- "..."
 - 页面开场用 `WorkspacePage` / `QuoteHeader`（`src/components/exchange/`），创作页例外（对话框优先）。
   读数只放能让人接着做点什么的真实数字（零就写零，不放示例数字）；没有就传空数组，不硬凑。口径写进 `scope`，悬停可见，不单占一行。
   副标题一句话说清这页干什么，内部口径与规则解释不进页面正文。状态用 `StatusTick`（符号 + 颜色成对），批次进度用 `FillBar`。
-- 壳层是 240px 分组侧栏（顶部「新建视频」就是创作页入口，下面是批量 / 资产 / 帮助，不再重复列「创作」）+ 细顶栏（搜索、帮助、头像），移动端底部 tab 条；行情条、生产带、状态栏已退役，`/wall` 行情大屏仍在。
+- 壳层是 240px 分组侧栏（顶部「新建视频」就是创作页入口，下面是批量 / 资产（成品库、商品、品牌、模板库）/ 帮助，不再重复列「创作」）+ 细顶栏（搜索、帮助、头像），移动端底部 tab 条；行情条、生产带、状态栏已退役，`/wall` 行情大屏仍在。
   壳层数字来自同一个脉搏（`/api/exchange/pulse`），读数口径只从读数注册表取；状态词只从 `state-vocab` 取，「成交」只留给询盘。
 - 眉题/kicker 一律禁止；页面标题自己承重。
 - 要用户再点一次确认的事用 `ConfirmDialog`（`src/components/ui/confirm-dialog.tsx`），按钮写动作本身；`window.confirm` / `alert` 禁用（有门禁测试）。工作区正文 14px。

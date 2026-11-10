@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { QuoteHeader, type QuoteHeaderProps } from "./quote-header";
 
 /** 导轨上的一级区（与 platform-shell 的导航同一组 id）。 */
-export type WorkspaceNavId = "plan" | "create" | "batches" | "wins" | "library" | "brands" | "templates" | "leads";
+export type WorkspaceNavId = "plan" | "create" | "batches" | "wins" | "library" | "products" | "brands" | "templates" | "leads";
 
 /** 页面标题 = 导航名：从同一本字典取，导航改名，页面标题跟着改。 */
 export function workspaceNavTitle(nav: WorkspaceNavId, locale: Locale): string {

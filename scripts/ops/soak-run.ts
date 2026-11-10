@@ -89,6 +89,7 @@ import {
   SOAK_WAVE_LABELS,
   assertManifestMatches,
   assignRunwayRoutes,
+  cardRerunBlocker,
   deriveSoakOutcome,
   estimateSoakSpend,
   expandSoakItems,
@@ -936,12 +937,8 @@ async function commandRun(flags: Flags): Promise<void> {
   if (wave === null) throw new Error("真提交要说清投哪一波：--wave morning|noon|evening|all");
   if (context.baseline) {
     /// 开关没生效就投，线上写的还是纯文字卡，这几条的钱白花。脚本查不到线上的环境变量，只能卡住时刻
-    if (!context.visionSince) {
-      throw new Error("重拍轮真提交前必须给 --vision-since <看图写卡开关生效的时刻>（重新部署完成的时刻，带时区的 ISO 格式）");
-    }
-    if (Date.now() < Date.parse(context.visionSince)) {
-      throw new Error(`现在还早于 --vision-since（${context.visionSince}）：等开关生效后再投`);
-    }
+    const blocker = cardRerunBlocker(context.visionSince, new Date());
+    if (blocker) throw new Error(blocker);
     console.log(
       `[soak] 注意：脚本只核对了时刻（现在晚于 ${context.visionSince}），核对不了线上的 STORYBOARD_SHOT_CARDS_VISION 是否真的生效。投之前先确认线上日志里出现过 [shot-cards] vision design ok`,
     );

@@ -10,6 +10,7 @@ import {
   assertManifestMatches,
   assignRunwayRoutes,
   blankSoakAttempt,
+  cardRerunBlocker,
   deriveSoakOutcome,
   estimateSoakSpend,
   expandSoakItems,
@@ -801,4 +802,12 @@ test("镜头卡对照的重拍轮：只挑对照轮里纯文字卡、已成片�
   assert.match(report, /\| 整体 \| 1 \| 0 \| 0 \|/u);
   assert.match(report, /数字小结：1 对可比；盲评整体（小王：看图卡 胜 1 \/ 平 0 \/ 负 0）。/u);
   assert.equal(summarizeSoak(rerun, { now: new Date(at(120)) }).cardComparison, null, "不是重拍轮就没有这一节");
+});
+
+test("重拍轮开工前的拦截：没给看图写卡的生效时刻、或现在还早于它，都不许投", () => {
+  const since = "2026-11-10T02:00:00.000Z";
+  assert.match(cardRerunBlocker(null, new Date("2026-11-10T05:00:00Z")) ?? "", /必须给 --vision-since/u);
+  assert.match(cardRerunBlocker(since, new Date("2026-11-10T01:59:59Z")) ?? "", /现在还早于 --vision-since（2026-11-10T02:00:00\.000Z）/u);
+  assert.equal(cardRerunBlocker(since, new Date("2026-11-10T02:00:00Z")), null);
+  assert.equal(cardRerunBlocker(since, new Date("2026-11-10T04:30:00Z")), null);
 });

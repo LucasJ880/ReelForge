@@ -648,6 +648,18 @@ export function selectCardRerunItems(
   return eligible.slice(0, count).map(({ id, pairId, caseId, angleId, group, wave }) => ({ id, pairId, caseId, angleId, group, wave, route: "buddy" }));
 }
 
+/**
+ * 重拍轮真提交前的拦截：没给看图写卡的生效时刻，或者现在还早于它，就不许投——开关没生效时线上写的还是纯文字卡，
+ * 这几条的钱白花。返回拦下的原因，可以投返回 null。脚本查不到线上的环境变量，这里只卡时刻。
+ */
+export function cardRerunBlocker(visionSince: string | null, now: Date): string | null {
+  if (visionSince === null) {
+    return "重拍轮真提交前必须给 --vision-since <看图写卡开关生效的时刻>（重新部署完成的时刻，带时区的 ISO 格式）";
+  }
+  if (now.getTime() < Date.parse(visionSince)) return `现在还早于 --vision-since（${visionSince}）：等开关生效后再投`;
+  return null;
+}
+
 export interface SoakCardPairSource {
   pairId: string;
   caseId: string;

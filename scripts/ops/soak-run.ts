@@ -837,7 +837,7 @@ async function commandRun(flags: Flags): Promise<void> {
   console.log(`[soak] 这次的范围：${wave === null ? "全部三波" : wave === "all" ? "不分波" : `${SOAK_WAVE_LABELS[wave]}这一波`}，新投 ${queue.length} 条，续跑在途 ${resumable.length} 条${retried > 0 ? `（含重试 ${retried} 条）` : ""}`);
   for (const line of estimate.lines.filter((entry) => entry.count > 0)) {
     const unit = line.unitPoints !== null ? `${line.unitPoints} 点` : line.unitUsd !== null ? `$${line.unitUsd}` : "未定价";
-    console.log(`[soak]   ${line.armId}：${line.count} × ${unit} = ${line.unitPoints !== null ? `${line.points} 点` : line.unitUsd !== null ? `$${line.usd}` : "?"}`);
+    console.log(`[soak]   ${line.armId}：${line.count} × ${unit} = ${line.unitPoints !== null ? `${line.points} 点` : line.unitUsd !== null ? `$${Math.round(line.usd * 100) / 100}` : "?"}`);
   }
   console.log(`[soak] 合计预估 ${estimate.totalPoints} 点${estimate.totalUsd > 0 ? ` + $${estimate.totalUsd}（Runway 另计）` : ""}（实扣以 Shuyu 为准）`);
   console.log("[soak] 估算不含的部分：故事板帧提交确认未知时线上自动重提的那一帧；Shuyu 明确失败后线上自动改交 Runway 的那条视频（美元计）。");

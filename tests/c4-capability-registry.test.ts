@@ -189,12 +189,19 @@ test("写作暂停：照抄验收口径——脚本与周计划先用模板生�
   assert.match(CAPABILITY_COPY.vision.messages.unavailable["zh-CN"], /成片照常生成/);
 });
 
-test("看图文案只写现在真有的检查（错字与水印）：商品 / 人物一致性等 P01-B 落地再写", () => {
+test("看图文案只写现在真在用的事：出方案时看商品图；成片画面质检缺省关了就不再承诺（2026-11-10）", () => {
   for (const status of CAPABILITY_STATUSES) {
-    assert.doesNotMatch(CAPABILITY_COPY.vision.messages[status]["zh-CN"], /一致性/, status);
-    assert.doesNotMatch(CAPABILITY_COPY.vision.messages[status]["en-US"], /consistency/i, status);
+    const zh = CAPABILITY_COPY.vision.messages[status]["zh-CN"];
+    const en = CAPABILITY_COPY.vision.messages[status]["en-US"];
+    assert.doesNotMatch(zh, /一致性/, status);
+    assert.doesNotMatch(en, /consistency/i, status);
+    /// 质检缺省关着：状态页不能再说「成片会自动检查错字与水印」
+    assert.doesNotMatch(zh, /质检|错字|水印/, status);
+    assert.doesNotMatch(en, /frame check|burned-in|watermark/i, status);
+    assert.match(zh, /商品图/, status);
+    assert.match(zh, /成片照常生成|写进镜头安排/, status);
   }
-  assert.equal(CAPABILITY_COPY.vision.messages.available["zh-CN"], "AI 看图正常：成片会自动检查画面里的错字与水印。");
+  assert.equal(CAPABILITY_COPY.vision.messages.available["zh-CN"], "AI 看图正常：出方案时会看你的商品图，把商品的样子写进镜头安排。");
 });
 
 test("P03-K：视频「不稳定」不承诺备用线路（生产没有可切的套餐），无论什么原因都只说正在自动重试", () => {

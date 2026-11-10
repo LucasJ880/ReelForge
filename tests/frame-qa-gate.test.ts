@@ -15,6 +15,7 @@ import {
 } from "../src/lib/video-generation/frame-qa";
 
 const ENV_KEYS = [
+  "FRAME_QA_ENABLED",
   "FRAME_QA_DISABLED",
   "VIDEO_ENGINE_MOCK",
   "LLM_FORCE_MOCK",
@@ -73,9 +74,31 @@ test("[frame-qa] 畸形/错误字形（错字）单独也拦截", () => {
   assert.match(v.issues[0].detail, /畸形|错误字形/);
 });
 
-test("[frame-qa] FRAME_QA_DISABLED / mock 引擎 / 无 API key 时门禁关闭", () => {
+test("[frame-qa] 缺省关（2026-11-10）：不设 FRAME_QA_ENABLED 就不跑，key 齐全也一样；on / true / 1 / yes 才开", () => {
   const prevDryRun = process.env.AIVORA_DRY_RUN;
   process.env.OPENAI_API_KEY = "sk-test";
+  delete process.env.FRAME_QA_ENABLED;
+  delete process.env.FRAME_QA_DISABLED;
+  delete process.env.VIDEO_ENGINE_MOCK;
+  delete process.env.LLM_FORCE_MOCK;
+  delete process.env.AIVORA_DRY_RUN;
+  assert.equal(isFrameQaEnabled(), false, "上线以来 20 条真跑 0 次拦截，缺省关");
+  for (const value of ["off", "0", "false", "", "enabled"]) {
+    process.env.FRAME_QA_ENABLED = value;
+    assert.equal(isFrameQaEnabled(), false, value);
+  }
+  for (const value of ["on", " ON ", "true", "1", "yes"]) {
+    process.env.FRAME_QA_ENABLED = value;
+    assert.equal(isFrameQaEnabled(), true, value);
+  }
+  if (prevDryRun === undefined) delete process.env.AIVORA_DRY_RUN;
+  else process.env.AIVORA_DRY_RUN = prevDryRun;
+});
+
+test("[frame-qa] 开着时：FRAME_QA_DISABLED / mock 引擎 / 无 API key 仍然各自能把门禁关掉", () => {
+  const prevDryRun = process.env.AIVORA_DRY_RUN;
+  process.env.OPENAI_API_KEY = "sk-test";
+  process.env.FRAME_QA_ENABLED = "on";
   delete process.env.FRAME_QA_DISABLED;
   delete process.env.VIDEO_ENGINE_MOCK;
   delete process.env.LLM_FORCE_MOCK;

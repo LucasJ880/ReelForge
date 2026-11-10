@@ -515,7 +515,7 @@ export async function decideFrameQaGate(
   }
   if (!deps.isFrameQaEnabled()) {
     return skippedDecision({
-      reason: "门禁未启用（FRAME_QA_DISABLED / mock 模式 / 未配置 vision key）",
+      reason: "门禁未启用（缺省关，FRAME_QA_ENABLED=on 才开；或 FRAME_QA_DISABLED / mock 模式 / 未配置 vision key）",
       priorBlockCount: knownPrior ?? 0,
       checkedAt: deps.now(),
     });

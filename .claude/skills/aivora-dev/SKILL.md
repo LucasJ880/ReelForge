@@ -78,8 +78,9 @@ npm run db:migrate          # ⚠️ dotenv -e .env.local = 直连生产库
 | 端到端 | `npm run acceptance:mock`（typecheck + phase4 + i18n + walkthrough） |
 | 视觉 | `npm run test:visual`；基线变了才 `test:visual:update` |
 
-`npm test` = `node --import tsx --test tests/**/*.test.ts`，211 个测试文件，跑单个用
-`node --import tsx --test tests/<file>.test.ts`。
+`npm test` = `node --import tsx --test tests/*.test.ts`，约 360 个测试文件、一分钟内跑完，跑单个用
+`node --import tsx --test tests/<file>.test.ts`。**要 Node 22+**（`pretest` 会核对）：Node 20 下有 5 条假失败，
+本机默认是 20 时用 `PATH=/opt/homebrew/bin:$PATH npm test`。加 `--test-reporter=tap` 便于 grep `^not ok`。
 
 ## 四、已知陷阱
 
@@ -94,6 +95,12 @@ npm run db:migrate          # ⚠️ dotenv -e .env.local = 直连生产库
 | 生产上传「上传失败 (413)」，本地正常 | 文件穿过 Vercel 函数，请求体超 4.5MB 被平台直接拦（`FUNCTION_PAYLOAD_TOO_LARGE`，handler 没被调用）；本地 dev 无此上限 | 前端一律 `uploadBlobWithProgress` 直传 Blob（ticket → PUT → complete）；`upload-direct-to-storage` 守门测试拦回退 |
 | 原生 `<select>` 展开白底看不到字 | 选项面板由浏览器画，select 透明 + 字色继承浅色 | globals.css 已给 `option` 钉 `--popover` 底色；截图拍不到这个面板，别指望视觉基线 |
 | 每次发版所有人被登出 | 设计如此：会话绑定发布版本（`src/lib/session-policy.ts`，另有 12h 闲置 / 7 天绝对上限） | 要停掉按发版登出，让 next.config 的 `AIVORA_SESSION_RELEASE` 取固定值，别删闸 |
+| PR 显示 MERGED，代码却不在 main | 叠着开的 PR（base 是另一个 PR 的分支）：前一个先合并后，后一个被合进了已经用完的分支（11-09 的 #34） | 每个 PR 都直接对 `main` 开；有依赖就等前一个合并再开，或推到同一个 PR。合并后用 `git merge-base --is-ancestor <提交> origin/main` 核对 |
+| `db:migrate:deploy` 说「没有待执行的迁移」，但 PR 明明带了迁移 | 迁移文件在 PR 的分支上，本地是 `main` | 切到 PR 分支再跑；**先迁移、后合并**。`/api/health` 的 `schema` 字段与发布后冒烟会拦住「代码比库新」 |
+| Vercel 上加了环境变量却不生效 | 环境变量只在部署那一刻读入 | 加完要重新部署；用「变量创建时间 vs 最新生产部署时间」判断是否已生效 |
+| 新加的模型调用上线后更慢 / 只成功一部分 | 没经真机验证就缺省打开（11-09 的合并看图调用：线上首跑只用上三样里的一样、59 秒） | 新的模型调用一律缺省关 + 环境变量开；先用 `npm run eval:shot-cards` 这类只调模型的量测看合格率与耗时，再用真机小实验看成片 |
+| 连续快速合并后冒出一条红色 prod-smoke | 部署成功事件乱序，较新版本的冒烟被较旧版本的取消 | 11-10 已修（`judgeSupersession`：被顶替时改测线上这一版）；看到红灯先读日志里它等的是哪个版本 |
+| 测试「在 main 上本来就红」 | 多半是本机 Node 版本低于 22 造成的假失败 | 换 Node 22+ 重跑再下结论，别把假失败记成基线 |
 
 ## 五、任务纪律
 

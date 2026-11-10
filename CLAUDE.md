@@ -37,7 +37,7 @@ npm run context:find -- "关键词1 关键词2"   # 0.3s，给 top 10 文件 + �
 npm run dev            # 真机模式（predev 会跑 mode:check）
 npm run typecheck      # tsc --noEmit —— 提交前必过
 npm run lint
-npm test               # node --test tests/**/*.test.ts
+npm test               # node --test tests/*.test.ts；要 Node 22+（pretest 会核对，旧版本有假失败）
 npm run db:migrate:deploy  # 迁移唯一正路（owner 直连生产，见 §4）
 # db:migrate / db:push / db:seed 有确认闸：CONFIRM_PRODUCTION_DB=<脚本名> 才放行
 # npx playwright test 的视觉夹具默认不写生产库：给专用库 E2E_DATABASE_URL，或 CONFIRM_PRODUCTION_DB=e2e:seed

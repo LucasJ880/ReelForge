@@ -214,6 +214,7 @@ const ZH_COPY = {
   planningCancelled: "已取消，素材和描述都保留着。",
   createStoryboard: "生成 AI 故事板",
   creatingStoryboard: "正在生成故事板…",
+  cancellingStoryboardCreate: "正在取消…",
   storyboardFailed: "故事板暂时无法生成，请保留当前方案后重试。",
   editStoryboardConfirm: "修改创作方向会退出当前故事板。已生成的画面仍保留在任务记录中，确定继续吗？",
   approveFirst: "请先确认故事板",
@@ -332,6 +333,7 @@ const EN_COPY: StudioCopy = {
   planningCancelled: "Cancelled. Your uploads and description are kept.",
   createStoryboard: "Generate AI storyboard",
   creatingStoryboard: "Generating storyboard…",
+  cancellingStoryboardCreate: "Cancelling…",
   storyboardFailed: "The storyboard could not be generated right now. Your direction is preserved; try again shortly.",
   editStoryboardConfirm: "Editing the direction exits this storyboard. Generated frames remain in task history. Continue?",
   approveFirst: "Approve the storyboard first",
@@ -395,6 +397,7 @@ export function StreamlinedVideoStudio({
   canSelectVideoRoute,
   showInternalVideoRoutes = false,
   forceOnboarding = false,
+  returningUser = false,
   brollAvailable = false,
   capabilities = null,
   readings = null,
@@ -416,6 +419,12 @@ export function StreamlinedVideoStudio({
   canSelectVideoRoute: boolean;
   showInternalVideoRoutes?: boolean;
   forceOnboarding?: boolean;
+  /**
+   * 这个账号已经出过成片：不再自动弹「5 步出第一条成片」、也不挂「第一次使用」引导条。
+   * 之前只看浏览器本地记号——出过几十条片的商家换台电脑 / 清了缓存又被当成新人（2026-11-10）。
+   * 顶栏问号 → 指南里的「重开新手指引」（guide=open）照旧能打开。
+   */
+  returningUser?: boolean;
   brollAvailable?: boolean;
   /** C4 · 服务端读好的能力状态（纯 DTO）；缺省 = 不拦（老调用方、读失败）。 */
   capabilities?: PublicCapabilities | null;
@@ -504,6 +513,10 @@ export function StreamlinedVideoStudio({
   const [planningShots, setPlanningShots] = useState(false);
   /// 出方案期间也要能退出（每一轮都可取消）：只是不再等这次结果——出方案没有副作用、不占额度
   const planAbortRef = useRef<AbortController | null>(null);
+  /// 「生成故事板」的提交要十几秒到一分钟、服务端已经开始出第一帧，中途断不掉：商家点了取消就记下来，
+  /// 提交一返回立刻让服务端真取消这一轮（铁律 #7：每一轮任务都能取消）。
+  const cancelStoryboardCreateRef = useRef(false);
+  const [cancellingStoryboardCreate, setCancellingStoryboardCreate] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /// 额度用完那条错误的原文：当前错误就是它时，错误框里给真实下一步（申请陪跑试点 / 联系我们）。
   /// 只按原文比对，别的错误替换掉它之后入口自然消失，不用在每个 setError 旁边清状态。
@@ -522,16 +535,16 @@ export function StreamlinedVideoStudio({
 
   useEffect(() => {
     try {
-      setShowGuide(localStorage.getItem(GUIDE_STORAGE_KEY) !== "dismissed");
+      setShowGuide(!returningUser && localStorage.getItem(GUIDE_STORAGE_KEY) !== "dismissed");
       setOnboardingOpen(
         forceOnboarding
-          || localStorage.getItem(ONBOARDING_STORAGE_KEY) !== "dismissed",
+          || (!returningUser && localStorage.getItem(ONBOARDING_STORAGE_KEY) !== "dismissed"),
       );
     } catch {
-      setShowGuide(true);
+      setShowGuide(!returningUser);
       setOnboardingOpen(forceOnboarding);
     }
-  }, [forceOnboarding]);
+  }, [forceOnboarding, returningUser]);
 
   useEffect(() => {
     /// 幂等键写入 sessionStorage：刷新后重提同一内容会命中服务端幂等回放，
@@ -1201,6 +1214,11 @@ export function StreamlinedVideoStudio({
     planAbortRef.current?.abort();
   }
 
+  function cancelStoryboardCreate() {
+    cancelStoryboardCreateRef.current = true;
+    setCancellingStoryboardCreate(true);
+  }
+
   async function handleCreateStoryboard() {
     const validationError = validateBeforeRequest();
     if (validationError) {
@@ -1211,6 +1229,8 @@ export function StreamlinedVideoStudio({
     let requestKey = JSON.stringify(request);
     setError(null);
     setBusy("storyboard");
+    cancelStoryboardCreateRef.current = false;
+    setCancellingStoryboardCreate(false);
     try {
       let activePlan = plan;
       if (!activePlan || planRequestKey !== requestKey) {
@@ -1286,6 +1306,15 @@ export function StreamlinedVideoStudio({
       if (!response.ok || !payload?.ok) {
         throw new Error(payload && "error" in payload ? payload.error : copy.storyboardFailed);
       }
+      if (cancelStoryboardCreateRef.current) {
+        /// 提交期间点了取消：这一轮刚建好就让服务端停掉。没取消成就把它亮出来，下面的「取消这一轮」还在。
+        if (await cancelStoryboardOnServer(payload.run)) {
+          markStoryboardRunDismissed(payload.run.id);
+          invalidatePlan();
+          toast.success(copy.planningCancelled);
+          return;
+        }
+      }
       setStoryboard(payload.run);
       requestAnimationFrame(() => {
         document.getElementById("single-video-storyboard")?.scrollIntoView({
@@ -1294,8 +1323,12 @@ export function StreamlinedVideoStudio({
         });
       });
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : copy.storyboardFailed);
+      /// 取消后提交自己失败了：没有东西要取消，也不用再报一次错
+      if (cancelStoryboardCreateRef.current) toast.success(copy.planningCancelled);
+      else setError(reason instanceof Error ? reason.message : copy.storyboardFailed);
     } finally {
+      cancelStoryboardCreateRef.current = false;
+      setCancellingStoryboardCreate(false);
       setBusy(null);
     }
   }
@@ -1504,10 +1537,11 @@ export function StreamlinedVideoStudio({
   /// 光只给正在发生的事：故事板逐帧生成或正在提交时，当前一步才带扫描光。
   const stageWorking = storyboardGenerating || busy === "storyboard" || busy === "dispatch";
   const ratioLabel = aspectRatioLabel(selectedAspectRatio, copy);
+  const creatingStoryboardLabel = cancellingStoryboardCreate ? copy.cancellingStoryboardCreate : copy.creatingStoryboard;
   const primaryLabel = busy === "dispatch"
     ? copy.generating
     : busy === "storyboard"
-      ? (planningShots ? (voiceoverDrafting ? copy.writingVoiceover : copy.planningShots) : copy.creatingStoryboard)
+      ? (planningShots ? (voiceoverDrafting ? copy.writingVoiceover : copy.planningShots) : creatingStoryboardLabel)
       : needsStoryboard
         ? copy.createStoryboard
         : storyboardGenerating
@@ -1669,6 +1703,13 @@ export function StreamlinedVideoStudio({
       {/* 出方案要 40–60 秒，期间页面锁住：给一个出口（素材与描述原样保留） */}
       {busy === "preview" || planningShots ? (
         <Button type="button" variant="ghost" size="sm" onClick={cancelPlanning} data-testid="cancel-planning">
+          <X aria-hidden />
+          {copy.cancelPlanning}
+        </Button>
+      ) : null}
+      {/* 提交故事板还要十几秒到一分钟：这段也给出口（点了之后等提交返回再真取消） */}
+      {busy === "storyboard" && !planningShots && !cancellingStoryboardCreate ? (
+        <Button type="button" variant="ghost" size="sm" onClick={cancelStoryboardCreate} data-testid="cancel-storyboard-create">
           <X aria-hidden />
           {copy.cancelPlanning}
         </Button>

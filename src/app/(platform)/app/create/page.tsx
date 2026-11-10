@@ -11,7 +11,7 @@ import { contactEmail } from "@/lib/config/contact";
 import { loadCreateRetryPrefill } from "@/lib/services/create-retry-prefill-service";
 import { resolveOwnedImageAssets } from "@/lib/services/media-asset-service";
 import { readMachineVideoTaskPrefill } from "@/lib/services/machine-video-task-service";
-import { loadExchangeReadings, loadProductionCounts, loadVideoQuota } from "@/lib/services/exchange-readings";
+import { countFinished, loadExchangeReadings, loadProductionCounts, loadVideoQuota } from "@/lib/services/exchange-readings";
 import { findProductImageResultForUser } from "@/lib/services/product-image-service";
 import type { UploadedAsset } from "@/types/video-generation";
 import { getServerLocale } from "@/i18n/server";
@@ -44,11 +44,13 @@ export default async function PlatformCreatePage({
     getServerLocale(),
     getCustomerRouteRehearsalState("create"),
   ]);
-  const [brandPackages, readings, capabilities] = await Promise.all([
+  const [brandPackages, readings, capabilities, finishedCount] = await Promise.all([
     listWorkspaceBrandPackagesForUser(session.user.id),
     loadCreateReadings(session.user.id, routeState === "empty"),
     /// C4：能力状态（纯 DTO）交给客户端——实拍线路、口播稿起草与画面质检说明据此诚实显示。永不抛出。
     getCapabilities(),
+    /// 出过成片的账号不再被当成新人弹首启引导（只看本地记号时，换台电脑就又弹一次）
+    routeState === "empty" ? Promise.resolve(0) : countFinished(session.user.id).catch(() => 0),
   ]);
   const result = productImageResultId
     ? await findProductImageResultForUser(productImageResultId, session.user.id)
@@ -119,6 +121,7 @@ export default async function PlatformCreatePage({
         canSelectVideoRoute={false}
         showInternalVideoRoutes={false}
         forceOnboarding={guide === "open"}
+        returningUser={finishedCount > 0}
         brollAvailable={isBrollRouteAvailable()}
         capabilities={capabilities}
         readings={readings}

@@ -1434,26 +1434,64 @@ const STORYBOARD_RESUME_WINDOW_MS = 24 * 60 * 60_000;
  * within the resume window. Reconciles on read so a run that kept generating
  * server-side comes back with fresh frame states.
  */
+/** 创作页会自动接上的那一轮故事板：还没派发成视频、在恢复窗口内。恢复与成品库的提示用同一个条件。 */
+function resumableStoryboardWhere(userId: string, now: Date = new Date()): Prisma.StoryboardRunWhereInput {
+  return {
+    userId,
+    purpose: "single-video-storyboard",
+    videoBriefId: null,
+    videoJobId: null,
+    status: {
+      in: [
+        StoryboardRunStatus.GENERATING,
+        StoryboardRunStatus.AWAITING_APPROVAL,
+        StoryboardRunStatus.APPROVED,
+        StoryboardRunStatus.FAILED,
+      ],
+    },
+    updatedAt: { gte: new Date(now.getTime() - STORYBOARD_RESUME_WINDOW_MS) },
+  };
+}
+
+export type PendingStoryboardSummary = {
+  id: string;
+  status: "GENERATING" | "AWAITING_APPROVAL" | "APPROVED" | "FAILED";
+  readyFrames: number;
+  totalFrames: number;
+  updatedAt: Date;
+};
+
+/**
+ * 成品库的「有一轮故事板还没走完」提示用（2026-11-10）：只读一行，不向供应商查询、不推进任务。
+ * 之前离开创作页后，进行中 / 等确认的故事板在别处没有任何入口，只能自己想起来回创作页。
+ */
+export async function peekPendingStoryboardForUser(userId: string): Promise<PendingStoryboardSummary | null> {
+  const run = await db.storyboardRun.findFirst({
+    where: resumableStoryboardWhere(userId),
+    orderBy: { updatedAt: "desc" },
+    select: {
+      id: true,
+      status: true,
+      updatedAt: true,
+      frames: { where: { isCurrent: true }, select: { status: true } },
+    },
+  });
+  if (!run) return null;
+  return {
+    id: run.id,
+    status: run.status as PendingStoryboardSummary["status"],
+    readyFrames: run.frames.filter((frame) => frame.status === "SUCCEEDED").length,
+    totalFrames: run.frames.length,
+    updatedAt: run.updatedAt,
+  };
+}
+
 export async function findResumableStoryboardRunForUser(userId: string): Promise<{
   run: StoryboardRunView;
   context: ResumableStoryboardContext;
 } | null> {
   const candidate = await db.storyboardRun.findFirst({
-    where: {
-      userId,
-      purpose: "single-video-storyboard",
-      videoBriefId: null,
-      videoJobId: null,
-      status: {
-        in: [
-          StoryboardRunStatus.GENERATING,
-          StoryboardRunStatus.AWAITING_APPROVAL,
-          StoryboardRunStatus.APPROVED,
-          StoryboardRunStatus.FAILED,
-        ],
-      },
-      updatedAt: { gte: new Date(Date.now() - STORYBOARD_RESUME_WINDOW_MS) },
-    },
+    where: resumableStoryboardWhere(userId),
     orderBy: { updatedAt: "desc" },
     select: { id: true },
   });

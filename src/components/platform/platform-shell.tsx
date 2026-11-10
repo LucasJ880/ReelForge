@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { usePulse } from "@/components/exchange/use-pulse";
+import { useReadyAnnouncement } from "@/components/exchange/use-ready-announcement";
 import { OpsCreditsCluster } from "@/components/platform/ops-credits-cluster";
 import { CapabilityIndicator } from "@/components/capabilities/capability-indicator";
 import type { PublicCapabilities } from "@/lib/capabilities/registry";
@@ -253,6 +254,7 @@ export function PlatformShell({
   const { t, locale } = useTranslation();
   const copy = getPlatformCopy(locale).shell;
   const pulse = usePulse(initialPulse, pathname);
+  useReadyAnnouncement({ pulse, pathname, copy: copy.readyAnnouncement, onOpen: (href) => router.push(href) });
   // 实时点只给「正在发生」：真在生成的视频条数决定市场状态（排队、暂停都不算生成中）。
   const live = pulse.generating > 0;
   const queued = !live && pulse.queued > 0;

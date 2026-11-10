@@ -138,10 +138,24 @@ export function deriveBusinessStatus(
   };
 }
 
-/// 段内时间估算的期望时长（分钟）：elapsed / expected 线性推进、封顶 SEGMENT_INTRA_CAP。
-/// 只在 provider 未上报真实 progress 时使用；可配置以贴合模型的实际生成耗时。
-const SEGMENT_EXPECTED_MIN = () =>
-  Number(process.env.PROGRESS_SEGMENT_EXPECTED_MIN ?? "6");
+/// 段内时间估算的典型时长（分钟）= 合作方出片耗时的中位数。只在 provider 未上报真实 progress 时使用。
+/// 2026-11-10 实测（生产近 45 天 44 条成功任务）：中位 9.8 分钟、P75 15 分钟、P90 43.5 分钟。
+/// 之前写死 6 分钟且线性推进：过了 6 分钟进度就停在 77% 不动，而一半以上的片子还要再等几分钟到几十分钟。
+export const SEGMENT_TYPICAL_MIN_DEFAULT = 10;
+const SEGMENT_EXPECTED_MIN = () => {
+  const configured = Number(process.env.PROGRESS_SEGMENT_EXPECTED_MIN);
+  return Number.isFinite(configured) && configured > 0 ? configured : SEGMENT_TYPICAL_MIN_DEFAULT;
+};
+
+/**
+ * 段内估算曲线：按等待时长逐渐逼近封顶，永远不停、也永远到不了封顶。
+ * 出片耗时是长尾分布（中位 10 分钟，十条里有一条要 40 分钟以上），线性推进到点就僵住；
+ * 这条曲线在中位时长走到约六成，两倍中位走到八成半，之后越走越慢但仍在动。
+ */
+export function estimateIntraProgress(elapsedMs: number, typicalMin: number = SEGMENT_EXPECTED_MIN()): number {
+  if (!(elapsedMs > 0) || !(typicalMin > 0)) return 0;
+  return SEGMENT_INTRA_CAP * (1 - Math.exp(-elapsedMs / (typicalMin * 60_000)));
+}
 /// 段内估算封顶：估算永远到不了 100%，真实完成信号（段 SUCCEEDED）才能推满
 const SEGMENT_INTRA_CAP = 0.95;
 
@@ -149,8 +163,8 @@ const SEGMENT_INTRA_CAP = 0.95;
  * 进度值来自流水线真实状态，不是假动画（INV-5）：
  * - generating：0.2 起步，按「(已成功段数 + 当前段内进度) / 总段数」插值到 0.8。
  *   段内进度优先用 provider 上报的真实 progress；provider 不给时用
- *   「已运行时长 / 期望时长」估算（每次轮询/渲染重算 → 随时间单调推进，
- *   封顶 0.95 段，杜绝 2026-07 事故里单段视频恒 20% 的死进度条）。
+ *   已运行时长估算（estimateIntraProgress：每次轮询/渲染重算 → 随时间单调推进、逐渐逼近
+ *   0.95 段但不到，杜绝 2026-07 事故里单段视频恒 20% 的死进度条，也不会到点僵住）。
  * - assembling：排队等待 0.85，合成执行中 0.9（两者含义不同，UI 有对应文案）
  * - 其余状态用静态基准值
  */
@@ -175,10 +189,7 @@ function computeProgressHint(
       ) {
         intra = Math.min(runningProviderProgress / 100, SEGMENT_INTRA_CAP);
       } else if (typeof runningElapsedMs === "number" && runningElapsedMs > 0) {
-        intra = Math.min(
-          runningElapsedMs / (SEGMENT_EXPECTED_MIN() * 60_000),
-          SEGMENT_INTRA_CAP,
-        );
+        intra = estimateIntraProgress(runningElapsedMs);
       }
       const hasRunning = segmentsSucceeded < segmentsTotal;
       const effective = segmentsSucceeded + (hasRunning ? intra : 0);
@@ -200,10 +211,31 @@ function computeProgressHint(
  */
 export const RUNNING_LONG_THRESHOLD_MS = 45 * 60_000;
 
+/** 在飞段已经等了几分钟（向下取整）；没在飞 → null。等待页据此如实写「已等 N 分钟」。 */
+export function runningElapsedMinutes(runningElapsedMs: number | null | undefined): number | null {
+  if (typeof runningElapsedMs !== "number" || runningElapsedMs < 0) return null;
+  return Math.floor(runningElapsedMs / 60_000);
+}
+
 /** 在飞段已等待的分钟数；没在飞、或还没到「比平时久」的线 → null。 */
 export function runningLongMinutes(runningElapsedMs: number | null | undefined): number | null {
   if (typeof runningElapsedMs !== "number" || runningElapsedMs < RUNNING_LONG_THRESHOLD_MS) return null;
   return Math.floor(runningElapsedMs / 60_000);
+}
+
+/**
+ * 批量条目生成中的进度：合作方报了真实进度就用它；没报（Shuyu 一直不报）就按已等待时长估算，
+ * 与单条同一条曲线、同一个 20%–80% 区间。之前没报就写 0%，一整批看起来像全卡死。
+ */
+export function batchRunningProgress(
+  lastProgress: number | null | undefined,
+  submittedAt: Date | null | undefined,
+  now: Date = new Date(),
+): number {
+  if (typeof lastProgress === "number" && lastProgress > 0) return Math.min(100, Math.round(lastProgress));
+  if (!submittedAt) return 0;
+  const elapsedMs = Math.max(0, now.getTime() - submittedAt.getTime());
+  return Math.round((0.2 + 0.6 * estimateIntraProgress(elapsedMs)) * 100);
 }
 
 /**

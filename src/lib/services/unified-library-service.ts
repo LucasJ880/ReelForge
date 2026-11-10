@@ -12,7 +12,7 @@ import {
   derivePersonalStatus,
   type PersonalVideoStatus,
 } from "@/lib/video-generation/personal-status";
-import { runningLongMinutes, summarizeRunningJobs } from "@/lib/video-generation/business-status";
+import { batchRunningProgress, runningElapsedMinutes, runningLongMinutes, summarizeRunningJobs } from "@/lib/video-generation/business-status";
 import {
   unifiedLibraryRowSchema,
   type UnifiedLibraryRow,
@@ -421,6 +421,7 @@ export function toUnifiedLibraryRow(
     segments,
     redoInFlight,
     waitingMinutes: status === "generating" ? runningLongMinutes(runningSummary.runningElapsedMs) : null,
+    elapsedMinutes: status === "generating" ? runningElapsedMinutes(runningSummary.runningElapsedMs) : null,
   });
 }
 
@@ -553,6 +554,7 @@ const batchLibraryJobSelect = {
   batchIndex: true,
   status: true,
   lastProgress: true,
+  submittedAt: true,
   outputVideoUrl: true,
   outputThumbUrl: true,
   brandedVideoUrl: true,
@@ -606,7 +608,7 @@ export function toBatchLibraryRow(
     status,
     label: status,
     progress:
-      status === "ready" ? 100 : status === "generating" ? Math.round(job.lastProgress ?? 0) : 0,
+      status === "ready" ? 100 : status === "generating" ? batchRunningProgress(job.lastProgress, job.submittedAt) : 0,
     videoUrl: customerSafeFinalVideoUrl(job.outputVideoUrl),
     thumbnailUrl: customerSafeFinalVideoUrl(job.outputThumbUrl),
     durationSec: snapshot?.durationSec ?? null,

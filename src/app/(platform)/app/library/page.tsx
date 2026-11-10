@@ -21,6 +21,8 @@ import { FailuresAckButton } from "@/components/library/failures-ack-button";
 import { LibraryHighlight } from "@/components/library/library-highlight";
 import { RenderPendingPostsButton } from "@/components/library/render-pending-posts-button";
 import { PostRenderWatcher } from "@/components/library/post-render-watcher";
+import { ProcessingRefresher } from "@/components/library/processing-refresher";
+import { peekPendingStoryboardForUser } from "@/lib/video-generation/storyboard-service";
 import { AiGeneratedLabel } from "@/components/compliance/ai-generated-label";
 import { LocalTime } from "@/components/exchange/local-time";
 import type { QuoteStat } from "@/components/exchange/quote-header";
@@ -84,12 +86,14 @@ export default async function PlatformLibraryPage({
   const [routeState, locale] = await Promise.all([getCustomerRouteRehearsalState("library"), getServerLocale()]);
   const empty = routeState === "empty";
   /// 行标题里的模板名按界面语言取（英文界面不挂中文模板名）
-  const [library, attention, production, finished, brandPackages] = await Promise.all([
+  const [library, attention, production, finished, brandPackages, pendingStoryboard] = await Promise.all([
     empty ? Promise.resolve({ rows: [] as UnifiedLibraryRow[], truncated: false, perSourceLimit: 0 }) : loadUnifiedLibrary(userId, { locale }),
     empty ? Promise.resolve({ items: [] as NeedsAttentionItem[], total: 0 }) : loadNeedsAttention(userId, { locale }),
     empty ? Promise.resolve(EMPTY_PRODUCTION) : loadProductionCounts(userId),
     empty ? Promise.resolve(0) : countFinished(userId),
     listWorkspaceBrandPackagesForUser(userId),
+    /// 还没走完的一轮故事板（出帧中 / 等确认 / 已确认没派发 / 有帧失败）：只读一行
+    empty ? Promise.resolve(null) : peekPendingStoryboardForUser(userId),
   ]);
   const preferredBrandPackage = brandPackages.find((brandPackage) => brandPackage.isDefault)
     ?? brandPackages[0]
@@ -157,10 +161,38 @@ export default async function PlatformLibraryPage({
       scope={copy.scope}
     >
       {highlight ? <LibraryHighlight rowId={highlight} /> : null}
+      {/* 有东西在途时列表自己更新（20 秒一次，页面在后台不拉）：派发后商家被带到这里，
+          之前「生产线上」的百分比不会动，成片要手动刷新才出现 */}
+      {makingRows.length > 0 || waitingRows.length > 0 || pendingStoryboard?.status === "GENERATING" ? (
+        <ProcessingRefresher intervalMs={20_000} />
+      ) : null}
       {library.truncated ? (
         <p className="-mt-6 font-mono text-data text-tertiary" data-testid="library-truncated">
           {copy.truncated.replace("{n}", String(library.perSourceLimit))}
         </p>
+      ) : null}
+
+      {pendingStoryboard && !query ? (
+        /* 故事板不在成品库的任何一栏里：离开创作页后，这是唯一能把人带回去的入口 */
+        <Link
+          href="/app/create"
+          data-testid="library-pending-storyboard"
+          className="x-panel flex items-center gap-4 px-4 py-3 transition-colors hover:bg-raised focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+        >
+          {pendingStoryboard.status === "GENERATING" ? <span className="x-live" aria-hidden /> : null}
+          <div className="min-w-0 flex-1">
+            <p className={pendingStoryboard.status === "AWAITING_APPROVAL" ? "text-body font-medium text-gold" : "text-body font-medium"}>
+              {copy.pendingStoryboard[pendingStoryboard.status]
+                .replace("{ready}", String(pendingStoryboard.readyFrames))
+                .replace("{total}", String(pendingStoryboard.totalFrames))}
+            </p>
+            <p className="font-mono text-data tabular-nums text-muted-foreground">
+              <LocalTime iso={pendingStoryboard.updatedAt.toISOString()} locale={locale} variant="relative" />
+            </p>
+          </div>
+          <span className="shrink-0 text-meta text-accent">{copy.pendingStoryboard.action}</span>
+          <ArrowRight className="size-4 shrink-0 text-tertiary" aria-hidden />
+        </Link>
       ) : null}
 
       {nothing ? (
@@ -254,7 +286,10 @@ export default async function PlatformLibraryPage({
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-body font-medium">{row.title}</p>
                         <p className="font-mono text-data tabular-nums text-muted-foreground">
-                          {copy.sourceLabels[row.source]} · {copy.statuses[row.status]} · <LocalTime iso={row.updatedAt.toISOString()} locale={locale} variant="relative" />
+                          {copy.sourceLabels[row.source]} · {copy.statuses[row.status]} ·{" "}
+                          {row.elapsedMinutes !== null && row.elapsedMinutes > 0
+                            ? copy.waitingElapsed.replace("{n}", String(row.elapsedMinutes))
+                            : <LocalTime iso={row.updatedAt.toISOString()} locale={locale} variant="relative" />}
                         </p>
                       </div>
                       <div className="hidden w-40 shrink-0 sm:block">

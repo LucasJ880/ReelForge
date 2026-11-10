@@ -64,6 +64,8 @@ test("RF-029: list and detail share one runtime-validated SSR DTO mapper", () =>
     "canRestitch",
     "canRetry",
     "durationSec",
+    /// 2026-11-10：还在生成时已经等了几分钟（从 0 起），等待页写「已等 N 分钟」；其余为 null。
+    "elapsedMinutes",
     "failedSceneCount",
     "id",
     /// PRD §4.3：素材库要收纳图文帖与轮播，因此多了 imageUrls 与 planId。
@@ -89,6 +91,7 @@ test("RF-029: list and detail share one runtime-validated SSR DTO mapper", () =>
     "waitingMinutes",
   ]);
   assert.equal(row.waitingMinutes, null, "已完成的成片没有「等了多久」");
+  assert.equal(row.elapsedMinutes, null, "已完成的成片没有「已等几分钟」");
   assert.equal(row.status, "ready");
   assert.equal(row.progress, 100);
   assert.equal(row.videoUrl, "https://assets.example.com/final.mp4");

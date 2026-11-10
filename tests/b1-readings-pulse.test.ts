@@ -61,6 +61,10 @@ function installPulseStubs(t: TestContext, options: { ackedAt?: Date | null; tri
     return 5; // 单条失败（需要处理）
   });
   stub(t, calls, "videoJob", "count", () => 7); // 批量失败（需要处理）
+  stub(t, calls, "videoBrief", "findFirst", () => ({
+    finalVideo: { finishedAt: new Date("2026-10-24T08:30:00.000Z") },
+    contentAngle: { round: { deliveryOrder: { id: "order-ready-1", title: "保温杯通勤广告" } } },
+  }));
   stub(t, calls, "contentPost", "count", () => 11);
   stub(t, calls, "lead", "count", () => 6);
   stub(t, calls, "userUsagePeriod", "findMany", () => [{ resource: "VIDEO_DISPATCH", amount: options.used ?? 2 }]);

@@ -93,6 +93,7 @@ npm run context:find -- "..."
 | 品牌页的片尾落款预览（与合成同一套版式） | `src/components/brand/signoff-preview.tsx` |
 | 配乐曲库（8 首；7 首由 Runway 生成配乐接口一次性生成、随仓库带，出片不调接口） | 目录 `src/lib/video-generation/bgm-catalog.ts`，文件 `public/audio/bgm/`，选曲组件 `bgm-picker.tsx`；加曲子：放文件 + 目录加一行 |
 | 字幕跟着人声走（按语音识别对齐） | `alignCuesToSpeech`（`src/lib/video-generation/audio-post-production.ts`）、`src/lib/providers/openai-transcription.ts`；日志搜 `[captions]` |
+| 上传卡住超时（直传存储一直没进展时中止并明说「上传卡住了」；存储客户端自己会不报错地重试十几分钟） | `src/lib/upload/stall-watchdog.ts`，接在 `uploadBlobWithProgress`（`blob-xhr.ts`）的直传那一步；日志搜 `[upload] direct upload stalled` |
 | 只重新合成（换字幕 / BGM / 落款，不扣额度） | `src/lib/video-generation/restitch-patch.ts`、`stitch-service` 的 `prepareRestitch` / `commitRestitch` |
 
 供应商现状（2026-11-10）：生产只留 Shuyu（出图、出片）、Runway（备用出片、出故事板图）、OpenAI（出方案；开关打开时另做字幕的语音识别）三把付费密钥；

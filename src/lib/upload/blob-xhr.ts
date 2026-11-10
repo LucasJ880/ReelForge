@@ -1,6 +1,7 @@
 import type { CustomerRecoveryAction } from "@/lib/contracts/customer-api";
 import type { UploadTicketResponse } from "@/lib/contracts/upload-blob";
 import { validateMediaMagicBytes } from "@/lib/upload/media-file-validation";
+import { createStallWatchdog, mergeAbortSignals } from "@/lib/upload/stall-watchdog";
 
 export interface BlobUploadResult {
   assetId: string;
@@ -36,6 +37,8 @@ export interface BlobUploadOptions {
 /// 超过这个大小走分片直传：分片并行、失败分片自动重试，手机网络传大视频更稳。
 const MULTIPART_THRESHOLD_BYTES = 32 * 1024 * 1024;
 const NETWORK_FAILURE_MESSAGE = "上传失败，请检查网络后重试";
+/// 直传一直没有进展（见 stall-watchdog）：和「失败」分开说，商家知道不是文件的问题、再试一次就行
+export const UPLOAD_STALLED_MESSAGE = "上传卡住了，一直没有进展。请检查网络后再试一次";
 
 interface AssetPayload {
   asset?: {
@@ -81,22 +84,42 @@ export async function uploadBlobWithProgress({
   }
 
   const { put } = await import("@vercel/blob/client");
+  /// 存储客户端遇到网络错误 / 5xx 会不声不响地重试十几分钟。卡住看门狗盯着「传到过的最远位置」，
+  /// 太久不往前就中止并明说卡住了——不让商家对着一个永远「上传中」的格子干等。
+  const stall = new AbortController();
+  let stalled = false;
+  const watchdog = createStallWatchdog({
+    onStall: () => {
+      stalled = true;
+      stall.abort();
+    },
+  });
+  const merged = mergeAbortSignals([signal, stall.signal]);
   try {
     await put(ticket.pathname, file, {
       access: "public",
       token: ticket.clientToken,
       contentType,
       multipart: file.size > MULTIPART_THRESHOLD_BYTES,
-      abortSignal: signal,
-      onUploadProgress: ({ percentage }) => {
+      abortSignal: merged.signal,
+      onUploadProgress: ({ loaded, percentage }) => {
+        watchdog.progress(loaded);
         /// 100 留给登记完成：对象传完、资产还没入库时不该显示「已完成」
         onProgress?.(Math.min(99, Math.round(percentage)));
       },
     });
   } catch (error) {
+    /// 商家自己取消的优先：取消就是取消，不报错
     if (signal?.aborted) throw abortError();
+    if (stalled) {
+      console.warn("[upload] direct upload stalled");
+      throw new Error(UPLOAD_STALLED_MESSAGE);
+    }
     console.warn("[upload] direct upload failed", error instanceof Error ? error.name : error);
     throw new Error(NETWORK_FAILURE_MESSAGE);
+  } finally {
+    watchdog.stop();
+    merged.release();
   }
 
   const completed = await postJson<AssetPayload>(

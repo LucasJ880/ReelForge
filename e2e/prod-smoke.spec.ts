@@ -47,7 +47,9 @@ const SAVE_SESSION_PATH = process.env.PROD_SMOKE_SAVE_SESSION?.trim() || null;
 /** 上一次部署那轮留下的登录态（工作流解密好放在这里） */
 const PREVIOUS_SESSION_PATH = process.env.PROD_SMOKE_PREVIOUS_SESSION?.trim() || null;
 
-const UPLOAD_TIMEOUT_MS = 120_000;
+/// 比页面自己的「卡住超时」长（首字节 60 秒；传到过的最远位置 120 秒不往前——见 src/lib/upload/stall-watchdog.ts）：
+/// 直传卡住时等页面先报出「上传卡住了」，冒烟拿到的是一句明确的页面报错，而不是自己干等到超时。
+const UPLOAD_TIMEOUT_MS = 200_000;
 
 /// 新账号第一次进创作页会弹上手引导；冒烟按老用户进，免得弹层盖住页面、把读屏树藏起来
 const DISMISSED_CREATE_INTROS = ["aivora.create-onboarding.v1", "aivora.streamlined-video-guide.v1"];
@@ -157,6 +159,8 @@ test.describe("已登录（专用 QA 账号）", () => {
   });
 
   test("手机原图（3024×4032、≥6MB）直传 Blob，缩略图加载出来；不点生成", async () => {
+    /// 这一条要等得过页面自己的「卡住超时」，比全局的单条时限长
+    test.setTimeout(UPLOAD_TIMEOUT_MS + 90_000);
     const page = await context.newPage();
     const calls: UploadCall[] = [];
     const blobPuts: string[] = [];

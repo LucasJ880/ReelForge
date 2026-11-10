@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   STORYBOARD_DIRECTION_SYSTEM_PROMPT,
+  describeDirectionGaps,
   designStoryboardDirection,
   parseStoryboardDirection,
   storyboardDirectionEnabled,
@@ -67,20 +68,46 @@ function analyzer(respond: () => unknown) {
   return { analyze, calls };
 }
 
-test("开关：缺省开；STORYBOARD_DIRECTION=off 退回两次调用；镜头卡或英译任一开关关着也不走合并", () => {
-  assert.equal(storyboardDirectionEnabled({}), true);
-  assert.equal(storyboardDirectionEnabled({ STORYBOARD_DIRECTION: " OFF " }), false);
-  assert.equal(storyboardDirectionEnabled({ STORYBOARD_STORY_ENGLISH: "off" }), false);
-  assert.equal(storyboardDirectionEnabled({ STORYBOARD_SHOT_CARDS: "off" }), false);
+test("开关：缺省关（首次真机只用上三样里的一样且更慢）；STORYBOARD_DIRECTION=on 才开；镜头卡或英译任一关着也不走合并", () => {
+  assert.equal(storyboardDirectionEnabled({}), false);
+  assert.equal(storyboardDirectionEnabled({ STORYBOARD_DIRECTION: "off" }), false);
+  assert.equal(storyboardDirectionEnabled({ STORYBOARD_DIRECTION: " ON " }), true);
+  assert.equal(storyboardDirectionEnabled({ STORYBOARD_DIRECTION: "on", STORYBOARD_STORY_ENGLISH: "off" }), false);
+  assert.equal(storyboardDirectionEnabled({ STORYBOARD_DIRECTION: "on", STORYBOARD_SHOT_CARDS: "off" }), false);
 });
 
 test("系统提示词：沿用镜头卡的全部规则，只有一处返回格式说明，并要求看图、英译与盘点", () => {
-  assert.equal(STORYBOARD_DIRECTION_SYSTEM_PROMPT.split("Return JSON only:").length - 1, 1, "不能留两处互相矛盾的返回格式");
+  assert.equal(STORYBOARD_DIRECTION_SYSTEM_PROMPT.split("Return JSON only").length - 1, 1, "不能留两处互相矛盾的返回格式");
   assert.match(STORYBOARD_DIRECTION_SYSTEM_PROMPT, /Write exactly one card per beat/);
   assert.match(STORYBOARD_DIRECTION_SYSTEM_PROMPT, /you can SEE the merchant's real photos/);
   assert.match(STORYBOARD_DIRECTION_SYSTEM_PROMPT, /"english"/);
   assert.match(STORYBOARD_DIRECTION_SYSTEM_PROMPT, /"productDescription"/);
-  assert.match(STORYBOARD_DIRECTION_SYSTEM_PROMPT, /\{"shots":\[[\s\S]*\],"english":"","reference":\{\}\}$/u);
+  /// 首次真机：模型只填了 shots，english 与 reference 没用上。示例里不再给空值，并写明三样必填、盘点与英译排在前面
+  assert.match(STORYBOARD_DIRECTION_SYSTEM_PROMPT, /THREE required keys/);
+  assert.match(STORYBOARD_DIRECTION_SYSTEM_PROMPT, /never leave "english" empty and never leave "reference" empty/);
+  assert.doesNotMatch(STORYBOARD_DIRECTION_SYSTEM_PROMPT, /"english":""/);
+  assert.doesNotMatch(STORYBOARD_DIRECTION_SYSTEM_PROMPT, /"reference":\{\}/);
+  const shape = STORYBOARD_DIRECTION_SYSTEM_PROMPT.slice(STORYBOARD_DIRECTION_SYSTEM_PROMPT.lastIndexOf("Return JSON only"));
+  assert.ok(shape.indexOf('"reference"') < shape.indexOf('"english"') && shape.indexOf('"english"') < shape.indexOf('"shots"'));
+});
+
+test("没用上的原因只描述形状、不带内容：缺键 / 空值 / 有内容但没过校验", () => {
+  const meta = { story: STORY_ZH, beatCount: BEATS.length, photoCount: 2 };
+  const skeleton = { shots: FULL.shots, english: "", reference: {} };
+  assert.deepEqual(describeDirectionGaps(skeleton, parseStoryboardDirection(skeleton, meta)), {
+    english: "empty string",
+    reference: "empty object",
+  });
+  const onlyShots = { shots: FULL.shots };
+  assert.deepEqual(describeDirectionGaps(onlyShots, parseStoryboardDirection(onlyShots, meta)), {
+    english: "key missing",
+    reference: "key missing",
+  });
+  const untranslated = { ...FULL, english: STORY_ZH };
+  const gaps = describeDirectionGaps(untranslated, parseStoryboardDirection(untranslated, meta));
+  assert.match(gaps.english ?? "", /^string\(\d+\) rejected by validation$/);
+  assert.equal(JSON.stringify(gaps).includes("保温杯"), false, "日志里不带商家原话");
+  assert.deepEqual(describeDirectionGaps("oops", parseStoryboardDirection("oops", meta)), { response: "not a JSON object" });
 });
 
 test("一次调用三样都用上：镜头卡按节拍数、英译、盘点带照片张数", async () => {

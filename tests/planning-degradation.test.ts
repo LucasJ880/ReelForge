@@ -246,6 +246,8 @@ const LLM_ENV: Record<string, string | undefined> = {
   STORYBOARD_SHOT_CARDS: undefined,
   /// 缺省 = 出方案精简（planning-mode.ts）：一致性设定与段提示词不调模型
   PLANNING_FULL_LLM: undefined,
+  /// 缺省 = 建故事板分开两次调用（storyboard-direction.ts 的合并调用缺省关）
+  STORYBOARD_DIRECTION: undefined,
 };
 
 /// 退回开关打开：四步都调模型的旧路径。下面四条「四步」用例守的是这条仍然保留的退路。
@@ -963,7 +965,7 @@ function withProductPhotos(t: TestContext) {
 }
 
 test("建故事板（有商品图）：一次看图调用同时出镜头卡、英译与盘点；盘点随 run 落库", async (t) => {
-  useEnv(t, LLM_ENV);
+  useEnv(t, { ...LLM_ENV, STORYBOARD_DIRECTION: "on" });
   withProductPhotos(t);
   const systems: string[] = [];
   mock.method(openai.chat.completions, "create", (async (params: CreateParams) => {
@@ -990,7 +992,7 @@ test("建故事板（有商品图）：一次看图调用同时出镜头卡、�
 });
 
 test("建故事板：合并调用只给了镜头卡 → 只补跑英译；盘点留空（派发时现看），不记降级", async (t) => {
-  useEnv(t, LLM_ENV);
+  useEnv(t, { ...LLM_ENV, STORYBOARD_DIRECTION: "on" });
   withProductPhotos(t);
   mock.method(console, "warn", () => undefined);
   const systems: string[] = [];
@@ -1014,8 +1016,8 @@ test("建故事板：合并调用只给了镜头卡 → 只补跑英译；盘点
   assert.deepEqual(created[0].planningDegradations, []);
 });
 
-test("建故事板：合并调用整次失败 → 退回原来的两次调用，结果与合并前一样；STORYBOARD_DIRECTION=off 也走原路径", async (t) => {
-  useEnv(t, LLM_ENV);
+test("建故事板：合并调用整次失败 → 退回原来的两次调用，结果与合并前一样；不设开关（缺省）也走原路径", async (t) => {
+  useEnv(t, { ...LLM_ENV, STORYBOARD_DIRECTION: "on" });
   withProductPhotos(t);
   mock.method(console, "warn", () => undefined);
   let first = true;
@@ -1043,10 +1045,8 @@ test("建故事板：合并调用整次失败 → 退回原来的两次调用，
   const frames = (created[0].frames as { create: Array<{ prompt: string }> }).create;
   assert.ok(frames.every((frame) => frame.prompt.includes("SHOT CARD: ")));
 
-  process.env.STORYBOARD_DIRECTION = "off";
-  t.after(() => {
-    delete process.env.STORYBOARD_DIRECTION;
-  });
+  /// 缺省（不设开关）就是分开的两次调用
+  delete process.env.STORYBOARD_DIRECTION;
   systems.length = 0;
   await assert.rejects(
     createStoryboardRun({ ...RUN_INPUT, idempotencyKey: "legacy-run", sourceAssetIds: ["asset-1", "asset-2"] }),

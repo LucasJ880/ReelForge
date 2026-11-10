@@ -205,7 +205,7 @@ export function ShowroomLanding({ locale, fallbackEmail }: { locale: Locale; fal
             ))}
           </ol>
         </div>
-        <div className="x-panel x-frame min-w-0">
+        <div className="x-panel min-w-0">
           <PilotApplicationForm locale={locale} fallbackEmail={fallbackEmail} />
         </div>
       </section>

@@ -27,7 +27,7 @@ interface PlanPreviewCardProps {
  *   - 用 "scene" / "plan" / "format" / "length" 这些用户能直接理解的词
  *   - 不展示原始 prompt 字符串（可能包含英文导演术语）
  *
- * 版式：一面接缝墙——第一格是方案摘要，中间一排读数，最后一格是质量结论与镜头拆解。
+ * 版式：一组卡片网格（.x-wall）——第一格是方案摘要，中间一排读数，最后一格是质量结论与镜头拆解。
  */
 export function PlanPreviewCard({ plan }: PlanPreviewCardProps) {
   const { locale } = useTranslation();

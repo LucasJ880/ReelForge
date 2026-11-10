@@ -81,6 +81,9 @@ test("合成器认得新曲目；音量上限不再只认最早那一首", () =>
 });
 
 test("两处选曲界面共用同一个组件，曲目从目录列出", () => {
+  /// 创作页：选了配乐，「更多设置」收起来的摘要里也写出是哪一首
+  const studio = readFileSync("src/components/video-generation/streamlined-video-studio.tsx", "utf8");
+  assert.match(studio, /bgmTrack \? ` · \$\{copy\.summaryBgm\} \$\{bgmTrack\[english \? "en" : "zh"\]\}` : ""/);
   /// 原来没配乐的成片音量是 0：选了曲子要给起始音量，否则「选了等于没选」
   const restitch = readFileSync("src/components/library/restitch-form.tsx", "utf8");
   assert.match(restitch, /if \(next !== "none" && bgmVolume === 0\) setBgmVolume\(DEFAULT_BGM_VOLUME\);/);

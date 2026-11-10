@@ -170,10 +170,12 @@ function Nav({
   }
   return (
     <nav aria-label={t("shell.platformShell.primaryNav")} className="flex flex-col gap-5 px-3 py-2">
+      {/* 2026-11-10 去重：桌面侧栏里「创作」页的入口就是上面那颗「新建视频」。原来按钮、分组标题「创作」、导航项「创作」
+          三处指向同一页，这一组不再重复列它，也不挂同名标题。移动端 tab 条与快捷键 1–7 不变。 */}
       {NAV_GROUPS.map((group) => (
         <div key={group.id} className="flex flex-col gap-0.5">
-          <span className="px-3 pb-1 text-data text-tertiary">{shell.navGroups[group.id]}</span>
-          {group.items.map((id) => link(id))}
+          {group.id === "make" ? null : <span className="px-3 pb-1 text-data text-tertiary">{shell.navGroups[group.id]}</span>}
+          {group.items.filter((id) => id !== "create").map((id) => link(id))}
         </div>
       ))}
     </nav>
@@ -293,8 +295,11 @@ export function PlatformShell({
             href="/app/create"
             prefetch={false}
             data-testid="sidebar-new-video"
+            /// 它同时是「创作」页在侧栏里唯一的入口：在创作页时标成当前页，快捷键 1 也归它
+            aria-current={activePath(pathname, "/app/create") ? "page" : undefined}
+            aria-keyshortcuts="1"
             /// 2026-10-28 晚学 Runway「New Chat」：侧栏入口是一行低调按钮（抬升底 + 蓝紫圆点图标），主按钮的电光蓝紫只留给页面里那一个
-            className="flex h-10 items-center gap-2.5 rounded-(--radius-md) border border-border bg-raised px-3 text-meta font-semibold text-foreground transition-colors duration-fast hover:border-border-strong hover:bg-active focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
+            className="flex h-10 items-center gap-2.5 rounded-(--radius-md) border border-border bg-raised px-3 text-meta font-semibold text-foreground transition-colors duration-fast hover:border-border-strong hover:bg-active focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none aria-[current=page]:border-border-strong aria-[current=page]:bg-active"
           >
             <span className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground" aria-hidden>
               <Plus className="size-3.5" />

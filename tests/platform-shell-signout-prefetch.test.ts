@@ -15,7 +15,9 @@ test("RF-036: protected platform navigation cannot prefetch after sign-out clear
   const navSource = source.slice(navStart, navEnd);
   assert.match(navSource, /<Link[\s\S]*?href=\{item\.href\}[\s\S]*?prefetch=\{false\}/);
   assert.match(navSource, /PLATFORM_PRIMARY_NAV\.map\(\(item\) => link\(item\.id\)\)/);
-  assert.match(navSource, /group\.items\.map\(\(id\) => link\(id\)\)/);
+  /// 2026-11-10：桌面分组不再重复列「创作」（入口是顶部的「新建视频」，它同样 prefetch={false}），其余仍走同一个 link 构造器。
+  assert.match(navSource, /group\.items\.filter\(\(id\) => id !== "create"\)\.map\(\(id\) => link\(id\)\)/);
+  assert.match(source, /href="\/app\/create"\s+prefetch=\{false\}\s+data-testid="sidebar-new-video"/);
   assert.doesNotMatch(
     navSource,
     /prefetch=\{(?:true|signingOut\s*\?\s*true)/,

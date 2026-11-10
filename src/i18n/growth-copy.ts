@@ -211,7 +211,10 @@ interface GrowthCopy {
     markVerified: string;
     unmarkVerified: string;
     archive: string;
-    archiveConfirm: string;
+    /** 确认框：标题是要做的事（带客户称呼 {name}），正文是后果 */
+    archiveTitle: string;
+    archiveBody: string;
+    confirmCancel: string;
     moveTo: string;
     conflict: string;
     actionFailed: string;
@@ -239,7 +242,8 @@ interface GrowthCopy {
     linkCopy: string;
     linkCopied: string;
     linkArchive: string;
-    linkArchiveConfirm: string;
+    linkArchiveTitle: string;
+    linkArchiveBody: string;
     linkClicks: string;
     linkToPage: string;
     qrNote: string;
@@ -511,7 +515,9 @@ const ZH: GrowthCopy = {
     markVerified: "核实为真实询盘",
     unmarkVerified: "取消核实",
     archive: "归档",
-    archiveConfirm: "归档后这条询盘不再计入读数（记录保留）。确定归档？",
+    archiveTitle: "归档「{name}」的询盘？",
+    archiveBody: "归档后这条询盘不再计入读数，记录会保留。",
+    confirmCancel: "取消",
     moveTo: "改为",
     conflict: "这条询盘刚被改过，已刷新，请再操作一次。",
     actionFailed: "没改成功，请再试一次。",
@@ -538,7 +544,8 @@ const ZH: GrowthCopy = {
     linkCopy: "复制",
     linkCopied: "已复制",
     linkArchive: "停用",
-    linkArchiveConfirm: "停用后这条链接会打不开（点击记录保留）。确定停用？",
+    linkArchiveTitle: "停用「{name}」？",
+    linkArchiveBody: "停用后这条链接会打不开，已经印出去或贴出去的也一样。点击记录会保留。",
     linkClicks: "点击",
     linkToPage: "询盘页",
     qrNote: "二维码：把链接交给印刷厂或用手机生成二维码即可。",
@@ -887,7 +894,9 @@ const EN: GrowthCopy = {
     markVerified: "Mark as verified",
     unmarkVerified: "Unverify",
     archive: "Archive",
-    archiveConfirm: "Archived inquiries no longer count in readings (the record is kept). Archive it?",
+    archiveTitle: "Archive the inquiry from {name}?",
+    archiveBody: "Archived inquiries no longer count in your numbers. The record is kept.",
+    confirmCancel: "Cancel",
     moveTo: "Move to",
     conflict: "This inquiry just changed — refreshed. Please try again.",
     actionFailed: "That didn't save. Please try again.",
@@ -914,7 +923,8 @@ const EN: GrowthCopy = {
     linkCopy: "Copy",
     linkCopied: "Copied",
     linkArchive: "Disable",
-    linkArchiveConfirm: "A disabled link stops working (click history is kept). Disable it?",
+    linkArchiveTitle: "Disable “{name}”?",
+    linkArchiveBody: "A disabled link stops working, including anywhere it is already printed or posted. Click history is kept.",
     linkClicks: "Clicks",
     linkToPage: "Inquiry page",
     qrNote: "QR code: hand the link to your printer or turn it into a QR code on your phone.",

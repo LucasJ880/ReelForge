@@ -31,6 +31,7 @@ import { SectionHead } from "@/components/exchange/section-head";
 import { CreateModeTabs } from "@/components/product-images/create-mode-tabs";
 import { uploadFilesToAssets } from "@/components/personal/upload-assets";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { BrollQuickCard } from "@/components/video-generation/broll-quick-card";
 import { ProductLinkPrefill } from "@/components/video-generation/product-link-prefill";
@@ -241,7 +242,10 @@ const ZH_COPY = {
   creatingStoryboard: "正在生成故事板…",
   cancellingStoryboardCreate: "正在取消…",
   storyboardFailed: "故事板暂时无法生成，请保留当前方案后重试。",
-  editStoryboardConfirm: "修改创作方向会退出当前故事板。已生成的画面仍保留在任务记录中，确定继续吗？",
+  editStoryboardTitle: "退出这个故事板，回去改描述？",
+  editStoryboardBody: "这一轮到此结束，还在生成的画面会停下。已经生成的画面仍保留在任务记录里，商品图和描述不会丢。",
+  editStoryboardConfirm: "退出故事板",
+  editStoryboardStay: "留在这里",
   approveFirst: "请先确认故事板",
   generate: "生成视频",
   generating: "正在提交…",
@@ -382,7 +386,10 @@ const EN_COPY: StudioCopy = {
   creatingStoryboard: "Generating storyboard…",
   cancellingStoryboardCreate: "Cancelling…",
   storyboardFailed: "The storyboard could not be generated right now. Your direction is preserved; try again shortly.",
-  editStoryboardConfirm: "Editing the direction exits this storyboard. Generated frames remain in task history. Continue?",
+  editStoryboardTitle: "Leave this storyboard and edit the brief?",
+  editStoryboardBody: "This round ends here and any frames still generating will stop. Frames already made stay in task history, and your product photos and brief are kept.",
+  editStoryboardConfirm: "Leave storyboard",
+  editStoryboardStay: "Stay here",
   approveFirst: "Approve the storyboard first",
   generate: "Generate video",
   generating: "Submitting…",
@@ -572,6 +579,7 @@ export function StreamlinedVideoStudio({
   const [storyboardFrameBusy, setStoryboardFrameBusy] = useState<string | null>(null);
   const [approvingStoryboard, setApprovingStoryboard] = useState(false);
   const [cancellingRound, setCancellingRound] = useState(false);
+  const [editConfirmOpen, setEditConfirmOpen] = useState(false);
   const [busy, setBusy] = useState<BusyState>(null);
   /// 「生成 AI 故事板」里先出方案（40–60 秒）再建故事板：前半段主按钮写「正在规划镜头…」，别让人以为帧已经在画
   const [planningShots, setPlanningShots] = useState(false);
@@ -1473,31 +1481,36 @@ export function StreamlinedVideoStudio({
     }
   }
 
+  /// 「修改创作方向」：有故事板时先在站内确认框里问一句（原来是浏览器原生确认框），没有就直接回到描述。
+  function requestEditStoryboardDirection() {
+    if (cancellingRound) return;
+    if (storyboard) setEditConfirmOpen(true);
+    else void editStoryboardDirection();
+  }
+
   async function editStoryboardDirection() {
     if (cancellingRound) return;
-    if (!storyboard || window.confirm(copy.editStoryboardConfirm)) {
-      interactedRef.current = true;
-      if (storyboard) {
-        // 退出故事板 = 放弃这一轮：仍在出帧的要让服务端停下，不在后台继续计费。
-        setCancellingRound(true);
-        const cancelled = await cancelStoryboardOnServer(storyboard);
-        setCancellingRound(false);
-        if (!cancelled) return;
-        markStoryboardRunDismissed(storyboard.id);
-      }
-      setStoryboard(null);
-      storyboardAttemptRef.current = null;
-      dispatchAttemptRef.current = null;
-      persistStoredAttempt(STORYBOARD_ATTEMPT_STORAGE_KEY, null);
-      persistStoredAttempt(DISPATCH_ATTEMPT_STORAGE_KEY, null);
-      setError(null);
-      requestAnimationFrame(() => {
-        document.getElementById("streamlined-video-prompt")?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      });
+    interactedRef.current = true;
+    if (storyboard) {
+      // 退出故事板 = 放弃这一轮：仍在出帧的要让服务端停下，不在后台继续计费。
+      setCancellingRound(true);
+      const cancelled = await cancelStoryboardOnServer(storyboard);
+      setCancellingRound(false);
+      if (!cancelled) return;
+      markStoryboardRunDismissed(storyboard.id);
     }
+    setStoryboard(null);
+    storyboardAttemptRef.current = null;
+    dispatchAttemptRef.current = null;
+    persistStoredAttempt(STORYBOARD_ATTEMPT_STORAGE_KEY, null);
+    persistStoredAttempt(DISPATCH_ATTEMPT_STORAGE_KEY, null);
+    setError(null);
+    requestAnimationFrame(() => {
+      document.getElementById("streamlined-video-prompt")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
   }
 
   async function handleGenerate() {
@@ -2517,7 +2530,19 @@ export function StreamlinedVideoStudio({
             referenceOptions={storyboardReferenceOptions}
             onRegenerate={(frameId, options) => void regenerateStoryboardFrame(frameId, options)}
             onApprove={() => void approveStoryboard()}
-            onEditPlan={() => void editStoryboardDirection()}
+            onEditPlan={requestEditStoryboardDirection}
+          />
+          <ConfirmDialog
+            open={editConfirmOpen}
+            onOpenChange={setEditConfirmOpen}
+            testId="edit-direction-confirm"
+            tone="danger"
+            busy={cancellingRound}
+            title={copy.editStoryboardTitle}
+            description={copy.editStoryboardBody}
+            confirmLabel={copy.editStoryboardConfirm}
+            cancelLabel={copy.editStoryboardStay}
+            onConfirm={() => void editStoryboardDirection().finally(() => setEditConfirmOpen(false))}
           />
           {/* 任何一轮创作都要有退出口：卡在生成中或失败时，用户不必只能等或只能重试 */}
           <div className="flex flex-wrap items-center justify-end gap-2 text-meta text-muted-foreground">

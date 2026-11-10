@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, BadgeCheck, Mail, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { StatusTick, type TickTone } from "@/components/exchange/status-tick";
 import { stateTone } from "@/lib/exchange/state-vocab";
 import type { Locale } from "@/i18n/config";
@@ -50,6 +51,9 @@ export function LeadsBoard({ locale, leads }: { locale: Locale; leads: LeadRow[]
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /// 待确认归档的那一条；确认框关着时保留上一条的称呼，关闭动画里标题不闪成空
+  const [archiving, setArchiving] = useState<LeadRow | null>(null);
+  const [archiveOpen, setArchiveOpen] = useState(false);
 
   async function patch(leadId: string, body: Record<string, unknown>) {
     setBusyId(leadId);
@@ -184,7 +188,8 @@ export function LeadsBoard({ locale, leads }: { locale: Locale; leads: LeadRow[]
                     aria-label={`${copy.archive} · ${lead.name}`}
                     title={copy.archive}
                     onClick={() => {
-                      if (window.confirm(copy.archiveConfirm)) void patch(lead.id, { archived: true });
+                      setArchiving(lead);
+                      setArchiveOpen(true);
                     }}
                   >
                     <Archive aria-hidden />
@@ -195,6 +200,19 @@ export function LeadsBoard({ locale, leads }: { locale: Locale; leads: LeadRow[]
           })}
         </ul>
       </div>
+      <ConfirmDialog
+        open={archiveOpen}
+        onOpenChange={setArchiveOpen}
+        testId="lead-archive-confirm"
+        title={fillGrowth(copy.archiveTitle, { name: archiving?.name ?? "" })}
+        description={copy.archiveBody}
+        confirmLabel={copy.archive}
+        cancelLabel={copy.confirmCancel}
+        onConfirm={() => {
+          setArchiveOpen(false);
+          if (archiving) void patch(archiving.id, { archived: true });
+        }}
+      />
     </div>
   );
 }

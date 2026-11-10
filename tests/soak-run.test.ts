@@ -284,6 +284,25 @@ test("点数估算：两组分开列、按实时单价算，已提交的不再�
   const noCatalog = estimateSoakSpend({ records: oneShuyuA, frameUnitPoints: null, shuyuVideoUnitPoints: null, runwayVideoUnitUsd: null });
   assert.deepEqual(noCatalog.unpricedArms, ["A 组·故事板帧", "A 组·Shuyu 视频"], "价目表读不到就是未定价，不拿旧常量顶");
 
+  /// 账号的故事板帧走 Runway 出图时：帧按美元计、不算 Shuyu 点数；没给单价就是未定价，拒绝花钱
+  const runwayFrames = estimateSoakSpend({ records: fresh, ...prices, frameRoute: "runway", runwayFrameUnitUsd: 0.2 });
+  assert.deepEqual(runwayFrames.lines.filter((line) => line.armId.includes("故事板帧")).map((line) => [line.armId, line.count, line.points, line.usd]), [
+    ["A 组·故事板帧（Runway 出图）", 80, 0, 16],
+    ["B 组·故事板帧（Runway 出图）", 80, 0, 16],
+  ]);
+  assert.equal(runwayFrames.totalPoints, 25_200, "点数里只剩 Shuyu 视频");
+  assert.equal(runwayFrames.totalUsd, 50, "160 帧 × $0.2 + 4 条 Runway 视频 × $4.5");
+  assert.match(checkBudgetGate({ estimate: runwayFrames, maxPoints: 30_000, maxUsd: 40, availablePoints: 60_000, reservePoints: 7_000 }).reasons.join("；"), /\$50 > 硬上限 \$40/u);
+  assert.deepEqual(
+    estimateSoakSpend({ records: fresh, ...prices, frameRoute: "runway" }).unpricedArms,
+    ["A 组·故事板帧（Runway 出图）", "B 组·故事板帧（Runway 出图）"],
+  );
+  const smokeFrames = recordAt({ ...items[2], route: "buddy" }, "ready");
+  smokeFrames.current.storyboard.frames.forEach((frame) => (frame.planId = "runway:gpt_image_2"));
+  const smokeSummary = summarizeSoak([smokeFrames], { now: new Date(at(60)) });
+  assert.deepEqual(smokeSummary.frames.byPlan, { "runway:gpt_image_2": 4 });
+  assert.match(renderSoakReport("soak-1110", smokeSummary, new Date(at(60))), /runway:gpt_image_2 4 帧（runway: 开头的按 Runway 美元计费，不扣 Shuyu 点数）/u);
+
   /// 续跑：已建故事板的不再计帧，已派发的不再计视频，到终态的一分不计
   const [first, second, third, fourth] = items;
   assert.deepEqual(pendingSoakSpend(recordAt(first, "pending")), { frames: 4, videos: 1 });
@@ -446,7 +465,8 @@ test("放行线：成功率、P90、UNVERIFIED、首过率逐项不达标", asyn
     ["人工首过率", "不达标"],
   ]);
   assert.deepEqual(summary.frameQa, { PASSED: 6, UNVERIFIED: 1, SKIPPED: 1, "(未写入)": 1 });
-  assert.deepEqual(summary.frames, { total: 40, failed: 1, cancelled: 0, ackUnknown: 1, failureRate: 1 / 40 });
+  assert.deepEqual(summary.frames, { total: 40, failed: 1, cancelled: 0, ackUnknown: 1, failureRate: 1 / 40, byPlan: { "image-2k": 40 } });
+  assert.match(renderSoakReport("soak-1110", summary, new Date(at(120))), /故事板出图走的套餐：image-2k 40 帧\n/u);
 });
 
 test("放行线：还有在途或没投的不抢着下结论；没有评分输入标「待人工评分」", async () => {

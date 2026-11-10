@@ -46,6 +46,7 @@
  *   --wave morning|noon|evening|all   这次投哪一波（真提交时必填；all = 不分波，冒烟用）
  *   --arms / --cases / --angles / --limit N   只跑子集（第一次真提交时定下来，之后不用再给）；--limit 2 = 第一对的 A 与 B
  *   --runway <n>                其中 n 条（偶数，按对）点名走 Runway；要同时给 --runway-usd-per-video <单价> 与 --max-usd <上限>
+ *   --runway-usd-per-frame <单价>   账号的故事板帧走 Runway 出图时必填（估算会说明走哪家），同样要给 --max-usd
  *   --confirm-spend --max-points <上限>   真提交
  *   --base-url <线上地址>       真提交与取消时必填（或环境变量 SOAK_BASE_URL），如 https://reelforge-delta.vercel.app
  *   --account-file <路径>       测试账号文件，缺省 tmp/ceo-test-account.txt（两行：email: … / password: …）；不用 demo 账号
@@ -754,6 +755,31 @@ async function runLane(lane: LaneContext, record: SoakRecord): Promise<"finished
   return "paused";
 }
 
+/**
+ * 这个账号的故事板帧走哪家出图。看账号不看视频线路：在 Runway 灰度名单里（或全员切 Runway）的账号，帧走 Runway、
+ * 按美元计，不扣 Shuyu 点数——11-10 冒烟才发现测试账号就是这样，8 帧花了 160 credits（$1.60），不在点数估算里。
+ * 这里按本机的环境变量判（与线上判法同一个函数）；线上配置若不同，以报告里「故事板出图走的套餐」为准。
+ */
+async function storyboardFrameRoute(flags: Flags): Promise<{ route: "shuyu" | "runway"; note: string }> {
+  const file = resolve(REPO, flag(flags, "account-file") ?? "tmp/ceo-test-account.txt");
+  if (!existsSync(file)) {
+    return { route: "shuyu", note: "没找到测试账号文件，判断不了故事板帧走哪家出图，先按 Shuyu 估（真提交前必须能读到账号文件）" };
+  }
+  const { email } = loadCredentials(flags);
+  const { usesRunwayStoryboardImages } = await import("@/lib/video-generation/runway-rollout");
+  const { db } = await import("@/lib/db");
+  const user = await db.adminUser
+    .findUnique({ where: { email: email.trim().toLowerCase() }, select: { id: true } })
+    .catch(() => null)
+    .finally(() => db.$disconnect());
+  return usesRunwayStoryboardImages({ userId: user?.id ?? null, email })
+    ? {
+        route: "runway",
+        note: "这个测试账号的故事板帧走 Runway 出图（在灰度名单里或全员切了 Runway）：按美元计、不扣 Shuyu 点数，单价用 --runway-usd-per-frame 给（11-10 冒烟实测每帧 20 credits = 0.2 美元），上限用 --max-usd",
+      }
+    : { route: "shuyu", note: "这个测试账号的故事板帧走 Shuyu 出图，按点数计" };
+}
+
 async function livePrices() {
   const { getAvailableShuyuImagePlans, getShuyuBalance, resolveShuyuVideoPlan, shuyuVideoPlanPointsForDuration } =
     await import("@/lib/providers/shuyu");
@@ -785,14 +811,24 @@ async function commandRun(flags: Flags): Promise<void> {
 
   const prices = await livePrices();
   const runwayUnitUsd = parsePositiveLimit(flag(flags, "runway-usd-per-video"));
+  const runwayFrameUnitUsd = parsePositiveLimit(flag(flags, "runway-usd-per-frame"));
+  const frameRoute = await storyboardFrameRoute(flags);
   const estimateOf = (subset: readonly SoakRecord[]) =>
-    estimateSoakSpend({ records: subset, frameUnitPoints: prices.frameUnitPoints, shuyuVideoUnitPoints: prices.videoUnitPoints, runwayVideoUnitUsd: runwayUnitUsd });
+    estimateSoakSpend({
+      records: subset,
+      frameUnitPoints: prices.frameUnitPoints,
+      shuyuVideoUnitPoints: prices.videoUnitPoints,
+      runwayVideoUnitUsd: runwayUnitUsd,
+      frameRoute: frameRoute.route,
+      runwayFrameUnitUsd,
+    });
   const estimate = estimateOf(scope);
   const runwayCount = context.items.filter((item) => item.route === "runway").length;
 
   const groupCounts = SOAK_GROUPS.map((group) => `${group.id} 组 ${context.items.filter((item) => item.group === group.id).length}`).join(" / ");
   console.log(`[soak] ${context.runKey}：共 ${context.items.length} 条（${groupCounts}；Shuyu ${context.items.length - runwayCount} / Runway ${runwayCount}），${SOAK_DURATION_SEC} 秒 9:16 中文口播，每条 ${SOAK_FRAMES_PER_ITEM} 帧故事板 + 1 条视频`);
   console.log(`[soak] 出帧套餐 ${prices.imagePlan.planId}（${prices.frameUnitPoints ?? "?"} 点/张），视频套餐 ${prices.videoPlan.planId} ${prices.videoPlan.displayName}（${SOAK_DURATION_SEC} 秒 ${prices.videoUnitPoints} 点）`);
+  console.log(`[soak] ${frameRoute.note}`);
   for (const name of SOAK_WAVES) {
     const subset = records.filter((record) => record.wave === name);
     const sub = estimateOf(subset);

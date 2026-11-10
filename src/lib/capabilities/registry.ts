@@ -51,6 +51,12 @@ export function isRetiredCapability(key: CapabilityKey): boolean {
   return RETIRED_CAPABILITY_KEYS.includes(key);
 }
 
+/**
+ * 入口已撤、但所依赖的能力还在用的功能：不在客户的状态页「影响哪些功能」里列出来。
+ * frameQa：成片画面质检 2026-11-10 起缺省关（frame-qa.ts 的 isFrameQaEnabled）；看图这项能力本身还在出方案里用。
+ */
+export const RETIRED_FEATURE_KEYS: readonly string[] = ["frameQa"];
+
 export const CAPABILITY_STATUSES = ["available", "degraded", "unavailable", "not_configured"] as const;
 export type CapabilityStatus = (typeof CAPABILITY_STATUSES)[number];
 
@@ -168,22 +174,23 @@ export const CAPABILITY_COPY: Record<CapabilityKey, CapabilityCopy> = {
   vision: {
     label: b("AI 看图", "AI vision"),
     messages: {
-      /// 只写现在真有的检查（画面里的错字与水印）。商品 / 人物一致性检查等 P01-B 落地再写进来。
+      /// 只写现在真在用的事。2026-11-10 起成片的画面质检缺省关（frame-qa.ts 的 isFrameQaEnabled），
+      /// 看图这项能力现在用在出方案时看商品图：把商品的样子写进提示词与镜头卡。
       available: b(
-        "AI 看图正常：成片会自动检查画面里的错字与水印。",
-        "AI vision is on: finished clips are checked automatically for burned-in text and watermarks.",
+        "AI 看图正常：出方案时会看你的商品图，把商品的样子写进镜头安排。",
+        "AI vision is on: your product photos are looked at during planning, so the shots describe the product as it really looks.",
       ),
       degraded: b(
-        "AI 看图不稳定：个别成片可能跳过画面质检，成片照常生成。",
-        "AI vision is unstable: some clips may skip frame checks; videos still render.",
+        "AI 看图不稳定：个别时候看不成商品图，商品按你的文字描述来；成片照常生成。",
+        "AI vision is unstable: sometimes your product photos can't be looked at and the product follows your written description; videos still render.",
       ),
       unavailable: b(
-        "画面质检暂停：成片照常生成，但暂不自动检查错字与水印；恢复后自动启用。",
-        "Frame checks are paused: videos still render, but burned-in text and watermarks aren't checked automatically. They resume once it recovers.",
+        "AI 看图暂停：出方案时不看商品图，商品按你的文字描述来；成片照常生成，恢复后自动启用。",
+        "AI vision is paused: planning doesn't look at your product photos and the product follows your written description. Videos still render, and it resumes once it recovers.",
       ),
       not_configured: b(
-        "画面质检未开通：成片照常生成，不做自动画面检查。",
-        "Frame checks aren't set up: videos render without automatic frame checks.",
+        "AI 看图未开通：出方案时不看商品图，成片照常生成。",
+        "AI vision isn't set up: planning doesn't look at your product photos; videos still render.",
       ),
     },
   },
@@ -689,7 +696,8 @@ export function resolveCapabilities(input: {
  */
 export function withoutRetiredCapabilities(capabilities: PublicCapabilities): PublicCapabilities {
   /// 「影响哪些功能」里也去掉入口已撤的功能（依赖任何一条已下线线路的，如实拍图库线路）
-  const retiredFeature = (feature: FeatureKey) => FEATURES[feature].needs.some(isRetiredCapability);
+  const retiredFeature = (feature: FeatureKey) =>
+    RETIRED_FEATURE_KEYS.includes(feature) || FEATURES[feature].needs.some(isRetiredCapability);
   const items = capabilities.items
     .filter((item) => !isRetiredCapability(item.key))
     .map((item) => ({ ...item, features: item.features.filter((feature) => !retiredFeature(feature)) }));

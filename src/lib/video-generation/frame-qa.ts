@@ -22,7 +22,8 @@
  * ffmpeg 一律经 src/lib/media/ffmpeg-bin（函数运行时打包的静态二进制），
  * 时长用 ffmpeg 自己探测，不再依赖 ffprobe。
  *
- * 开关：FRAME_QA_DISABLED=true 显式关闭；mock 引擎 / LLM mock 模式自动跳过。
+ * 开关：2026-11-10 起缺省关，FRAME_QA_ENABLED=on 才开（见 isFrameQaEnabled）；开着时 FRAME_QA_DISABLED=true 可临时关闭，
+ * mock 引擎 / LLM mock 模式自动跳过。
  */
 
 import { existsSync } from "node:fs";
@@ -100,8 +101,21 @@ interface RawFrameFinding {
   note?: string;
 }
 
-/** 门禁是否启用（可被环境显式关闭；mock 场景自动跳过） */
+/**
+ * 门禁是否启用。**缺省关（2026-11-10，Lucas 定）**，FRAME_QA_ENABLED=on 才开。
+ *
+ * 为什么关：这道闸只查一件事（画面里烧进去的错字 / 水印），上线以来真正跑完 20 条，0 次拦截——
+ * 10 月 4 条，11-10 真机压测 16 条（8 个品类、两种出方案方式），全部 PASSED；而它是我们对 OpenAI 的又一处依赖：
+ * 10 月欠费期间 20 条成片因为它跑不成被静默放行，为此还得再建一套告警与补检。出片提示词里本来就写明
+ * 不要画面文字（KEY CONSTRAINTS / 负面提示词），人工发布前也会看一遍。
+ *
+ * A 级下线：只把缺省值关掉。门禁、补检、成片级复检、运维报表的代码与数据全保留；关着时每段落 SKIPPED
+ *（原因写明是缺省关），不下载视频、不抽帧、不调看图模型，段一出片就转成功，不用再等 cron 的质检预算。
+ * 放回：在 Vercel 设 FRAME_QA_ENABLED=on 并重新部署。FRAME_QA_DISABLED 仍然有效（开着时的临时总闸）。
+ */
 export function isFrameQaEnabled(): boolean {
+  const enabled = process.env.FRAME_QA_ENABLED?.trim().toLowerCase();
+  if (!(enabled === "on" || enabled === "1" || enabled === "true" || enabled === "yes")) return false;
   const disabled = process.env.FRAME_QA_DISABLED?.toLowerCase();
   if (disabled === "1" || disabled === "true" || disabled === "yes") return false;
   const mockEngine = process.env.VIDEO_ENGINE_MOCK?.toLowerCase();

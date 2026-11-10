@@ -9,6 +9,7 @@ import test from "node:test";
 import {
   CAPABILITY_KEYS,
   RETIRED_CAPABILITY_KEYS,
+  RETIRED_FEATURE_KEYS,
   isRetiredCapability,
   resolveCapabilities,
   withoutRetiredCapabilities,
@@ -139,4 +140,15 @@ test("运维告警：已下线的线路翻转不叫醒人；出片、看图照�
     capabilityTransitionAlert({ status: "available" }, { key: "vision", status: "unavailable", reason: "quota" })?.kind,
     "capability_down",
   );
+});
+
+test("画面质检缺省关之后：状态页「影响哪些功能」不再列画面质检；看图这项能力本身还在（出方案看商品图）", () => {
+  assert.deepEqual([...RETIRED_FEATURE_KEYS], ["frameQa"]);
+  const full = resolveCapabilities({ records: [record("vision", "available", "ok")], configured: ALL_CONFIGURED, now: NOW });
+  const fullVision = full.items.find((item) => item.key === "vision");
+  assert.ok(fullVision?.features.includes("frameQa"), "完整视图不变");
+  const vision = withoutRetiredCapabilities(full).items.find((item) => item.key === "vision");
+  assert.ok(vision, "看图能力仍在客户视图里");
+  assert.equal(vision.features.includes("frameQa"), false);
+  assert.match(vision.message["zh-CN"], /商品图/);
 });

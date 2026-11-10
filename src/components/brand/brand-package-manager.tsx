@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { WorkspaceBrandPackageView } from "@/lib/services/workspace-brand-package-service";
 import { useTranslation } from "@/i18n/useTranslation";
+import { SignoffPreview } from "@/components/brand/signoff-preview";
 
 type Draft = {
   id?: string;
@@ -110,6 +111,15 @@ export function BrandPackageManager({
         cancel: "Cancel",
         logo: "Logo",
         endCard: "End card (optional)",
+        fieldsUsage: "Videos use the brand name, call to action and logo — in the sign-off you tick when creating a video. Slogan, contact lines, website and end card are only kept on file for now.",
+        preview: {
+          title: "Sign-off preview",
+          hint: "A sketch of the last two seconds. Tick the sign-off when you create a video to use it.",
+          scene: "Your video's last shot",
+          captions: "captions",
+          empty: "Add a brand name to see the sign-off here.",
+          trimmed: "Too long for the sign-off: the video shows it cut off as above.",
+        },
         upload: "Upload",
         aiHint: "AI logo generation unlocks after your first video.",
         saved: "Brand package saved.",
@@ -130,6 +140,15 @@ export function BrandPackageManager({
         cancel: "取消",
         logo: "Logo",
         endCard: "尾卡（可选）",
+        fieldsUsage: "会出现在视频里的是品牌名、行动指引和 Logo——出片时勾「片尾落款」才带上。口号、联系方式、网站和尾卡目前只存档。",
+        preview: {
+          title: "片尾落款预览",
+          hint: "成片最后两秒的示意。出片时勾「片尾落款」才会带上。",
+          scene: "片子的最后一个镜头",
+          captions: "字幕",
+          empty: "填了品牌名，这里就能看到落款的样子。",
+          trimmed: "超出落款的字数上限：成片上会像上面这样被截掉。",
+        },
         upload: "上传",
         aiHint: "做出第一条视频后，就能用 AI 生成 Logo。",
         saved: "品牌包已保存。",
@@ -306,6 +325,9 @@ export function BrandPackageManager({
 
       {draft ? (
         <section ref={formRef} className="x-panel scroll-mt-28 p-5" aria-label={copy.add}>
+          {/* 左边填、右边看：品牌名 / 行动指引 / Logo 一改，片尾落款的示意帧跟着变 */}
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+          <div className="min-w-0 flex-1">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Field label={english ? "Package name" : "品牌包名称"}>
               <Input value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} />
@@ -350,6 +372,12 @@ export function BrandPackageManager({
               uploadLabel={copy.upload}
               onFile={(file) => void uploadOwnedAsset(file, "end-card")}
             />
+          </div>
+
+          {/* 如实说明哪些会进视频：口号、联系方式、网站、尾卡目前只存档 */}
+          <p className="mt-4 text-pretty text-meta text-tertiary" data-testid="brand-fields-usage">{copy.fieldsUsage}</p>
+          </div>
+          <SignoffPreview brandName={draft.brandName} cta={draft.cta} logoUrl={draft.logoUrl} copy={copy.preview} />
           </div>
 
           <label className="mt-5 flex items-center gap-2 text-body">

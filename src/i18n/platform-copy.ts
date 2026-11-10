@@ -529,9 +529,16 @@ const zh = {
       submit: "提交评价",
       submitting: "正在提交…",
       savedUp: "记下了，谢谢。",
-      savedDown: "记下了。只是某一段有问题，可以用下面的「重做这一段」；想整条重来，点上面的「用同样的素材再做一条」。",
+      savedDown: "记下了。",
       failed: "评价暂时没记上，稍后再试。",
+      nextTitle: "接下来可以：",
+      nextSteps: {
+        restitch: "只换字幕和配乐（不扣额度）",
+        redo_segment: "重做有问题的那一段",
+        make_another: "改描述，再做一条",
+      },
     },
+    hookAgain: "换个开头再做一条",
     /// 片尾落款（RestitchForm）：最后两秒压品牌名 + 行动指引，每条片子单独勾
     signoff: {
       title: "片尾落款",
@@ -971,9 +978,16 @@ const en: CopyShape<typeof zh> = {
       submit: "Submit rating",
       submitting: "Submitting…",
       savedUp: "Noted, thank you.",
-      savedDown: "Noted. If only one segment is off, use “Redo a segment” below; to start over, use “Make another with the same assets” above.",
+      savedDown: "Noted.",
       failed: "Could not save your rating. Try again later.",
+      nextTitle: "What you can do next:",
+      nextSteps: {
+        restitch: "Change captions and music only (free)",
+        redo_segment: "Redo the segment that went wrong",
+        make_another: "Edit the brief and make another",
+      },
     },
+    hookAgain: "Make another with a different opening",
     signoff: {
       title: "Brand sign-off",
       hint: "For the last two seconds, your brand name and a call to action appear over the footage. No extra frame is added, and it only shows on the videos you tick.",

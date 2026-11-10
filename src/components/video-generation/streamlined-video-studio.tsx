@@ -73,6 +73,7 @@ import {
   PRODUCT_LINK_ENTRY_ENABLED,
 } from "@/lib/create/entry-policy";
 import { HOOK_ANGLES, applyHookAngle, detectHookAngle, stripHookAngle } from "@/lib/create/hook-angles";
+import { applyProductSize, detectProductSize, PRODUCT_SIZE_MAX, stripProductSize } from "@/lib/create/product-size";
 import { SIGNOFF_BRAND_MAX, SIGNOFF_CTA_MAX } from "@/lib/video-generation/brand-signoff";
 import { loadVoiceoverDraft, saveVoiceoverDraft } from "@/lib/video-generation/voiceover-draft-storage";
 import { awaitVoiceoverDraft } from "@/lib/video-generation/voiceover-draft-wait";
@@ -223,6 +224,15 @@ const ZH_COPY = {
   previewing: "正在准备方案…",
   planningShots: "正在规划镜头…",
   writingVoiceover: "正在写口播稿…",
+  /// 「生成 AI 故事板」一个按钮背后是三段等待：写明现在在哪一段、哪一段最久
+  stagesLabel: "生成故事板的进度",
+  stages: ["写口播稿", "排镜头（约 40–60 秒）", "出故事板画面"],
+  recentTitle: "接着拍这些商品",
+  recentHint: "点一下带回商品图和上次的描述，改一改再拍。",
+  recentImages: "{count} 张图",
+  productSize: "商品尺寸",
+  productSizePlaceholder: "例：直径约 8 厘米，一只手能握住",
+  productSizeHint: "写上实际大小，商品在画面里才不会忽大忽小。",
   cancelPlanning: "取消",
   planningCancelled: "已取消，素材和描述都保留着。",
   createStoryboard: "生成 AI 故事板",
@@ -355,6 +365,14 @@ const EN_COPY: StudioCopy = {
   previewing: "Preparing the plan…",
   planningShots: "Planning shots…",
   writingVoiceover: "Writing the voiceover…",
+  stagesLabel: "Storyboard progress",
+  stages: ["Write the voiceover", "Plan the shots (about 40–60s)", "Draw the storyboard frames"],
+  recentTitle: "Pick up one of these products",
+  recentHint: "One click brings back its photos and your last brief — tweak it and shoot again.",
+  recentImages: "{count} photos",
+  productSize: "Product size",
+  productSizePlaceholder: "e.g. about 8 cm across, fits in one hand",
+  productSizeHint: "Give the real size so the product does not grow or shrink between shots.",
   cancelPlanning: "Cancel",
   planningCancelled: "Cancelled. Your uploads and description are kept.",
   createStoryboard: "Generate AI storyboard",
@@ -430,7 +448,10 @@ export function StreamlinedVideoStudio({
   capabilities = null,
   readings = null,
   contactEmail = null,
+  recentSources = [],
 }: {
+  /** 最近拍过的商品（服务端按属主读好）：空白创作页上点一下就带回那一单的商品图和描述。 */
+  recentSources?: ReadonlyArray<{ orderId: string; title: string; thumbnailUrl: string; imageCount: number }>;
   initialAssets?: UploadedAsset[];
   initialStyleTemplateId?: string;
   initialPrompt?: string;
@@ -1606,6 +1627,12 @@ export function StreamlinedVideoStudio({
   const ratioLabel = aspectRatioLabel(selectedAspectRatio, copy);
   const creatingStoryboardLabel = cancellingStoryboardCreate ? copy.cancellingStoryboardCreate : copy.creatingStoryboard;
   const activeHookAngle = detectHookAngle(rawPrompt);
+  const productSize = detectProductSize(rawPrompt);
+  /// 出故事板的三段等待里现在在第几段（0 写口播稿 / 1 排镜头 / 2 出画面）；没在出故事板 → null
+  const storyboardStage = busy !== "storyboard" ? null : planningShots ? (voiceoverDrafting ? 0 : 1) : 2;
+  /// 空白状态（没写描述、没传图、没带回任何东西）才摆「接着拍这些商品」，开始写了就让开
+  const showRecentSources =
+    recentSources.length > 0 && !storyboard && busy === null && !rawPrompt.trim() && productAssets.length === 0 && referenceAssets.length === 0;
   const primaryLabel = busy === "dispatch"
     ? copy.generating
     : busy === "storyboard"
@@ -2028,6 +2055,31 @@ export function StreamlinedVideoStudio({
           </div>
         </div>
 
+        {/* 一个按钮背后三段等待：写明现在在哪一段（做完的打勾、正在做的加粗、还没到的变淡） */}
+        {storyboardStage !== null ? (
+          <ol
+            aria-label={copy.stagesLabel}
+            aria-live="polite"
+            data-testid="storyboard-stages"
+            data-stage={storyboardStage}
+            className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-meta"
+          >
+            {copy.stages.map((stage, index) => (
+              <li
+                key={stage}
+                aria-current={index === storyboardStage ? "step" : undefined}
+                className={cn(
+                  "flex items-center gap-1.5",
+                  index < storyboardStage ? "text-success" : index === storyboardStage ? "font-medium text-foreground" : "text-tertiary",
+                )}
+              >
+                {index > 0 ? <span aria-hidden className="mr-0.5 text-tertiary">→</span> : null}
+                {index < storyboardStage ? <Check className="size-3.5" aria-hidden /> : index === storyboardStage ? <Loader2 className="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden /> : null}
+                {stage}
+              </li>
+            ))}
+          </ol>
+        ) : null}
         {uploadError ? <p role="alert" className="text-meta text-danger">{uploadError}</p> : null}
         {loadedFromStudio.length > 0 ? (
           retryOfOrderId || machineTaskId ? (
@@ -2138,6 +2190,28 @@ export function StreamlinedVideoStudio({
                 })}
               </div>
             ) : null}
+            {/* 商品尺寸：描述写好之后才出现；填了就在描述最后补一行「商品实际大小：…」，清空就去掉 */}
+            {stripProductSize(stripHookAngle(rawPrompt)).length >= 8 ? (
+              <div className="flex flex-wrap items-center justify-center gap-1.5" data-testid="product-size">
+                <label htmlFor="streamlined-product-size" className="mr-1 text-meta text-tertiary" title={copy.productSizeHint}>
+                  {copy.productSize}
+                </label>
+                <input
+                  id="streamlined-product-size"
+                  type="text"
+                  value={productSize ?? ""}
+                  maxLength={PRODUCT_SIZE_MAX}
+                  disabled={locked || draftingPrompt}
+                  placeholder={copy.productSizePlaceholder}
+                  title={copy.productSizeHint}
+                  className="h-9 w-full max-w-xs rounded-(--radius-lg) border border-border bg-raised px-3 text-meta text-foreground outline-none placeholder:text-tertiary focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50"
+                  onChange={(event) => {
+                    setRawPrompt(applyProductSize(rawPrompt, event.target.value, english ? "en" : "zh"));
+                    invalidatePlan();
+                  }}
+                />
+              </div>
+            ) : null}
             <div
               role="group"
               aria-label={english ? "Video prompt presets" : "视频提示词快捷选项"}
@@ -2185,6 +2259,35 @@ export function StreamlinedVideoStudio({
               </div>
             ) : null}
           </div>
+        ) : null}
+
+        {/* 接着拍这些商品：回来的商家多半是给同一件商品再拍一条——点一下带回那一单的商品图和描述（走「再做一条」同一条路） */}
+        {showRecentSources ? (
+          <section aria-label={copy.recentTitle} data-testid="recent-sources" className="space-y-2">
+            <p className="text-center text-meta text-tertiary">
+              <span className="font-medium text-muted-foreground">{copy.recentTitle}</span>
+              <span className="ml-2">{copy.recentHint}</span>
+            </p>
+            <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {recentSources.map((source) => (
+                <li key={source.orderId} className="min-w-0">
+                  <Link
+                    href={`/app/create?retry=${encodeURIComponent(source.orderId)}`}
+                    className="flex min-w-0 items-center gap-3 rounded-(--radius-lg) border border-border bg-surface p-2 transition-colors duration-fast ease-out hover:border-border-strong hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={source.thumbnailUrl} alt="" loading="lazy" className="size-12 shrink-0 rounded-(--radius-md) bg-(--brand-tile) object-cover" />
+                    <span className="min-w-0">
+                      <span className="block truncate text-meta font-medium text-foreground">{source.title}</span>
+                      <span className="block text-data tabular-nums text-tertiary">
+                        {copy.recentImages.replace("{count}", String(source.imageCount))}
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
         ) : null}
 
         {/* 更多设置：收起时也保持挂载（线路可用性检查照常跑），只是不显示 */}

@@ -45,6 +45,8 @@
  *   - 报告把 A/B 对照按 A 组镜头卡的写法分层：纯文字写卡 / 看图写卡（开关生效后建的）/ 合并看图调用出了结果 / 卡没用上退回模板。
  *     开关什么时候生效脚本查不到（那是线上的环境变量，要重新部署才生效），由人用 --vision-since <带时区的 ISO 时刻> 给，
  *     给一次就记在运行目录里。看图那次调用失败时线上会静默退回纯文字写卡、库里不留标记，逐条要查线上日志。
+ *     --direction-until <时刻> 同理：「合并看图调用」缺省开着的那段时间（#37 部署到 #38 部署之间）建的 A 组条目单独成一层。
+ *     部署时刻可以这样查：gh api "repos/<owner>/<repo>/deployments?environment=Production" 再看各次的 statuses。
  *   - 重拍轮（跨运行的镜头卡对照）：run --run-key <新键> --baseline <对照轮> [--pairs 4] --vision-since <时刻>
  *     只投对照轮里「纯文字写卡、已成片」那几对的 A 组（同品类、同角度、同一批商品图、同口播稿），
  *     report 生成「对照轮的 A（纯文字卡）对这一轮的 A（看图卡）」的盲评页，tally 揭盲给看图卡的胜 / 平 / 负。
@@ -200,6 +202,8 @@ interface RunContext {
   baseline: { runKey: string; records: SoakRecord[] } | null;
   /// 看图写卡开关的生效时刻（--vision-since 给的，或上次记在运行目录里的）
   visionSince: string | null;
+  /// 合并看图调用关掉的时刻（--direction-until，同样记在运行目录里）
+  directionUntil: string | null;
 }
 
 /** 读一轮已经真提交过的运行的记录（重拍轮拿它当对照）。 */
@@ -224,18 +228,24 @@ function runContext(flags: Flags): RunContext {
   const manifest = existsSync(manifestPath) ? readJson<SoakManifest>(manifestPath) : null;
   const selecting = ["arms", "cases", "angles", "limit", "runway"].some((name) => flags[name] !== undefined);
   const settingsPath = join(runDir, "settings.json");
-  const settings = existsSync(settingsPath) ? readJson<{ visionSince?: string | null }>(settingsPath) : {};
-  const visionSince = parseVisionSince(flag(flags, "vision-since")) ?? settings.visionSince ?? null;
+  type Settings = { visionSince?: string | null; directionUntil?: string | null };
+  const settings = existsSync(settingsPath) ? readJson<Settings>(settingsPath) : {};
   const baselineFlag = flag(flags, "baseline");
   if (manifest && baselineFlag && manifest.baseline?.runKey !== baselineFlag) {
     throw new Error(`${runKey} 的清单不是拿 ${baselineFlag} 当对照建的：换 --run-key`);
   }
   const baselineKey = manifest ? (manifest.baseline?.runKey ?? null) : baselineFlag;
+  /// 重拍轮没单独给的时刻沿用对照轮记下的那一份（两轮看的是同一个线上、同一批部署）
+  const baselineSettingsPath = baselineKey ? join(OUTPUT_ROOT, baselineKey, "settings.json") : null;
+  const inherited = baselineSettingsPath && existsSync(baselineSettingsPath) ? readJson<Settings>(baselineSettingsPath) : {};
+  const visionSince = parseVisionSince(flag(flags, "vision-since")) ?? settings.visionSince ?? inherited.visionSince ?? null;
+  const directionUntil =
+    parseVisionSince(flag(flags, "direction-until"), "--direction-until") ?? settings.directionUntil ?? inherited.directionUntil ?? null;
   const baseline = baselineKey ? { runKey: baselineKey, records: loadRunRecords(baselineKey) } : null;
   let items = manifest?.items ?? [];
   if (baseline && !manifest) {
     if (selecting) throw new Error("重拍轮（--baseline）只用 --pairs 定对数，不和 --arms / --cases / --angles / --limit / --runway 混用");
-    items = selectCardRerunItems(baseline.records, visionSince, intFlag(flags, "pairs", 4));
+    items = selectCardRerunItems(baseline.records, visionSince, intFlag(flags, "pairs", 4), directionUntil);
   } else if (!manifest || selecting) {
     const limit = flag(flags, "limit");
     items = assignRunwayRoutes(
@@ -249,12 +259,14 @@ function runContext(flags: Flags): RunContext {
     );
     if (manifest) assertManifestMatches(manifest, items);
   }
-  return { runKey, runDir, cases: new Map(cases.map((item) => [item.id, item])), items, persisted: manifest !== null, baseline, visionSince };
+  return { runKey, runDir, cases: new Map(cases.map((item) => [item.id, item])), items, persisted: manifest !== null, baseline, visionSince, directionUntil };
 }
 
 /** 把这次给的看图写卡生效时刻记进运行目录（目录建了才记），之后的 report / run 不用再给。 */
 function persistSettings(context: RunContext): void {
-  if (context.persisted && context.visionSince) writeJson(join(context.runDir, "settings.json"), { visionSince: context.visionSince });
+  if (context.persisted && (context.visionSince || context.directionUntil)) {
+    writeJson(join(context.runDir, "settings.json"), { visionSince: context.visionSince, directionUntil: context.directionUntil });
+  }
 }
 
 function persistManifest(context: RunContext): void {
@@ -863,7 +875,7 @@ async function commandRun(flags: Flags): Promise<void> {
     } finally {
       await db.$disconnect();
     }
-    context.items = selectCardRerunItems(context.baseline.records, context.visionSince, intFlag(flags, "pairs", 4));
+    context.items = selectCardRerunItems(context.baseline.records, context.visionSince, intFlag(flags, "pairs", 4), context.directionUntil);
   }
   const records = loadRecords(context);
   /// --retry：失败 / 已取消的换新一次尝试；只在内存里换，真提交时才随记录落盘
@@ -1226,7 +1238,11 @@ async function commandReport(flags: Flags): Promise<void> {
     flags["no-blind-page"] === true
       ? 0
       : context.baseline
-        ? await writeBlindReview(context, soakCardPairs(context.baseline.records, records, context.visionSince).ready, ["text", "vision"])
+        ? await writeBlindReview(
+            context,
+            soakCardPairs(context.baseline.records, records, context.visionSince, context.directionUntil).ready,
+            ["text", "vision"],
+          )
         : await writeBlindReview(context, soakBlindPairs(records), ["A", "B"]);
   const csv = flag(flags, "qa-csv");
   const now = new Date();
@@ -1235,6 +1251,7 @@ async function commandReport(flags: Flags): Promise<void> {
     firstPass: csv ? firstPassFromCsv(context.runKey, records, resolve(csv)) : null,
     blind: storedBlind(context),
     visionSince: context.visionSince,
+    directionUntil: context.directionUntil,
     baseline: context.baseline,
   });
   const text = renderSoakReport(context.runKey, summary, now);

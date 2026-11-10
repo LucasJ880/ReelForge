@@ -688,6 +688,12 @@ test("镜头卡写法分层：按建故事板的时刻与开关生效时刻的�
   const sourceOf = (index: number, visionSince: string | null) => shotCardSource(records[index].current, visionSince);
   assert.deepEqual([sourceOf(0, since), sourceOf(2, since), sourceOf(4, since), sourceOf(6, since)], ["direction", "text", "vision", "vision"]);
   assert.equal(sourceOf(4, null), "text", "没给生效时刻就不认作看图卡");
+  /// 合并看图调用没存下盘点的那种（11-10 的 bottle-pain-a）：库里认不出，靠它关掉的部署时刻认
+  const early = recordAt(items[2], "ready", 12);
+  assert.equal(shotCardSource(early.current, since), "text");
+  assert.equal(shotCardSource(early.current, since, at(10)), "direction", "在合并调用关掉之前建的");
+  assert.equal(shotCardSource(early.current, since, at(0)), "text", "正好在关掉那一刻及之后建的不算");
+  assert.throws(() => parseVisionSince("yesterday", "--direction-until"), /--direction-until 要给带时区的 ISO 时刻/u);
   assert.equal(shotCardSource(recordAt(items[0], "pending").current, since), null);
   const degraded = recordAt(items[4], "ready", 12);
   Object.assign(degraded.current.storyboard, { requestedAt: at(90), degradedStages: ["shot_cards"], hasVisualReference: true });
@@ -717,7 +723,7 @@ test("镜头卡写法分层：按建故事板的时刻与开关生效时刻的�
   assert.match(report, /失败时线上会静默退回纯文字写卡、库里不留标记/u);
   assert.match(
     report,
-    /纯文字写卡 1 对的盲评整体（小李：B 胜 0 \/ 平 0 \/ 负 1）；看图写卡（开关生效后建的） 2 对的盲评整体（小李：B 胜 1 \/ 平 0 \/ 负 1）；合并看图调用出了结果 1 对的盲评整体（小李：B 胜 0 \/ 平 0 \/ 负 1）。/u,
+    /纯文字写卡 1 对的盲评整体（小李：B 胜 0 \/ 平 0 \/ 负 1）；看图写卡（开关生效后建的） 2 对的盲评整体（小李：B 胜 1 \/ 平 0 \/ 负 1）；合并看图调用开着时建的 1 对的盲评整体（小李：B 胜 0 \/ 平 0 \/ 负 1）。/u,
   );
 
   /// 没给生效时刻：生效后建的两对会和纯文字写卡混在一层，报告要说明
@@ -744,6 +750,8 @@ test("镜头卡对照的重拍轮：只挑对照轮里纯文字卡、已成片�
   /// 对照轮自己若是开关生效后建的，它的 A 组已经是看图卡，不能再当纯文字对照
   const lateBaseline = baseline.map((record) => ({ ...record, current: { ...record.current, storyboard: { ...record.current.storyboard, requestedAt: at(90) } } }));
   assert.throws(() => selectCardRerunItems(lateBaseline, since, 4), /没法配对/u);
+  /// 对照轮里建在合并调用开着那段时间的条目也不能当纯文字对照
+  assert.throws(() => selectCardRerunItems(baseline, since, 4, at(5)), /没法配对/u);
 
   /// 这一轮：第 1 条在开关生效后建、成片；第 2 条建早了；第 3 条的卡退回了模板
   const rerun = picked.map((item) => recordAt(item, "ready", 12));

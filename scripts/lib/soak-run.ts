@@ -594,7 +594,7 @@ export interface SoakBallot {
 export const SHOT_CARD_SOURCES = [
   { id: "text", label: "纯文字写卡" },
   { id: "vision", label: "看图写卡（开关生效后建的）" },
-  { id: "direction", label: "合并看图调用出了结果" },
+  { id: "direction", label: "合并看图调用开着时建的" },
   { id: "fallback", label: "卡没用上、退回模板节拍" },
 ] as const;
 export type ShotCardSource = (typeof SHOT_CARD_SOURCES)[number]["id"];
@@ -602,26 +602,29 @@ export type ShotCardSource = (typeof SHOT_CARD_SOURCES)[number]["id"];
 /**
  * 一条 A 组故事板的镜头卡写法，只用查得到的事实判，不猜：
  *  - fallback：线上在这轮故事板上记了镜头卡降级（超时 / 输出不合格），实际没有卡；
- *  - direction：这轮故事板上存了合并看图调用的视觉盘点（那次调用出了结果；卡是不是也来自它，库里没单独记）；
+ *  - direction：建在「合并看图调用」缺省开着的那段时间里（--direction-until 给的时刻之前；11-10 实际是 #37 部署到
+ *    #38 部署之间的十二分钟），或者这轮故事板上存了那次调用的视觉盘点。11-10 那次真机只用上了卡、没存下盘点，
+ *    所以光看库里的盘点认不出来，要靠部署时刻；
  *  - vision / text：看发出建故事板请求的时刻在不在「看图写卡开关生效时刻」之后。生效时刻由人给（--vision-since），
  *    没给就一律按 text。看图那次调用失败时线上会静默退回纯文字写卡、库里不留标记，所以 vision 这一层的准确说法是
  *    「开关生效后建的」，逐条有没有真看图只能查线上日志（`[shot-cards] vision design ok`）。
  * 还没发出请求的返回 null。B 组不写卡，不适用。
  */
-export function shotCardSource(attempt: SoakAttempt, visionSince: string | null): ShotCardSource | null {
+export function shotCardSource(attempt: SoakAttempt, visionSince: string | null, directionUntil: string | null = null): ShotCardSource | null {
   const { storyboard } = attempt;
   if (!storyboard.requestedAt) return null;
+  const requested = Date.parse(storyboard.requestedAt);
   if (storyboard.degradedStages.includes("shot_cards")) return "fallback";
-  if (storyboard.hasVisualReference) return "direction";
-  return visionSince !== null && Date.parse(storyboard.requestedAt) >= Date.parse(visionSince) ? "vision" : "text";
+  if (storyboard.hasVisualReference || (directionUntil !== null && requested < Date.parse(directionUntil))) return "direction";
+  return visionSince !== null && requested >= Date.parse(visionSince) ? "vision" : "text";
 }
 
-/** `--vision-since` 的解析：要带时区的 ISO 时刻（如 2026-11-10T02:30:00Z），看不懂就报错，不带着含糊的时刻去分层。 */
-export function parseVisionSince(raw: string | null | undefined): string | null {
+/** `--vision-since` / `--direction-until` 的解析：要带时区的 ISO 时刻（如 2026-11-10T02:30:00Z），看不懂就报错，不带着含糊的时刻去分层。 */
+export function parseVisionSince(raw: string | null | undefined, flagName = "--vision-since"): string | null {
   if (raw === null || raw === undefined || raw.trim() === "") return null;
   const text = raw.trim();
   if (!/(Z|[+-]\d{2}:?\d{2})$/u.test(text) || !Number.isFinite(Date.parse(text))) {
-    throw new Error(`--vision-since 要给带时区的 ISO 时刻，如 2026-11-10T02:30:00Z：${text}`);
+    throw new Error(`${flagName} 要给带时区的 ISO 时刻，如 2026-11-10T02:30:00Z：${text}`);
   }
   return new Date(text).toISOString();
 }
@@ -630,11 +633,16 @@ export function parseVisionSince(raw: string | null | undefined): string | null 
  * 镜头卡对照的重拍轮选哪几对：对照轮里 A 组第一次尝试已成片、且卡是纯文字写的，按清单顺序取前 count 对，
  * 新一轮只投这些对的 A 组（同品类、同角度、同一批商品图、同口播稿）。不够 count 对就有几对取几对，一对都没有报错。
  */
-export function selectCardRerunItems(baseline: readonly SoakRecord[], visionSince: string | null, count: number): SoakItem[] {
+export function selectCardRerunItems(
+  baseline: readonly SoakRecord[],
+  visionSince: string | null,
+  count: number,
+  directionUntil: string | null = null,
+): SoakItem[] {
   if (!Number.isInteger(count) || count < 1) throw new Error("--pairs 要给正整数");
   const eligible = baseline.filter((record) => {
     const attempt = firstSoakAttempt(record);
-    return record.group === "A" && attempt.video.finalVideoStatus === "READY" && shotCardSource(attempt, visionSince) === "text";
+    return record.group === "A" && attempt.video.finalVideoStatus === "READY" && shotCardSource(attempt, visionSince, directionUntil) === "text";
   });
   if (eligible.length === 0) throw new Error("对照轮里还没有「纯文字写卡、已成片」的 A 组条目，没法配对");
   return eligible.slice(0, count).map(({ id, pairId, caseId, angleId, group, wave }) => ({ id, pairId, caseId, angleId, group, wave, route: "buddy" }));
@@ -656,6 +664,7 @@ export function soakCardPairs(
   baseline: readonly SoakRecord[],
   rerun: readonly SoakRecord[],
   visionSince: string | null,
+  directionUntil: string | null = null,
 ): { ready: SoakCardPairSource[]; excluded: Array<{ pairId: string; reason: string }> } {
   const ready: SoakCardPairSource[] = [];
   const excluded: Array<{ pairId: string; reason: string }> = [];
@@ -663,12 +672,12 @@ export function soakCardPairs(
     const attempt = firstSoakAttempt(record);
     const base = baseline.find((entry) => entry.group === "A" && entry.pairId === record.pairId);
     const baseAttempt = base ? firstSoakAttempt(base) : null;
-    const source = shotCardSource(attempt, visionSince);
+    const source = shotCardSource(attempt, visionSince, directionUntil);
     const outcome = deriveSoakOutcome(attempt);
     const reason =
       !baseAttempt || baseAttempt.video.finalVideoStatus !== "READY" || !baseAttempt.video.finalVideoUrl
         ? "对照轮的 A 组没有成片"
-        : shotCardSource(baseAttempt, visionSince) !== "text"
+        : shotCardSource(baseAttempt, visionSince, directionUntil) !== "text"
           ? "对照轮那条的卡不是纯文字写的"
           : source === null
             ? "这一轮还没投"
@@ -800,6 +809,8 @@ export interface SoakPlanComparison {
   pairsReady: number;
   /// 看图写卡开关的生效时刻（没给为 null：分层时一律按纯文字写卡）
   visionSince: string | null;
+  /// 合并看图调用关掉的时刻（没给为 null）
+  directionUntil: string | null;
   /// 按 A 组镜头卡的写法分层；不同层量的不是同一件事，不合成一个数
   strata: SoakPlanStratum[];
 }
@@ -958,6 +969,8 @@ export function summarizeSoak(
     blind?: { layout: readonly BlindPair[]; ballots: readonly SoakBallot[] } | null;
     /// 看图写卡开关的生效时刻（parseVisionSince 的结果）
     visionSince?: string | null;
+    /// 合并看图调用关掉的时刻：在它之前建的 A 组故事板归「合并看图调用开着时建的」
+    directionUntil?: string | null;
     /// 镜头卡对照的重拍轮：对照轮的运行键与记录
     baseline?: { runKey: string; records: readonly SoakRecord[] } | null;
   },
@@ -1020,13 +1033,14 @@ export function summarizeSoak(
     keys.map((key) => groupStats(key, firsts.filter(({ record }) => label(record) === key).map(({ attempt }) => attempt)));
   const pairIds = [...new Set(records.map((record) => record.pairId))];
   const visionSince = options.visionSince ?? null;
+  const directionUntil = options.directionUntil ?? null;
   const baseline = options.baseline ?? null;
   const readyPairIds = new Set(soakBlindPairs(records).map((pair) => pair.pairId));
   /// 每一对按 A 组那条（第一次尝试）的镜头卡写法归层
   const sourceOfPair = new Map<string, ShotCardSource | null>(
     pairIds.map((pairId) => {
       const a = firsts.find(({ record }) => record.pairId === pairId && record.group === "A");
-      return [pairId, a ? shotCardSource(a.attempt, visionSince) : null];
+      return [pairId, a ? shotCardSource(a.attempt, visionSince, directionUntil) : null];
     }),
   );
 
@@ -1105,6 +1119,7 @@ export function summarizeSoak(
       pairs: pairIds.length,
       pairsReady: readyPairIds.size,
       visionSince,
+      directionUntil,
       strata: SHOT_CARD_SOURCES.flatMap((entry) => {
         const members = pairIds.filter((pairId) => sourceOfPair.get(pairId) === entry.id);
         if (members.length === 0) return [];
@@ -1126,7 +1141,7 @@ export function summarizeSoak(
     },
     cardComparison: baseline
       ? (() => {
-          const cardPairs = soakCardPairs(baseline.records, records, visionSince);
+          const cardPairs = soakCardPairs(baseline.records, records, visionSince, directionUntil);
           const layout = (options.blind?.layout ?? []).filter((pair) => cardPairs.ready.some((entry) => entry.pairId === pair.caseId));
           return {
             baselineRunKey: baseline.runKey,
@@ -1232,7 +1247,9 @@ function planComparisonSection(comparison: SoakPlanComparison): string[] {
     comparison.visionSince
       ? `- 分层依据：看图写卡开关的生效时刻按 ${comparison.visionSince} 算（人给的）；在这之后发出建故事板请求的 A 组条目归「看图写卡」。看图那次调用失败时线上会静默退回纯文字写卡、库里不留标记，逐条有没有真看图要查线上日志 \`[shot-cards] vision design ok\`。`
       : "- 分层依据：没有给看图写卡开关的生效时刻（--vision-since），所以没有条目归到「看图写卡」；开关生效后跑的波次要补上这个时刻再出报告，否则会和纯文字写卡混在一层。",
-    "- 「卡没用上、退回模板节拍」= 线上在那轮故事板上记了镜头卡降级；「合并看图调用出了结果」= 那轮故事板上存了合并调用的视觉盘点（卡是不是也来自它，库里没单独记）。",
+    `- 「卡没用上、退回模板节拍」= 线上在那轮故事板上记了镜头卡降级。「合并看图调用开着时建的」= ${
+      comparison.directionUntil ? `在 ${comparison.directionUntil}（人给的，那个开关改成缺省关的那次部署）之前发出建故事板请求` : "没有给 --direction-until，只认故事板上存了那次调用的视觉盘点的"
+    }；卡是不是真来自那次调用，库里没单独记。`,
     ...(votedStrata.length === 0
       ? ["- 盲评：还没有票（把盲评页导出的 JSON 交给 tally 子命令）"]
       : votedStrata.flatMap((stratum) => stratum.tallies.flatMap((tally) => tallyTable(tally, `盲评 · A 组镜头卡：${stratum.label}`, "B")))),

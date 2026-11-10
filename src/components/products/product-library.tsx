@@ -64,7 +64,14 @@ export function NewProductButton({ label, disabled = false }: { label: string; d
   );
 }
 
-type ApiResult<T> = { ok: true; data: T } | { ok: false; error: string | null };
+type ApiResult<T> = { ok: true; data: T } | { ok: false; code: string | null };
+
+/** 接口回的错误码 → 界面语言的一句话；认不出的码用通用的「没存上」。接口里的中文原文不直接上屏。 */
+function errorText(copy: Copy, code: string | null): string {
+  return code && Object.prototype.hasOwnProperty.call(copy.errors, code)
+    ? copy.errors[code as keyof Copy["errors"]]
+    : copy.saveFailed;
+}
 
 async function sendProduct<T>(url: string, method: "POST" | "PATCH", body: unknown): Promise<ApiResult<T>> {
   try {
@@ -75,12 +82,12 @@ async function sendProduct<T>(url: string, method: "POST" | "PATCH", body: unkno
     });
     const payload = (await response.json().catch(() => null)) as
       | ({ ok: true } & T)
-      | { ok: false; error?: string }
+      | { ok: false; code?: string }
       | null;
     if (response.ok && payload?.ok) return { ok: true, data: payload };
-    return { ok: false, error: payload && !payload.ok && payload.error ? payload.error : null };
+    return { ok: false, code: payload && !payload.ok && payload.code ? payload.code : null };
   } catch {
-    return { ok: false, error: null };
+    return { ok: false, code: null };
   }
 }
 
@@ -129,7 +136,7 @@ export function ProductLibrary({
     setArchiveBusy(false);
     setArchiveOpen(false);
     if (!result.ok) {
-      setNotice({ tone: "error", text: result.error ?? copy.saveFailed });
+      setNotice({ tone: "error", text: errorText(copy, result.code) });
       return;
     }
     setProducts((current) => current.filter((item) => item.id !== product.id));
@@ -143,7 +150,7 @@ export function ProductLibrary({
     const result = await sendProduct<{ product: ProductProfileView }>("/api/products", "POST", { fromOrderId: orderId });
     setImportingId(null);
     if (!result.ok) {
-      setNotice({ tone: "error", text: result.error ?? copy.saveFailed });
+      setNotice({ tone: "error", text: errorText(copy, result.code) });
       return;
     }
     upsert(result.data.product);
@@ -394,7 +401,7 @@ function ProductEditor({
       : await sendProduct<{ product: ProductProfileView }>("/api/products", "POST", body);
     setSaving(false);
     if (!result.ok) {
-      setError(result.error ?? copy.saveFailed);
+      setError(errorText(copy, result.code));
       return;
     }
     onSaved(result.data.product);
@@ -462,7 +469,7 @@ function ProductEditor({
               </span>
             </p>
             {images.length > 0 ? (
-              <ul className="flex flex-wrap gap-2" data-testid="product-images">
+              <ul className="flex flex-wrap gap-3 pt-2" data-testid="product-images">
                 {images.map((image) => (
                   <li key={image.assetId} className="relative">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -477,9 +484,10 @@ function ProductEditor({
                       title={copy.removeImage}
                       disabled={saving}
                       onClick={() => setImages((current) => current.filter((item) => item.assetId !== image.assetId))}
-                      className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full border border-border-strong bg-popover text-foreground hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
+                      /// 看着是 24px 的小圆，可点范围用伪元素往外扩到约 40px：手机上手指点得到，又不把缩略图盖住
+                      className="absolute -right-2 -top-2 flex size-6 items-center justify-center rounded-full border border-border-strong bg-popover text-foreground before:absolute before:-inset-2 before:content-[''] hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
                     >
-                      <X className="size-3" aria-hidden />
+                      <X className="size-3.5" aria-hidden />
                     </button>
                   </li>
                 ))}

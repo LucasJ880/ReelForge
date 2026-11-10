@@ -99,7 +99,9 @@ export function productProfilePrompt(
 ): string {
   const name = profile.name.trim();
   const points = profile.sellingPoints.trim();
-  const base = !points ? name : points.startsWith(name) ? points : `${name}${locale === "en" ? ": " : "："}${points}`;
+  /// 冒号跟着内容的语言走，不跟界面语言：英文界面里存的中文商品，接出来不该是「唇釉: 玫瑰…」
+  const separator = /[\u3400-\u9fff]/u.test(name + points) ? "：" : ": ";
+  const base = !points ? name : points.startsWith(name) ? points : `${name}${separator}${points}`;
   return applyProductSize(base, profile.size ?? "", locale);
 }
 

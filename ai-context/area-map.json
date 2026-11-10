@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T04:19:43.571Z",
+  "generatedAt": "2026-11-10T04:33:30.987Z",
   "areas": {
     "unknown": [
       ".claude/launch.json",
@@ -1641,6 +1641,7 @@
       "src/lib/video-generation/batch-reference-manifest.ts",
       "src/lib/video-generation/batch-style-templates.ts",
       "src/lib/video-generation/bgm-attribution.ts",
+      "src/lib/video-generation/brand-signoff.ts",
       "src/lib/video-generation/brand-watermark-policy.ts",
       "src/lib/video-generation/brief-delivery-state.ts",
       "src/lib/video-generation/business-display-title.ts",
@@ -1858,6 +1859,7 @@
       "tests/brand-package-manager.test.ts",
       "tests/brand-packaging-auth.test.ts",
       "tests/brand-placement-and-category.test.ts",
+      "tests/brand-signoff.test.ts",
       "tests/branded-output-migration.test.ts",
       "tests/brief-access-ownership.test.ts",
       "tests/broll-assembly.test.ts",

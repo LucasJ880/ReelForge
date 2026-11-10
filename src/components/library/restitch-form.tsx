@@ -2,13 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Captions, Loader2, Music2 } from "lucide-react";
+import { Captions, Loader2, Music2, Stamp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   CAPTION_STYLE_OPTIONS,
   captionStyleSelectValue,
 } from "@/components/video-generation/audio-caption-controls";
 import { requestPulseRefresh } from "@/lib/exchange/pulse";
+import { SIGNOFF_BRAND_MAX, SIGNOFF_CTA_MAX } from "@/lib/video-generation/brand-signoff";
 import type {
   BgmTrackId,
   CaptionPosition,
@@ -26,7 +27,19 @@ import type {
 export interface RestitchDefaults {
   captions: CaptionSettings;
   bgm: { trackId: BgmTrackId; volume: number };
+  /** 这条成片现在的片尾落款；没设过 = null */
+  signoff?: { enabled: boolean; brandName: string; cta?: string | null } | null;
 }
+
+export type SignoffCopy = {
+  title: string;
+  hint: string;
+  brandLabel: string;
+  brandPlaceholder: string;
+  ctaLabel: string;
+  ctaPlaceholder: string;
+  brandRequired: string;
+};
 
 const SELECT_CLASS =
   "mt-2 h-(--control-height) w-full rounded-(--radius-md) x-well border-input px-3 text-body text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-50";
@@ -36,6 +49,8 @@ export function RestitchForm({
   english,
   defaults,
   branded = false,
+  signoffSuggestion = null,
+  signoffCopy,
   copy,
 }: {
   briefId: string;
@@ -43,6 +58,9 @@ export function RestitchForm({
   defaults: RestitchDefaults;
   /** 已有品牌封装成片：提示换完要重新封装（服务端会清空旧封装） */
   branded?: boolean;
+  /** 第一次勾选落款时预填的品牌名 / 行动指引：商家自己工作区的默认品牌包（不取全局包）；商家可以改 */
+  signoffSuggestion?: { brandName: string; cta: string | null } | null;
+  signoffCopy: SignoffCopy;
   copy: {
     title: string;
     hint: string;
@@ -64,17 +82,29 @@ export function RestitchForm({
   const [captionPosition, setCaptionPosition] = useState<CaptionPosition>(defaults.captions.position);
   const [bgmTrackId, setBgmTrackId] = useState<BgmTrackId>(defaults.bgm.trackId);
   const [bgmVolume, setBgmVolume] = useState(defaults.bgm.volume);
+  /// 片尾落款：默认不带；勾上才出现两个输入框，预填这条成片上次用的，其次是自己的默认品牌包
+  const savedSignoff = defaults.signoff ?? null;
+  const [signoffEnabled, setSignoffEnabled] = useState(Boolean(savedSignoff?.enabled));
+  const [signoffBrand, setSignoffBrand] = useState(savedSignoff?.brandName || signoffSuggestion?.brandName || "");
+  const [signoffCta, setSignoffCta] = useState(savedSignoff?.cta ?? signoffSuggestion?.cta ?? "");
+  const signoffEffect = (enabled: boolean, brand: string, cta: string | null | undefined) =>
+    enabled && brand.trim() ? `${brand.trim()}\n${cta?.trim() ?? ""}` : "off";
+  const signoffChanged =
+    signoffEffect(signoffEnabled, signoffBrand, signoffCta) !==
+    signoffEffect(Boolean(savedSignoff?.enabled), savedSignoff?.brandName ?? "", savedSignoff?.cta);
+  const signoffInvalid = signoffEnabled && !signoffBrand.trim();
 
   const unchanged =
     captionsEnabled === defaults.captions.enabled &&
     captionStyle === defaults.captions.style &&
     captionPosition === defaults.captions.position &&
     bgmTrackId === defaults.bgm.trackId &&
-    bgmVolume === defaults.bgm.volume;
+    bgmVolume === defaults.bgm.volume &&
+    !signoffChanged;
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (unchanged || submitting) return;
+    if (unchanged || submitting || signoffInvalid) return;
     setSubmitting(true);
     setFeedback(null);
     try {
@@ -90,6 +120,10 @@ export function RestitchForm({
               position: captionPosition,
             },
             bgm: { trackId: bgmTrackId, volume: bgmTrackId === "none" ? 0 : bgmVolume },
+            /// 落款有变化才带上（没动过的老成片不平白多一个键）
+            ...(signoffChanged
+              ? { signoff: { enabled: signoffEnabled, brandName: signoffBrand.trim(), cta: signoffCta.trim() || null } }
+              : {}),
           },
         }),
       });
@@ -205,8 +239,56 @@ export function RestitchForm({
         />
       </label>
 
+      {/* 片尾落款：最后两秒在画面上压品牌名 + 行动指引；每条片子单独勾，默认不带 */}
+      <div className="flex min-w-0 flex-col gap-3 border-t border-border pt-3" data-testid="restitch-signoff">
+        <label className="flex cursor-pointer items-center justify-between gap-4 text-body text-foreground">
+          <span className="flex items-center gap-2">
+            <Stamp className="size-4 text-muted-foreground" aria-hidden />
+            {signoffCopy.title}
+          </span>
+          <input
+            type="checkbox"
+            checked={signoffEnabled}
+            disabled={submitting}
+            className="size-4 accent-primary"
+            onChange={(event) => setSignoffEnabled(event.target.checked)}
+          />
+        </label>
+        <p className="text-meta text-muted-foreground">{signoffCopy.hint}</p>
+        {signoffEnabled ? (
+          <>
+            <label className="block text-meta font-medium text-muted-foreground">
+              {signoffCopy.brandLabel}
+              <input
+                type="text"
+                value={signoffBrand}
+                maxLength={SIGNOFF_BRAND_MAX}
+                disabled={submitting}
+                placeholder={signoffCopy.brandPlaceholder}
+                aria-invalid={signoffInvalid}
+                className={SELECT_CLASS}
+                onChange={(event) => setSignoffBrand(event.target.value)}
+              />
+            </label>
+            <label className="block text-meta font-medium text-muted-foreground">
+              {signoffCopy.ctaLabel}
+              <input
+                type="text"
+                value={signoffCta}
+                maxLength={SIGNOFF_CTA_MAX}
+                disabled={submitting}
+                placeholder={signoffCopy.ctaPlaceholder}
+                className={SELECT_CLASS}
+                onChange={(event) => setSignoffCta(event.target.value)}
+              />
+            </label>
+            {signoffInvalid ? <p role="alert" className="text-meta text-danger">{signoffCopy.brandRequired}</p> : null}
+          </>
+        ) : null}
+      </div>
+
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="submit" variant="outline" size="sm" disabled={unchanged || submitting || pending}>
+        <Button type="submit" variant="outline" size="sm" disabled={unchanged || submitting || pending || signoffInvalid}>
           {submitting ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden /> : null}
           {submitting ? copy.submitting : copy.submit}
         </Button>

@@ -781,6 +781,6 @@ test("成品库契约：canRestitch = READY + 有后期快照 + 不是直接复�
   const ephemeral = structuredClone(base) as unknown as { rounds: Array<{ angles: Array<{ videoBrief: { videoJobs: Array<{ outputVideoUrl: string }> } }> }> };
   ephemeral.rounds[0].angles[0].videoBrief.videoJobs[1].outputVideoUrl = "https://tos.example.com/seg1.mp4?X-Tos-Expires=86400";
   assert.equal(toUnifiedLibraryRow(ephemeral as unknown as Input)?.canRestitch, false, "段原片是临时签名地址");
-  assert.deepEqual(restitchDefaultsFor(BASE_PLAN), { captions: BASE_PLAN.captions, bgm: BASE_PLAN.audio.bgm });
+  assert.deepEqual(restitchDefaultsFor(BASE_PLAN), { captions: BASE_PLAN.captions, bgm: BASE_PLAN.audio.bgm, signoff: null });
   assert.equal(restitchDefaultsFor({ broken: true }), null);
 });

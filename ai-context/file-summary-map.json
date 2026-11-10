@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T04:19:43.563Z",
+  "generatedAt": "2026-11-10T04:33:30.978Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -18009,6 +18009,7 @@
         "@/components/library/report-content-button",
         "@/components/library/video-feedback-panel",
         "@/lib/services/video-feedback-service",
+        "@/lib/services/workspace-brand-package-service",
         "@/components/library/video-download-link",
         "@/components/library/subtitle-download-link",
         "@/components/library/making-process-timeline",
@@ -18020,16 +18021,15 @@
         "@/components/library/processing-refresher",
         "@/lib/library/display-title",
         "@/i18n/platform-copy",
-        "@/i18n/server",
-        "@/lib/exchange/state-vocab"
+        "@/i18n/server"
       ],
       "importantSymbols": [
         "PlatformLibraryItemPage",
         "dynamic",
         "default"
       ],
-      "lineCount": 294,
-      "sizeBytes": 15841,
+      "lineCount": 309,
+      "sizeBytes": 16768,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -22794,6 +22794,7 @@
       "area": "ffmpeg",
       "exports": [
         "RestitchDefaults",
+        "SignoffCopy",
         "RestitchForm"
       ],
       "imports": [
@@ -22803,14 +22804,16 @@
         "@/components/ui/button",
         "@/components/video-generation/audio-caption-controls",
         "@/lib/exchange/pulse",
+        "@/lib/video-generation/brand-signoff",
         "@/types/video-generation"
       ],
       "importantSymbols": [
         "RestitchDefaults",
+        "SignoffCopy",
         "RestitchForm"
       ],
-      "lineCount": 225,
-      "sizeBytes": 8427,
+      "lineCount": 307,
+      "sizeBytes": 12491,
       "notes": "React component; client component; area=ffmpeg"
     },
     {
@@ -24351,8 +24354,8 @@
         "PlatformCopy",
         "getPlatformCopy"
       ],
-      "lineCount": 1153,
-      "sizeBytes": 76230,
+      "lineCount": 1172,
+      "sizeBytes": 77230,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -26684,6 +26687,7 @@
         "@/lib/video-generation/audio-post-production",
         "@/lib/video-generation/tail-trim",
         "@/lib/compliance/ai-generated-badge",
+        "@/lib/video-generation/brand-signoff",
         "./ffmpeg-bin",
         "./frame-rate",
         "./media-fonts"
@@ -26698,8 +26702,8 @@
         "StitchCompositionError",
         "MediaBudget"
       ],
-      "lineCount": 920,
-      "sizeBytes": 33956,
+      "lineCount": 962,
+      "sizeBytes": 35899,
       "notes": "Utility / helper module; area=ffmpeg"
     },
     {
@@ -27821,6 +27825,7 @@
         "clipPlacementDecisionSchema"
       ],
       "imports": [
+        "@/lib/video-generation/brand-signoff",
         "zod",
         "@/types/video-generation"
       ],
@@ -27834,8 +27839,8 @@
         "supportedDurationSchema",
         "userTypeSchema"
       ],
-      "lineCount": 447,
-      "sizeBytes": 14177,
+      "lineCount": 450,
+      "sizeBytes": 14373,
       "notes": "Schema / validation; area=media-processing"
     },
     {
@@ -30726,7 +30731,7 @@
         "deriveMakingProcess"
       ],
       "lineCount": 959,
-      "sizeBytes": 35924,
+      "sizeBytes": 35962,
       "notes": "Business logic service; hits Prisma DB"
     },
     {
@@ -31765,6 +31770,44 @@
       "lineCount": 179,
       "sizeBytes": 5623,
       "notes": "Utility / helper module; area=media-processing"
+    },
+    {
+      "path": "src/lib/video-generation/brand-signoff.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "SIGNOFF_BRAND_MAX",
+        "SIGNOFF_CTA_MAX",
+        "SIGNOFF_DURATION_SEC",
+        "SIGNOFF_FADE_IN_MS",
+        "SIGNOFF_MIN_VIDEO_SEC",
+        "SIGNOFF_FONT_FAMILY",
+        "signoffSettingsSchema",
+        "SignoffSettings",
+        "signoffActive",
+        "signoffWindow",
+        "SignoffGeometry",
+        "signoffGeometry",
+        "sanitizeSignoffText",
+        "renderSignoffAss"
+      ],
+      "imports": [
+        "zod",
+        "@/lib/video-generation/platform-safe-zone"
+      ],
+      "importantSymbols": [
+        "SIGNOFF_BRAND_MAX",
+        "SIGNOFF_CTA_MAX",
+        "SIGNOFF_DURATION_SEC",
+        "SIGNOFF_FADE_IN_MS",
+        "SIGNOFF_MIN_VIDEO_SEC",
+        "SIGNOFF_FONT_FAMILY",
+        "SignoffSettings",
+        "SignoffGeometry"
+      ],
+      "lineCount": 145,
+      "sizeBytes": 6159,
+      "notes": "Utility / helper module; area=video-generation"
     },
     {
       "path": "src/lib/video-generation/brand-watermark-policy.ts",
@@ -32910,6 +32953,7 @@
       "imports": [
         "zod",
         "@/lib/schemas/unified-input",
+        "@/lib/video-generation/brand-signoff",
         "@/types/video-generation"
       ],
       "importantSymbols": [
@@ -32921,8 +32965,8 @@
         "mergeRestitchPatch",
         "restitchPatchIsNoop"
       ],
-      "lineCount": 83,
-      "sizeBytes": 2984,
+      "lineCount": 100,
+      "sizeBytes": 4185,
       "notes": "Utility / helper module; area=ffmpeg"
     },
     {
@@ -34178,8 +34222,8 @@
         "CaptionStyle",
         "CaptionPosition"
       ],
-      "lineCount": 538,
-      "sizeBytes": 17772,
+      "lineCount": 543,
+      "sizeBytes": 18076,
       "notes": "Shared TypeScript types; area=media-processing"
     },
     {
@@ -35205,6 +35249,27 @@
       "importantSymbols": [],
       "lineCount": 62,
       "sizeBytes": 2372,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/brand-signoff.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:test",
+        "@/lib/media/media-fonts",
+        "@/lib/media/stitch-pipeline",
+        "@/lib/schemas/unified-input",
+        "@/lib/video-generation/brand-signoff",
+        "@/lib/video-generation/restitch-patch",
+        "@/types/video-generation"
+      ],
+      "importantSymbols": [],
+      "lineCount": 161,
+      "sizeBytes": 9129,
       "notes": "Unit / integration test; area=tests"
     },
     {

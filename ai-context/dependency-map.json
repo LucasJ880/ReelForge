@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T04:15:56.319Z",
+  "generatedAt": "2026-11-10T04:19:43.568Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -14184,6 +14184,8 @@
         "@/lib/config/contact",
         "@/lib/services/exchange-readings",
         "@/lib/services/notification-service",
+        "@/lib/contracts/video-feedback",
+        "@/i18n/platform-copy",
         "@/lib/services/rate-limit-service"
       ],
       "localImports": [
@@ -14193,6 +14195,8 @@
         "@/lib/config/contact",
         "@/lib/services/exchange-readings",
         "@/lib/services/notification-service",
+        "@/lib/contracts/video-feedback",
+        "@/i18n/platform-copy",
         "@/lib/services/rate-limit-service"
       ],
       "externalImports": []
@@ -19735,6 +19739,25 @@
         "node:assert/strict",
         "node:test",
         "@prisma/client"
+      ]
+    },
+    {
+      "file": "tests/hook-angles.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:test",
+        "@/lib/create/hook-angles",
+        "../scripts/lib/soak-run"
+      ],
+      "localImports": [
+        "@/lib/create/hook-angles",
+        "../scripts/lib/soak-run"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:test"
       ]
     },
     {

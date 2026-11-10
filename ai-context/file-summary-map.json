@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T04:15:56.313Z",
+  "generatedAt": "2026-11-10T04:19:43.563Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -23953,8 +23953,8 @@
         "StudioReadings",
         "StreamlinedVideoStudio"
       ],
-      "lineCount": 2663,
-      "sizeBytes": 114246,
+      "lineCount": 2697,
+      "sizeBytes": 115983,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -24352,7 +24352,7 @@
         "getPlatformCopy"
       ],
       "lineCount": 1153,
-      "sizeBytes": 76218,
+      "sizeBytes": 76230,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -26052,6 +26052,29 @@
       ],
       "lineCount": 24,
       "sizeBytes": 1360,
+      "notes": "Utility / helper module"
+    },
+    {
+      "path": "src/lib/create/hook-angles.ts",
+      "type": "util",
+      "area": "shared",
+      "exports": [
+        "HOOK_ANGLES",
+        "HookAngleId",
+        "stripHookAngle",
+        "detectHookAngle",
+        "applyHookAngle"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "HOOK_ANGLES",
+        "HookAngleId",
+        "stripHookAngle",
+        "detectHookAngle",
+        "applyHookAngle"
+      ],
+      "lineCount": 73,
+      "sizeBytes": 3941,
       "notes": "Utility / helper module"
     },
     {
@@ -28903,6 +28926,8 @@
         "@/lib/config/contact",
         "@/lib/services/exchange-readings",
         "@/lib/services/notification-service",
+        "@/lib/contracts/video-feedback",
+        "@/i18n/platform-copy",
         "@/lib/services/rate-limit-service"
       ],
       "importantSymbols": [
@@ -28915,8 +28940,8 @@
         "FounderDigestDeps",
         "digestCounts"
       ],
-      "lineCount": 542,
-      "sizeBytes": 21895,
+      "lineCount": 611,
+      "sizeBytes": 25263,
       "notes": "Business logic service"
     },
     {
@@ -36870,8 +36895,8 @@
       "importantSymbols": [
         "GET"
       ],
-      "lineCount": 288,
-      "sizeBytes": 14767,
+      "lineCount": 319,
+      "sizeBytes": 16802,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -37395,6 +37420,23 @@
       "lineCount": 173,
       "sizeBytes": 5138,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
+    },
+    {
+      "path": "tests/hook-angles.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:test",
+        "@/lib/create/hook-angles",
+        "../scripts/lib/soak-run"
+      ],
+      "importantSymbols": [],
+      "lineCount": 76,
+      "sizeBytes": 3990,
+      "notes": "Unit / integration test; area=tests"
     },
     {
       "path": "tests/i18n-coverage.test.ts",

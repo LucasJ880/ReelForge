@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T04:15:56.322Z",
+  "generatedAt": "2026-11-10T04:19:43.571Z",
   "areas": {
     "unknown": [
       ".claude/launch.json",
@@ -1319,6 +1319,7 @@
       "src/lib/contracts/video-route-options.ts",
       "src/lib/contracts/videos-api.ts",
       "src/lib/create/entry-policy.ts",
+      "src/lib/create/hook-angles.ts",
       "src/lib/db.ts",
       "src/lib/duration/segment-planner.ts",
       "src/lib/exchange/pulse.ts",
@@ -1976,6 +1977,7 @@
       "tests/helpers/quota-fake-db.ts",
       "tests/helpers/synthetic-media.ts",
       "tests/historical-dispatch-quarantine.test.ts",
+      "tests/hook-angles.test.ts",
       "tests/i18n-coverage.test.ts",
       "tests/import-booth-leads.test.ts",
       "tests/industry-defaults.test.ts",

@@ -236,6 +236,8 @@ export interface SoakManifest {
   runKey: string;
   createdAt: string;
   items: SoakItem[];
+  /// 镜头卡对照的重拍轮（只投 A 组）：拿哪一轮的 A 组成片当对照
+  baseline?: { runKey: string } | null;
 }
 
 /** 同一个 run-key 换了筛选条件或 Runway 条数就拒绝：线路与分波一旦定了不能中途变。 */
@@ -312,6 +314,8 @@ export interface SoakAttempt {
     frames: SoakFrameFact[];
     /// 建故事板时没用上 AI、退回兜底的步骤
     degradedStages: string[];
+    /// 这一轮故事板上存没存「合并看图调用」的视觉盘点（StoryboardRun.visualReference）：存了说明那次调用出了结果
+    hasVisualReference?: boolean;
   };
   dispatch: {
     /// pending = 还没派发；requested = 请求发出去了但没拿到明确答复（同键重发，服务端回放）；
@@ -563,15 +567,135 @@ export interface SoakBlindTally {
   rows: Array<{ id: string; label: string; win: number; tie: number; loss: number }>;
 }
 
-/** 揭盲：把盲评页导出的「左 / 右 / 差不多」按布局还原成 B 组的胜平负（沿用评测集的计票）。 */
-export function soakBlindTally(layout: readonly BlindPair[], votes: BlindVotes, reviewer: string): SoakBlindTally {
+/**
+ * 揭盲：把盲评页导出的「左 / 右 / 差不多」按布局还原成某一边的胜平负（沿用评测集的计票）。
+ * arm 缺省 "B"（出方案对照里的 B 组）；镜头卡对照里传 "vision"。布局里没有的对不计票，所以给一部分布局就是只算那几对。
+ */
+export function soakBlindTally(layout: readonly BlindPair[], votes: BlindVotes, reviewer: string, arm = "B"): SoakBlindTally {
   const tally = tallyBlindVotes(layout, votes);
   const blank = { win: 0, tie: 0, loss: 0 };
   const rows = [...GOLDEN_SET_DIMENSIONS.map((dimension) => ({ id: dimension.id as string, label: dimension.label })), { id: "overall", label: "整体" }].map(
-    (dimension) => ({ ...dimension, ...(tally[dimension.id as keyof typeof tally]?.B ?? blank) }),
+    (dimension) => ({ ...dimension, ...(tally[dimension.id as keyof typeof tally]?.[arm] ?? blank) }),
   );
   const overall = rows[rows.length - 1];
   return { reviewer: reviewer.trim() || "未署名", pairsVoted: overall.win + overall.tie + overall.loss, rows };
+}
+
+/// 一位评审交回来的票（盲评页导出的 JSON）
+export interface SoakBallot {
+  reviewer: string;
+  votes: BlindVotes;
+}
+
+// ---------------------------------------------------------------------------
+// A 组的镜头卡是怎么写的：不同写法的 A/B 对照量的不是同一件事，报告里分层、不合成一个数
+// ---------------------------------------------------------------------------
+
+export const SHOT_CARD_SOURCES = [
+  { id: "text", label: "纯文字写卡" },
+  { id: "vision", label: "看图写卡（开关生效后建的）" },
+  { id: "direction", label: "合并看图调用出了结果" },
+  { id: "fallback", label: "卡没用上、退回模板节拍" },
+] as const;
+export type ShotCardSource = (typeof SHOT_CARD_SOURCES)[number]["id"];
+
+/**
+ * 一条 A 组故事板的镜头卡写法，只用查得到的事实判，不猜：
+ *  - fallback：线上在这轮故事板上记了镜头卡降级（超时 / 输出不合格），实际没有卡；
+ *  - direction：这轮故事板上存了合并看图调用的视觉盘点（那次调用出了结果；卡是不是也来自它，库里没单独记）；
+ *  - vision / text：看发出建故事板请求的时刻在不在「看图写卡开关生效时刻」之后。生效时刻由人给（--vision-since），
+ *    没给就一律按 text。看图那次调用失败时线上会静默退回纯文字写卡、库里不留标记，所以 vision 这一层的准确说法是
+ *    「开关生效后建的」，逐条有没有真看图只能查线上日志（`[shot-cards] vision design ok`）。
+ * 还没发出请求的返回 null。B 组不写卡，不适用。
+ */
+export function shotCardSource(attempt: SoakAttempt, visionSince: string | null): ShotCardSource | null {
+  const { storyboard } = attempt;
+  if (!storyboard.requestedAt) return null;
+  if (storyboard.degradedStages.includes("shot_cards")) return "fallback";
+  if (storyboard.hasVisualReference) return "direction";
+  return visionSince !== null && Date.parse(storyboard.requestedAt) >= Date.parse(visionSince) ? "vision" : "text";
+}
+
+/** `--vision-since` 的解析：要带时区的 ISO 时刻（如 2026-11-10T02:30:00Z），看不懂就报错，不带着含糊的时刻去分层。 */
+export function parseVisionSince(raw: string | null | undefined): string | null {
+  if (raw === null || raw === undefined || raw.trim() === "") return null;
+  const text = raw.trim();
+  if (!/(Z|[+-]\d{2}:?\d{2})$/u.test(text) || !Number.isFinite(Date.parse(text))) {
+    throw new Error(`--vision-since 要给带时区的 ISO 时刻，如 2026-11-10T02:30:00Z：${text}`);
+  }
+  return new Date(text).toISOString();
+}
+
+/**
+ * 镜头卡对照的重拍轮选哪几对：对照轮里 A 组第一次尝试已成片、且卡是纯文字写的，按清单顺序取前 count 对，
+ * 新一轮只投这些对的 A 组（同品类、同角度、同一批商品图、同口播稿）。不够 count 对就有几对取几对，一对都没有报错。
+ */
+export function selectCardRerunItems(baseline: readonly SoakRecord[], visionSince: string | null, count: number): SoakItem[] {
+  if (!Number.isInteger(count) || count < 1) throw new Error("--pairs 要给正整数");
+  const eligible = baseline.filter((record) => {
+    const attempt = firstSoakAttempt(record);
+    return record.group === "A" && attempt.video.finalVideoStatus === "READY" && shotCardSource(attempt, visionSince) === "text";
+  });
+  if (eligible.length === 0) throw new Error("对照轮里还没有「纯文字写卡、已成片」的 A 组条目，没法配对");
+  return eligible.slice(0, count).map(({ id, pairId, caseId, angleId, group, wave }) => ({ id, pairId, caseId, angleId, group, wave, route: "buddy" }));
+}
+
+export interface SoakCardPairSource {
+  pairId: string;
+  caseId: string;
+  angleId: SoakAngleId;
+  /// text = 对照轮的 A（纯文字卡）；vision = 这一轮的 A（看图卡）
+  videos: { text: string; vision: string };
+}
+
+/**
+ * 镜头卡对照能配成的对，以及配不成的原因。两边都要是第一次尝试、已成片；对照轮那条必须是纯文字卡，
+ * 这一轮那条必须建在开关生效之后且没退回模板——否则比的就不是「纯文字卡 对 看图卡」。
+ */
+export function soakCardPairs(
+  baseline: readonly SoakRecord[],
+  rerun: readonly SoakRecord[],
+  visionSince: string | null,
+): { ready: SoakCardPairSource[]; excluded: Array<{ pairId: string; reason: string }> } {
+  const ready: SoakCardPairSource[] = [];
+  const excluded: Array<{ pairId: string; reason: string }> = [];
+  for (const record of rerun.filter((entry) => entry.group === "A")) {
+    const attempt = firstSoakAttempt(record);
+    const base = baseline.find((entry) => entry.group === "A" && entry.pairId === record.pairId);
+    const baseAttempt = base ? firstSoakAttempt(base) : null;
+    const source = shotCardSource(attempt, visionSince);
+    const outcome = deriveSoakOutcome(attempt);
+    const reason =
+      !baseAttempt || baseAttempt.video.finalVideoStatus !== "READY" || !baseAttempt.video.finalVideoUrl
+        ? "对照轮的 A 组没有成片"
+        : shotCardSource(baseAttempt, visionSince) !== "text"
+          ? "对照轮那条的卡不是纯文字写的"
+          : source === null
+            ? "这一轮还没投"
+            : source === "fallback"
+              ? "这一轮的卡没用上、退回了模板节拍"
+              : source === "direction"
+                ? "这一轮走的是合并看图调用"
+                : source === "text"
+                  ? visionSince === null
+                    ? "没给看图写卡的生效时刻（--vision-since），不能认定这一轮是看图卡"
+                    : "这一轮建在看图写卡开关生效之前"
+                  : outcome === null
+                    ? "这一轮还没出结果"
+                    : outcome.kind !== "succeeded" || !attempt.video.finalVideoUrl
+                      ? "这一轮没有成片"
+                      : null;
+    if (reason) excluded.push({ pairId: record.pairId, reason });
+    else {
+      ready.push({
+        pairId: record.pairId,
+        caseId: record.caseId,
+        angleId: record.angleId,
+        videos: { text: baseAttempt!.video.finalVideoUrl!, vision: attempt.video.finalVideoUrl! },
+      });
+    }
+  }
+  return { ready, excluded };
 }
 
 // ---------------------------------------------------------------------------
@@ -656,11 +780,38 @@ export interface SoakPlanGroupStats extends SoakGroupStats {
   degradedStoryboards: number;
 }
 
+export interface SoakPlanStratum {
+  source: ShotCardSource;
+  label: string;
+  /// 这一层有几对（按 A 组那条的镜头卡写法归层；A 组还没投的对不归层）
+  pairs: number;
+  /// 两组都出了成片、可以盲评的对数
+  pairsReady: number;
+  a: SoakGroupStats;
+  b: SoakGroupStats;
+  /// 只算这一层的对：B 组的胜 / 平 / 负
+  tallies: SoakBlindTally[];
+}
+
 export interface SoakPlanComparison {
   groups: SoakPlanGroupStats[];
   pairs: number;
   /// 两组都出了成片、可以盲评的对数
   pairsReady: number;
+  /// 看图写卡开关的生效时刻（没给为 null：分层时一律按纯文字写卡）
+  visionSince: string | null;
+  /// 按 A 组镜头卡的写法分层；不同层量的不是同一件事，不合成一个数
+  strata: SoakPlanStratum[];
+}
+
+export interface SoakCardComparison {
+  baselineRunKey: string;
+  /// 这一轮投了几对（只有 A 组）
+  pairs: number;
+  /// 两边都成片、且确实是「纯文字卡 对 看图卡」的对数
+  pairsReady: number;
+  excluded: Array<{ pairId: string; reason: string }>;
+  /// 看图卡相对纯文字卡的胜 / 平 / 负
   tallies: SoakBlindTally[];
 }
 
@@ -700,6 +851,8 @@ export interface SoakSummary {
   gates: SoakGate[];
   frameQaEvidence: SoakFrameQaEvidence;
   planComparison: SoakPlanComparison;
+  /// 只有镜头卡对照的重拍轮才有
+  cardComparison: SoakCardComparison | null;
 }
 
 export interface SoakFirstPassInput {
@@ -798,7 +951,16 @@ function frameQaEvidence(started: ReadonlyArray<{ record: SoakRecord; attempt: S
  */
 export function summarizeSoak(
   records: readonly SoakRecord[],
-  options: { now: Date; firstPass?: SoakFirstPassInput | null; blindTallies?: readonly SoakBlindTally[] },
+  options: {
+    now: Date;
+    firstPass?: SoakFirstPassInput | null;
+    /// 盲评：布局（哪一对左边是哪一边）与各位评审的票
+    blind?: { layout: readonly BlindPair[]; ballots: readonly SoakBallot[] } | null;
+    /// 看图写卡开关的生效时刻（parseVisionSince 的结果）
+    visionSince?: string | null;
+    /// 镜头卡对照的重拍轮：对照轮的运行键与记录
+    baseline?: { runKey: string; records: readonly SoakRecord[] } | null;
+  },
 ): SoakSummary {
   const firsts = records.map((record) => ({ record, attempt: firstSoakAttempt(record) }));
   const started = firsts.filter(({ attempt }) => attempt.storyboard.requestedAt !== null);
@@ -857,6 +1019,16 @@ export function summarizeSoak(
   const group = (label: (record: SoakRecord) => string, keys: readonly string[]) =>
     keys.map((key) => groupStats(key, firsts.filter(({ record }) => label(record) === key).map(({ attempt }) => attempt)));
   const pairIds = [...new Set(records.map((record) => record.pairId))];
+  const visionSince = options.visionSince ?? null;
+  const baseline = options.baseline ?? null;
+  const readyPairIds = new Set(soakBlindPairs(records).map((pair) => pair.pairId));
+  /// 每一对按 A 组那条（第一次尝试）的镜头卡写法归层
+  const sourceOfPair = new Map<string, ShotCardSource | null>(
+    pairIds.map((pairId) => {
+      const a = firsts.find(({ record }) => record.pairId === pairId && record.group === "A");
+      return [pairId, a ? shotCardSource(a.attempt, visionSince) : null];
+    }),
+  );
 
   return {
     total: records.length,
@@ -931,9 +1103,40 @@ export function summarizeSoak(
         };
       }),
       pairs: pairIds.length,
-      pairsReady: soakBlindPairs(records).length,
-      tallies: [...(options.blindTallies ?? [])],
+      pairsReady: readyPairIds.size,
+      visionSince,
+      strata: SHOT_CARD_SOURCES.flatMap((entry) => {
+        const members = pairIds.filter((pairId) => sourceOfPair.get(pairId) === entry.id);
+        if (members.length === 0) return [];
+        const attemptsOf = (groupId: SoakGroup) =>
+          firsts.filter(({ record }) => record.group === groupId && members.includes(record.pairId)).map(({ attempt }) => attempt);
+        const layout = (baseline ? [] : (options.blind?.layout ?? [])).filter((pair) => members.includes(pair.caseId));
+        return [
+          {
+            source: entry.id,
+            label: entry.label,
+            pairs: members.length,
+            pairsReady: members.filter((pairId) => readyPairIds.has(pairId)).length,
+            a: groupStats("A", attemptsOf("A")),
+            b: groupStats("B", attemptsOf("B")),
+            tallies: layout.length === 0 ? [] : (options.blind?.ballots ?? []).map((ballot) => soakBlindTally(layout, ballot.votes, ballot.reviewer)),
+          },
+        ];
+      }),
     },
+    cardComparison: baseline
+      ? (() => {
+          const cardPairs = soakCardPairs(baseline.records, records, visionSince);
+          const layout = (options.blind?.layout ?? []).filter((pair) => cardPairs.ready.some((entry) => entry.pairId === pair.caseId));
+          return {
+            baselineRunKey: baseline.runKey,
+            pairs: records.filter((record) => record.group === "A").length,
+            pairsReady: cardPairs.ready.length,
+            excluded: cardPairs.excluded,
+            tallies: layout.length === 0 ? [] : (options.blind?.ballots ?? []).map((ballot) => soakBlindTally(layout, ballot.votes, ballot.reviewer, "vision")),
+          };
+        })()
+      : null,
   };
 }
 
@@ -984,10 +1187,22 @@ function frameQaSection(evidence: SoakFrameQaEvidence): string[] {
   ];
 }
 
-/** 「出方案对照」一节：两组各自的读数与盲评胜平负，只陈述数字。 */
+const tallyTable = (tally: SoakBlindTally, title: string, subject: string): string[] => [
+  "",
+  `${title} · 评审 ${tally.reviewer}（评了 ${tally.pairsVoted} 对）：`,
+  "",
+  `| 项 | ${subject} 胜 | 平 | ${subject} 负 |`,
+  "| --- | --- | --- | --- |",
+  ...tally.rows.map((row) => `| ${row.label} | ${row.win} | ${row.tie} | ${row.loss} |`),
+];
+const overallOf = (tally: SoakBlindTally) => tally.rows.find((row) => row.id === "overall")!;
+const overallText = (tally: SoakBlindTally, subject: string) =>
+  `${tally.reviewer}：${subject} 胜 ${overallOf(tally).win} / 平 ${overallOf(tally).tie} / 负 ${overallOf(tally).loss}`;
+
+/** 「出方案对照」一节：两组各自的读数，再按 A 组镜头卡的写法分层给盲评胜平负。只陈述数字，不同层不合成一个数。 */
 function planComparisonSection(comparison: SoakPlanComparison): string[] {
   const [a, b] = comparison.groups;
-  const overallOf = (tally: SoakBlindTally) => tally.rows.find((row) => row.id === "overall")!;
+  const votedStrata = comparison.strata.filter((stratum) => stratum.tallies.length > 0);
   return [
     "## 出方案对照",
     "",
@@ -1001,21 +1216,55 @@ function planComparisonSection(comparison: SoakPlanComparison): string[] {
     "- 出方案阶段耗时的口径：A 组建故事板是线上接口往返（含镜头卡与原话英译两次模型调用）；B 组是本机建、不调模型。「生成视频」那一下线上都会重出一遍方案（调模型），B 组只是把其中 AI 段的提示词正文换成本机算的，所以这一列两组都含模型调用，不代表砍掉 OpenAI 之后的耗时。",
     "- 两组进成片提示词的差别（线上缺省是精简出方案，一致性设定与段提示词本来就不调模型）：镜头卡对模板节拍、原话英译对商家原话、商品描述来自看图对不看图。",
     `- 配对：共 ${comparison.pairs} 对，两组都出了成片、可以盲评的 ${comparison.pairsReady} 对`,
-    ...(comparison.tallies.length === 0
+    "",
+    "按 A 组镜头卡的写法分层（每一层的 A/B 对照量的不是同一件事，不能合成一个数）：",
+    "",
+    "| A 组镜头卡 | 对数 | A 成功 / 已投 | A 的 P50 | B 成功 / 已投 | B 的 P50 | 可盲评对数 | 盲评整体 |",
+    "| --- | --- | --- | --- | --- | --- | --- | --- |",
+    ...comparison.strata.map(
+      (stratum) =>
+        `| ${stratum.label} | ${stratum.pairs} | ${stratum.a.succeeded} / ${stratum.a.started} | ${minutes(stratum.a.p50Ms)} | ${stratum.b.succeeded} / ${stratum.b.started} | ${minutes(stratum.b.p50Ms)} | ${stratum.pairsReady} | ${
+          stratum.tallies.length === 0 ? "待评" : stratum.tallies.map((tally) => overallText(tally, "B")).join("；")
+        } |`,
+    ),
+    comparison.strata.length === 0 ? "| （A 组还没有投出去的条目） | 0 | — | — | — | — | 0 | — |" : "",
+    "",
+    comparison.visionSince
+      ? `- 分层依据：看图写卡开关的生效时刻按 ${comparison.visionSince} 算（人给的）；在这之后发出建故事板请求的 A 组条目归「看图写卡」。看图那次调用失败时线上会静默退回纯文字写卡、库里不留标记，逐条有没有真看图要查线上日志 \`[shot-cards] vision design ok\`。`
+      : "- 分层依据：没有给看图写卡开关的生效时刻（--vision-since），所以没有条目归到「看图写卡」；开关生效后跑的波次要补上这个时刻再出报告，否则会和纯文字写卡混在一层。",
+    "- 「卡没用上、退回模板节拍」= 线上在那轮故事板上记了镜头卡降级；「合并看图调用出了结果」= 那轮故事板上存了合并调用的视觉盘点（卡是不是也来自它，库里没单独记）。",
+    ...(votedStrata.length === 0
       ? ["- 盲评：还没有票（把盲评页导出的 JSON 交给 tally 子命令）"]
-      : comparison.tallies.flatMap((tally) => [
-          "",
-          `盲评 · 评审 ${tally.reviewer}（评了 ${tally.pairsVoted} 对）：`,
-          "",
-          "| 项 | B 胜 | 平 | B 负 |",
-          "| --- | --- | --- | --- |",
-          ...tally.rows.map((row) => `| ${row.label} | ${row.win} | ${row.tie} | ${row.loss} |`),
-        ])),
+      : votedStrata.flatMap((stratum) => stratum.tallies.flatMap((tally) => tallyTable(tally, `盲评 · A 组镜头卡：${stratum.label}`, "B")))),
     "",
     `数字小结：A 组成功率 ${percent(a.successRate)}、P50 ${minutes(a.p50Ms)} / P90 ${minutes(a.p90Ms)}；B 组成功率 ${percent(b.successRate)}、P50 ${minutes(b.p50Ms)} / P90 ${minutes(b.p90Ms)}；${
-      comparison.tallies.length === 0
+      votedStrata.length === 0
         ? "盲评待评"
-        : comparison.tallies.map((tally) => `盲评整体（${tally.reviewer}）B 胜 ${overallOf(tally).win} / 平 ${overallOf(tally).tie} / 负 ${overallOf(tally).loss}`).join("；")
+        : votedStrata.map((stratum) => `${stratum.label} ${stratum.pairs} 对的盲评整体（${stratum.tallies.map((tally) => overallText(tally, "B")).join("；")}）`).join("；")
+    }。`,
+    "",
+  ];
+}
+
+/** 「镜头卡对照」一节（重拍轮才有）：对照轮的 A（纯文字卡）对这一轮的 A（看图卡）。只陈述数字。 */
+function cardComparisonSection(comparison: SoakCardComparison, visionSince: string | null): string[] {
+  return [
+    "## 镜头卡对照（纯文字 对 看图）",
+    "",
+    `- 对照轮 ${comparison.baselineRunKey} 的 A 组（纯文字写卡）对这一轮的 A 组（看图写卡）：同品类、同角度、同一批商品图、同口播稿，只差镜头卡是不是看着商品图写的`,
+    `- 这一轮投了 ${comparison.pairs} 对，两边都成片、可以盲评的 ${comparison.pairsReady} 对`,
+    visionSince
+      ? `- 看图写卡开关的生效时刻按 ${visionSince} 算（人给的）。看图那次调用失败时线上会静默退回纯文字写卡、库里不留标记：盲评前先在线上日志里核对这几条都有 \`[shot-cards] vision design ok\``
+      : "- 没有给看图写卡开关的生效时刻（--vision-since）：这一轮的条目不能认定是看图卡，一对都配不成",
+    ...(comparison.excluded.length > 0
+      ? ["", "| 没配成的对 | 原因 |", "| --- | --- |", ...comparison.excluded.map((entry) => `| ${entry.pairId} | ${entry.reason} |`)]
+      : []),
+    ...(comparison.tallies.length === 0
+      ? ["- 盲评：还没有票（把盲评页导出的 JSON 交给 tally 子命令）"]
+      : comparison.tallies.flatMap((tally) => tallyTable(tally, "盲评", "看图卡"))),
+    "",
+    `数字小结：${comparison.pairsReady} 对可比；${
+      comparison.tallies.length === 0 ? "盲评待评" : `盲评整体（${comparison.tallies.map((tally) => overallText(tally, "看图卡")).join("；")}）`
     }。`,
     "",
   ];
@@ -1060,7 +1309,9 @@ export function renderSoakReport(runKey: string, summary: SoakSummary, generated
     ...groupTable("计划线路", summary.byRoute, (key) => (key === "buddy" ? "Shuyu" : "Runway")),
     "",
     ...frameQaSection(summary.frameQaEvidence),
-    ...planComparisonSection(summary.planComparison),
+    ...(summary.cardComparison
+      ? cardComparisonSection(summary.cardComparison, summary.planComparison.visionSince)
+      : planComparisonSection(summary.planComparison)),
     ...(summary.failures.length > 0
       ? ["## 失败明细", "", "| 条目 | 阶段 | 原因 |", "| --- | --- | --- |", ...summary.failures.map((entry) => `| ${entry.id} | ${entry.stage} | ${entry.reason.replaceAll("|", "\\|").replace(/\s+/gu, " ").slice(0, 200)} |`), ""]
       : []),

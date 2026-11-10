@@ -558,6 +558,7 @@ export const enUS: Dictionary = {
       batches: "Batch production",
       wins: "Wins",
       library: "Video library",
+      products: "Products",
       brands: "Brands",
       templates: "Template library",
       leads: "Inquiries",

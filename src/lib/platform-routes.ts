@@ -8,6 +8,8 @@ export const PLATFORM_PRIMARY_NAV = [
   /// 表现数据回流（青砚同步）还没开，这页现在只能是零；路由保留可直达，空态如实说明。
   /// 有真实表现数据回流之后再把 { id: "wins", label: "战绩", href: "/app/wins" } 放回这里。
   { id: "library", label: "成品库", href: "/app/library" },
+  /// 2026-11-10 商品档案：常拍的商品存一次（名字、卖点、尺寸、商品图），以后点一下就带进创作页。
+  { id: "products", label: "商品", href: "/app/products" },
   { id: "brands", label: "品牌", href: "/app/brands" },
   { id: "templates", label: "模板库", href: "/app/templates" },
   /// 2026-10-28 CEO 要的客户使用指南（学 LibTV「学院」）：侧栏底部，顶栏问号也直达。

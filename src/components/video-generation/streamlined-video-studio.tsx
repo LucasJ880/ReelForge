@@ -232,6 +232,7 @@ const ZH_COPY = {
   stages: ["写口播稿", "排镜头（约 40–60 秒）", "出故事板画面"],
   recentTitle: "接着拍这些商品",
   recentHint: "点一下带回商品图和上次的描述，改一改再拍。",
+  recentManage: "管理商品",
   recentImages: "{count} 张图",
   productSize: "商品尺寸",
   productSizePlaceholder: "例：直径约 8 厘米，一只手能握住",
@@ -376,6 +377,7 @@ const EN_COPY: StudioCopy = {
   stages: ["Write the voiceover", "Plan the shots (about 40–60s)", "Draw the storyboard frames"],
   recentTitle: "Pick up one of these products",
   recentHint: "One click brings back its photos and your last brief — tweak it and shoot again.",
+  recentManage: "Manage products",
   recentImages: "{count} photos",
   productSize: "Product size",
   productSizePlaceholder: "e.g. about 8 cm across, fits in one hand",
@@ -449,6 +451,7 @@ export function StreamlinedVideoStudio({
   initialVoiceoverScript = "",
   machineTaskId = null,
   retryOfOrderId = null,
+  loadedProductName = null,
   brandPackages = [],
   canSelectVideoRoute,
   showInternalVideoRoutes = false,
@@ -461,7 +464,8 @@ export function StreamlinedVideoStudio({
   recentSources = [],
 }: {
   /** 最近拍过的商品（服务端按属主读好）：空白创作页上点一下就带回那一单的商品图和描述。 */
-  recentSources?: ReadonlyArray<{ orderId: string; title: string; thumbnailUrl: string; imageCount: number }>;
+  /// 「接着拍」那一行：存好的商品（/app/create?product=…）和最近拍过的一单（?retry=…），去处由页面给
+  recentSources?: ReadonlyArray<{ id: string; href: string; title: string; thumbnailUrl: string; imageCount: number }>;
   initialAssets?: UploadedAsset[];
   initialStyleTemplateId?: string;
   initialPrompt?: string;
@@ -474,6 +478,8 @@ export function StreamlinedVideoStudio({
   machineTaskId?: string | null;
   /** 成品库「重新生成」的原订单：有值时不做故事板静默恢复，避免覆盖预填。 */
   retryOfOrderId?: string | null;
+  /** 从商品档案带着商品图进来（/app/create?product=…）时那件商品的名字：只用来把「已载入」那句话说对。 */
+  loadedProductName?: string | null;
   brandPackages?: WorkspaceBrandPackageView[];
   canSelectVideoRoute: boolean;
   showInternalVideoRoutes?: boolean;
@@ -2100,7 +2106,14 @@ export function StreamlinedVideoStudio({
         ) : null}
         {uploadError ? <p role="alert" className="text-meta text-danger">{uploadError}</p> : null}
         {loadedFromStudio.length > 0 ? (
-          retryOfOrderId || machineTaskId ? (
+          loadedProductName ? (
+            /// 从商品档案带过来的：说清是哪件商品，并提示接下来只差「这次想怎么拍」
+            <p role="status" className="text-meta text-success" data-testid="prefill-assets-notice">
+              {english
+                ? `Loaded ${loadedFromStudio.length} photo${loadedFromStudio.length === 1 ? "" : "s"} of “${loadedProductName}”. Now add how you want to shoot it this time.`
+                : `已载入「${loadedProductName}」的 ${loadedFromStudio.length} 张商品图。接着写这次想怎么拍。`}
+            </p>
+          ) : retryOfOrderId || machineTaskId ? (
             /// 「重新生成 / 用同样的素材再做一条」带过来的是那条视频的商品图，不是产品图工作台的产物；
             /// 之前照搬工作台那句话，还列出 product-image-1 这样的占位文件名。
             <p role="status" className="text-meta text-success" data-testid="prefill-assets-notice">
@@ -2285,12 +2298,19 @@ export function StreamlinedVideoStudio({
             <p className="text-center text-meta text-tertiary">
               <span className="font-medium text-muted-foreground">{copy.recentTitle}</span>
               <span className="ml-2">{copy.recentHint}</span>
+              <Link
+                href="/app/products"
+                prefetch={false}
+                className="ml-2 rounded-(--radius-sm) text-muted-foreground underline underline-offset-3 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                {copy.recentManage}
+              </Link>
             </p>
             <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
               {recentSources.map((source) => (
-                <li key={source.orderId} className="min-w-0">
+                <li key={source.id} className="min-w-0">
                   <Link
-                    href={`/app/create?retry=${encodeURIComponent(source.orderId)}`}
+                    href={source.href}
                     className="flex min-w-0 items-center gap-3 rounded-(--radius-lg) border border-border bg-surface p-2 transition-colors duration-fast ease-out hover:border-border-strong hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}

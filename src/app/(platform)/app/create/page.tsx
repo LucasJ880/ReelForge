@@ -8,7 +8,9 @@ import { isBrollRouteAvailable } from "@/lib/services/broll-assembly-service";
 import { getCapabilities } from "@/lib/services/capability-status-service";
 import { authOptions } from "@/lib/auth";
 import { contactEmail } from "@/lib/config/contact";
-import { loadCreateRetryPrefill, loadRecentCreateSourcesOrNone } from "@/lib/services/create-retry-prefill-service";
+import { loadCreateRetryPrefill } from "@/lib/services/create-retry-prefill-service";
+import { productProfilePrompt } from "@/lib/contracts/product-profile";
+import { loadCreateShortcutsOrNone, loadProductProfilePrefill } from "@/lib/services/product-profile-service";
 import { stripProductSize } from "@/lib/create/product-size";
 import { applyHookAngle, HOOK_ANGLES, stripHookAngle } from "@/lib/create/hook-angles";
 import { resolveOwnedImageAssets } from "@/lib/services/media-asset-service";
@@ -39,11 +41,13 @@ export default async function PlatformCreatePage({
     /// 换个开头再做一条（成片详情页带过来）：只和 retry 一起生效
     hook?: string;
     machineTask?: string;
+    /// 拍这件存好的商品（商品页 / 创作页「接着拍」带过来）：带入它的商品图、名字、卖点和尺寸
+    product?: string;
   }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/create");
-  const [{ productImageResultId, styleTemplate, prompt, guide, retry, hook, machineTask }, locale, routeState] = await Promise.all([
+  const [{ productImageResultId, styleTemplate, prompt, guide, retry, hook, machineTask, product }, locale, routeState] = await Promise.all([
     searchParams,
     getServerLocale(),
     getCustomerRouteRehearsalState("create"),
@@ -63,7 +67,11 @@ export default async function PlatformCreatePage({
   const retryPrefill = typeof retry === "string" && retry && !result
     ? await loadCreateRetryPrefill(retry, session.user.id)
     : null;
-  const machinePrefill = typeof machineTask === "string" && machineTask && !result && !retryPrefill
+  /// 商品档案：按属主读（别人的、归档的当作不存在）。和「重新生成」同时带时以重新生成为准。
+  const productPrefill = typeof product === "string" && product && !result && !retryPrefill
+    ? await loadProductProfilePrefill(session.user.id, product)
+    : null;
+  const machinePrefill = typeof machineTask === "string" && machineTask && !result && !retryPrefill && !productPrefill
     ? await readMachineVideoTaskPrefill(session.user.id, machineTask)
     : null;
   const machineAssets = machinePrefill?.assetIds.length
@@ -71,15 +79,37 @@ export default async function PlatformCreatePage({
     : [];
   const hookAngle = HOOK_ANGLES.find((angle) => angle.id === hook)?.id ?? null;
   /// 「接着拍这些商品」：只在空白创作页上用得着（带着预填进来的不查）；读不到由服务层记日志、当作没有，不拦创作
-  const recentSources = routeState === "empty" || result || retryPrefill || machinePrefill
+  /// 存好的商品在前，不够四格再用最近拍过、还没存的补上。
+  const recentSources = routeState === "empty" || result || retryPrefill || machinePrefill || productPrefill
     ? []
-    : (await loadRecentCreateSourcesOrNone(session.user.id)).map((source) => ({
-        orderId: source.orderId,
-        /// 标题 = 当时描述的第一行，去掉我们补的「开头方向」和「尺寸」那两行
-        title: Array.from(stripProductSize(stripHookAngle(source.prompt)).split("\n")[0] ?? "").slice(0, 40).join(""),
-        thumbnailUrl: absoluteAssetUrl(source.thumbnailUrl),
-        imageCount: source.imageCount,
+    : (await loadCreateShortcutsOrNone(session.user.id)).map((shortcut) => ({
+        id: `${shortcut.kind}:${shortcut.id}`,
+        href: shortcut.kind === "product"
+          ? `/app/create?product=${encodeURIComponent(shortcut.id)}`
+          : `/app/create?retry=${encodeURIComponent(shortcut.id)}`,
+        /// 商品用它的名字；拍过的一单用当时描述的第一行（去掉我们补的「开头方向」和「尺寸」那两行）
+        title: shortcut.kind === "product"
+          ? shortcut.title
+          : Array.from(stripProductSize(stripHookAngle(shortcut.title)).split("\n")[0] ?? "").slice(0, 40).join(""),
+        thumbnailUrl: absoluteAssetUrl(shortcut.thumbnailUrl),
+        imageCount: shortcut.imageCount,
       }));
+  const productAssets: UploadedAsset[] = (productPrefill?.productAssets ?? []).map((asset, index) => ({
+    id: asset.id,
+    assetId: asset.id,
+    type: "IMAGE",
+    inferredRole: "product_image",
+    roleConfidence: 1,
+    url: absoluteAssetUrl(asset.url),
+    mimeType: asset.mimeType,
+    fileName: `product-image-${index + 1}`,
+    width: asset.width,
+    height: asset.height,
+    durationSeconds: null,
+    userAssignedRole: "product_image",
+    suggestedUse: locale === "en-US" ? "Loaded from your saved product." : "已从你存的商品载入。",
+    warnings: [],
+  }));
   const retryAssets: UploadedAsset[] = (retryPrefill?.productAssets ?? []).map((asset, index) => ({
     id: asset.id,
     assetId: asset.id,
@@ -116,7 +146,9 @@ export default async function PlatformCreatePage({
         }]
       : retryAssets.length > 0
         ? retryAssets
-        : machineAssets;
+        : productAssets.length > 0
+          ? productAssets
+          : machineAssets;
   return (
     <div data-route-state={routeState === "empty" ? "empty" : "ready"}>
       <StreamlinedVideoStudio
@@ -126,7 +158,12 @@ export default async function PlatformCreatePage({
           retryPrefill?.prompt && hookAngle
             /// 带回的描述换上选好的开头方向（原来带着别的方向就替换掉）；超长时 applyHookAngle 原样返回
             ? applyHookAngle(retryPrefill.prompt.slice(0, 4000), hookAngle, locale === "en-US" ? "en" : "zh")
-            : (retryPrefill?.prompt || machinePrefill?.prompt || prompt)?.slice(0, 4000) ?? ""
+            : (
+                retryPrefill?.prompt
+                || (productPrefill ? productProfilePrompt(productPrefill, locale === "en-US" ? "en" : "zh") : "")
+                || machinePrefill?.prompt
+                || prompt
+              )?.slice(0, 4000) ?? ""
         }
         initialDurationSec={supportedDuration(retryPrefill?.durationSec ?? machinePrefill?.durationSec)}
         initialAspectRatio={supportedAspect(retryPrefill?.aspectRatio ?? machinePrefill?.aspectRatio)}
@@ -137,6 +174,7 @@ export default async function PlatformCreatePage({
             : null
         }
         retryOfOrderId={retryPrefill?.orderId ?? null}
+        loadedProductName={productAssets.length > 0 && !result && retryAssets.length === 0 ? productPrefill?.name ?? null : null}
         recentSources={recentSources}
         brandPackages={brandPackages}
         canSelectVideoRoute={false}

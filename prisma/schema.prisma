@@ -784,6 +784,26 @@ model VideoFeedback {
   @@index([rating, createdAt(sort: Desc)])
 }
 
+/// 商品档案（2026-11-10）：商家常拍的一件商品——名字、卖点、尺寸和一组商品图，存一次、以后直接拍。
+/// 独立的表、没有外键：图片只记 MediaAsset 的 id（读的时候按属主再核一遍），表没建时只有「商品」这一页不可用。
+/// 不物理删除：归档只写 archivedAt。和早先的 ProductAnchor（抠图锚点，已下线）不是一回事。
+model ProductProfile {
+  id            String    @id @default(cuid())
+  userId        String
+  name          String
+  /// 这件商品是什么、卖点是什么：带进创作描述的那段话
+  sellingPoints String    @default("")
+  /// 实际大小，如「直径约 8 厘米，一只手能握住」
+  size          String?
+  /// 商品图（MediaAsset.id），顺序即展示与带入创作页的顺序
+  imageAssetIds String[]  @default([])
+  archivedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId, archivedAt, updatedAt(sort: Desc)])
+}
+
 enum AdEditPlanStatus {
   DRAFT
   READY

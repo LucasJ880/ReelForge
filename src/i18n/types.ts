@@ -437,6 +437,7 @@ export type Dictionary = {
       batches: string;
       wins: string;
       library: string;
+      products: string;
       brands: string;
       templates: string;
       leads: string;

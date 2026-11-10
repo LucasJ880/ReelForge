@@ -542,6 +542,7 @@ export const zhCN: Dictionary = {
       batches: "批量生产",
       wins: "战绩",
       library: "成品库",
+      products: "商品",
       brands: "品牌",
       templates: "模板库",
       leads: "询盘",

@@ -47,7 +47,9 @@ const SAVE_SESSION_PATH = process.env.PROD_SMOKE_SAVE_SESSION?.trim() || null;
 /** 上一次部署那轮留下的登录态（工作流解密好放在这里） */
 const PREVIOUS_SESSION_PATH = process.env.PROD_SMOKE_PREVIOUS_SESSION?.trim() || null;
 
-const UPLOAD_TIMEOUT_MS = 120_000;
+/// 比页面自己的「卡住超时」长（首字节 60 秒；传到过的最远位置 120 秒不往前——见 src/lib/upload/stall-watchdog.ts）：
+/// 直传卡住时等页面先报出「上传卡住了」，冒烟拿到的是一句明确的页面报错，而不是自己干等到超时。
+const UPLOAD_TIMEOUT_MS = 200_000;
 
 /// 新账号第一次进创作页会弹上手引导；冒烟按老用户进，免得弹层盖住页面、把读屏树藏起来
 const DISMISSED_CREATE_INTROS = ["aivora.create-onboarding.v1", "aivora.streamlined-video-guide.v1"];
@@ -157,6 +159,8 @@ test.describe("已登录（专用 QA 账号）", () => {
   });
 
   test("手机原图（3024×4032、≥6MB）直传 Blob，缩略图加载出来；不点生成", async () => {
+    /// 这一条要等得过页面自己的「卡住超时」，比全局的单条时限长
+    test.setTimeout(UPLOAD_TIMEOUT_MS + 90_000);
     const page = await context.newPage();
     const calls: UploadCall[] = [];
     const blobPuts: string[] = [];
@@ -179,6 +183,24 @@ test.describe("已登录（专用 QA 账号）", () => {
         blobPuts.push(`失败：${request.failure()?.errorText ?? "unknown"}`);
       }
     });
+    /// 2026-11-10：直传那一步卡住时（凭证拿到了、对象一直没传完、页面也不报错）原来只有一句「既没完成也没报错」。
+    /// 多记三样，都不含凭证：发出去的直传请求（方法 + 主机 + 路径前缀，不记查询串与请求头）、页面脚本错误、
+    /// 上传模块自己打的那一行 `[upload]` 日志。仓库是公开的，日志任何人都能看，所以别的 console 输出一概不记。
+    const blobRequests: string[] = [];
+    const pageErrors: string[] = [];
+    page.on("request", (request) => {
+      const url = new URL(request.url());
+      if (url.origin !== origin && request.method() !== "GET" && /blob/u.test(url.hostname + url.pathname)) {
+        blobRequests.push(`${request.method()} ${url.hostname}${url.pathname.split("/").slice(0, 3).join("/")}`);
+      }
+    });
+    page.on("pageerror", (error) => pageErrors.push(`${error.name}: ${error.message}`.slice(0, 200)));
+    page.on("console", (message) => {
+      if (message.type() === "warning" || message.type() === "error") {
+        const text = message.text();
+        if (text.startsWith("[upload]")) pageErrors.push(text.slice(0, 200));
+      }
+    });
 
     await page.goto("/app/create");
     const assets = page.getByTestId("streamlined-product-assets");
@@ -195,16 +217,26 @@ test.describe("已登录（专用 QA 账号）", () => {
     await input.setInputFiles({ name: "IMG_0430.JPG", mimeType: "image/jpeg", buffer: photo });
 
     const outcome = async () => classifyUploadOutcome(calls, await newAlerts());
-    await expect
-      .poll(outcome, { message: "上传既没完成也没报错", timeout: UPLOAD_TIMEOUT_MS, intervals: [500, 1_000] })
-      .not.toBe("pending");
+    const diagnose = async () =>
+      [
+        `上传调用：${calls.map((call) => `${call.method} ${call.path} → ${call.status}`).join("；") || "无"}`,
+        `发出的直传请求：${blobRequests.join("；") || "无"}`,
+        `Blob 直传 PUT：${blobPuts.join("；") || "无"}`,
+        `ticket mode：${String(await ticketMode)}`,
+        `页面报错：${(await newAlerts()).join(" / ") || "无"}`,
+        `脚本错误 / 上传日志：${pageErrors.join(" / ") || "无"}`,
+        `商品图区域：${(await assets.innerText().catch(() => "读不到")).replace(/\s+/gu, " ").slice(0, 160) || "空"}`,
+      ].join("\n");
+    try {
+      await expect
+        .poll(outcome, { message: "上传既没完成也没报错", timeout: UPLOAD_TIMEOUT_MS, intervals: [500, 1_000] })
+        .not.toBe("pending");
+    } catch (error) {
+      /// 超时也要把走到哪一步说出来：否则只知道「卡住了」，不知道卡在凭证、直传还是登记
+      throw new Error(`上传 ${UPLOAD_TIMEOUT_MS / 1_000} 秒内既没完成也没报错\n${await diagnose()}`, { cause: error });
+    }
 
-    const diagnosis = [
-      `上传调用：${calls.map((call) => `${call.method} ${call.path} → ${call.status}`).join("；") || "无"}`,
-      `Blob 直传 PUT：${blobPuts.join("；") || "无"}`,
-      `ticket mode：${String(await ticketMode)}`,
-      `页面报错：${(await newAlerts()).join(" / ") || "无"}`,
-    ].join("\n");
+    const diagnosis = await diagnose();
     expect(
       calls.filter((call) => call.path === "/api/upload/blob"),
       `客户端走了旧的 multipart 中转：Vercel 函数请求体上限 4.5MB，手机原图必 413（10-30 演示翻车）\n${diagnosis}`,

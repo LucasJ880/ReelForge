@@ -37,6 +37,10 @@ import {
 } from "@/lib/video-generation/restitch-patch";
 import type { BrollClaimSegment } from "@/lib/video-generation/broll-segment-compose";
 import {
+  captionSpeechAlignEnabled,
+  transcribeSpeechWithOpenAi,
+} from "@/lib/providers/openai-transcription";
+import {
   isSegmentRedoCandidate,
   SegmentRedoRejectedError,
 } from "@/lib/video-generation/segment-redo";
@@ -1615,6 +1619,10 @@ export async function composeAndPersistTimeline(params: {
       signoffLogoPath,
       captionWindowSec: params.captionWindowSec ?? null,
       voiceoverChunks: params.voiceoverChunks ?? null,
+      /// 字幕跟着人声走（缺省关，CAPTION_SPEECH_ALIGN=on 才识别）；识别不到就照旧按字数摊
+      transcribeSpeech: captionSpeechAlignEnabled()
+        ? ({ audioPath, language }) => transcribeSpeechWithOpenAi({ audioPath, language })
+        : null,
       platform: params.platform ?? null,
       aiBadge: params.aiBadge,
       workDir: path.join(tmpDir, "work"),

@@ -73,6 +73,7 @@ npm run context:find -- "..."
 | `STORYBOARD_DIRECTION=on` | 关 | 建故事板时合并一次看图调用。首次真机只成功一部分，所以缺省关 |
 | `FRAME_QA_ENABLED=on` | 关 | 成片画面质检（依赖 OpenAI 看图）。20 条真跑 0 次拦截后缺省关 |
 | `SHUYU_FALLBACK_TO_RUNWAY=off` | 开（配了 Runway 密钥时） | 关掉「Shuyu 失败后改交 Runway」 |
+| `CAPTION_SPEECH_ALIGN=on` | 关 | 合成时把 AI 段人声交给 OpenAI `whisper-1` 识别，字幕跟着人声走。要求这把 `OPENAI_API_KEY` 有 whisper-1 权限（11-10 实查没有，需在 OpenAI 项目里开通）；识别不到就照旧按字数摊，不影响出片 |
 | `OPS_ALERT_WEBHOOK_URL` | 未配 | 运维告警的群机器人地址；没配只进日志（`[ops-alert]`） |
 | `PROGRESS_SEGMENT_EXPECTED_MIN` | 10 | 进度条估算用的出片典型分钟数（实测中位数） |
 
@@ -84,9 +85,10 @@ npm run context:find -- "..."
 | 换个开头（同一商品换一种开场） | `src/lib/create/hook-angles.ts` |
 | 用同样的素材再做一条 | 成片详情 → `/app/create?retry=<订单 id>` |
 | 片尾落款（品牌名 + 行动指引 + 可选 Logo） | `src/lib/video-generation/brand-signoff.ts`；存在后期快照的 `signoff` 键；Logo 由 `stitch-composer` 按成片主人取 |
+| 字幕跟着人声走（按语音识别对齐） | `alignCuesToSpeech`（`src/lib/video-generation/audio-post-production.ts`）、`src/lib/providers/openai-transcription.ts`；日志搜 `[captions]` |
 | 只重新合成（换字幕 / BGM / 落款，不扣额度） | `src/lib/video-generation/restitch-patch.ts`、`stitch-service` 的 `prepareRestitch` / `commitRestitch` |
 
-供应商现状（2026-11-10）：生产只留 Shuyu（出图、出片）、Runway（备用出片、出故事板图）、OpenAI（出方案）三把付费密钥；
+供应商现状（2026-11-10）：生产只留 Shuyu（出图、出片）、Runway（备用出片、出故事板图）、OpenAI（出方案；开关打开时另做字幕的语音识别）三把付费密钥；
 抠图、商品链接抓取、素材库、配音、内容审核这几条线路已下线（`RETIRED_CAPABILITY_KEYS`）。
 
 ## 5. 交付门

@@ -29,6 +29,7 @@ import {
   planCaptionCues,
   renderAssCaptions,
   renderSrtCaptions,
+  type SpokenWord,
 } from "@/lib/video-generation/audio-post-production";
 import { measureSpeechSafeTailTrim } from "@/lib/video-generation/tail-trim";
 import { renderAiBadgeAss, shouldBurnAiBadge } from "@/lib/compliance/ai-generated-badge";
@@ -126,7 +127,8 @@ export type StitchStep =
   | "encode"
   | "thumbnail"
   | "download"
-  | "broll_compose";
+  | "broll_compose"
+  | "speech_audio";
 
 /**
  * 随片长放大的单步超时（防 ffmpeg 卡死），按 1 vCPU 函数上的最慢情况留余量。
@@ -138,6 +140,7 @@ export function scaledStepTimeoutMs(step: StitchStep, mediaSec: number): number 
     case "probe":
       return 30_000;
     case "silence":
+    case "speech_audio":
       return 15_000 + Math.round(500 * sec);
     case "encode":
     case "broll_compose":
@@ -505,6 +508,12 @@ export interface ComposeTimelineInput {
    */
   voiceoverChunks?: ReadonlyArray<string> | null;
   /**
+   * 语音识别（2026-11-10 字幕对齐）：给了，就在排字幕前把每个 AI 口播段的音轨抽出来交给它，拿每个字实际说出的时间，
+   * 字幕跟着人声走（planCaptionCues 的 speechWords）。返回 null、抛错、超时都当「没拿到」，字幕照旧按字数摊——
+   * 这一步永远不让合成失败。管线不认识任何供应商：识别谁来做由调用方定（生产：OpenAI，见 stitch-service）。
+   */
+  transcribeSpeech?: SpeechTranscriber | null;
+  /**
    * 目标平台（DeliveryOrder.targetPlatform）。抖音：字幕让开界面安全区，并默认烧入「AI生成」角标。
    */
   platform?: string | null;
@@ -530,12 +539,21 @@ export interface ComposeTimelineInput {
   outputName?: string;
 }
 
+/** 一段音频 → 逐字 / 逐词时间（毫秒，相对这段音频开头）；拿不到返回 null。 */
+export type SpeechTranscriber = (args: {
+  audioPath: string;
+  language: string | null;
+  durationSec: number;
+}) => Promise<SpokenWord[] | null>;
+
 export interface ComposeTimelineOutput {
   videoPath: string;
   srtPath: string | null;
   thumbnailPath: string | null;
   durationSec: number;
   captionWindowSec: number | null;
+  /** 字幕时间是怎么定的：speech = 跟着识别到的人声；其余三种 = 按字数摊。没烧字幕为 null。 */
+  captionSource: "speech" | "chunks" | "planned" | "uniform" | null;
   applied: { captions: boolean; audioMix: boolean; bgm: boolean; aiBadge: boolean; /** 片尾落款有没有烧上去 */ signoff?: boolean; /** 落款上的 Logo 有没有叠上去 */ signoffLogo?: boolean };
   clips: TimelineClipReport[];
   timings: Record<string, number>;
@@ -593,6 +611,62 @@ interface PlannedClipState {
   durationSec: number;
   tailTrimmedSec: number;
   speechLimited: boolean;
+}
+
+/**
+ * 把每个 AI 口播段的音轨抽成 16k 单声道 wav 交给识别器，逐字时间按各段在成片里的起点平移后合在一起。
+ * 全有或全无：任何一段没抽出来 / 没识别出来就整体返回 null（一半对齐一半按字数摊，比都不对齐更乱）。
+ * 这里的一切失败——包括时间预算不够——都只是「不对齐」，不往外抛。
+ */
+async function collectSpeechWords(args: {
+  states: ReadonlyArray<PlannedClipState>;
+  transcribe: SpeechTranscriber;
+  language: string | null;
+  workDir: string;
+  budget?: MediaBudget;
+}): Promise<SpokenWord[] | null> {
+  try {
+    const jobs: Array<Promise<SpokenWord[] | null>> = [];
+    let offsetSec = 0;
+    for (const [index, state] of args.states.entries()) {
+      const startMs = Math.round(offsetSec * 1_000);
+      const spanMs = Math.round(state.durationSec * 1_000);
+      offsetSec += state.durationSec;
+      if (state.role !== "ai_generated" || !state.hasAudio || spanMs <= 0) continue;
+      const audioPath = path.join(args.workDir, `speech-${index}.wav`);
+      jobs.push(
+        (async () => {
+          await runStitchStep(
+            [
+              "-y", "-loglevel", "error",
+              "-i", state.clip.audioPath ?? state.clip.path,
+              "-t", state.durationSec.toFixed(3),
+              "-vn", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le",
+              audioPath,
+            ],
+            { step: "speech_audio", label: `speech audio #${index}`, mediaSec: state.durationSec, budget: args.budget },
+          );
+          const words = await args.transcribe({ audioPath, language: args.language, durationSec: state.durationSec });
+          if (!words || words.length === 0) return null;
+          /// 只留这一段保留下来的部分（裁尾之后的词不算），再平移到成片时间
+          return words
+            .filter((word) => word.startMs < spanMs)
+            .map((word) => ({
+              text: word.text,
+              startMs: startMs + word.startMs,
+              endMs: startMs + Math.min(word.endMs, spanMs),
+            }));
+        })(),
+      );
+    }
+    if (jobs.length === 0) return null;
+    const perSegment = await Promise.all(jobs);
+    if (perSegment.some((words) => words === null)) return null;
+    return (perSegment as SpokenWord[][]).flat();
+  } catch (error) {
+    console.warn("[captions] speech alignment skipped:", error instanceof Error ? error.message : String(error));
+    return null;
+  }
 }
 
 export async function composeTimeline(
@@ -737,6 +811,7 @@ export async function composeTimeline(
   // ---- 字幕（时长在编码前就已确定：按帧量化后的总长 / 字幕窗口） ----
   let ass: { path: string; fontsDir: string } | null = null;
   let srtPath: string | null = null;
+  let captionSource: ComposeTimelineOutput["captionSource"] = null;
   if (effects.captions && input.postProduction) {
     /// 函数运行时没有系统字体：fontsdir 让 libass 直接加载打包的 Noto Sans SC，
     /// FONTCONFIG_FILE（runFfmpeg 注入）兜住 fontconfig 回退。缺字体 = fail closed。
@@ -752,7 +827,19 @@ export async function composeTimeline(
       captionWindowSec && captionWindowSec > 0 ? Math.min(totalSec, captionWindowSec) : totalSec;
     /// P04-B：按 AI 段窗口铺字幕（窗口位置 = 量化后的实测段时长；台词 = 派发时持久化的 chunk，
     /// 没有就按计划时长重切）；没有 AI 段（b-roll / 全上传）才整片均分
-    const { cues } = planCaptionCues({
+    /// 2026-11-10：给了识别器就先听一遍 AI 段的人声；拿到逐字时间，字幕跟着人声走，拿不到照旧
+    const speechWords = input.transcribeSpeech
+      ? await timed("transcribe", () =>
+          collectSpeechWords({
+            states,
+            transcribe: input.transcribeSpeech as SpeechTranscriber,
+            language: input.postProduction?.captions.language ?? null,
+            workDir: input.workDir,
+            budget: input.budget,
+          }),
+        )
+      : null;
+    const { cues, source } = planCaptionCues({
       script: effects.script,
       segments: states.map((state) => ({
         durationSec: state.durationSec,
@@ -761,7 +848,12 @@ export async function composeTimeline(
       })),
       captionSpanSec,
       voiceoverChunks: input.voiceoverChunks,
+      speechWords,
     });
+    captionSource = source;
+    if (input.transcribeSpeech) {
+      console.log(`[captions] timing source=${source}${speechWords ? ` (${speechWords.length} spoken words)` : " (no usable speech timing)"}`);
+    }
     const assPath = path.join(input.workDir, "captions.ass");
     const aspectRatio =
       input.aspectRatio === "16:9" || input.aspectRatio === "1:1" ? input.aspectRatio : "9:16";
@@ -982,6 +1074,7 @@ export async function composeTimeline(
     thumbnailPath,
     durationSec,
     captionWindowSec,
+    captionSource,
     applied: {
       captions: Boolean(ass),
       audioMix: Boolean(audioPlanOutput),

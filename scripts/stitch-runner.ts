@@ -93,7 +93,8 @@ export interface PostProductionSnapshot {
       script: string;
     };
     bgm: {
-      trackId: "none" | "wholesome";
+      /// 曲库 id（目录在 bgm-catalog）；认不出的 id 在下面按「没有配乐」处理
+      trackId: string;
       volume: number;
     };
   };

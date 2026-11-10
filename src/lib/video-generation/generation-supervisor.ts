@@ -76,7 +76,8 @@ export function normalizePostProductionSettings(
       bgm: {
         trackId: bgm?.trackId ?? "none",
         volume:
-          bgm?.trackId === "wholesome"
+          /// 选了任何一首曲子都按同一上限压音量（原来只认最早的那一首，新曲库会被悄悄静音）
+          bgm && bgm.trackId !== "none"
             ? Math.min(0.35, Math.max(0, bgm.volume))
             : 0,
       },

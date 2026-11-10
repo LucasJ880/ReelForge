@@ -32,9 +32,12 @@ test("BGM disclosure includes license attribution", () => {
   /// 选了曲目就在选曲处给出要贴进帖子文案的完整署名。
   assert.match(source, /bgmAttributionForTrack\(value\.bgmTrackId\)/);
   assert.match(source, /CC BY 4\.0/);
-  assert.match(source, /Kevin MacLeod/);
-  assert.match(source, /Wholesome/);
   assert.match(source, /<details/);
+  /// 2026-11-10：曲目不再手写在这个组件里，由 BgmPicker 从曲库目录列出；需要署名的那一首在目录里写明作者
+  assert.match(source, /<BgmPicker/);
+  const catalog = readFileSync("src/lib/video-generation/bgm-catalog.ts", "utf8");
+  assert.match(catalog, /Kevin MacLeod/);
+  assert.match(catalog, /Wholesome/);
   const attribution = BGM_ATTRIBUTIONS.wholesome ?? "";
   assert.match(attribution, /Wholesome/);
   assert.match(attribution, /Kevin MacLeod/);

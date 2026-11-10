@@ -90,6 +90,7 @@ npm run context:find -- "..."
 | 接着拍这些商品（空白创作页复用以前那一单的商品图和描述，不建新表） | `listRecentCreateSources`（`create-retry-prefill-service.ts`） |
 | 商品尺寸（描述末尾补一行「商品实际大小：…」） | `src/lib/create/product-size.ts` |
 | 品牌页的片尾落款预览（与合成同一套版式） | `src/components/brand/signoff-preview.tsx` |
+| 配乐曲库（8 首；7 首由 Runway 生成配乐接口一次性生成、随仓库带，出片不调接口） | 目录 `src/lib/video-generation/bgm-catalog.ts`，文件 `public/audio/bgm/`，选曲组件 `bgm-picker.tsx`；加曲子：放文件 + 目录加一行 |
 | 字幕跟着人声走（按语音识别对齐） | `alignCuesToSpeech`（`src/lib/video-generation/audio-post-production.ts`）、`src/lib/providers/openai-transcription.ts`；日志搜 `[captions]` |
 | 只重新合成（换字幕 / BGM / 落款，不扣额度） | `src/lib/video-generation/restitch-patch.ts`、`stitch-service` 的 `prepareRestitch` / `commitRestitch` |
 

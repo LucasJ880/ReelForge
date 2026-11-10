@@ -1,4 +1,5 @@
 import { captionMarginsFor } from "@/lib/video-generation/platform-safe-zone";
+import { BGM_CATALOG } from "@/lib/video-generation/bgm-catalog";
 
 type AspectRatio = "9:16" | "16:9" | "1:1";
 type CaptionPosition = "top" | "center" | "bottom";
@@ -19,16 +20,14 @@ export type CaptionCue = {
   words?: CaptionWord[];
 };
 
-export const BGM_TRACKS = [
-  { id: "none", label: "无配乐", path: null },
-  {
-    id: "wholesome",
-    label: "Wholesome",
-    path: "scripts/assets/pet-kit-bgm.mp3",
-    license: "CC BY 4.0",
-    author: "Kevin MacLeod",
-  },
-] as const;
+/// 曲库的唯一目录在 bgm-catalog（2026-11-10 从 1 首扩到 8 首）；这里保留原来的导出名，合成器与 runner 不用改。
+/// 需要署名的曲目（CC BY）带 author / license，label 用曲名原文——署名行要逐字对得上（bgm-attribution）。
+export const BGM_TRACKS: ReadonlyArray<{ id: string; label: string; path: string | null; author?: string; license?: string }> =
+  BGM_CATALOG.map((track) =>
+    "license" in track
+      ? { id: track.id, label: track.title, path: track.path, license: track.license, author: track.author }
+      : { id: track.id, label: track.zh, path: track.path },
+  );
 
 const MIN_READABLE_CUE_MS = 700;
 const CJK_READABLE_GRAPHEMES = 18;

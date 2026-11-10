@@ -5,6 +5,7 @@ import { TickGlyph, tickToneClass } from "@/components/exchange/status-tick";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { bgmAttributionForTrack } from "@/lib/video-generation/bgm-attribution";
+import { BgmPicker } from "@/components/video-generation/bgm-picker";
 import {
   assessVoiceoverLength,
   voiceoverBudget,
@@ -497,30 +498,29 @@ export function AudioCaptionControls({
                 <Music2 className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
                 <div>
                   <p className="text-body font-semibold text-foreground">
-                    {english ? "Licensed background music" : "授权背景音乐"}
+                    {english ? "Background music" : "背景音乐"}
                   </p>
                   <p className="text-meta text-muted-foreground">
                     {english
-                      ? "Off by default so native speech stays clear."
-                      : "默认关闭，确保原生口播清晰。"}
+                      ? "Off by default. Pick a track and it plays quietly, ducking under the voice-over."
+                      : "默认不加。选一首，它会小声垫在下面，口播时自动让开。"}
                   </p>
                 </div>
               </div>
 
-              <label className="block text-meta font-medium text-muted-foreground">
-                {english ? "Track" : "曲目"}
-                <select
-                  value={value.bgmTrackId}
-                  disabled={disabled}
-                  className="mt-2 h-(--control-height) w-full rounded-(--radius-md) x-well border-input px-3 text-body text-foreground disabled:opacity-50"
-                  onChange={(event) => update({
-                    bgmTrackId: event.target.value as BgmTrackId,
-                  })}
-                >
-                  <option value="none">{english ? "No music" : "不添加音乐"}</option>
-                  <option value="wholesome">Wholesome — Kevin MacLeod</option>
-                </select>
-              </label>
+              <div className="block text-meta font-medium text-muted-foreground">
+                <label htmlFor="audio-caption-bgm-track">{english ? "Track" : "曲目"}</label>
+                <div className="mt-2">
+                  <BgmPicker
+                    id="audio-caption-bgm-track"
+                    value={value.bgmTrackId}
+                    disabled={disabled}
+                    english={english}
+                    selectClassName="h-(--control-height) w-full rounded-(--radius-md) x-well border-input px-3 text-body text-foreground disabled:opacity-50"
+                    onChange={(bgmTrackId: BgmTrackId) => update({ bgmTrackId })}
+                  />
+                </div>
+              </div>
 
               <label className="block text-meta font-medium text-muted-foreground">
                 <span className="flex justify-between">

@@ -62,16 +62,18 @@ test("FFmpeg plan ducks licensed BGM under native speech", () => {
 test("licensed BGM catalog has an explicit no-music option and attribution", () => {
   assert.deepEqual(BGM_TRACKS[0], {
     id: "none",
-    label: "无配乐",
+    label: "不添加音乐",
     path: null,
   });
-  assert.deepEqual(BGM_TRACKS[1], {
+  /// 2026-11-10 曲库从 1 首扩到 8 首（目录在 bgm-catalog）；最早那首照旧在，署名信息不变
+  assert.deepEqual(BGM_TRACKS.find((track) => track.id === "wholesome"), {
     id: "wholesome",
     label: "Wholesome",
     path: "scripts/assets/pet-kit-bgm.mp3",
     license: "CC BY 4.0",
     author: "Kevin MacLeod",
   });
+  assert.equal(BGM_TRACKS.filter((track) => track.path !== null).length, 8);
 });
 
 test("english scripts split at sentence and phrase boundaries, never mid-phrase", () => {

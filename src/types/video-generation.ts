@@ -48,7 +48,8 @@ export type BrandEndingMode = "auto_end_card" | "uploaded_clip" | "none";
 
 export type CaptionStyle = "word_by_word" | "karaoke" | "plain";
 export type CaptionPosition = "top" | "center" | "bottom";
-export type BgmTrackId = "none" | "wholesome";
+/// 曲库的唯一目录在 lib/video-generation/bgm-catalog（纯数据）；这里只转出类型
+export type BgmTrackId = import("@/lib/video-generation/bgm-catalog").BgmTrackId;
 
 /**
  * 口播由谁驱动。native = 视频模型自己说（现状）；

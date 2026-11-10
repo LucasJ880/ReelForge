@@ -117,8 +117,9 @@ npm run context:find -- "..."
 - 页面开场用 `WorkspacePage` / `QuoteHeader`（`src/components/exchange/`），创作页例外（对话框优先）。
   读数只放能让人接着做点什么的真实数字（零就写零，不放示例数字）；没有就传空数组，不硬凑。口径写进 `scope`，悬停可见，不单占一行。
   副标题一句话说清这页干什么，内部口径与规则解释不进页面正文。状态用 `StatusTick`（符号 + 颜色成对），批次进度用 `FillBar`。
-- 壳层是 240px 分组侧栏（创作 / 资产 / 帮助）+ 细顶栏（搜索、帮助、头像），移动端底部 tab 条；行情条、生产带、状态栏已退役，`/wall` 行情大屏仍在。
+- 壳层是 240px 分组侧栏（顶部「新建视频」就是创作页入口，下面是批量 / 资产 / 帮助，不再重复列「创作」）+ 细顶栏（搜索、帮助、头像），移动端底部 tab 条；行情条、生产带、状态栏已退役，`/wall` 行情大屏仍在。
   壳层数字来自同一个脉搏（`/api/exchange/pulse`），读数口径只从读数注册表取；状态词只从 `state-vocab` 取，「成交」只留给询盘。
 - 眉题/kicker 一律禁止；页面标题自己承重。
+- 要用户再点一次确认的事用 `ConfirmDialog`（`src/components/ui/confirm-dialog.tsx`），按钮写动作本身；`window.confirm` / `alert` 禁用（有门禁测试）。工作区正文 14px。
 - `.x-wall` / `.x-beam` / `.x-hatch` / `.x-frame` 是 10-24 的旧材质，存量还在约 15 个组件里：新界面不要再用，清理单独提。
 - 方向契约在 `src/app/layout.tsx` body 首子节点的 HTML 注释里（grep `aivora-abyss-exchange`）。

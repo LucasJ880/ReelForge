@@ -4,9 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Copy, Link2Off, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import type { Locale } from "@/i18n/config";
-import { TRACKED_LINK_CHANNELS, getGrowthCopy, labelFor, type TrackedLinkChannel } from "@/i18n/growth-copy";
+import { TRACKED_LINK_CHANNELS, fillGrowth, getGrowthCopy, labelFor, type TrackedLinkChannel } from "@/i18n/growth-copy";
 import { Field, FormAlert, NativeSelect } from "./form-fields";
 import { sendJson } from "./leads-api";
 
@@ -51,6 +52,10 @@ export function TrackedLinksPanel({
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ tone: "error" | "info"; text: string } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  /// 待确认停用的那一条；关着时保留上一条的名称，关闭动画里标题不闪成空
+  const [disabling, setDisabling] = useState<TrackedLinkRow | null>(null);
+  const [disableOpen, setDisableOpen] = useState(false);
+  const [disableBusy, setDisableBusy] = useState(false);
 
   async function create(event: React.FormEvent) {
     event.preventDefault();
@@ -81,8 +86,10 @@ export function TrackedLinksPanel({
   }
 
   async function archive(linkId: string) {
-    if (!window.confirm(copy.linkArchiveConfirm)) return;
+    setDisableBusy(true);
     const result = await sendJson(`/api/leads/links/${encodeURIComponent(linkId)}`, "PATCH", { archived: true });
+    setDisableBusy(false);
+    setDisableOpen(false);
     if (!result.ok) setNotice({ tone: "error", text: copy.actionFailed });
     router.refresh();
   }
@@ -132,7 +139,10 @@ export function TrackedLinksPanel({
                     className="size-8"
                     aria-label={`${copy.linkArchive} · ${link.label}`}
                     title={copy.linkArchive}
-                    onClick={() => void archive(link.id)}
+                    onClick={() => {
+                      setDisabling(link);
+                      setDisableOpen(true);
+                    }}
                   >
                     <Link2Off aria-hidden />
                   </Button>
@@ -185,6 +195,20 @@ export function TrackedLinksPanel({
           <p className="border-t border-border pt-4 text-meta text-muted-foreground">{copy.linksDisabled}</p>
         </>
       )}
+      <ConfirmDialog
+        open={disableOpen}
+        onOpenChange={setDisableOpen}
+        testId="link-disable-confirm"
+        tone="danger"
+        busy={disableBusy}
+        title={fillGrowth(copy.linkArchiveTitle, { name: disabling?.label ?? "" })}
+        description={copy.linkArchiveBody}
+        confirmLabel={copy.linkArchive}
+        cancelLabel={copy.confirmCancel}
+        onConfirm={() => {
+          if (disabling) void archive(disabling.id);
+        }}
+      />
     </div>
   );
 }

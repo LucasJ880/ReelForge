@@ -257,7 +257,8 @@
 
   /* meta 不随密度收：中文 11px 太挤，按 DESIGN.md 字阶全站 12px */
   --font-size-meta: 12px;
-  --font-size-body: 13px;
+  /* 2026-11-10：13 → 14。中文正文 13px 在普通笔记本屏上偏小，长句（提示、说明、表单）读着费劲；说明文字仍是 12 */
+  --font-size-body: 14px;
   --font-size-subhead: 15px;
   --font-size-title: 20px;
   --font-size-section: 26px;

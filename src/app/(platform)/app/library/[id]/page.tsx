@@ -15,6 +15,7 @@ import { AiGeneratedLabel } from "@/components/compliance/ai-generated-label";
 import { ReportContentButton } from "@/components/library/report-content-button";
 import { VideoFeedbackPanel } from "@/components/library/video-feedback-panel";
 import { getVideoFeedback } from "@/lib/services/video-feedback-service";
+import { listWorkspaceBrandPackagesForUser } from "@/lib/services/workspace-brand-package-service";
 import { VideoDownloadLink } from "@/components/library/video-download-link";
 import { SubtitleDownloadLink } from "@/components/library/subtitle-download-link";
 import { MakingProcessTimeline } from "@/components/library/making-process-timeline";
@@ -56,6 +57,18 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
   const canRate = canAct && item.status === "ready" && Boolean(item.videoUrl);
   /// 评价读不到（表还没建、库抖动）不挡详情页
   const feedback = canRate && item.briefId ? await getVideoFeedback(item.briefId).catch(() => null) : null;
+  /// 片尾落款第一次勾选时预填的品牌名 / 行动指引：只取商家自己工作区的品牌包（默认的那个优先），
+  /// 不取全局包——10-28 的「保温杯配窗帘厂 logo」就是别人的品牌被默认带上了。读不到就不预填。
+  const signoffSuggestion =
+    canAct && item.canRestitch
+      ? await listWorkspaceBrandPackagesForUser(session.user.id)
+          .then((packages) => {
+            const own = packages.filter((entry) => entry.scope === "workspace");
+            const pick = own.find((entry) => entry.isDefault) ?? own[0] ?? null;
+            return pick ? { brandName: pick.brandName, cta: pick.cta } : null;
+          })
+          .catch(() => null)
+      : null;
   /// 单条成片的 title 是商家整段描述：标题只放第一句，全文落到副标题
   const displayTitle = libraryDisplayTitle(item.title);
   return (
@@ -234,6 +247,8 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
                 english={locale === "en-US"}
                 defaults={item.restitchDefaults}
                 branded={Boolean(item.brandedVideoUrl)}
+                signoffSuggestion={signoffSuggestion}
+                signoffCopy={copy.signoff}
                 copy={{
                   title: copy.restitchTitle,
                   hint: copy.restitchHint,

@@ -94,6 +94,11 @@ export interface PostProductionPlan {
     };
   };
   captions: CaptionSettings;
+  /**
+   * 片尾落款（2026-11-10）：最后约两秒在真实画面上压品牌名 + 行动指引。可选；旧快照没有 = 不落款。
+   * 形状见 lib/video-generation/brand-signoff 的 signoffSettingsSchema。
+   */
+  signoff?: { enabled: boolean; brandName: string; cta?: string | null };
 }
 
 // ---------- Uploaded asset model ----------

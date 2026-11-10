@@ -32,6 +32,7 @@ import {
 } from "@/lib/video-generation/audio-post-production";
 import { measureSpeechSafeTailTrim } from "@/lib/video-generation/tail-trim";
 import { renderAiBadgeAss, shouldBurnAiBadge } from "@/lib/compliance/ai-generated-badge";
+import { renderSignoffAss, signoffActive, signoffWindow } from "@/lib/video-generation/brand-signoff";
 import { probeMedia, runFfmpeg, type MediaProbe } from "./ffmpeg-bin";
 import { pickStitchFrameRate } from "./frame-rate";
 import { ensureMediaFonts } from "./media-fonts";
@@ -352,6 +353,8 @@ export function buildTimelineFilterGraph(args: {
   ass: { path: string; fontsDir: string } | null;
   /** 常驻「AI生成」角标（叠在字幕之后，整条成片含尾卡都有）；null / 不传 = 不烧 */
   badgeAss?: { path: string; fontsDir: string } | null;
+  /** 片尾落款（品牌名 + 行动指引，只在主片段最后两秒）；null / 不传 = 不烧，滤镜串与之前逐字节一致 */
+  signoffAss?: { path: string; fontsDir: string } | null;
   /** buildAudioFilterPlan 的 filterComplex（以 [acat] 为原生音轨）；null = 不混音直接用 [acat] */
   audioPlanFilter: string | null;
   audioPlanOutput: string | null;
@@ -387,6 +390,12 @@ export function buildTimelineFilterGraph(args: {
       `${videoLabel}ass=filename='${escapeFfmpegFilterPath(args.badgeAss.path)}':fontsdir='${escapeFfmpegFilterPath(args.badgeAss.fontsDir)}'[vbadge]`,
     );
     videoLabel = "[vbadge]";
+  }
+  if (args.signoffAss) {
+    parts.push(
+      `${videoLabel}ass=filename='${escapeFfmpegFilterPath(args.signoffAss.path)}':fontsdir='${escapeFfmpegFilterPath(args.signoffAss.fontsDir)}'[vsign]`,
+    );
+    videoLabel = "[vsign]";
   }
   let audioLabel = "[acat]";
   if (args.audioPlanFilter && args.audioPlanOutput) {
@@ -501,7 +510,7 @@ export interface ComposeTimelineOutput {
   thumbnailPath: string | null;
   durationSec: number;
   captionWindowSec: number | null;
-  applied: { captions: boolean; audioMix: boolean; bgm: boolean; aiBadge: boolean };
+  applied: { captions: boolean; audioMix: boolean; bgm: boolean; aiBadge: boolean; /** 片尾落款有没有烧上去 */ signoff?: boolean };
   clips: TimelineClipReport[];
   timings: Record<string, number>;
   /** 主编码的 ffmpeg stderr（logLevel=info 时含 libass 日志） */
@@ -764,6 +773,37 @@ export async function composeTimeline(
     badgeAss = { path: badgePath, fontsDir: fontDir };
   }
 
+  // ---- 片尾落款（品牌名 + 行动指引；与字幕同一次编码，只压在口播主片段的最后两秒） ----
+  let signoffAss: { path: string; fontsDir: string } | null = null;
+  const signoff = input.postProduction?.signoff;
+  const signoffSpan = signoffActive(signoff) ? signoffWindow(totalSec, captionWindowSec) : null;
+  if (signoffActive(signoff) && signoffSpan) {
+    const { fontDir } = ensureMediaFonts();
+    if (!fontDir) {
+      /// 落款是商家要的品牌露出：没字体就烧成方块，宁可失败（只重拼会自动回到旧成片）
+      throw new StitchCompositionError(
+        "SIGNOFF_FONT_MISSING",
+        "bundled CJK font is missing in this runtime; refusing to burn a tofu brand sign-off",
+      );
+    }
+    const signoffPath = path.join(input.workDir, "brand-signoff.ass");
+    await writeFile(
+      signoffPath,
+      renderSignoffAss({
+        width,
+        height,
+        platform: input.platform,
+        captionPosition: effects.captions ? input.postProduction?.captions.position : null,
+        brandName: signoff.brandName,
+        cta: signoff.cta ?? null,
+        startSec: signoffSpan.startSec,
+        endSec: signoffSpan.endSec,
+      }),
+      "utf8",
+    );
+    signoffAss = { path: signoffPath, fontsDir: fontDir };
+  }
+
   // ---- 输入 ----
   const inputArgs: string[] = [];
   let nextInput = 0;
@@ -817,6 +857,7 @@ export async function composeTimeline(
     fps,
     ass,
     badgeAss,
+    signoffAss,
     audioPlanFilter,
     audioPlanOutput,
   });
@@ -902,6 +943,7 @@ export async function composeTimeline(
       audioMix: Boolean(audioPlanOutput),
       bgm: Boolean(effects.bgmPath),
       aiBadge: Boolean(badgeAss),
+      signoff: Boolean(signoffAss),
     },
     clips: states.map((state, index) => ({
       index,

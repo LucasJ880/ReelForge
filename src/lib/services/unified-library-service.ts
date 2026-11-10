@@ -497,7 +497,7 @@ function redoStateOf(status: VideoJobStatus | undefined): UnifiedLibrarySegment[
 export function restitchDefaultsFor(postProduction: unknown) {
   const parsed = postProductionPlanSchema.safeParse(postProduction);
   if (!parsed.success) return null;
-  return { captions: parsed.data.captions, bgm: parsed.data.audio.bgm };
+  return { captions: parsed.data.captions, bgm: parsed.data.audio.bgm, signoff: parsed.data.signoff ?? null };
 }
 
 function toUnifiedLibraryDetail(

@@ -9,6 +9,7 @@
  * 这里只覆盖 unified 这一层（外层 plan + request + asset）。
  */
 
+import { signoffSettingsSchema } from "@/lib/video-generation/brand-signoff";
 import { z } from "zod";
 import type { VoiceoverDrive } from "@/types/video-generation";
 
@@ -389,6 +390,8 @@ export const postProductionPlanSchema = z.object({
     bgm: bgmSettingsSchema,
   }),
   captions: captionSettingsSchema,
+  /// 片尾落款：可选；旧快照 / 没勾的成片没有这个键
+  signoff: signoffSettingsSchema.optional(),
 });
 
 /**

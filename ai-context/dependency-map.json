@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T04:19:43.568Z",
+  "generatedAt": "2026-11-10T04:33:30.984Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -7318,6 +7318,7 @@
         "@/components/library/report-content-button",
         "@/components/library/video-feedback-panel",
         "@/lib/services/video-feedback-service",
+        "@/lib/services/workspace-brand-package-service",
         "@/components/library/video-download-link",
         "@/components/library/subtitle-download-link",
         "@/components/library/making-process-timeline",
@@ -7329,8 +7330,7 @@
         "@/components/library/processing-refresher",
         "@/lib/library/display-title",
         "@/i18n/platform-copy",
-        "@/i18n/server",
-        "@/lib/exchange/state-vocab"
+        "@/i18n/server"
       ],
       "localImports": [
         "@/lib/auth",
@@ -7346,6 +7346,7 @@
         "@/components/library/report-content-button",
         "@/components/library/video-feedback-panel",
         "@/lib/services/video-feedback-service",
+        "@/lib/services/workspace-brand-package-service",
         "@/components/library/video-download-link",
         "@/components/library/subtitle-download-link",
         "@/components/library/making-process-timeline",
@@ -7357,8 +7358,7 @@
         "@/components/library/processing-refresher",
         "@/lib/library/display-title",
         "@/i18n/platform-copy",
-        "@/i18n/server",
-        "@/lib/exchange/state-vocab"
+        "@/i18n/server"
       ],
       "externalImports": [
         "next/link",
@@ -11283,12 +11283,14 @@
         "@/components/ui/button",
         "@/components/video-generation/audio-caption-controls",
         "@/lib/exchange/pulse",
+        "@/lib/video-generation/brand-signoff",
         "@/types/video-generation"
       ],
       "localImports": [
         "@/components/ui/button",
         "@/components/video-generation/audio-caption-controls",
         "@/lib/exchange/pulse",
+        "@/lib/video-generation/brand-signoff",
         "@/types/video-generation"
       ],
       "externalImports": [
@@ -13167,6 +13169,7 @@
         "@/lib/video-generation/audio-post-production",
         "@/lib/video-generation/tail-trim",
         "@/lib/compliance/ai-generated-badge",
+        "@/lib/video-generation/brand-signoff",
         "./ffmpeg-bin",
         "./frame-rate",
         "./media-fonts"
@@ -13176,6 +13179,7 @@
         "@/lib/video-generation/audio-post-production",
         "@/lib/video-generation/tail-trim",
         "@/lib/compliance/ai-generated-badge",
+        "@/lib/video-generation/brand-signoff",
         "./ffmpeg-bin",
         "./frame-rate",
         "./media-fonts"
@@ -13504,10 +13508,12 @@
     {
       "file": "src/lib/schemas/unified-input.ts",
       "imports": [
+        "@/lib/video-generation/brand-signoff",
         "zod",
         "@/types/video-generation"
       ],
       "localImports": [
+        "@/lib/video-generation/brand-signoff",
         "@/types/video-generation"
       ],
       "externalImports": [
@@ -15599,6 +15605,19 @@
       "externalImports": []
     },
     {
+      "file": "src/lib/video-generation/brand-signoff.ts",
+      "imports": [
+        "zod",
+        "@/lib/video-generation/platform-safe-zone"
+      ],
+      "localImports": [
+        "@/lib/video-generation/platform-safe-zone"
+      ],
+      "externalImports": [
+        "zod"
+      ]
+    },
+    {
       "file": "src/lib/video-generation/brief-delivery-state.ts",
       "imports": [
         "@prisma/client"
@@ -16093,10 +16112,12 @@
       "imports": [
         "zod",
         "@/lib/schemas/unified-input",
+        "@/lib/video-generation/brand-signoff",
         "@/types/video-generation"
       ],
       "localImports": [
         "@/lib/schemas/unified-input",
+        "@/lib/video-generation/brand-signoff",
         "@/types/video-generation"
       ],
       "externalImports": [
@@ -17580,6 +17601,33 @@
         "node:assert/strict",
         "node:fs",
         "node:path",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/brand-signoff.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:test",
+        "@/lib/media/media-fonts",
+        "@/lib/media/stitch-pipeline",
+        "@/lib/schemas/unified-input",
+        "@/lib/video-generation/brand-signoff",
+        "@/lib/video-generation/restitch-patch",
+        "@/types/video-generation"
+      ],
+      "localImports": [
+        "@/lib/media/media-fonts",
+        "@/lib/media/stitch-pipeline",
+        "@/lib/schemas/unified-input",
+        "@/lib/video-generation/brand-signoff",
+        "@/lib/video-generation/restitch-patch",
+        "@/types/video-generation"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs/promises",
         "node:test"
       ]
     },

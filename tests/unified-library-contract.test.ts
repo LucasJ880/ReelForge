@@ -78,6 +78,8 @@ test("RF-029: list and detail share one runtime-validated SSR DTO mapper", () =>
     "progress",
     /// P05-C：段重做在途时不能再重做别的段、也不能只重拼。
     "redoInFlight",
+    /// 2026-11-10：只重拼在途（换字幕 / BGM / 片尾落款）——详情页据此提示并自动刷新。
+    "restitchInFlight",
     /// P05-C：成片各段与「重做这一段」入口。
     "segments",
     "source",

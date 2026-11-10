@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T04:48:45.555Z",
+  "generatedAt": "2026-11-10T05:05:04.200Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -18028,8 +18028,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 309,
-      "sizeBytes": 16768,
+      "lineCount": 322,
+      "sizeBytes": 17649,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -21404,7 +21404,7 @@
         "BatchCreateWizard"
       ],
       "lineCount": 1178,
-      "sizeBytes": 53208,
+      "sizeBytes": 53217,
       "notes": "React component; client component"
     },
     {
@@ -22029,8 +22029,8 @@
       "importantSymbols": [
         "usePulse"
       ],
-      "lineCount": 84,
-      "sizeBytes": 3885,
+      "lineCount": 96,
+      "sizeBytes": 4576,
       "notes": "React component; client component"
     },
     {
@@ -24354,8 +24354,8 @@
         "PlatformCopy",
         "getPlatformCopy"
       ],
-      "lineCount": 1172,
-      "sizeBytes": 77261,
+      "lineCount": 1174,
+      "sizeBytes": 77603,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -25879,8 +25879,8 @@
         "unifiedLibrarySegmentSchema",
         "unifiedLibraryRowSchema"
       ],
-      "lineCount": 90,
-      "sizeBytes": 4759,
+      "lineCount": 93,
+      "sizeBytes": 5056,
       "notes": "Utility / helper module"
     },
     {
@@ -26170,6 +26170,7 @@
         "PULSE_ENDPOINT",
         "PULSE_INTERVAL_MS",
         "PULSE_REFRESH_EVENT",
+        "sessionExpiredLoginUrl",
         "requestPulseRefresh"
       ],
       "imports": [
@@ -26182,10 +26183,11 @@
         "PULSE_ENDPOINT",
         "PULSE_INTERVAL_MS",
         "PULSE_REFRESH_EVENT",
+        "sessionExpiredLoginUrl",
         "requestPulseRefresh"
       ],
-      "lineCount": 64,
-      "sizeBytes": 2559,
+      "lineCount": 73,
+      "sizeBytes": 3022,
       "notes": "Utility / helper module"
     },
     {
@@ -30731,8 +30733,8 @@
         "isCancelledOrderJobs",
         "deriveMakingProcess"
       ],
-      "lineCount": 959,
-      "sizeBytes": 35962,
+      "lineCount": 966,
+      "sizeBytes": 36423,
       "notes": "Business logic service; hits Prisma DB"
     },
     {
@@ -39216,6 +39218,23 @@
       "notes": "Unit / integration test; hits Prisma DB; NextAuth session check; area=tests"
     },
     {
+      "path": "tests/restitch-feedback-and-session-expiry.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:test",
+        "@/lib/exchange/pulse",
+        "@/lib/services/unified-library-service"
+      ],
+      "importantSymbols": [],
+      "lineCount": 125,
+      "sizeBytes": 5887,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
       "path": "tests/restitch-post-production.test.ts",
       "type": "test",
       "area": "tests",
@@ -41022,8 +41041,8 @@
       "importantSymbols": [
         "getUnifiedLibraryItem"
       ],
-      "lineCount": 195,
-      "sizeBytes": 7236,
+      "lineCount": 197,
+      "sizeBytes": 7378,
       "notes": "Unit / integration test; area=tests"
     },
     {

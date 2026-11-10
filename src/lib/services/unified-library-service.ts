@@ -118,6 +118,8 @@ const unifiedLibraryOrderSelect = {
                   segmentCount: true,
                   startedAt: true,
                   finishedAt: true,
+                  /// 只重拼在途的判据：有回滚依据（上一版成片地址）且成片还没回到 READY
+                  previousStitchedVideoUrl: true,
                   /// 后期快照：读配乐署名（CC BY 要求随交付署名）。
                   postProduction: true,
                 },
@@ -426,6 +428,11 @@ export function toUnifiedLibraryRow(
     canRestitch,
     segments,
     redoInFlight,
+    /// 只重拼在途（换字幕 / BGM / 片尾落款）：旧成片还挂着可看，新的一版正在合成
+    restitchInFlight:
+      !isShowcase &&
+      Boolean(finalVideo?.previousStitchedVideoUrl) &&
+      (finalVideo?.status === "PENDING" || finalVideo?.status === "STITCHING"),
     waitingMinutes: status === "generating" ? runningLongMinutes(runningSummary.runningElapsedMs) : null,
     elapsedMinutes: status === "generating" ? runningElapsedMinutes(runningSummary.runningElapsedMs) : null,
   });

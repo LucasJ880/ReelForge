@@ -5,6 +5,7 @@ import {
   PULSE_ENDPOINT,
   PULSE_INTERVAL_MS,
   PULSE_REFRESH_EVENT,
+  sessionExpiredLoginUrl,
   type ExchangePulse,
 } from "@/lib/exchange/pulse";
 
@@ -22,6 +23,7 @@ export function usePulse(initial: ExchangePulse, refreshKey?: string): ExchangeP
   const [pulse, setPulse] = useState(initial);
   const lastFetch = useRef(0);
   const inFlight = useRef<AbortController | null>(null);
+  const leaving = useRef(false);
 
   /// 有视频在生成 / 排队时，标签页在后台也继续读（浏览器会把后台定时器压到约一分钟一次）：
   /// 商家等片时多半切去干别的，成片做好要能把标签页标题换掉；没有在途任务就照旧不读。
@@ -39,6 +41,16 @@ export function usePulse(initial: ExchangePulse, refreshKey?: string): ExchangeP
     inFlight.current = controller;
     try {
       const response = await fetch(PULSE_ENDPOINT, { cache: "no-store", signal: controller.signal });
+      if (response.status === 401) {
+        /// 登录失效（每次发版、闲置 12 小时、登录满 7 天都会失效）。开着的页面之前不知道：点哪都卡在加载中，
+        /// 要手动刷新才被送去登录（2026-11-10 线上反馈）。脉搏每 30 秒、切回标签页、换页都会读一次，
+        /// 一旦回 401 就整页跳到登录页，登录完回到原处。只跳一次。
+        if (!leaving.current) {
+          leaving.current = true;
+          window.location.assign(sessionExpiredLoginUrl(window.location.pathname, window.location.search));
+        }
+        return;
+      }
       if (!response.ok) return;
       const next = (await response.json()) as ExchangePulse;
       if (typeof next?.generating === "number") {

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T04:48:45.564Z",
+  "generatedAt": "2026-11-10T05:05:04.209Z",
   "areas": {
     "unknown": [
       ".claude/launch.json",
@@ -2077,6 +2077,7 @@
       "tests/rehearsal-guard.test.ts",
       "tests/render-retry-errors.test.ts",
       "tests/render-retry-segment-redo.test.ts",
+      "tests/restitch-feedback-and-session-expiry.test.ts",
       "tests/restitch-post-production.test.ts",
       "tests/retired-api-lines.test.ts",
       "tests/retry-stitch-resume.test.ts",

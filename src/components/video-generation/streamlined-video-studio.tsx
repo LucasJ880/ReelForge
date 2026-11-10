@@ -72,6 +72,7 @@ import {
   PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED,
   PRODUCT_LINK_ENTRY_ENABLED,
 } from "@/lib/create/entry-policy";
+import { HOOK_ANGLES, applyHookAngle, detectHookAngle, stripHookAngle } from "@/lib/create/hook-angles";
 import { loadVoiceoverDraft, saveVoiceoverDraft } from "@/lib/video-generation/voiceover-draft-storage";
 import { awaitVoiceoverDraft } from "@/lib/video-generation/voiceover-draft-wait";
 import {
@@ -244,6 +245,7 @@ const ZH_COPY = {
   helpWriteFailed: "这次没写出来，你原来的字都还在，可以再点一次。",
   helpWriteDone: "写好了，可以直接改。",
   tryThese: "试试这些",
+  hookAngles: "换个开头",
   pasteLink: "贴商品链接",
   moreSettings: "更多设置",
   referenceModeHint: "全能参考：商品图和参考素材一起用；仅产品图：参考素材不参与生成。",
@@ -362,6 +364,7 @@ const EN_COPY: StudioCopy = {
   helpWriteFailed: "Couldn't write it this time. Your text is kept, so you can try again.",
   helpWriteDone: "Draft ready. Edit it as you like.",
   tryThese: "Try these",
+  hookAngles: "Change the opening",
   pasteLink: "Paste a product link",
   moreSettings: "More settings",
   referenceModeHint: "Use all references: product photos and references work together. Product only: references are left out.",
@@ -1538,6 +1541,7 @@ export function StreamlinedVideoStudio({
   const stageWorking = storyboardGenerating || busy === "storyboard" || busy === "dispatch";
   const ratioLabel = aspectRatioLabel(selectedAspectRatio, copy);
   const creatingStoryboardLabel = cancellingStoryboardCreate ? copy.cancellingStoryboardCreate : copy.creatingStoryboard;
+  const activeHookAngle = detectHookAngle(rawPrompt);
   const primaryLabel = busy === "dispatch"
     ? copy.generating
     : busy === "storyboard"
@@ -2040,6 +2044,36 @@ export function StreamlinedVideoStudio({
         {/* 试试这些：一点就把描述填好（模板化的说法），也可以贴商品链接自动起草 */}
         {!storyboard ? (
           <div className="space-y-3">
+            {/* 换个开头：描述写好之后才出现；点一下在描述末尾补一句「开头怎么拍」，再点一次取消。
+                同一件商品换个开场再拍一条（成品库「用同样的素材再做一条」带过来的正是这个场景）。 */}
+            {stripHookAngle(rawPrompt).length >= 8 ? (
+              <div
+                role="group"
+                aria-label={copy.hookAngles}
+                data-testid="hook-angles"
+                className="flex flex-wrap items-center justify-center gap-1.5"
+              >
+                <span className="mr-1 text-meta text-tertiary">{copy.hookAngles}</span>
+                {HOOK_ANGLES.map((angle) => {
+                  const active = activeHookAngle === angle.id;
+                  return (
+                    <button
+                      key={angle.id}
+                      type="button"
+                      aria-pressed={active}
+                      className={cn(CHIP_CLASS, active && "border-(--accent-line) text-foreground")}
+                      disabled={locked || draftingPrompt}
+                      onClick={() => {
+                        setRawPrompt(applyHookAngle(rawPrompt, active ? null : angle.id, english ? "en" : "zh"));
+                        invalidatePlan();
+                      }}
+                    >
+                      {angle[english ? "en" : "zh"].label}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
             <div
               role="group"
               aria-label={english ? "Video prompt presets" : "视频提示词快捷选项"}

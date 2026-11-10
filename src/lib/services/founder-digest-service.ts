@@ -10,6 +10,8 @@ import {
   platformOrderFailureWhere,
 } from "@/lib/services/exchange-readings";
 import { appBaseUrl, emailConfig, sendEmail } from "@/lib/services/notification-service";
+import { toVideoFeedbackView, type VideoFeedbackReason } from "@/lib/contracts/video-feedback";
+import { getPlatformCopy } from "@/i18n/platform-copy";
 import { countRateLimitHit, dailyWindowKey } from "@/lib/services/rate-limit-service";
 
 /**
@@ -80,6 +82,16 @@ export type FounderDigestData = {
   };
   /** C1：申请了开通询盘页、还没开通的工作区——不限窗口，每一条都等你处理。 */
   activationRequests: Array<{ requestedAt: Date; workspace: string; owner: string }>;
+  /**
+   * 窗口内商家给成片的评价（2026-11-10）：成片画面质检关掉之后唯一来自真人的质量读数。
+   * 评价表读不到（没建 / 库抖动）或老调用方没给 → 不出这一节。
+   */
+  videoFeedback?: {
+    up: number;
+    down: number;
+    /** 不满意的明细：谁、哪些原因、补充的一句（日志版不写补充）。 */
+    downItems: Array<{ at: Date; owner: string | null; reasons: VideoFeedbackReason[]; note: string | null }>;
+  } | null;
 };
 
 export type FounderDigestCounts = {
@@ -105,6 +117,35 @@ export function digestCounts(data: FounderDigestData): FounderDigestCounts {
 }
 
 /* ── 取数（只读） ─────────────────────────────────────────────────────── */
+
+/** 窗口内的成片评价；读不到就当没有这一节（评价是点缀，不能拖垮每日汇总）。只读。 */
+async function loadDigestVideoFeedback(range: { gte: Date; lt: Date }): Promise<FounderDigestData["videoFeedback"]> {
+  try {
+    const rows = await db.videoFeedback.findMany({
+      where: { updatedAt: range },
+      orderBy: { updatedAt: "desc" },
+      select: { userId: true, rating: true, reasons: true, note: true, updatedAt: true },
+    });
+    const downRows = rows.filter((row) => row.rating === "down").slice(0, FOUNDER_DIGEST_LIST_LIMIT);
+    const owners = downRows.length
+      ? await db.adminUser.findMany({ where: { id: { in: [...new Set(downRows.map((row) => row.userId))] } }, select: { id: true, email: true } })
+      : [];
+    const emailById = new Map(owners.map((owner) => [owner.id, owner.email]));
+    return {
+      up: rows.filter((row) => row.rating === "up").length,
+      down: rows.filter((row) => row.rating === "down").length,
+      downItems: downRows.map((row) => ({
+        at: row.updatedAt,
+        owner: emailById.get(row.userId) ?? null,
+        reasons: toVideoFeedbackView(row)?.reasons ?? [],
+        note: row.note,
+      })),
+    };
+  } catch (error) {
+    console.warn("[founder-digest] video feedback unavailable", error instanceof Error ? error.message : String(error));
+    return null;
+  }
+}
 
 export async function loadFounderDigestData(now = new Date()): Promise<FounderDigestData> {
   const windowStart = new Date(now.getTime() - FOUNDER_DIGEST_WINDOW_HOURS * HOUR_MS);
@@ -294,6 +335,7 @@ export async function loadFounderDigestData(now = new Date()): Promise<FounderDi
       workspace: row.name,
       owner: row.owner.email,
     })),
+    videoFeedback: await loadDigestVideoFeedback(range),
   };
 }
 
@@ -420,6 +462,22 @@ export function buildFounderDigest(
     [utcShort(item.requestedAt), item.workspace, owner(item.owner)].join(" · "),
   );
   const base = options.baseUrl?.replace(/\/+$/, "") ?? null;
+  const reasonLabels = getPlatformCopy("zh-CN").library.feedback.reasons;
+  const feedback = data.videoFeedback ?? null;
+  const feedbackTotal = feedback ? feedback.up + feedback.down : 0;
+  const feedbackLines = feedback
+    ? feedback.downItems.map((item) =>
+        [
+          utcShort(item.at),
+          owner(item.owner),
+          item.reasons.length > 0 ? item.reasons.map((reason) => reasonLabels[reason]).join("、") : "没选原因",
+          /// 补充的一句是商家随手写的，日志版不写
+          redact ? null : item.note,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+      )
+    : [];
 
   const text = [
     `Aivora 每日汇总 / Daily digest · ${options.day}（UTC）`,
@@ -446,6 +504,17 @@ export function buildFounderDigest(
       attention,
       attention.length,
     ),
+    /// 评价这一节只列不满意的（满意的只计数）；评价表读不到时整节不出
+    ...(feedback
+      ? feedbackTotal === 0
+        ? ["成片评价 / Video ratings: 0", "  无 / none", ""]
+        : [
+            `成片评价 / Video ratings: ${feedbackTotal}（满意 ${feedback.up} · 不满意 ${feedback.down} · 满意率 ${Math.round((feedback.up / feedbackTotal) * 100)}%）`,
+            ...feedbackLines.map((line) => `  - 不满意 · ${line}`),
+            ...(feedback.down > feedbackLines.length ? [`  … 另有 ${feedback.down - feedbackLines.length} 条不满意`] : []),
+            "",
+          ]
+      : []),
     "取消的视频不算失败；数字只读自生产库，不含示例数据。",
     redact ? "（日志版：联系方式与姓名不写进日志，明细见询盘页）" : "",
     base ? `询盘与试点申请：${base}/app/leads` : "",

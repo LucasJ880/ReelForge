@@ -431,7 +431,8 @@ function outsideQuotes(text: string): string {
   return text.replace(/"[^"]*"/gu, '""');
 }
 
-/// 清晰正脸会让 Seedance 把参考图整单拦下（10-29 评测 5 条全败）
+/// 带清晰正脸的故事板帧被 Seedance 整单拦下过（10-29 评测 5 条全败；2.5 上没复验）。
+/// 这只管故事板帧：出片时按文字生成的脸不受影响（11-16：镜头里写 face visible 即可）
 const FACE_RISK = /\b(face|faces|facial|portrait|headshot|selfie|looking (?:straight )?(?:at|into) (?:the )?camera|eye contact|smil(?:e|es|ing) (?:at|to) (?:the )?camera)\b/iu;
 const FACE_SAFE = /\b(no (?:visible )?face|face (?:is )?(?:not visible|out of frame|cropped out|turned away)|faceless|from behind|back to (?:the )?camera|hands only|only (?:her|his|their) hands)\b/iu;
 
@@ -484,7 +485,7 @@ export function lintDirectorJob(job: DirectorJob): DirectorLint {
     }
     if (CJK.test(outsideQuotes(frame.prompt))) errors.push(`帧 ${frame.id} 的提示词里有非英文内容（全程英文；台词放英文双引号里）`);
     if (FACE_RISK.test(frame.prompt) && !FACE_SAFE.test(frame.prompt)) {
-      warnings.push(`帧 ${frame.id} 可能出现清晰正脸：Seedance 会把带正脸的参考图整单拦下，开场帧尽量用手部、侧背或商品主体`);
+      warnings.push(`帧 ${frame.id} 可能出现清晰正脸：带正脸的故事板帧被 Seedance 整单拦下过。露脸写在镜头里（face visible）让出片模型生成，故事板帧用手部、侧背、裁到鼻子以下或商品主体`);
     }
     if (frame.references.length === 0) {
       warnings.push(`帧 ${frame.id} 没带任何参考图：商品会是模型凭空画的，和实物对不上`);

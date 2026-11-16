@@ -442,7 +442,7 @@ function outsideQuotes(text: string): string {
   return text.replace(/"[^"]*"/gu, '""');
 }
 
-/// 带清晰正脸的故事板帧被 Seedance 整单拦下过（10-29 评测 5 条全败；2.5 上没复验）。
+/// 带清晰正脸的故事板帧出不了片（10-29 评测 5 条全败；11-16 在 2.5 上用宝宝正脸的开场帧复验，两次都失败）。
 /// 这只管故事板帧：出片时按文字生成的脸不受影响（11-16：镜头里写 face visible 即可）
 const FACE_RISK = /\b(face|faces|facial|portrait|headshot|selfie|looking (?:straight )?(?:at|into) (?:the )?camera|eye contact|smil(?:e|es|ing) (?:at|to) (?:the )?camera)\b/iu;
 /// 说的是商品的「面」不是人脸：表盘、洁面产品、面料的正面
@@ -507,7 +507,7 @@ export function lintDirectorJob(job: DirectorJob): DirectorLint {
     }
     if (CJK.test(outsideQuotes(frame.prompt))) errors.push(`帧 ${frame.id} 的提示词里有非英文内容（全程英文；台词放英文双引号里）`);
     if (FACE_RISK.test(frame.prompt.replace(NON_HUMAN_FACE, " ")) && !FACE_SAFE.test(frame.prompt)) {
-      warnings.push(`帧 ${frame.id} 可能出现清晰正脸：带正脸的故事板帧 10-29 被 Seedance 整单拦下过（Shuyu 11-16 起不再强制打码，可能已放开，我们没验证）。稳妥的做法是露脸写在镜头里（face visible）让出片模型生成；一定要帧里带脸，先拿一条 5 秒的试`);
+      warnings.push(`帧 ${frame.id} 可能出现清晰正脸：带正脸的故事板帧出不了片（10-29 五条全被拦；11-16 带宝宝正脸的开场帧两次都失败，失败会退点）。露脸写在镜头里（face visible）让出片模型按文字生成`);
     }
     if (frame.references.length === 0) {
       warnings.push(`帧 ${frame.id} 没带任何参考图：商品会是模型凭空画的，和实物对不上`);

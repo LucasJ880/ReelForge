@@ -35,6 +35,7 @@ function job(overrides: Record<string, unknown> = {}) {
     id: "zebra-blind-01",
     title: "Zebra blind morning light",
     genre: "lifestyle",
+    productType: "large",
     aspectRatio: "9:16",
     durationSec: 15,
     references: [
@@ -583,4 +584,44 @@ test("试别家模型必须点名套餐：--family any 不带套餐 id 一档都
   assert.deepEqual(rankDirectorVideoPlans(PRICES, { ...options, planId: "video-plan-70" }), []);
   /// 点名了也收不下这么多参考图：不给
   assert.deepEqual(rankDirectorVideoPlans(PRICES, { ...options, family: "any", planId: "video-plan-70", referenceCount: 31 }), []);
+});
+
+test("商品类型：不写要提醒；各类型最容易翻车的写法各有一条提醒；证明镜头在快销片里可以到 6 秒", () => {
+  const { productType: _type, ...untyped } = job();
+  void _type;
+  assert.match(lintDirectorJob(parseDirectorJob(untyped)).warnings.join("\n"), /没写 productType/);
+  const base = fmcgJob();
+  const video = base.video as Record<string, unknown> & { shots: Array<Record<string, unknown>> };
+  const lint = (productType: string, patch: Record<string, unknown>, index = 2) =>
+    lintDirectorJob(parseDirectorJob({ ...base, productType, video: { ...video, shots: video.shots.map((shot, at) => (at === index ? { ...shot, ...patch } : shot)) } })).warnings.join("\n");
+  assert.match(lint("printed-hard", { action: "A hand unscrews the cap and tilts the bottle toward the lens." }), /镜头 3：带字的硬质商品别转、别拧/);
+  assert.doesNotMatch(lint("soft", { action: "A hand unscrews the cap and tilts the bottle toward the lens." }), /别转、别拧/);
+  assert.match(lint("electronics", { action: "The phone screen lights up beside the earbuds case." }), /拍熄屏/);
+  assert.doesNotMatch(lint("electronics", { action: "The earbuds case opens beside a phone with its screen off." }), /拍熄屏/);
+  assert.match(lint("food", { action: "A knife slices the loaf and steam rises from the crumb." }), /咬、切开这类镜头/);
+  assert.match(lint("reflective", { camera: "Slow orbit around the glass at table height." }), /反光 \/ 透明的商品别环绕/);
+
+  /// 过程型：一镜到底的证明镜头标 proof，5 秒不算拖；没标就照常提醒，而且会被要求标一个
+  const long = (proof: boolean) => video.shots.flatMap((shot, at) => (at === 2 ? [{ ...shot, toSec: 10, ...(proof ? { proof: true } : {}) }] : at === 3 ? [] : [shot]));
+  const unmarked = lintDirectorJob(parseDirectorJob({ ...base, productType: "process", video: { ...video, shots: long(false) } })).warnings.join("\n");
+  assert.match(unmarked, /镜头 3 有 6 秒.*超过 4 秒就拖了/);
+  assert.match(unmarked, /过程型商品要有一个一镜到底的证明镜头/);
+  const marked = lintDirectorJob(parseDirectorJob({ ...base, productType: "process", video: { ...video, shots: long(true) } })).warnings.join("\n");
+  assert.doesNotMatch(marked, /超过 4 秒就拖了|一镜到底的证明镜头/);
+});
+
+test("别的品类不误报：表盘 / 洁面产品不是人脸，型号（model）不是人；画面描述里的引号会被当成要画的字", () => {
+  const base = job();
+  const frames = base.frames as Array<Record<string, unknown>>;
+  const frameLint = (prompt: string) => lintDirectorJob(parseDirectorJob({ ...base, frames: [{ ...frames[0], prompt }] })).warnings.join("\n");
+  const pad = " The product sits on a pale oak table by a sunlit window, sharp and centred.";
+  assert.doesNotMatch(frameLint(`A steel watch lies flat, its dial face catching the window light.${pad}`), /清晰正脸/);
+  assert.doesNotMatch(frameLint(`A glass bottle of facial serum and a folded face towel stand side by side.${pad}`), /清晰正脸/);
+  assert.match(frameLint(`A woman holds the serum next to her face and smiles at the camera.${pad}`), /清晰正脸/);
+
+  const video = base.video as Record<string, unknown> & { shots: Array<Record<string, unknown>> };
+  const shotLint = (action: string) => lintDirectorJob(parseDirectorJob({ ...base, video: { ...video, shots: [{ ...video.shots[0], action }, video.shots[1]] } })).warnings.join("\n");
+  assert.doesNotMatch(shotLint("The newest model of the blind lowers on its own as the chain settles."), /没写脸在哪/);
+  assert.match(shotLint("A runner stops at the window and pulls the chain down."), /镜头 1 里有人但没写脸在哪/);
+  assert.match(shotLint('A hand turns the box so the words "CleanCube" face the lens.'), /镜头 1 的 action 里有引号/);
 });

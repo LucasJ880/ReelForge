@@ -74,6 +74,13 @@ const frameSchema = z
 export const DIRECTOR_SHOT_ITEMS = ["action", "space", "framing", "camera", "light", "sound"] as const;
 export type DirectorShotItem = (typeof DIRECTOR_SHOT_ITEMS)[number];
 
+/**
+ * 商品类型决定哪些镜头安全、哪些会翻车（2026-11-16：真机只验证过软品——毛毯和口水巾；其余各类的规矩是按出片模型的
+ * 一般表现推的，见 skill 的「商品类型卡」，拍过一条才算数）。
+ */
+export const DIRECTOR_PRODUCT_TYPES = ["soft", "printed-hard", "electronics", "apparel", "beauty", "food", "large", "reflective", "process", "pet"] as const;
+export type DirectorProductType = (typeof DIRECTOR_PRODUCT_TYPES)[number];
+
 /** 片种决定节奏（2026-11-16：第一条毛毯片写成了慢节奏生活方式片，用户要的是快销广告）。 */
 export const DIRECTOR_GENRES = ["fmcg", "lifestyle"] as const;
 export type DirectorGenre = (typeof DIRECTOR_GENRES)[number];
@@ -91,6 +98,8 @@ const shotSchema = z
     /// 空间与光色：第一个镜头必写；后面的镜头不写 = 沿用上一个镜头（六项照样要核对，只是不重复写进提示词）
     space: shotItem.optional(),
     light: shotItem.optional(),
+    /// 这个镜头就是那一个证明（动作 → 看得见的结果）：过程必须一镜到底时，快销片也允许它到 6 秒
+    proof: z.boolean().optional(),
   })
   .strict();
 
@@ -154,6 +163,8 @@ export const directorJobSchema = z
     title: z.string().trim().min(1).max(120),
     /// 先定片种再写镜头：fmcg = 快销广告（开头就是钩子、镜头短、口播带劲、结尾给行动指引）；lifestyle = 生活方式片（可以慢）
     genre: z.enum(DIRECTOR_GENRES),
+    /// 先对着 skill 的「商品类型卡」定类型；不写会提醒
+    productType: z.enum(DIRECTOR_PRODUCT_TYPES).optional(),
     aspectRatio: z.enum(DIRECTOR_ASPECT_RATIOS),
     /// Seedance 2.5 单段 4–30 秒
     durationSec: z.number().int().min(4).max(30),
@@ -434,10 +445,13 @@ function outsideQuotes(text: string): string {
 /// 带清晰正脸的故事板帧被 Seedance 整单拦下过（10-29 评测 5 条全败；2.5 上没复验）。
 /// 这只管故事板帧：出片时按文字生成的脸不受影响（11-16：镜头里写 face visible 即可）
 const FACE_RISK = /\b(face|faces|facial|portrait|headshot|selfie|looking (?:straight )?(?:at|into) (?:the )?camera|eye contact|smil(?:e|es|ing) (?:at|to) (?:the )?camera)\b/iu;
+/// 说的是商品的「面」不是人脸：表盘、洁面产品、面料的正面
+const NON_HUMAN_FACE = /\b(?:watch|dial|clock)[- ]faces?\b|\bfac(?:e|ial) (?:cream|towel|mask|wash|serum|oil|cloth|powder|mist|brush|roller|cleanser)s?\b|\b(?:velvety|fleece|sherpa|fabric|outer|inner|front|printed) face\b/giu;
 const FACE_SAFE = /\b(no (?:visible )?face|face (?:is )?(?:not visible|out of frame|cropped out|turned away)|faceless|from behind|back to (?:the )?camera|hands only|only (?:her|his|their) hands)\b/iu;
 
 /// 镜头里有人、但没写脸在哪：模型会自己给一张正脸
-const SHOT_PERSON = /\b(woman|man|person|people|she|he|model|girl|boy|baby|toddler|child|kid|mother|mom|mum|dad|father|parent)\b/iu;
+/// 不含 model：「the newest model of the watch」说的是型号
+const SHOT_PERSON = /\b(woman|man|person|people|she|he|girl|boy|baby|toddler|child|kid|mother|mom|mum|dad|father|parent|runner|wearer|user|owner|customer|shopper|barista|chef|athlete)\b/iu;
 const SHOT_FACE_PLACED = /\b(from behind|back to (?:the )?camera|back of (?:her|his|the|a) head|hands only|only (?:her|his|their|the) hands?|cropped (?:at|below|under) the (?:neck|chin|nose|mouth|shoulders)|(?:from|below) the (?:chin|neck|nose|mouth|shoulders) down|face (?:is |stays )?(?:out of frame|off frame|not visible|turned away|covered)|faceless|no (?:visible )?face|face (?:is )?visible|shows? (?:her|his|the) face|smiling face)\b/iu;
 
 const BODY_PART_OF = /\b[a-z]+['’]s (?:two |both |left |right )?(?:hands?|fingers?|fingertips?|thumbs?|palms?|arms?|forearms?|wrists?|chin|nape|neck|chest|shoulders?|lap)\b/giu;
@@ -458,6 +472,14 @@ export function spokenLoad(text: string): { cjk: number; words: number } {
   const words = quoted.replace(new RegExp(CJK.source, "gu"), " ").split(/\s+/u).filter((word) => /[a-z0-9]/iu.test(word)).length;
   return { cjk, words };
 }
+
+/// 各类商品最容易翻车的写法（按出片模型的一般表现推的，软品之外都还没拍过）
+const TYPE_RISKS: Partial<Record<DirectorProductType, { pattern: RegExp; message: string }>> = {
+  "printed-hard": { pattern: /\b(orbit\w*|rotat\w*|spin\w*|unscrew\w*|twist\w*)\b/iu, message: "带字的硬质商品别转、别拧：一转起来字和瓶身比例会被重画。商品不动，让光扫过，或手握在标签以下" },
+  reflective: { pattern: /\b(orbit\w*|rotat\w*|spin\w*|macro|extreme close-?up)\b/iu, message: "反光 / 透明的商品别环绕、别给微距：反射里会编出别的房间，刻度和链节会变。商品不动、光动" },
+  electronics: { pattern: /\b(screen|display|interface|LED|indicator light)\b(?![^.]*\b(?:off|dark|blank)\b)/iu, message: "屏幕内容和指示灯会被乱画：拍熄屏（screen off），界面截图走后期" },
+  food: { pattern: /\b(bit(?:e|es|ing)|slic(?:e|es|ing)|cut(?:s|ting)? open)\b/iu, message: "咬、切开这类镜头出片模型做不好；倒入、热气、滋响更稳，倒的那一下用一个不动的机位拍完" },
+};
 
 /// 首帧不该提前露出结果
 const RESULT_SPOILER = /\b(already|fully) (?:open(?:ed)?|installed|assembled|finished|applied|poured|unboxed)\b/iu;
@@ -484,8 +506,8 @@ export function lintDirectorJob(job: DirectorJob): DirectorLint {
       errors.push(`帧 ${frame.id} 的提示词 ${prompt.length} 字，超过 ${DIRECTOR_FRAME_PROMPT_MAX}`);
     }
     if (CJK.test(outsideQuotes(frame.prompt))) errors.push(`帧 ${frame.id} 的提示词里有非英文内容（全程英文；台词放英文双引号里）`);
-    if (FACE_RISK.test(frame.prompt) && !FACE_SAFE.test(frame.prompt)) {
-      warnings.push(`帧 ${frame.id} 可能出现清晰正脸：带正脸的故事板帧被 Seedance 整单拦下过。露脸写在镜头里（face visible）让出片模型生成，故事板帧用手部、侧背、裁到鼻子以下或商品主体`);
+    if (FACE_RISK.test(frame.prompt.replace(NON_HUMAN_FACE, " ")) && !FACE_SAFE.test(frame.prompt)) {
+      warnings.push(`帧 ${frame.id} 可能出现清晰正脸：带正脸的故事板帧 10-29 被 Seedance 整单拦下过（Shuyu 11-16 起不再强制打码，可能已放开，我们没验证）。稳妥的做法是露脸写在镜头里（face visible）让出片模型生成；一定要帧里带脸，先拿一条 5 秒的试`);
     }
     if (frame.references.length === 0) {
       warnings.push(`帧 ${frame.id} 没带任何参考图：商品会是模型凭空画的，和实物对不上`);
@@ -532,7 +554,7 @@ export function lintDirectorJob(job: DirectorJob): DirectorLint {
     if (Math.abs(shot.fromSec - cursor) > 0.01) errors.push(`${label} 应从 ${seconds(cursor)} 秒开始（现在是 ${seconds(shot.fromSec)} 秒）`);
     const length = shot.toSec - shot.fromSec;
     if (length <= 0) errors.push(`${label} 的结束时间不晚于开始时间`);
-    else if (job.genre === "fmcg" ? length > 4 : length < 2) {
+    else if (job.genre === "fmcg" ? length > (shot.proof ? 6 : 4) : length < 2) {
       warnings.push(
         job.genre === "fmcg"
           ? `${label} 有 ${length} 秒：快销广告一个镜头 1–3 秒，超过 4 秒就拖了，拆开或删掉`
@@ -625,6 +647,31 @@ export function lintDirectorJob(job: DirectorJob): DirectorLint {
   }
   if (RESULT_SPOILER.test(video.openingState)) {
     warnings.push("openingState 像是提前露出了结果（already / fully …）：首帧放在主动作发生之前的清楚状态");
+  }
+  /// 引号只该出现在 sound 里（台词）。写进画面描述的引号内容，模型会当成要画出来的字
+  const visual: Array<readonly [string, string]> = [
+    ["logline", video.logline],
+    ["openingState", video.openingState],
+    ["endState", video.endState],
+    ...video.throughout.map((text) => ["throughout", text] as const),
+    ...video.shots.flatMap((shot, index) => (["action", "space", "framing", "camera", "light"] as const).map((item) => [`镜头 ${index + 1} 的 ${item}`, shot[item] ?? ""] as const)),
+    ...job.frames.map((frame) => [`帧 ${frame.id}`, frame.prompt] as const),
+  ];
+  for (const [name, text] of visual) {
+    if (/"[^"]+"/u.test(text)) warnings.push(`${name} 里有引号：引号里的内容模型会当成要画出来的字，画出来多半是错的。台词放 sound，画面上的字走 post`);
+  }
+  if (!job.productType) {
+    warnings.push(`没写 productType：先对着 skill 的「商品类型卡」定类型（${DIRECTOR_PRODUCT_TYPES.join(" / ")}），不同类型安全的镜头不一样`);
+  } else {
+    const risk = TYPE_RISKS[job.productType];
+    if (risk) {
+      video.shots.forEach((shot, index) => {
+        if (risk.pattern.test(`${shot.action} ${shot.camera} ${shot.framing}`)) warnings.push(`镜头 ${index + 1}：${risk.message}`);
+      });
+    }
+    if (job.productType === "process" && !video.shots.some((shot) => shot.proof)) {
+      warnings.push("过程型商品要有一个一镜到底的证明镜头：给它标 proof: true（快销片里允许到 6 秒），别把过程切碎——切开了模型会让结果出现在动作之前");
+    }
   }
   const normalized = video.throughout.map((text) => text.toLowerCase().replace(/[^a-z0-9 ]/gu, "").trim());
   if (new Set(normalized).size !== normalized.length) warnings.push("throughout 里有重复的内容");

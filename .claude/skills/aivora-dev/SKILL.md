@@ -76,7 +76,7 @@ npm run db:migrate          # ⚠️ dotenv -e .env.local = 直连生产库
 | 任何 TS | `npm run typecheck` + `npm run lint` |
 | service / 契约 | `npm test`（或指定相关 `tests/*.test.ts`） |
 | 前端交互 | 相关 test + preview 里实际点一遍（read_console_messages 查报错） |
-| 端到端 | `npm run acceptance:mock`（typecheck + phase4 + i18n + walkthrough） |
+| 端到端 | 发布后冒烟 `e2e/prod-smoke`（每次生产部署自动跑）；一键验收脚本 `acceptance:mock` 在 2026-11-16 瘦身时删了 |
 | 视觉 | `npm run test:visual`；基线变了才 `test:visual:update` |
 
 `npm test` = `node --import tsx --test tests/*.test.ts`，约 360 个测试文件、一分钟内跑完，跑单个用

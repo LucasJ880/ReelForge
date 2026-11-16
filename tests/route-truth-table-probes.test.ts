@@ -1,6 +1,5 @@
 /**
- * X-SCAF-4：真值表新探针的纯函数——Seedance 2.5 档识别（夹具 JSON，不触网）与实验 key 配置探测
- * （只报配没配，输出里绝不出现 key 值）。
+ * X-SCAF-4：能力探针的纯函数——Seedance 2.5 档识别（夹具 JSON，不触网）。
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -11,10 +10,6 @@ import {
   detectShuyuSeedance25,
 } from "../src/lib/providers/shuyu-seedance25-probe";
 import { summarizeShuyuCatalog } from "../src/lib/services/capability-probe-service";
-import {
-  experimentKeyPresence,
-  ttsKeyPresence,
-} from "../scripts/lib/experiment-key-presence";
 
 const fixture = (name: string): unknown =>
   JSON.parse(readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8"));
@@ -94,38 +89,4 @@ test("summarizeShuyuCatalog 带上 2.5 信号（严格解析后能看到的那�
     detected: true,
     candidatePlanIds: ["video-plan-25"],
   });
-});
-
-const SECRETS = {
-  SYNC_API_KEY: "sync-secret-AAAA1111",
-  ELEVENLABS_API_KEY: "el-secret-BBBB2222",
-  MINIMAX_API_KEY: "mm-secret-CCCC3333",
-  REMOVE_BG_API_KEY: "rbg-secret-DDDD4444",
-  CLIPDROP_API_KEY: "cd-secret-EEEE5555",
-};
-
-test("实验 key：全部配齐 → 已配置；输出里不出现任何 key 值（连片段都没有）", () => {
-  const rows = experimentKeyPresence({ ...SECRETS, TTS_PROVIDER: "ElevenLabs" });
-  assert.deepEqual(rows.map((row) => row.verdict), ["已配置", "已配置", "已配置"]);
-  const text = JSON.stringify(rows);
-  for (const secret of Object.values(SECRETS)) {
-    assert.equal(text.includes(secret), false);
-    assert.equal(text.includes(secret.slice(-4)), false);
-    assert.equal(text.includes(secret.slice(0, 6)), false);
-  }
-  assert.match(rows[2].detail, /REMOVE_BG_API_KEY \+ CLIPDROP_API_KEY/);
-});
-
-test("实验 key：全空 → 未配置；空白字符串也算没配", () => {
-  const rows = experimentKeyPresence({ SYNC_API_KEY: "   " });
-  assert.deepEqual(rows.map((row) => row.verdict), ["未配置", "未配置", "未配置"]);
-});
-
-test("TTS：缺 provider、provider 不认识、provider 对但缺 key 分别说清楚", () => {
-  assert.match(ttsKeyPresence({ MINIMAX_API_KEY: SECRETS.MINIMAX_API_KEY }).detail, /缺 TTS_PROVIDER（已有 MINIMAX_API_KEY）/);
-  const wrong = ttsKeyPresence({ TTS_PROVIDER: "openai" });
-  assert.equal(wrong.verdict, "配置有误");
-  const missing = ttsKeyPresence({ TTS_PROVIDER: "minimax", ELEVENLABS_API_KEY: SECRETS.ELEVENLABS_API_KEY });
-  assert.deepEqual([missing.verdict, missing.detail], ["未配置", "TTS_PROVIDER=minimax 但缺 MINIMAX_API_KEY"]);
-  assert.equal(ttsKeyPresence({ TTS_PROVIDER: "minimax", MINIMAX_API_KEY: SECRETS.MINIMAX_API_KEY }).verdict, "已配置");
 });

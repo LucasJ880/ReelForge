@@ -20,7 +20,7 @@
 /.next/
 /out/
 
-# 投资人 demo 静态导出产物（由 scripts/build-showcase-static.sh 生成，体积大、勿提交）
+# 投资人 demo 静态导出产物（生成脚本 2026-11-16 已删；本机若还留着这个目录，体积大、勿提交）
 /showcase-static/
 
 # production

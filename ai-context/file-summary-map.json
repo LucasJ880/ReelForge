@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-16T22:54:33.501Z",
+  "generatedAt": "2026-11-16T23:56:28.474Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -8,8 +8,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 75,
-      "sizeBytes": 1574,
+      "lineCount": 53,
+      "sizeBytes": 1144,
       "notes": ""
     },
     {
@@ -42,7 +42,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 121,
-      "sizeBytes": 10444,
+      "sizeBytes": 10509,
       "notes": "Documentation; area=media-processing"
     },
     {
@@ -52,8 +52,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 258,
-      "sizeBytes": 21369,
+      "lineCount": 309,
+      "sizeBytes": 28162,
       "notes": "Documentation"
     },
     {
@@ -9439,17 +9439,6 @@
       "notes": ""
     },
     {
-      "path": ".cursor/rules/agency-coordinator.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 150,
-      "sizeBytes": 7942,
-      "notes": ""
-    },
-    {
       "path": ".cursor/rules/ai-context-workflow.mdc",
       "type": "unknown",
       "area": "media-processing",
@@ -9459,443 +9448,6 @@
       "lineCount": 92,
       "sizeBytes": 4554,
       "notes": "area=media-processing"
-    },
-    {
-      "path": ".cursor/rules/design/design-brand-guardian.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 327,
-      "sizeBytes": 11920,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/design/design-image-prompt-engineer.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 242,
-      "sizeBytes": 11434,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/design/design-inclusive-visuals-specialist.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [
-        "generateInclusiveVideoPrompt"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "generateInclusiveVideoPrompt"
-      ],
-      "lineCount": 77,
-      "sizeBytes": 6917,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/design/design-ui-designer.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 388,
-      "sizeBytes": 13615,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/design/design-ux-architect.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 474,
-      "sizeBytes": 16034,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/design/design-ux-researcher.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 334,
-      "sizeBytes": 13308,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/design/design-visual-storyteller.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 154,
-      "sizeBytes": 7687,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/design/design-whimsy-injector.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 443,
-      "sizeBytes": 16131,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/engineering/engineering-ai-engineer.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 151,
-      "sizeBytes": 7647,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/engineering/engineering-backend-architect.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [
-        "express",
-        "helmet",
-        "express-rate-limit",
-        "./middleware/auth"
-      ],
-      "importantSymbols": [],
-      "lineCount": 240,
-      "sizeBytes": 9824,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/engineering/engineering-code-reviewer.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 82,
-      "sizeBytes": 3338,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/engineering/engineering-database-optimizer.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [
-        "@supabase/supabase-js"
-      ],
-      "importantSymbols": [],
-      "lineCount": 182,
-      "sizeBytes": 5806,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/engineering/engineering-devops-automator.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 381,
-      "sizeBytes": 13160,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/engineering/engineering-frontend-developer.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [
-        "DataTable"
-      ],
-      "imports": [
-        "react",
-        "@tanstack/react-virtual"
-      ],
-      "importantSymbols": [
-        "DataTable"
-      ],
-      "lineCount": 230,
-      "sizeBytes": 9566,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/engineering/engineering-git-workflow-master.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 90,
-      "sizeBytes": 3614,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/engineering/engineering-rapid-prototyper.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [
-        "AuthLayout",
-        "FeedbackForm",
-        "trackEvent",
-        "useABTest",
-        "LandingPageHero",
-        "default"
-      ],
-      "imports": [
-        "@clerk/nextjs",
-        "react-hook-form",
-        "@hookform/resolvers/zod",
-        "zod",
-        "@/components/ui/button",
-        "@/components/ui/input",
-        "@/components/ui/textarea",
-        "@/components/ui/use-toast",
-        "react"
-      ],
-      "importantSymbols": [
-        "AuthLayout",
-        "FeedbackForm",
-        "useABTest",
-        "LandingPageHero",
-        "trackEvent",
-        "default"
-      ],
-      "lineCount": 468,
-      "sizeBytes": 15773,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/engineering/engineering-security-engineer.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 310,
-      "sizeBytes": 18001,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/engineering/engineering-senior-developer.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 182,
-      "sizeBytes": 6490,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/engineering/engineering-software-architect.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 87,
-      "sizeBytes": 3990,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/engineering/engineering-sre.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 96,
-      "sizeBytes": 4166,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/engineering/engineering-technical-writer.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [
-        "your-package"
-      ],
-      "importantSymbols": [],
-      "lineCount": 399,
-      "sizeBytes": 14479,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/product/product-behavioral-nudge-engine.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [
-        "generateSprintNudge"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "generateSprintNudge"
-      ],
-      "lineCount": 86,
-      "sizeBytes": 5448,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/product/product-feedback-synthesizer.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 124,
-      "sizeBytes": 7541,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/product/product-manager.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 475,
-      "sizeBytes": 22960,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/product/product-sprint-prioritizer.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 159,
-      "sizeBytes": 9743,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/product/product-trend-researcher.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 164,
-      "sizeBytes": 10759,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/testing/testing-accessibility-auditor.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 322,
-      "sizeBytes": 15586,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/testing/testing-api-tester.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [
-        "@playwright/test",
-        "perf_hooks"
-      ],
-      "importantSymbols": [],
-      "lineCount": 311,
-      "sizeBytes": 12801,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/testing/testing-evidence-collector.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 216,
-      "sizeBytes": 8567,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/testing/testing-performance-benchmarker.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [
-        "options",
-        "handleSummary",
-        "default"
-      ],
-      "imports": [
-        "k6/http",
-        "k6",
-        "k6/metrics"
-      ],
-      "importantSymbols": [
-        "options",
-        "handleSummary",
-        "default"
-      ],
-      "lineCount": 273,
-      "sizeBytes": 12501,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/testing/testing-reality-checker.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 242,
-      "sizeBytes": 10207,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/testing/testing-test-results-analyzer.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 310,
-      "sizeBytes": 14888,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/testing/testing-tool-evaluator.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 399,
-      "sizeBytes": 17821,
-      "notes": ""
-    },
-    {
-      "path": ".cursor/rules/testing/testing-workflow-optimizer.mdc",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 455,
-      "sizeBytes": 22333,
-      "notes": ""
     },
     {
       "path": ".dockerignore",
@@ -9916,7 +9468,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 0,
-      "sizeBytes": 17706,
+      "sizeBytes": 17674,
       "notes": "area=config"
     },
     {
@@ -9982,7 +9534,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 0,
-      "sizeBytes": 1414,
+      "sizeBytes": 1434,
       "notes": "Build / runtime config; area=config"
     },
     {
@@ -10258,25 +9810,14 @@
       "notes": "Build / runtime config; area=config"
     },
     {
-      "path": "artifacts/dead-library-records-2026-07-28T13-44-46.810Z.json",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 1929,
-      "sizeBytes": 51719,
-      "notes": ""
-    },
-    {
       "path": "CLAUDE.md",
       "type": "doc",
       "area": "unknown",
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 130,
-      "sizeBytes": 12622,
+      "lineCount": 128,
+      "sizeBytes": 12456,
       "notes": "Documentation"
     },
     {
@@ -10501,17 +10042,6 @@
       "notes": "area=media-processing"
     },
     {
-      "path": "design-qa.md",
-      "type": "doc",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 80,
-      "sizeBytes": 6554,
-      "notes": "Documentation"
-    },
-    {
       "path": "DESIGN.md",
       "type": "doc",
       "area": "unknown",
@@ -10523,193 +10053,6 @@
       "notes": "Documentation"
     },
     {
-      "path": "designs/aivora-ops-workbench/_d_meta.json",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 28,
-      "sizeBytes": 570,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-ops-workbench/app v1.jsx.bak",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 0,
-      "sizeBytes": 13136,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-ops-workbench/app.jsx",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 736,
-      "sizeBytes": 32754,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-ops-workbench/data.jsx",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 80,
-      "sizeBytes": 5282,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-ops-workbench/icons.jsx",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 15,
-      "sizeBytes": 1172,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-ops-workbench/index v1.html.bak",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 0,
-      "sizeBytes": 14835,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-ops-workbench/index.html",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 0,
-      "sizeBytes": 30099,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-os/_d_meta.json",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 28,
-      "sizeBytes": 568,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-os/Aivora OS v2.html",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 0,
-      "sizeBytes": 16364,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-os/app-v2.jsx",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 77,
-      "sizeBytes": 3056,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-os/app.jsx",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 87,
-      "sizeBytes": 3074,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-os/data.jsx",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 101,
-      "sizeBytes": 5924,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-os/icons.jsx",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 55,
-      "sizeBytes": 2932,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-os/index.html",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 0,
-      "sizeBytes": 8696,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-os/screens-v2.jsx",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 346,
-      "sizeBytes": 17737,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-os/screens.jsx",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 381,
-      "sizeBytes": 18354,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-v2-exchange/.impeccable/design.json",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 728,
-      "sizeBytes": 49018,
-      "notes": ""
-    },
-    {
       "path": "designs/aivora-v2-exchange/.impeccable/hook.cache.json",
       "type": "unknown",
       "area": "unknown",
@@ -10719,354 +10062,6 @@
       "lineCount": 1,
       "sizeBytes": 2684,
       "notes": ""
-    },
-    {
-      "path": "designs/aivora-v2-exchange/booth/assets/fonts.css",
-      "type": "style",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 187,
-      "sizeBytes": 26236,
-      "notes": "Stylesheet"
-    },
-    {
-      "path": "designs/aivora-v2-exchange/booth/assets/fonts/archivo-symbols-chars.txt",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 0,
-      "sizeBytes": 25,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-v2-exchange/booth/assets/fonts/noto-sans-sc-chars.txt",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 0,
-      "sizeBytes": 8461,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-v2-exchange/booth/assets/fonts/OFL.txt",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 0,
-      "sizeBytes": 4996,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-v2-exchange/booth/assets/icons.js",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 96,
-      "sizeBytes": 9410,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-v2-exchange/booth/booth.css",
-      "type": "style",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 391,
-      "sizeBytes": 31036,
-      "notes": "Stylesheet"
-    },
-    {
-      "path": "designs/aivora-v2-exchange/booth/booth.js",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 2328,
-      "sizeBytes": 295681,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-v2-exchange/booth/config.json",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 26,
-      "sizeBytes": 1651,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-v2-exchange/booth/customer.html",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 0,
-      "sizeBytes": 750,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-v2-exchange/booth/customer.js",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 180,
-      "sizeBytes": 12120,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-v2-exchange/booth/demo.html",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 0,
-      "sizeBytes": 2704,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-v2-exchange/booth/index.html",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 0,
-      "sizeBytes": 9827,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-v2-exchange/booth/owner.html",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 0,
-      "sizeBytes": 2889,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-v2-exchange/booth/owner.js",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 264,
-      "sizeBytes": 19118,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-v2-exchange/booth/README.md",
-      "type": "doc",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 116,
-      "sizeBytes": 9940,
-      "notes": "Documentation"
-    },
-    {
-      "path": "designs/aivora-v2-exchange/booth/relay.mjs",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [
-        "RELAY_NAME",
-        "VERSION",
-        "lanAddresses",
-        "validateLead",
-        "startRelay"
-      ],
-      "imports": [
-        "node:http",
-        "node:fs",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "node:crypto",
-        "node:stream",
-        "node:url"
-      ],
-      "importantSymbols": [
-        "RELAY_NAME",
-        "VERSION",
-        "lanAddresses",
-        "validateLead",
-        "startRelay"
-      ],
-      "lineCount": 1190,
-      "sizeBytes": 46172,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-v2-exchange/booth/result.html",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 0,
-      "sizeBytes": 15118,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-v2-exchange/booth/screen.html",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 0,
-      "sizeBytes": 555,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-v2-exchange/booth/screen.js",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 265,
-      "sizeBytes": 18565,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-v2-exchange/booth/tools/build-fonts.py",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 0,
-      "sizeBytes": 23984,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-v2-exchange/booth/tools/build-icons.mjs",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [
-        "node:fs",
-        "node:path",
-        "node:vm",
-        "node:url"
-      ],
-      "importantSymbols": [],
-      "lineCount": 175,
-      "sizeBytes": 7664,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-v2-exchange/booth/tools/draft-cases.mjs",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [
-        "node:fs",
-        "node:url",
-        "node:vm"
-      ],
-      "importantSymbols": [],
-      "lineCount": 3078,
-      "sizeBytes": 408957,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-v2-exchange/booth/tools/relay-selftest.mjs",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [
-        "node:child_process",
-        "node:http",
-        "node:net",
-        "node:os",
-        "node:fs",
-        "node:fs/promises",
-        "node:path",
-        "node:assert/strict",
-        "node:url"
-      ],
-      "importantSymbols": [],
-      "lineCount": 709,
-      "sizeBytes": 36458,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-v2-exchange/booth/vendor/LICENSE-qrcode-generator.txt",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 0,
-      "sizeBytes": 1531,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-v2-exchange/booth/vendor/qrcode.js",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 2298,
-      "sizeBytes": 56694,
-      "notes": ""
-    },
-    {
-      "path": "designs/aivora-v2-exchange/DESIGN.md",
-      "type": "doc",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 614,
-      "sizeBytes": 43197,
-      "notes": "Documentation"
-    },
-    {
-      "path": "designs/aivora-v2-exchange/index.html",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 0,
-      "sizeBytes": 155777,
-      "notes": ""
-    },
-    {
-      "path": "DIAGNOSIS.md",
-      "type": "doc",
-      "area": "media-processing",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 86,
-      "sizeBytes": 5299,
-      "notes": "Documentation; area=media-processing"
     },
     {
       "path": "docker-compose.yml",
@@ -11185,8 +10180,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 302,
-      "sizeBytes": 10989,
+      "lineCount": 271,
+      "sizeBytes": 9676,
       "notes": "Documentation"
     },
     {
@@ -12026,6 +11021,17 @@
       "notes": "Documentation"
     },
     {
+      "path": "docs/roadmap/2026-11-16-slimming-plan.md",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 109,
+      "sizeBytes": 10517,
+      "notes": "Documentation"
+    },
+    {
       "path": "docs/s5-ceo-video-confirmation-table.md",
       "type": "doc",
       "area": "shared",
@@ -12487,20 +11493,9 @@
       "importantSymbols": [
         "default"
       ],
-      "lineCount": 24,
-      "sizeBytes": 577,
+      "lineCount": 23,
+      "sizeBytes": 557,
       "notes": "Build / runtime config"
-    },
-    {
-      "path": "KNOWN_ISSUES.md",
-      "type": "doc",
-      "area": "media-processing",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 46,
-      "sizeBytes": 2855,
-      "notes": "Documentation; area=media-processing"
     },
     {
       "path": "next.config.ts",
@@ -12525,8 +11520,8 @@
         "runtimeTracingExcludes",
         "default"
       ],
-      "lineCount": 164,
-      "sizeBytes": 8980,
+      "lineCount": 163,
+      "sizeBytes": 8948,
       "notes": "Build / runtime config; area=media-processing"
     },
     {
@@ -12536,8 +11531,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 135,
-      "sizeBytes": 8494,
+      "lineCount": 96,
+      "sizeBytes": 4771,
       "notes": "Build / runtime config; area=config"
     },
     {
@@ -13566,20 +12561,9 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 71,
-      "sizeBytes": 3809,
+      "lineCount": 70,
+      "sizeBytes": 3727,
       "notes": "Documentation"
-    },
-    {
-      "path": "PROGRESS.md",
-      "type": "doc",
-      "area": "media-processing",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 100,
-      "sizeBytes": 7196,
-      "notes": "Documentation; area=media-processing"
     },
     {
       "path": "public/file.svg",
@@ -14920,106 +13904,6 @@
       "notes": "Documentation"
     },
     {
-      "path": "scripts/apply-production-migrations.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "node:child_process",
-        "@prisma/client"
-      ],
-      "importantSymbols": [],
-      "lineCount": 76,
-      "sizeBytes": 2522,
-      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=scripts"
-    },
-    {
-      "path": "scripts/archive-final-acceptance-template.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "@prisma/client",
-        "../src/lib/db"
-      ],
-      "importantSymbols": [],
-      "lineCount": 81,
-      "sizeBytes": 2583,
-      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=scripts"
-    },
-    {
-      "path": "scripts/audit-phase1-migration-blockers.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "node:crypto",
-        "../src/lib/db"
-      ],
-      "importantSymbols": [],
-      "lineCount": 36,
-      "sizeBytes": 1135,
-      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
-      "path": "scripts/audit-public-video-url-exposure.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "node:fs/promises",
-        "node:path"
-      ],
-      "importantSymbols": [],
-      "lineCount": 97,
-      "sizeBytes": 3573,
-      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
-      "path": "scripts/backfill-business-order-titles.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "../src/lib/db",
-        "../src/lib/services/business-order-title-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 103,
-      "sizeBytes": 2878,
-      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
-      "path": "scripts/bakeoff-runner.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "node:crypto",
-        "node:fs",
-        "node:path",
-        "./lib/experiment-budget",
-        "./lib/bakeoff-plan",
-        "../src/lib/providers/shuyu",
-        "@next/env"
-      ],
-      "importantSymbols": [],
-      "lineCount": 408,
-      "sizeBytes": 17923,
-      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
-      "path": "scripts/bakeoff/e7-manifest.example.json",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 42,
-      "sizeBytes": 1517,
-      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
       "path": "scripts/build-codemap.ts",
       "type": "script",
       "area": "media-processing",
@@ -15032,17 +13916,6 @@
       "lineCount": 886,
       "sizeBytes": 33365,
       "notes": "Maintenance / one-off script (run via tsx); NextAuth session check; area=media-processing"
-    },
-    {
-      "path": "scripts/build-showcase-static.sh",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 67,
-      "sizeBytes": 2516,
-      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
     },
     {
       "path": "scripts/build-template-preview-assets.sh",
@@ -15069,38 +13942,6 @@
       "lineCount": 33,
       "sizeBytes": 1578,
       "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
-      "path": "scripts/check-pet-kit-walkthrough-video.ts",
-      "type": "script",
-      "area": "demo",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "node:fs",
-        "node:path",
-        "../src/lib/providers/seedance"
-      ],
-      "importantSymbols": [],
-      "lineCount": 136,
-      "sizeBytes": 4028,
-      "notes": "Maintenance / one-off script (run via tsx); calls Seedance video generator; area=demo"
-    },
-    {
-      "path": "scripts/check-real-footage-walkthrough-video.ts",
-      "type": "script",
-      "area": "real-footage-ads",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "node:fs",
-        "node:path",
-        "../src/lib/providers/seedance"
-      ],
-      "importantSymbols": [],
-      "lineCount": 145,
-      "sizeBytes": 4228,
-      "notes": "Maintenance / one-off script (run via tsx); calls Seedance video generator; area=real-footage-ads"
     },
     {
       "path": "scripts/check-real-mode.ts",
@@ -15181,107 +14022,6 @@
       "notes": "Maintenance / one-off script (run via tsx); area=scripts"
     },
     {
-      "path": "scripts/demo-brand-overlay.ts",
-      "type": "script",
-      "area": "demo",
-      "exports": [],
-      "imports": [
-        "node:fs",
-        "node:path",
-        "../src/lib/video-generation/brand-overlay-renderer",
-        "sharp",
-        "node:fs/promises"
-      ],
-      "importantSymbols": [],
-      "lineCount": 208,
-      "sizeBytes": 6941,
-      "notes": "Maintenance / one-off script (run via tsx); area=demo"
-    },
-    {
-      "path": "scripts/demo-mock-business-flow.ts",
-      "type": "script",
-      "area": "demo",
-      "exports": [],
-      "imports": [
-        "node:url",
-        "node:child_process",
-        "node:util",
-        "../src/lib/video-generation/mock-clip-generator",
-        "../src/lib/video-generation/brand-end-card-renderer",
-        "../src/types/video-generation"
-      ],
-      "importantSymbols": [],
-      "lineCount": 123,
-      "sizeBytes": 4331,
-      "notes": "Maintenance / one-off script (run via tsx); area=demo"
-    },
-    {
-      "path": "scripts/demo-rehearsal-e2e.ts",
-      "type": "script",
-      "area": "demo",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 226,
-      "sizeBytes": 7892,
-      "notes": "Maintenance / one-off script (run via tsx); NextAuth session check; area=demo"
-    },
-    {
-      "path": "scripts/diagnose-seedance-raw-status.ts",
-      "type": "script",
-      "area": "video-generation",
-      "exports": [],
-      "imports": [
-        "@next/env"
-      ],
-      "importantSymbols": [],
-      "lineCount": 60,
-      "sizeBytes": 1763,
-      "notes": "Maintenance / one-off script (run via tsx); area=video-generation"
-    },
-    {
-      "path": "scripts/diagnose-stuck-brief-detail.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "@prisma/client"
-      ],
-      "importantSymbols": [],
-      "lineCount": 102,
-      "sizeBytes": 3001,
-      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=scripts"
-    },
-    {
-      "path": "scripts/diagnose-stuck-final-videos.ts",
-      "type": "script",
-      "area": "media-processing",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "@prisma/client"
-      ],
-      "importantSymbols": [],
-      "lineCount": 90,
-      "sizeBytes": 3284,
-      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=media-processing"
-    },
-    {
-      "path": "scripts/diagnose-stuck-video-jobs.ts",
-      "type": "script",
-      "area": "video-generation",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "@prisma/client"
-      ],
-      "importantSymbols": [],
-      "lineCount": 101,
-      "sizeBytes": 3769,
-      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=video-generation"
-    },
-    {
       "path": "scripts/director/run.ts",
       "type": "script",
       "area": "media-processing",
@@ -15305,8 +14045,8 @@
         "@/lib/media/stitch-pipeline"
       ],
       "importantSymbols": [],
-      "lineCount": 705,
-      "sizeBytes": 38815,
+      "lineCount": 714,
+      "sizeBytes": 39502,
       "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
     },
     {
@@ -15329,161 +14069,6 @@
       "lineCount": 397,
       "sizeBytes": 17463,
       "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
-    },
-    {
-      "path": "scripts/e2e-1025/acceptance-account.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "node:crypto",
-        "node:fs",
-        "bcryptjs",
-        "../../src/lib/db"
-      ],
-      "importantSymbols": [],
-      "lineCount": 71,
-      "sizeBytes": 2845,
-      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
-      "path": "scripts/e2e-1025/acceptance-growth-setup.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "../../src/lib/db",
-        "../../src/lib/services/lead-service",
-        "../../src/lib/services/tracked-link-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 57,
-      "sizeBytes": 2308,
-      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
-      "path": "scripts/e2e-1025/route-truth-table.ts",
-      "type": "script",
-      "area": "media-processing",
-      "exports": [],
-      "imports": [
-        "../../src/lib/providers/tts/openai",
-        "node:fs",
-        "../../src/lib/providers/shuyu",
-        "../../src/lib/providers/shuyu-seedance25-probe",
-        "../lib/experiment-key-presence"
-      ],
-      "importantSymbols": [],
-      "lineCount": 238,
-      "sizeBytes": 12477,
-      "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
-    },
-    {
-      "path": "scripts/e2e-1025/template-reseed-dry-run.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "@prisma/client",
-        "../../src/lib/db",
-        "../../src/lib/video-generation/batch-style-templates"
-      ],
-      "importantSymbols": [],
-      "lineCount": 55,
-      "sizeBytes": 1996,
-      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=scripts"
-    },
-    {
-      "path": "scripts/e2e-brand-logo-shipment.ts",
-      "type": "script",
-      "area": "media-processing",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:os",
-        "node:path",
-        "node:util",
-        "@/lib/db",
-        "@/lib/services/product-image-service",
-        "@/lib/services/workspace-brand-package-service",
-        "@/lib/providers/shuyu",
-        "@/lib/video-generation/sunnyshutter-shade-pipeline",
-        "@/lib/video-generation/still-motion-clip",
-        "@/lib/video-generation/brand-packaging-service",
-        "@/lib/video-generation/audio-post-production"
-      ],
-      "importantSymbols": [],
-      "lineCount": 750,
-      "sizeBytes": 32759,
-      "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
-    },
-    {
-      "path": "scripts/e2e-generic-commerce-acceptance.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "@prisma/client",
-        "@/lib/video-generation/commerce-template-catalog",
-        "@/lib/video-generation/generic-commerce-template",
-        "@/lib/video-generation/batch-style-templates",
-        "@/lib/schemas/unified-input",
-        "@/lib/services/batch-service",
-        "@/components/brand/customer-brand-wall"
-      ],
-      "importantSymbols": [],
-      "lineCount": 242,
-      "sizeBytes": 9728,
-      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=scripts"
-    },
-    {
-      "path": "scripts/e2e-package-existing.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "node:child_process",
-        "node:util",
-        "node:fs",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "@prisma/client",
-        "@/lib/video-generation/brand-packaging-service",
-        "@/lib/schemas/unified-input",
-        "@/lib/services/batch-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 140,
-      "sizeBytes": 4900,
-      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=scripts"
-    },
-    {
-      "path": "scripts/e2e-real-shipment.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "node:child_process",
-        "node:util",
-        "node:fs",
-        "node:os",
-        "node:path",
-        "@prisma/client",
-        "@/lib/services/batch-service",
-        "@/lib/services/quota-service",
-        "@/lib/video-generation/brand-packaging-service",
-        "@/lib/services/workspace-brand-package-service",
-        "@/lib/schemas/unified-input",
-        "next-auth",
-        "node:fs/promises"
-      ],
-      "importantSymbols": [],
-      "lineCount": 261,
-      "sizeBytes": 10224,
-      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; NextAuth session check; area=scripts"
     },
     {
       "path": "scripts/eval/build-arm-prompts.ts",
@@ -15587,34 +14172,6 @@
       "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
     },
     {
-      "path": "scripts/find-brief-owner.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "../src/lib/db"
-      ],
-      "importantSymbols": [],
-      "lineCount": 36,
-      "sizeBytes": 893,
-      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
-      "path": "scripts/fix-stuck-video-jobs.ts",
-      "type": "script",
-      "area": "video-generation",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "@prisma/client"
-      ],
-      "importantSymbols": [],
-      "lineCount": 159,
-      "sizeBytes": 5821,
-      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=video-generation"
-    },
-    {
       "path": "scripts/frame-qa.ts",
       "type": "script",
       "area": "scripts",
@@ -15627,23 +14184,6 @@
       "lineCount": 140,
       "sizeBytes": 4893,
       "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
-      "path": "scripts/generate-curtain-viral-ads.ts",
-      "type": "script",
-      "area": "blob-storage",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "node:fs",
-        "node:path",
-        "@vercel/blob",
-        "../src/lib/providers/seedance"
-      ],
-      "importantSymbols": [],
-      "lineCount": 380,
-      "sizeBytes": 20690,
-      "notes": "Maintenance / one-off script (run via tsx); uses Vercel Blob storage; calls Seedance video generator; area=blob-storage"
     },
     {
       "path": "scripts/generate-design-tokens.ts",
@@ -15660,162 +14200,6 @@
       "notes": "Maintenance / one-off script (run via tsx); area=scripts"
     },
     {
-      "path": "scripts/generate-pet-kit-voiceover.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "openai"
-      ],
-      "importantSymbols": [],
-      "lineCount": 135,
-      "sizeBytes": 4296,
-      "notes": "Maintenance / one-off script (run via tsx); uses OpenAI SDK; area=scripts"
-    },
-    {
-      "path": "scripts/generate-pet-kit-walkthrough-video.ts",
-      "type": "script",
-      "area": "demo",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "node:fs",
-        "node:path",
-        "../src/lib/providers/seedance"
-      ],
-      "importantSymbols": [],
-      "lineCount": 359,
-      "sizeBytes": 13503,
-      "notes": "Maintenance / one-off script (run via tsx); calls Seedance video generator; area=demo"
-    },
-    {
-      "path": "scripts/generate-real-estate-placeholder-poster.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "node:fs",
-        "node:path",
-        "sharp"
-      ],
-      "importantSymbols": [],
-      "lineCount": 152,
-      "sizeBytes": 6928,
-      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
-      "path": "scripts/generate-real-footage-walkthrough-video.ts",
-      "type": "script",
-      "area": "real-footage-ads",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "node:fs",
-        "node:path",
-        "../src/lib/providers/seedance"
-      ],
-      "importantSymbols": [],
-      "lineCount": 407,
-      "sizeBytes": 16128,
-      "notes": "Maintenance / one-off script (run via tsx); calls Seedance video generator; area=real-footage-ads"
-    },
-    {
-      "path": "scripts/generate-sunnyshutter-business-card-endcard.ts",
-      "type": "script",
-      "area": "blob-storage",
-      "exports": [],
-      "imports": [
-        "node:fs",
-        "node:path",
-        "@next/env",
-        "@vercel/blob",
-        "@/lib/providers/shuyu",
-        "@/lib/video-generation/sunnyshutter-shade-pipeline",
-        "@/lib/video-generation/sunnyshutter-brand-pack"
-      ],
-      "importantSymbols": [],
-      "lineCount": 126,
-      "sizeBytes": 4830,
-      "notes": "Maintenance / one-off script (run via tsx); uses Vercel Blob storage; area=blob-storage"
-    },
-    {
-      "path": "scripts/generate-sunnyshutter-end-card.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "node:fs",
-        "node:path",
-        "@next/env",
-        "@/lib/providers/openai-image",
-        "@/lib/video-generation/sunnyshutter-brand-pack"
-      ],
-      "importantSymbols": [],
-      "lineCount": 140,
-      "sizeBytes": 5799,
-      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
-      "path": "scripts/identify-ceo-storage-migration-candidates.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "node:crypto",
-        "node:fs/promises",
-        "node:path",
-        "../src/lib/db"
-      ],
-      "importantSymbols": [],
-      "lineCount": 185,
-      "sizeBytes": 6168,
-      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
-      "path": "scripts/import-booth-leads.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [
-        "BOOTH_SOURCE",
-        "BOOTH_CONSENT_VERSION",
-        "BoothLead",
-        "BoothSession",
-        "PilotApplicationImport",
-        "parseBoothLeads",
-        "parseBoothSessions",
-        "boothExternalRef",
-        "buildPilotImports",
-        "redact",
-        "parseImportArgs"
-      ],
-      "imports": [
-        "node:crypto",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "node:url",
-        "@prisma/client",
-        "../src/lib/db"
-      ],
-      "importantSymbols": [
-        "BOOTH_SOURCE",
-        "BOOTH_CONSENT_VERSION",
-        "BoothLead",
-        "BoothSession",
-        "PilotApplicationImport",
-        "parseBoothLeads",
-        "parseBoothSessions",
-        "boothExternalRef"
-      ],
-      "lineCount": 329,
-      "sizeBytes": 12935,
-      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=scripts"
-    },
-    {
       "path": "scripts/imprint-logo-composite.ts",
       "type": "script",
       "area": "scripts",
@@ -15826,52 +14210,6 @@
       "importantSymbols": [],
       "lineCount": 59,
       "sizeBytes": 1983,
-      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
-      "path": "scripts/lib/bakeoff-plan.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [
-        "bakeoffManifestSchema",
-        "BakeoffManifest",
-        "BakeoffItem",
-        "parseBakeoffManifest",
-        "buildBakeoffPrompt",
-        "orderInputImages",
-        "parseArms",
-        "BakeoffTaskSpec",
-        "bakeoffTaskKey",
-        "expandTasks",
-        "BAKEOFF_REFERENCE_POINTS_PER_SECOND",
-        "BAKEOFF_PRICE_SANITY_FACTOR",
-        "ReferenceResolution",
-        "referencePointsPerTask",
-        "livePriceSanity",
-        "TaskTimeline",
-        "isTerminalShuyuStatus",
-        "observeTask"
-      ],
-      "imports": [
-        "node:crypto",
-        "zod",
-        "../../src/lib/experiments/run-key",
-        "../../src/lib/video-generation/prompt-intelligence",
-        "../../src/lib/video-generation/segment-planner-adapter",
-        "../../src/types/video-generation"
-      ],
-      "importantSymbols": [
-        "BakeoffManifest",
-        "BakeoffItem",
-        "BakeoffTaskSpec",
-        "BAKEOFF_REFERENCE_POINTS_PER_SECOND",
-        "BAKEOFF_PRICE_SANITY_FACTOR",
-        "ReferenceResolution",
-        "TaskTimeline",
-        "bakeoffManifestSchema"
-      ],
-      "lineCount": 289,
-      "sizeBytes": 11958,
       "notes": "Maintenance / one-off script (run via tsx); area=scripts"
     },
     {
@@ -15888,6 +14226,8 @@
         "DIRECTOR_FRAME_REFERENCES_MAX",
         "DIRECTOR_SHOT_ITEMS",
         "DirectorShotItem",
+        "DIRECTOR_PRODUCT_TYPES",
+        "DirectorProductType",
         "DIRECTOR_GENRES",
         "DirectorGenre",
         "directorJobSchema",
@@ -15906,9 +14246,7 @@
         "DirectorSpokenLine",
         "directorSpokenLines",
         "scriptSpeechWords",
-        "partScript",
-        "reviewFrameTimes",
-        "DirectorLint"
+        "partScript"
       ],
       "imports": [
         "node:crypto",
@@ -15926,8 +14264,8 @@
         "DIRECTOR_FRAME_REFERENCES_MAX",
         "DIRECTOR_SHOT_ITEMS"
       ],
-      "lineCount": 843,
-      "sizeBytes": 45104,
+      "lineCount": 894,
+      "sizeBytes": 49720,
       "notes": "Maintenance / one-off script (run via tsx); area=scripts"
     },
     {
@@ -15999,94 +14337,6 @@
       ],
       "lineCount": 120,
       "sizeBytes": 4600,
-      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
-      "path": "scripts/lib/experiment-key-presence.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [
-        "KeyPresenceVerdict",
-        "KeyPresenceRow",
-        "TTS_PROVIDER_KEYS",
-        "ttsKeyPresence",
-        "experimentKeyPresence"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "KeyPresenceVerdict",
-        "KeyPresenceRow",
-        "TTS_PROVIDER_KEYS",
-        "ttsKeyPresence",
-        "experimentKeyPresence"
-      ],
-      "lineCount": 69,
-      "sizeBytes": 2735,
-      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
-      "path": "scripts/lib/real-samples-plan.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [
-        "BATCH_KEY_REV",
-        "SampleRouteKind",
-        "SampleArm",
-        "SampleArmError",
-        "parseSampleArms",
-        "isExperimentRun",
-        "EXPERIMENT_MAX_WAVE_SIZE",
-        "assertRunKeyForArms",
-        "effectiveWaveSize",
-        "sampleIdempotencyKey",
-        "isCurrentRevKey",
-        "inferLegacyArmId",
-        "itemIdentity",
-        "sampleVideoFileName",
-        "QaScore",
-        "SampleQa",
-        "emptyQa",
-        "TimingSnapshot",
-        "advanceTiming"
-      ],
-      "imports": [
-        "../../src/lib/experiments/run-key"
-      ],
-      "importantSymbols": [
-        "BATCH_KEY_REV",
-        "SampleRouteKind",
-        "SampleArm",
-        "SampleArmError",
-        "EXPERIMENT_MAX_WAVE_SIZE",
-        "QaScore",
-        "SampleQa",
-        "TimingSnapshot"
-      ],
-      "lineCount": 187,
-      "sizeBytes": 7560,
-      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
-      "path": "scripts/lib/rehearsal-guard.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [
-        "RehearsalGuardInput",
-        "RehearsalDatabase",
-        "RehearsalGuardError",
-        "neonEndpointOf",
-        "assertRehearsalDatabase"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "RehearsalGuardInput",
-        "RehearsalDatabase",
-        "RehearsalGuardError",
-        "neonEndpointOf",
-        "assertRehearsalDatabase"
-      ],
-      "lineCount": 102,
-      "sizeBytes": 4287,
       "notes": "Maintenance / one-off script (run via tsx); area=scripts"
     },
     {
@@ -16251,47 +14501,6 @@
       "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
     },
     {
-      "path": "scripts/migrate-ceo-videos-to-iad1.ts",
-      "type": "script",
-      "area": "media-processing",
-      "exports": [],
-      "imports": [
-        "node:crypto",
-        "node:child_process",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "node:util",
-        "@vercel/blob",
-        "@prisma/client"
-      ],
-      "importantSymbols": [],
-      "lineCount": 332,
-      "sizeBytes": 11715,
-      "notes": "Maintenance / one-off script (run via tsx); uses Vercel Blob storage; hits Prisma DB; area=media-processing"
-    },
-    {
-      "path": "scripts/mock-walkthrough-harness.ts",
-      "type": "script",
-      "area": "demo",
-      "exports": [],
-      "imports": [
-        "bcryptjs",
-        "node:crypto",
-        "@prisma/client",
-        "../src/lib/db",
-        "../src/lib/video-generation/generation-supervisor",
-        "../src/lib/video-generation/plan-to-director",
-        "../src/lib/services/video-service",
-        "../src/types/video-generation",
-        "../src/lib/video-generation/business-display-title"
-      ],
-      "importantSymbols": [],
-      "lineCount": 208,
-      "sizeBytes": 7050,
-      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=demo"
-    },
-    {
       "path": "scripts/ops/qa-first-pass.ts",
       "type": "script",
       "area": "scripts",
@@ -16412,376 +14621,6 @@
       "notes": "Maintenance / one-off script (run via tsx); area=scripts"
     },
     {
-      "path": "scripts/persist-recovered-segment.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "node:fs/promises",
-        "node:url",
-        "../src/lib/db",
-        "../src/lib/storage"
-      ],
-      "importantSymbols": [],
-      "lineCount": 48,
-      "sizeBytes": 1593,
-      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
-      "path": "scripts/phase5a-mock-capacity.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "node:perf_hooks",
-        "node:timers/promises",
-        "@prisma/client",
-        "./lib/rehearsal-guard",
-        "@/lib/db",
-        "@/lib/services/batch-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 201,
-      "sizeBytes": 12236,
-      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=scripts"
-    },
-    {
-      "path": "scripts/preserve-paid-segment.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "@prisma/client",
-        "node:fs/promises",
-        "node:path"
-      ],
-      "importantSymbols": [],
-      "lineCount": 39,
-      "sizeBytes": 1364,
-      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=scripts"
-    },
-    {
-      "path": "scripts/probe-ceo-source-access.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "@volcengine/tos-sdk",
-        "../src/lib/db"
-      ],
-      "importantSymbols": [],
-      "lineCount": 94,
-      "sizeBytes": 2857,
-      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
-      "path": "scripts/publish-curtain-videos-to-library.ts",
-      "type": "script",
-      "area": "media-processing",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "@vercel/blob",
-        "@prisma/client"
-      ],
-      "importantSymbols": [],
-      "lineCount": 242,
-      "sizeBytes": 7915,
-      "notes": "Maintenance / one-off script (run via tsx); uses Vercel Blob storage; hits Prisma DB; area=media-processing"
-    },
-    {
-      "path": "scripts/qa-responsive-screenshots.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "puppeteer-core"
-      ],
-      "importantSymbols": [],
-      "lineCount": 128,
-      "sizeBytes": 3543,
-      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
-      "path": "scripts/real-template-samples-expansion.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "node:fs",
-        "node:path",
-        "@next/env",
-        "@prisma/client",
-        "next-auth",
-        "@/lib/db",
-        "node:crypto",
-        "@/lib/services/batch-service",
-        "@/lib/services/quota-service",
-        "@/lib/config/seedance-runtime",
-        "@/lib/providers/openai-image",
-        "@/lib/providers/shuyu",
-        "./lib/experiment-budget",
-        "./lib/real-samples-plan"
-      ],
-      "importantSymbols": [],
-      "lineCount": 821,
-      "sizeBytes": 36724,
-      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; NextAuth session check; area=scripts"
-    },
-    {
-      "path": "scripts/real-video-acceptance-30s.ts",
-      "type": "script",
-      "area": "media-processing",
-      "exports": [],
-      "imports": [
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "@next/env",
-        "@vercel/blob",
-        "@/lib/providers/seedance",
-        "@/lib/config/seedance-runtime",
-        "@/lib/services/stitch-service",
-        "@/lib/video-generation/shutter-shot-policy",
-        "@/lib/video-generation/storyboard-lock"
-      ],
-      "importantSymbols": [],
-      "lineCount": 815,
-      "sizeBytes": 30922,
-      "notes": "Maintenance / one-off script (run via tsx); uses Vercel Blob storage; calls Seedance video generator; area=media-processing"
-    },
-    {
-      "path": "scripts/real-video-acceptance-backend.ts",
-      "type": "script",
-      "area": "blob-storage",
-      "exports": [],
-      "imports": [
-        "node:crypto",
-        "node:fs",
-        "node:path",
-        "@next/env",
-        "@prisma/client",
-        "@vercel/blob",
-        "next-auth",
-        "@/lib/db",
-        "@/lib/services/batch-service",
-        "@/lib/services/quota-service",
-        "@/lib/providers/shuyu",
-        "@/lib/video-generation/sunnyshutter-commerce-template"
-      ],
-      "importantSymbols": [],
-      "lineCount": 394,
-      "sizeBytes": 13864,
-      "notes": "Maintenance / one-off script (run via tsx); uses Vercel Blob storage; hits Prisma DB; NextAuth session check; area=blob-storage"
-    },
-    {
-      "path": "scripts/real-video-acceptance-batch20.ts",
-      "type": "script",
-      "area": "blob-storage",
-      "exports": [],
-      "imports": [
-        "node:crypto",
-        "node:fs",
-        "node:path",
-        "@next/env",
-        "@prisma/client",
-        "@vercel/blob",
-        "next-auth",
-        "@/lib/db",
-        "@/lib/services/batch-service",
-        "@/lib/services/quota-service",
-        "@/lib/config/seedance-runtime",
-        "@/lib/video-generation/sunnyshutter-commerce-template"
-      ],
-      "importantSymbols": [],
-      "lineCount": 398,
-      "sizeBytes": 14557,
-      "notes": "Maintenance / one-off script (run via tsx); uses Vercel Blob storage; hits Prisma DB; NextAuth session check; area=blob-storage"
-    },
-    {
-      "path": "scripts/real-video-acceptance-branding.ts",
-      "type": "script",
-      "area": "media-processing",
-      "exports": [],
-      "imports": [
-        "node:fs",
-        "node:path",
-        "@next/env",
-        "@/lib/video-generation/brand-overlay-renderer",
-        "@/lib/video-generation/brand-end-card-renderer",
-        "@/lib/services/stitch-service",
-        "@/lib/video-generation/sunnyshutter-brand-pack",
-        "@/types/video-generation"
-      ],
-      "importantSymbols": [],
-      "lineCount": 236,
-      "sizeBytes": 7918,
-      "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
-    },
-    {
-      "path": "scripts/real-video-acceptance-sunnyshutter-batch10.ts",
-      "type": "script",
-      "area": "media-processing",
-      "exports": [],
-      "imports": [
-        "node:fs",
-        "node:path",
-        "node:crypto",
-        "@next/env",
-        "@vercel/blob",
-        "@/lib/providers/shuyu",
-        "@/lib/video-generation/sunnyshutter-commerce-template",
-        "@/lib/video-generation/sunnyshutter-image2-pipeline",
-        "@/lib/video-generation/storyboard-lock",
-        "@/lib/video-generation/brand-overlay-renderer",
-        "@/lib/video-generation/tail-trim",
-        "@/lib/video-generation/brand-end-card-renderer",
-        "@/lib/services/stitch-service",
-        "@/lib/video-generation/sunnyshutter-brand-pack",
-        "@/types/video-generation"
-      ],
-      "importantSymbols": [],
-      "lineCount": 565,
-      "sizeBytes": 19116,
-      "notes": "Maintenance / one-off script (run via tsx); uses Vercel Blob storage; area=media-processing"
-    },
-    {
-      "path": "scripts/real-video-acceptance-sunnyshutter-shade-batch10.ts",
-      "type": "script",
-      "area": "media-processing",
-      "exports": [],
-      "imports": [
-        "node:fs",
-        "node:path",
-        "node:crypto",
-        "@next/env",
-        "@vercel/blob",
-        "@/lib/providers/shuyu",
-        "@/lib/video-generation/sunnyshutter-shade-template",
-        "@/lib/video-generation/sunnyshutter-shade-pipeline",
-        "@/lib/video-generation/storyboard-lock",
-        "@/lib/video-generation/brand-overlay-renderer",
-        "@/lib/video-generation/brand-end-card-renderer",
-        "@/lib/video-generation/frame-qa",
-        "@/lib/video-generation/tail-trim",
-        "@/lib/services/stitch-service",
-        "@/lib/video-generation/sunnyshutter-brand-pack",
-        "@/types/video-generation"
-      ],
-      "importantSymbols": [],
-      "lineCount": 480,
-      "sizeBytes": 15584,
-      "notes": "Maintenance / one-off script (run via tsx); uses Vercel Blob storage; area=media-processing"
-    },
-    {
-      "path": "scripts/recover-stuck-final-video.ts",
-      "type": "script",
-      "area": "media-processing",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "node:url",
-        "@prisma/client",
-        "../src/lib/db",
-        "../src/lib/services/stitch-service",
-        "../src/lib/storage"
-      ],
-      "importantSymbols": [],
-      "lineCount": 229,
-      "sizeBytes": 9173,
-      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=media-processing"
-    },
-    {
-      "path": "scripts/regenerate-curtain-videos-v2.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "node:fs",
-        "node:path",
-        "../src/lib/providers/seedance"
-      ],
-      "importantSymbols": [],
-      "lineCount": 330,
-      "sizeBytes": 17101,
-      "notes": "Maintenance / one-off script (run via tsx); calls Seedance video generator; area=scripts"
-    },
-    {
-      "path": "scripts/render-caption-png.py",
-      "type": "script",
-      "area": "media-processing",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 0,
-      "sizeBytes": 2441,
-      "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
-    },
-    {
-      "path": "scripts/replace-curtain-videos-in-library.ts",
-      "type": "script",
-      "area": "media-processing",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "@vercel/blob",
-        "@prisma/client"
-      ],
-      "importantSymbols": [],
-      "lineCount": 163,
-      "sizeBytes": 5898,
-      "notes": "Maintenance / one-off script (run via tsx); uses Vercel Blob storage; hits Prisma DB; area=media-processing"
-    },
-    {
-      "path": "scripts/report-video-route-health.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [
-        "RUN_KEY_DEFAULT_WINDOW_HOURS",
-        "RUN_KEY_MAX_SCAN",
-        "ReportArgs",
-        "parseReportArgs",
-        "REPORT_COLUMNS",
-        "reportRows",
-        "renderMarkdown"
-      ],
-      "imports": [
-        "node:path",
-        "node:url",
-        "../src/lib/experiments/run-key",
-        "../src/lib/services/video-route-health-service",
-        "../src/lib/db"
-      ],
-      "importantSymbols": [
-        "RUN_KEY_DEFAULT_WINDOW_HOURS",
-        "RUN_KEY_MAX_SCAN",
-        "ReportArgs",
-        "REPORT_COLUMNS",
-        "parseReportArgs",
-        "reportRows",
-        "renderMarkdown"
-      ],
-      "lineCount": 168,
-      "sizeBytes": 6454,
-      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
       "path": "scripts/roadmap.ts",
       "type": "script",
       "area": "scripts",
@@ -16811,120 +14650,6 @@
       "lineCount": 62,
       "sizeBytes": 2488,
       "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
-      "path": "scripts/scan-storage-migration-manifest.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "node:crypto",
-        "node:fs/promises",
-        "node:path",
-        "../src/lib/db"
-      ],
-      "importantSymbols": [],
-      "lineCount": 245,
-      "sizeBytes": 7928,
-      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
-      "path": "scripts/screenshot-recovered-brief.mjs",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "puppeteer-core",
-        "node:fs",
-        "node:os",
-        "node:path"
-      ],
-      "importantSymbols": [],
-      "lineCount": 78,
-      "sizeBytes": 2130,
-      "notes": "Maintenance / one-off script (run via tsx); NextAuth session check; area=scripts"
-    },
-    {
-      "path": "scripts/seed-creative-evidence-cards.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "../src/lib/db",
-        "../src/lib/services/creative-evidence-service",
-        "../src/lib/schemas/creative-evidence"
-      ],
-      "importantSymbols": [],
-      "lineCount": 613,
-      "sizeBytes": 27937,
-      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
-      "path": "scripts/seed-global-brand-packages.ts",
-      "type": "script",
-      "area": "blob-storage",
-      "exports": [],
-      "imports": [
-        "node:fs/promises",
-        "node:crypto",
-        "@vercel/blob",
-        "@prisma/client",
-        "../src/lib/brand/global-brand-packs"
-      ],
-      "importantSymbols": [],
-      "lineCount": 153,
-      "sizeBytes": 4907,
-      "notes": "Maintenance / one-off script (run via tsx); uses Vercel Blob storage; hits Prisma DB; area=blob-storage"
-    },
-    {
-      "path": "scripts/seed-style-templates-target.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "@/lib/db",
-        "@/lib/services/style-template-service",
-        "@/lib/video-generation/batch-style-templates"
-      ],
-      "importantSymbols": [],
-      "lineCount": 39,
-      "sizeBytes": 1401,
-      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
-      "path": "scripts/stitch-pet-kit-walkthrough-video.ts",
-      "type": "script",
-      "area": "demo",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "@vercel/blob"
-      ],
-      "importantSymbols": [],
-      "lineCount": 560,
-      "sizeBytes": 17347,
-      "notes": "Maintenance / one-off script (run via tsx); FFmpeg / audio loudness pipeline; area=demo"
-    },
-    {
-      "path": "scripts/stitch-real-footage-walkthrough-video.ts",
-      "type": "script",
-      "area": "real-footage-ads",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "@vercel/blob"
-      ],
-      "importantSymbols": [],
-      "lineCount": 277,
-      "sizeBytes": 7166,
-      "notes": "Maintenance / one-off script (run via tsx); area=real-footage-ads"
     },
     {
       "path": "scripts/stitch-runner.ts",
@@ -16959,200 +14684,6 @@
       "lineCount": 819,
       "sizeBytes": 26534,
       "notes": "Maintenance / one-off script (run via tsx); area=ffmpeg"
-    },
-    {
-      "path": "scripts/sunny-shutter-investor-demo-v21-resume.sh",
-      "type": "script",
-      "area": "real-footage-ads",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 26,
-      "sizeBytes": 733,
-      "notes": "Maintenance / one-off script (run via tsx); area=real-footage-ads"
-    },
-    {
-      "path": "scripts/sunny-shutter-investor-demo-v21.ts",
-      "type": "script",
-      "area": "real-footage-ads",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:fs/promises",
-        "node:path",
-        "node:url",
-        "node:util",
-        "@vercel/blob",
-        "bcryptjs",
-        "node:crypto",
-        "@prisma/client",
-        "@/lib/video-generation/brand-end-card-renderer",
-        "@/lib/video-generation/brand-overlay-renderer",
-        "@/lib/providers/openai-image",
-        "@/lib/providers/seedance",
-        "@/types/video-generation"
-      ],
-      "importantSymbols": [],
-      "lineCount": 1921,
-      "sizeBytes": 67740,
-      "notes": "Maintenance / one-off script (run via tsx); uses Vercel Blob storage; hits Prisma DB; calls Seedance video generator; FFmpeg / audio loudness pipeline; area=real-footage-ads"
-    },
-    {
-      "path": "scripts/sunny-shutter-investor-demo.ts",
-      "type": "script",
-      "area": "real-footage-ads",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "node:child_process",
-        "node:util",
-        "node:fs",
-        "node:fs/promises",
-        "node:url",
-        "node:path",
-        "bcryptjs",
-        "node:crypto",
-        "@vercel/blob",
-        "@prisma/client",
-        "../src/lib/providers/seedance",
-        "../src/lib/video-generation/brand-end-card-renderer",
-        "../src/lib/video-generation/brand-overlay-renderer",
-        "../src/types/video-generation"
-      ],
-      "importantSymbols": [],
-      "lineCount": 1078,
-      "sizeBytes": 37462,
-      "notes": "Maintenance / one-off script (run via tsx); uses Vercel Blob storage; hits Prisma DB; calls Seedance video generator; area=real-footage-ads"
-    },
-    {
-      "path": "scripts/sunny-shutter-merchant-journey.ts",
-      "type": "script",
-      "area": "real-footage-ads",
-      "exports": [],
-      "imports": [
-        "bcryptjs",
-        "node:crypto",
-        "@prisma/client",
-        "../src/lib/db",
-        "../src/lib/video-generation/generation-supervisor",
-        "../src/lib/video-generation/plan-to-director",
-        "../src/lib/services/video-service",
-        "../src/lib/services/business-metrics-import",
-        "../src/lib/services/business-insights-service",
-        "../src/types/video-generation",
-        "../src/lib/video-generation/business-display-title"
-      ],
-      "importantSymbols": [],
-      "lineCount": 284,
-      "sizeBytes": 10029,
-      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=real-footage-ads"
-    },
-    {
-      "path": "scripts/sunny-shutter-reconcile.ts",
-      "type": "script",
-      "area": "real-footage-ads",
-      "exports": [],
-      "imports": [
-        "@prisma/client",
-        "../src/lib/services/video-service",
-        "../src/lib/providers/seedance"
-      ],
-      "importantSymbols": [],
-      "lineCount": 425,
-      "sizeBytes": 14967,
-      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; calls Seedance video generator; area=real-footage-ads"
-    },
-    {
-      "path": "scripts/sunny-shutter-ui-check.ts",
-      "type": "script",
-      "area": "real-footage-ads",
-      "exports": [],
-      "imports": [
-        "@prisma/client",
-        "../src/lib/services/video-service",
-        "../src/lib/labels-user"
-      ],
-      "importantSymbols": [],
-      "lineCount": 127,
-      "sizeBytes": 4468,
-      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=real-footage-ads"
-    },
-    {
-      "path": "scripts/upload-pet-demo-bgm-v2.ts",
-      "type": "script",
-      "area": "demo",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "@vercel/blob",
-        "node:fs",
-        "node:path"
-      ],
-      "importantSymbols": [],
-      "lineCount": 54,
-      "sizeBytes": 1635,
-      "notes": "Maintenance / one-off script (run via tsx); uses Vercel Blob storage; area=demo"
-    },
-    {
-      "path": "scripts/validate-batch-pipeline.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "@prisma/client",
-        "../src/lib/db",
-        "../src/lib/config/env",
-        "../src/lib/services/batch-service",
-        "../src/lib/video-generation/asset-allocator"
-      ],
-      "importantSymbols": [],
-      "lineCount": 215,
-      "sizeBytes": 6833,
-      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=scripts"
-    },
-    {
-      "path": "scripts/validate-storage-migration-sources.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "node:fs/promises",
-        "node:path"
-      ],
-      "importantSymbols": [],
-      "lineCount": 120,
-      "sizeBytes": 3257,
-      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
-      "path": "scripts/verify-phase1-rehearsal.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "@prisma/client",
-        "../src/lib/db"
-      ],
-      "importantSymbols": [],
-      "lineCount": 120,
-      "sizeBytes": 3827,
-      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=scripts"
-    },
-    {
-      "path": "scripts/verify-phase4-schema.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "@prisma/client"
-      ],
-      "importantSymbols": [],
-      "lineCount": 357,
-      "sizeBytes": 11843,
-      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=scripts"
     },
     {
       "path": "skills-lock.json",
@@ -25232,29 +22763,6 @@
       "notes": "Utility / helper module; hits Prisma DB"
     },
     {
-      "path": "src/lib/brand/global-brand-packs.ts",
-      "type": "util",
-      "area": "shared",
-      "exports": [
-        "BrandAssetDelivery",
-        "GlobalBrandAssetSpec",
-        "GlobalBrandPackSpec",
-        "GLOBAL_BRAND_PACKS",
-        "globalBrandAssetSpecs"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "BrandAssetDelivery",
-        "GlobalBrandAssetSpec",
-        "GlobalBrandPackSpec",
-        "GLOBAL_BRAND_PACKS",
-        "globalBrandAssetSpecs"
-      ],
-      "lineCount": 97,
-      "sizeBytes": 3242,
-      "notes": "Utility / helper module"
-    },
-    {
       "path": "src/lib/capabilities/classify.ts",
       "type": "util",
       "area": "shared",
@@ -26700,78 +24208,6 @@
       "notes": "Utility / helper module"
     },
     {
-      "path": "src/lib/labels-user.ts",
-      "type": "util",
-      "area": "shared",
-      "exports": [
-        "BRIEF_USER_LABELS",
-        "VIDEO_JOB_USER_LABELS",
-        "VIDEO_JOB_USER_HELPER",
-        "VIDEO_PROGRESS_STEPS",
-        "QA_USER_LABELS",
-        "QA_ROUTE_USER_LABELS",
-        "ANGLE_TYPE_USER_LABELS",
-        "ACTION_BUTTON_LABELS",
-        "COMMON_USER_TERMS",
-        "briefStatusToProgressIndex",
-        "AngleProgressBucket",
-        "bucketBriefForParentSummary",
-        "VIDEO_JOB_STATUS_USER_LABELS",
-        "videoJobStatusTone"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/services/video-service"
-      ],
-      "importantSymbols": [
-        "BRIEF_USER_LABELS",
-        "VIDEO_JOB_USER_LABELS",
-        "VIDEO_JOB_USER_HELPER",
-        "VIDEO_PROGRESS_STEPS",
-        "QA_USER_LABELS",
-        "QA_ROUTE_USER_LABELS",
-        "ANGLE_TYPE_USER_LABELS",
-        "ACTION_BUTTON_LABELS"
-      ],
-      "lineCount": 217,
-      "sizeBytes": 7170,
-      "notes": "Utility / helper module; hits Prisma DB"
-    },
-    {
-      "path": "src/lib/labels.ts",
-      "type": "util",
-      "area": "shared",
-      "exports": [
-        "DELIVERY_ORDER_LABELS",
-        "ROUND_LABELS",
-        "BRIEF_LABELS",
-        "QA_LABELS",
-        "PUBLISH_LABELS",
-        "RESEARCH_LABELS",
-        "VIDEO_JOB_LABELS",
-        "ROLE_LABELS",
-        "ANGLE_TYPE_LABELS",
-        "ON_CAMERA_LABELS",
-        "briefStatusTone"
-      ],
-      "imports": [
-        "@prisma/client"
-      ],
-      "importantSymbols": [
-        "DELIVERY_ORDER_LABELS",
-        "ROUND_LABELS",
-        "BRIEF_LABELS",
-        "QA_LABELS",
-        "PUBLISH_LABELS",
-        "RESEARCH_LABELS",
-        "VIDEO_JOB_LABELS",
-        "ROLE_LABELS"
-      ],
-      "lineCount": 123,
-      "sizeBytes": 3208,
-      "notes": "Utility / helper module; hits Prisma DB"
-    },
-    {
       "path": "src/lib/library/concurrent-wait.ts",
       "type": "util",
       "area": "shared",
@@ -27184,49 +24620,6 @@
       ],
       "lineCount": 26,
       "sizeBytes": 1757,
-      "notes": "Utility / helper module"
-    },
-    {
-      "path": "src/lib/prompts/creative-evidence-breakdown.ts",
-      "type": "util",
-      "area": "shared",
-      "exports": [
-        "PROMPT_VERSION",
-        "CREATIVE_EVIDENCE_BREAKDOWN_SYSTEM",
-        "CreativeEvidenceBreakdownInput",
-        "buildCreativeEvidenceBreakdownUser",
-        "mockCreativeEvidenceBreakdown"
-      ],
-      "imports": [
-        "./index",
-        "@/lib/schemas/creative-evidence"
-      ],
-      "importantSymbols": [
-        "PROMPT_VERSION",
-        "CREATIVE_EVIDENCE_BREAKDOWN_SYSTEM",
-        "CreativeEvidenceBreakdownInput",
-        "buildCreativeEvidenceBreakdownUser",
-        "mockCreativeEvidenceBreakdown"
-      ],
-      "lineCount": 134,
-      "sizeBytes": 5828,
-      "notes": "Utility / helper module"
-    },
-    {
-      "path": "src/lib/prompts/index.ts",
-      "type": "util",
-      "area": "shared",
-      "exports": [
-        "PROMPT_VERSIONS",
-        "PromptKey"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "PROMPT_VERSIONS",
-        "PromptKey"
-      ],
-      "lineCount": 15,
-      "sizeBytes": 413,
       "notes": "Utility / helper module"
     },
     {
@@ -27783,50 +25176,6 @@
       ],
       "lineCount": 318,
       "sizeBytes": 10015,
-      "notes": "External API provider wrapper; area=ai-providers"
-    },
-    {
-      "path": "src/lib/providers/sync-labs.ts",
-      "type": "provider",
-      "area": "ai-providers",
-      "exports": [
-        "SYNC_API_BASE",
-        "SYNC_DEFAULT_LIPSYNC_MODEL",
-        "SYNC_LIPSYNC_MODELS",
-        "SyncLipsyncModel",
-        "SYNC_LIPSYNC_SYNC_MODES",
-        "SyncLipsyncSyncMode",
-        "SYNC_DEFAULT_SYNC_MODE",
-        "SYNC_DEFAULT_USD_PER_SECOND",
-        "SYNC_GENERATION_STATUSES",
-        "SyncGenerationStatus",
-        "SyncFetchOptions",
-        "SyncGeneration",
-        "SyncLipsyncStage",
-        "SyncLipsyncError",
-        "isSyncConfigured",
-        "resolveSyncLipsyncModel",
-        "resolveSyncLipsyncSyncMode",
-        "resolveSyncUsdPerSecond",
-        "estimateSyncLipsyncCostUsd",
-        "mapSyncGenerationStatus",
-        "CreateSyncLipsyncInput",
-        "createSyncLipsyncGeneration",
-        "getSyncLipsyncGeneration"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "SYNC_API_BASE",
-        "SYNC_DEFAULT_LIPSYNC_MODEL",
-        "SYNC_LIPSYNC_MODELS",
-        "SyncLipsyncModel",
-        "SYNC_LIPSYNC_SYNC_MODES",
-        "SyncLipsyncSyncMode",
-        "SYNC_DEFAULT_SYNC_MODE",
-        "SYNC_DEFAULT_USD_PER_SECOND"
-      ],
-      "lineCount": 269,
-      "sizeBytes": 11213,
       "notes": "External API provider wrapper; area=ai-providers"
     },
     {
@@ -28620,84 +25969,6 @@
       "notes": "Business logic service; area=media-processing"
     },
     {
-      "path": "src/lib/services/business-insights-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "BusinessVideoInsight",
-        "BusinessInsightsSummary",
-        "BusinessRecommendation",
-        "BusinessInsightsBundle",
-        "loadBusinessInsights",
-        "buildRecommendations"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/i18n/config",
-        "@/i18n/dictionaries",
-        "@/i18n/translate",
-        "@/lib/db",
-        "@/lib/video-generation/business-status",
-        "@/lib/services/metrics-service"
-      ],
-      "importantSymbols": [
-        "BusinessVideoInsight",
-        "BusinessInsightsSummary",
-        "BusinessRecommendation",
-        "BusinessInsightsBundle",
-        "loadBusinessInsights",
-        "buildRecommendations"
-      ],
-      "lineCount": 283,
-      "sizeBytes": 8070,
-      "notes": "Business logic service; hits Prisma DB"
-    },
-    {
-      "path": "src/lib/services/business-metrics-import.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "listBusinessVideosForMetrics",
-        "importBusinessVideoMetrics"
-      ],
-      "imports": [
-        "@/lib/db",
-        "@/lib/services/metrics-service"
-      ],
-      "importantSymbols": [
-        "listBusinessVideosForMetrics",
-        "importBusinessVideoMetrics"
-      ],
-      "lineCount": 90,
-      "sizeBytes": 2479,
-      "notes": "Business logic service"
-    },
-    {
-      "path": "src/lib/services/business-order-title-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "UnifiedProductInput",
-        "resolveOrderDisplayLanguage",
-        "parseUnifiedProductInput",
-        "resolveBusinessOrderTitleFromOrder",
-        "shouldUpdateBusinessTitle"
-      ],
-      "imports": [
-        "@/lib/video-generation/business-display-title"
-      ],
-      "importantSymbols": [
-        "UnifiedProductInput",
-        "resolveOrderDisplayLanguage",
-        "parseUnifiedProductInput",
-        "resolveBusinessOrderTitleFromOrder",
-        "shouldUpdateBusinessTitle"
-      ],
-      "lineCount": 62,
-      "sizeBytes": 1890,
-      "notes": "Business logic service"
-    },
-    {
       "path": "src/lib/services/capability-probe-service.ts",
       "type": "service",
       "area": "shared",
@@ -29021,47 +26292,6 @@
       "lineCount": 224,
       "sizeBytes": 8525,
       "notes": "Business logic service"
-    },
-    {
-      "path": "src/lib/services/creative-evidence-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "UpsertCreativeEvidenceCardInput",
-        "ListCreativeEvidenceCardsParams",
-        "listCreativeEvidenceCards",
-        "getCreativeEvidenceCard",
-        "upsertCreativeEvidenceCard",
-        "publishCreativeEvidenceCard",
-        "archiveCreativeEvidenceCard",
-        "cardRowToCore",
-        "CreativeRecommendationScore",
-        "RecommendCreativeCardsInput",
-        "recommendCreativeCards",
-        "runCreativeEvidenceBreakdown",
-        "CREATIVE_ENUMS"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/ai",
-        "@/lib/schemas/creative-evidence",
-        "@/lib/prompts/creative-evidence-breakdown",
-        "./ai-usage-log-service"
-      ],
-      "importantSymbols": [
-        "UpsertCreativeEvidenceCardInput",
-        "ListCreativeEvidenceCardsParams",
-        "CreativeRecommendationScore",
-        "RecommendCreativeCardsInput",
-        "CREATIVE_ENUMS",
-        "listCreativeEvidenceCards",
-        "getCreativeEvidenceCard",
-        "upsertCreativeEvidenceCard"
-      ],
-      "lineCount": 326,
-      "sizeBytes": 11120,
-      "notes": "Business logic service; hits Prisma DB"
     },
     {
       "path": "src/lib/services/director-service.ts",
@@ -31311,40 +28541,6 @@
       "lineCount": 136,
       "sizeBytes": 5571,
       "notes": "Business logic service"
-    },
-    {
-      "path": "src/lib/services/video-route-health-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "DEFAULT_ROUTE_HEALTH_WINDOW_HOURS",
-        "MIN_ROUTE_HEALTH_SAMPLES",
-        "VideoRouteJobSample",
-        "VideoRouteHealth",
-        "VideoRouteHealthReport",
-        "UNHEALTHY_SUCCESS_RATE",
-        "summarizeVideoRouteHealth",
-        "findRouteHealth",
-        "getVideoRouteHealthReport"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/video-generation/video-route-registry"
-      ],
-      "importantSymbols": [
-        "DEFAULT_ROUTE_HEALTH_WINDOW_HOURS",
-        "MIN_ROUTE_HEALTH_SAMPLES",
-        "VideoRouteJobSample",
-        "VideoRouteHealth",
-        "VideoRouteHealthReport",
-        "UNHEALTHY_SUCCESS_RATE",
-        "summarizeVideoRouteHealth",
-        "findRouteHealth"
-      ],
-      "lineCount": 237,
-      "sizeBytes": 9381,
-      "notes": "Business logic service; hits Prisma DB"
     },
     {
       "path": "src/lib/services/video-route-options-service.ts",
@@ -34256,140 +31452,6 @@
       "notes": "Utility / helper module; area=media-processing"
     },
     {
-      "path": "src/lib/video-generation/sunnyshutter-commerce-template.ts",
-      "type": "util",
-      "area": "video-generation",
-      "exports": [
-        "SUNNYSHUTTER_COMMERCE_TEMPLATE_FAMILY",
-        "SUNNYSHUTTER_COMMERCE_CLIENT_LOCK",
-        "SunnyShutterStyleLane",
-        "SunnyShutterCommercePlotVariant",
-        "SUNNYSHUTTER_COMMERCE_PLOT_VARIANTS",
-        "sunnyshutterCommerceTemplateSeed",
-        "SUNNYSHUTTER_COMMERCE_TEMPLATE_SEEDS",
-        "pickSunnyShutterCommerceVariant",
-        "isSunnyShutterCommerceTemplateSlug",
-        "listSunnyShutterStyleLanes"
-      ],
-      "imports": [
-        "@/lib/video-generation/batch-style-templates",
-        "@/lib/video-generation/client-lock-profiles",
-        "@/lib/video-generation/shutter-shot-policy"
-      ],
-      "importantSymbols": [
-        "SUNNYSHUTTER_COMMERCE_TEMPLATE_FAMILY",
-        "SUNNYSHUTTER_COMMERCE_CLIENT_LOCK",
-        "SunnyShutterStyleLane",
-        "SunnyShutterCommercePlotVariant",
-        "SUNNYSHUTTER_COMMERCE_PLOT_VARIANTS",
-        "SUNNYSHUTTER_COMMERCE_TEMPLATE_SEEDS",
-        "sunnyshutterCommerceTemplateSeed",
-        "pickSunnyShutterCommerceVariant"
-      ],
-      "lineCount": 321,
-      "sizeBytes": 17054,
-      "notes": "Utility / helper module; area=video-generation"
-    },
-    {
-      "path": "src/lib/video-generation/sunnyshutter-image2-pipeline.ts",
-      "type": "util",
-      "area": "video-generation",
-      "exports": [
-        "SUNNYSHUTTER_LOCKED_PIPELINE_ID",
-        "SUNNYSHUTTER_PIPELINE_DURATION_SEC",
-        "SUNNYSHUTTER_PIPELINE_ASPECT",
-        "SunnyShutterStoryboardFramePlan",
-        "SunnyShutterPipelineVideoPlan",
-        "buildSunnyShutterStoryboardFramePlans",
-        "buildSunnyShutterVideoPrompt",
-        "pollShuyuTaskUntilDone",
-        "generateSunnyShutterStoryboard",
-        "buildSunnyShutterI2VPlan",
-        "submitSunnyShutterI2V",
-        "runSunnyShutterI2VWithFailover"
-      ],
-      "imports": [
-        "@/lib/providers/shuyu",
-        "@/lib/video-generation/providers/submission-error",
-        "@/lib/video-generation/storyboard-gacha",
-        "@/lib/video-generation/storyboard-lock",
-        "@/lib/video-generation/sunnyshutter-commerce-template",
-        "@/lib/video-generation/sunnyshutter-shade-pipeline"
-      ],
-      "importantSymbols": [
-        "SUNNYSHUTTER_LOCKED_PIPELINE_ID",
-        "SUNNYSHUTTER_PIPELINE_DURATION_SEC",
-        "SUNNYSHUTTER_PIPELINE_ASPECT",
-        "SunnyShutterStoryboardFramePlan",
-        "SunnyShutterPipelineVideoPlan",
-        "buildSunnyShutterStoryboardFramePlans",
-        "buildSunnyShutterVideoPrompt",
-        "pollShuyuTaskUntilDone"
-      ],
-      "lineCount": 441,
-      "sizeBytes": 16566,
-      "notes": "Utility / helper module; area=video-generation"
-    },
-    {
-      "path": "src/lib/video-generation/sunnyshutter-shade-pipeline.ts",
-      "type": "util",
-      "area": "video-generation",
-      "exports": [
-        "SUNNYSHUTTER_SHADE_PIPELINE_ID",
-        "pollShuyuTaskUntilDone",
-        "resolveImagePlanCandidates",
-        "generateShadeStoryboard",
-        "runShadeI2V"
-      ],
-      "imports": [
-        "@/lib/providers/shuyu",
-        "@/lib/providers/shuyu-catalog",
-        "@/lib/video-generation/providers/submission-error",
-        "@/lib/video-generation/storyboard-gacha",
-        "@/lib/video-generation/storyboard-lock",
-        "@/lib/video-generation/sunnyshutter-shade-template"
-      ],
-      "importantSymbols": [
-        "SUNNYSHUTTER_SHADE_PIPELINE_ID",
-        "pollShuyuTaskUntilDone",
-        "resolveImagePlanCandidates",
-        "generateShadeStoryboard",
-        "runShadeI2V"
-      ],
-      "lineCount": 345,
-      "sizeBytes": 12270,
-      "notes": "Utility / helper module; area=video-generation"
-    },
-    {
-      "path": "src/lib/video-generation/sunnyshutter-shade-template.ts",
-      "type": "util",
-      "area": "video-generation",
-      "exports": [
-        "SUNNYSHUTTER_SHADE_TEMPLATE_FAMILY",
-        "ShadeProductKind",
-        "ShadePullSide",
-        "SunnyShutterShadePlotVariant",
-        "SUNNYSHUTTER_SHADE_PLOT_VARIANTS",
-        "pickSunnyShutterShadeVariant",
-        "buildSunnyShutterShadePrompt",
-        "shadeStoryboardVisualBible"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "SUNNYSHUTTER_SHADE_TEMPLATE_FAMILY",
-        "ShadeProductKind",
-        "ShadePullSide",
-        "SunnyShutterShadePlotVariant",
-        "SUNNYSHUTTER_SHADE_PLOT_VARIANTS",
-        "pickSunnyShutterShadeVariant",
-        "buildSunnyShutterShadePrompt",
-        "shadeStoryboardVisualBible"
-      ],
-      "lineCount": 266,
-      "sizeBytes": 13857,
-      "notes": "Utility / helper module; area=video-generation"
-    },
-    {
       "path": "src/lib/video-generation/tail-trim.ts",
       "type": "util",
       "area": "media-processing",
@@ -34674,7 +31736,7 @@
         "checkVoiceoverDrive"
       ],
       "lineCount": 53,
-      "sizeBytes": 2085,
+      "sizeBytes": 2133,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -34906,32 +31968,6 @@
       "lineCount": 1031,
       "sizeBytes": 65267,
       "notes": "Documentation"
-    },
-    {
-      "path": "tests/_aiusage_check.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "../src/lib/db"
-      ],
-      "importantSymbols": [],
-      "lineCount": 63,
-      "sizeBytes": 1516,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/_videojob_check.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "../src/lib/db"
-      ],
-      "importantSymbols": [],
-      "lineCount": 108,
-      "sizeBytes": 3562,
-      "notes": "Unit / integration test; area=tests"
     },
     {
       "path": "tests/a4-cancel-cas-and-copy.test.ts",
@@ -35365,22 +32401,6 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
-      "path": "tests/bakeoff-plan.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:test",
-        "../scripts/lib/bakeoff-plan"
-      ],
-      "importantSymbols": [],
-      "lineCount": 126,
-      "sizeBytes": 6467,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/batch-api-contract.test.ts",
       "type": "test",
       "area": "tests",
@@ -35711,22 +32731,6 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
-      "path": "tests/booth-config.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test",
-        "../src/lib/config/contact"
-      ],
-      "importantSymbols": [],
-      "lineCount": 59,
-      "sizeBytes": 3321,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/brand-end-card-edge-cases.test.ts",
       "type": "test",
       "area": "tests",
@@ -35995,21 +32999,6 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
-      "path": "tests/business-insights.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/business-insights-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 42,
-      "sizeBytes": 1141,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/business-locale-regression.test.ts",
       "type": "test",
       "area": "tests",
@@ -36025,21 +33014,6 @@
       "importantSymbols": [],
       "lineCount": 70,
       "sizeBytes": 2232,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/business-order-title-service.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/business-order-title-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 40,
-      "sizeBytes": 1231,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -36937,8 +33911,8 @@
         "../scripts/lib/director-plan"
       ],
       "importantSymbols": [],
-      "lineCount": 586,
-      "sizeBytes": 34836,
+      "lineCount": 628,
+      "sizeBytes": 38903,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -37236,6 +34210,21 @@
       "importantSymbols": [],
       "lineCount": 126,
       "sizeBytes": 6357,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/experiment-budget.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../scripts/lib/experiment-budget"
+      ],
+      "importantSymbols": [],
+      "lineCount": 51,
+      "sizeBytes": 2768,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -37872,24 +34861,6 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
-      "path": "tests/global-brand-pack-assets.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "node:fs",
-        "node:child_process",
-        "node:path",
-        "../src/lib/brand/global-brand-packs"
-      ],
-      "importantSymbols": [],
-      "lineCount": 69,
-      "sizeBytes": 2481,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/golden-path-network-identity.test.ts",
       "type": "test",
       "area": "tests",
@@ -38289,23 +35260,6 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
-      "path": "tests/import-booth-leads.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:os",
-        "node:path",
-        "node:test",
-        "../scripts/import-booth-leads"
-      ],
-      "importantSymbols": [],
-      "lineCount": 98,
-      "sizeBytes": 4959,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/industry-defaults.test.ts",
       "type": "test",
       "area": "tests",
@@ -38608,7 +35562,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 304,
-      "sizeBytes": 14712,
+      "sizeBytes": 14696,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -39851,22 +36805,6 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
-      "path": "tests/real-samples-plan.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../scripts/lib/experiment-budget",
-        "../scripts/lib/real-samples-plan"
-      ],
-      "importantSymbols": [],
-      "lineCount": 147,
-      "sizeBytes": 7443,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/reburn-captions-ops.test.ts",
       "type": "test",
       "area": "tests",
@@ -39919,21 +36857,6 @@
       "lineCount": 376,
       "sizeBytes": 13165,
       "notes": "Unit / integration test; hits Prisma DB; calls Seedance video generator; area=tests"
-    },
-    {
-      "path": "tests/rehearsal-guard.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../scripts/lib/rehearsal-guard"
-      ],
-      "importantSymbols": [],
-      "lineCount": 114,
-      "sizeBytes": 4699,
-      "notes": "Unit / integration test; area=tests"
     },
     {
       "path": "tests/render-retry-errors.test.ts",
@@ -40143,12 +37066,11 @@
         "node:test",
         "../src/lib/providers/shuyu",
         "../src/lib/providers/shuyu-seedance25-probe",
-        "../src/lib/services/capability-probe-service",
-        "../scripts/lib/experiment-key-presence"
+        "../src/lib/services/capability-probe-service"
       ],
       "importantSymbols": [],
-      "lineCount": 132,
-      "sizeBytes": 6935,
+      "lineCount": 93,
+      "sizeBytes": 4953,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -40602,14 +37524,12 @@
       "exports": [],
       "imports": [
         "node:assert/strict",
-        "node:fs/promises",
         "node:test",
-        "../src/lib/video-generation/sunnyshutter-shade-pipeline",
         "../src/lib/video-generation/storyboard-gacha"
       ],
       "importantSymbols": [],
-      "lineCount": 115,
-      "sizeBytes": 3977,
+      "lineCount": 26,
+      "sizeBytes": 957,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -41182,21 +38102,6 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
-      "path": "tests/storage-migration-candidate-identification.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "node:fs/promises"
-      ],
-      "importantSymbols": [],
-      "lineCount": 28,
-      "sizeBytes": 1133,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/storyboard-ack-unknown-single-retry.test.ts",
       "type": "test",
       "area": "tests",
@@ -41254,8 +38159,8 @@
         "reviewStoryboardFrames",
         "pollPendingStoryboardRuns"
       ],
-      "lineCount": 721,
-      "sizeBytes": 31172,
+      "lineCount": 711,
+      "sizeBytes": 30638,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -41453,23 +38358,6 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
-      "path": "tests/sunnyshutter-commerce-template.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/video-generation/batch-style-templates",
-        "../src/lib/video-generation/sunnyshutter-commerce-template",
-        "../src/lib/video-generation/shutter-shot-policy"
-      ],
-      "importantSymbols": [],
-      "lineCount": 89,
-      "sizeBytes": 3874,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/surface-route-boundaries.test.ts",
       "type": "test",
       "area": "tests",
@@ -41540,21 +38428,6 @@
       "lineCount": 567,
       "sizeBytes": 19849,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
-    },
-    {
-      "path": "tests/sync-labs-provider.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/providers/sync-labs"
-      ],
-      "importantSymbols": [],
-      "lineCount": 150,
-      "sizeBytes": 7153,
-      "notes": "Unit / integration test; area=tests"
     },
     {
       "path": "tests/tail-trim-speech-safe.test.ts",
@@ -42082,12 +38955,11 @@
         "node:assert/strict",
         "node:test",
         "@prisma/client",
-        "../src/lib/services/video-service",
-        "../src/lib/labels-user"
+        "../src/lib/services/video-service"
       ],
       "importantSymbols": [],
-      "lineCount": 119,
-      "sizeBytes": 4335,
+      "lineCount": 67,
+      "sizeBytes": 2031,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
@@ -42166,24 +39038,6 @@
       "lineCount": 123,
       "sizeBytes": 6204,
       "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/video-route-health.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "@prisma/client",
-        "../src/lib/db",
-        "../src/lib/services/video-route-health-service",
-        "../scripts/report-video-route-health"
-      ],
-      "importantSymbols": [],
-      "lineCount": 269,
-      "sizeBytes": 12227,
-      "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
       "path": "tests/video-route-polling-safety.test.ts",

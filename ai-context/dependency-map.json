@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-16T22:54:33.507Z",
+  "generatedAt": "2026-11-16T23:56:28.480Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -3942,108 +3942,6 @@
       ]
     },
     {
-      "file": ".cursor/rules/engineering/engineering-backend-architect.mdc",
-      "imports": [
-        "express",
-        "helmet",
-        "express-rate-limit",
-        "./middleware/auth"
-      ],
-      "localImports": [
-        "./middleware/auth"
-      ],
-      "externalImports": [
-        "express",
-        "helmet",
-        "express-rate-limit"
-      ]
-    },
-    {
-      "file": ".cursor/rules/engineering/engineering-database-optimizer.mdc",
-      "imports": [
-        "@supabase/supabase-js"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@supabase/supabase-js"
-      ]
-    },
-    {
-      "file": ".cursor/rules/engineering/engineering-frontend-developer.mdc",
-      "imports": [
-        "react",
-        "@tanstack/react-virtual"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "react",
-        "@tanstack/react-virtual"
-      ]
-    },
-    {
-      "file": ".cursor/rules/engineering/engineering-rapid-prototyper.mdc",
-      "imports": [
-        "@clerk/nextjs",
-        "react-hook-form",
-        "@hookform/resolvers/zod",
-        "zod",
-        "@/components/ui/button",
-        "@/components/ui/input",
-        "@/components/ui/textarea",
-        "@/components/ui/use-toast",
-        "react"
-      ],
-      "localImports": [
-        "@/components/ui/button",
-        "@/components/ui/input",
-        "@/components/ui/textarea",
-        "@/components/ui/use-toast"
-      ],
-      "externalImports": [
-        "@clerk/nextjs",
-        "react-hook-form",
-        "@hookform/resolvers/zod",
-        "zod",
-        "react"
-      ]
-    },
-    {
-      "file": ".cursor/rules/engineering/engineering-technical-writer.mdc",
-      "imports": [
-        "your-package"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "your-package"
-      ]
-    },
-    {
-      "file": ".cursor/rules/testing/testing-api-tester.mdc",
-      "imports": [
-        "@playwright/test",
-        "perf_hooks"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@playwright/test",
-        "perf_hooks"
-      ]
-    },
-    {
-      "file": ".cursor/rules/testing/testing-performance-benchmarker.mdc",
-      "imports": [
-        "k6/http",
-        "k6",
-        "k6/metrics"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "k6/http",
-        "k6",
-        "k6/metrics"
-      ]
-    },
-    {
       "file": "deploy/china-future/CHINA_DEPLOYMENT.md",
       "imports": [
         "@/lib/storage/providers/volcengine-tos-provider",
@@ -4182,86 +4080,6 @@
       ],
       "externalImports": [
         "@next/env"
-      ]
-    },
-    {
-      "file": "designs/aivora-v2-exchange/booth/relay.mjs",
-      "imports": [
-        "node:http",
-        "node:fs",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "node:crypto",
-        "node:stream",
-        "node:url"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "node:http",
-        "node:fs",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "node:crypto",
-        "node:stream",
-        "node:url"
-      ]
-    },
-    {
-      "file": "designs/aivora-v2-exchange/booth/tools/build-icons.mjs",
-      "imports": [
-        "node:fs",
-        "node:path",
-        "node:vm",
-        "node:url"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "node:fs",
-        "node:path",
-        "node:vm",
-        "node:url"
-      ]
-    },
-    {
-      "file": "designs/aivora-v2-exchange/booth/tools/draft-cases.mjs",
-      "imports": [
-        "node:fs",
-        "node:url",
-        "node:vm"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "node:fs",
-        "node:url",
-        "node:vm"
-      ]
-    },
-    {
-      "file": "designs/aivora-v2-exchange/booth/tools/relay-selftest.mjs",
-      "imports": [
-        "node:child_process",
-        "node:http",
-        "node:net",
-        "node:os",
-        "node:fs",
-        "node:fs/promises",
-        "node:path",
-        "node:assert/strict",
-        "node:url"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "node:child_process",
-        "node:http",
-        "node:net",
-        "node:os",
-        "node:fs",
-        "node:fs/promises",
-        "node:path",
-        "node:assert/strict",
-        "node:url"
       ]
     },
     {
@@ -4673,91 +4491,6 @@
       ]
     },
     {
-      "file": "scripts/apply-production-migrations.ts",
-      "imports": [
-        "node:child_process",
-        "@prisma/client"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "node:child_process",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "scripts/archive-final-acceptance-template.ts",
-      "imports": [
-        "@prisma/client",
-        "../src/lib/db"
-      ],
-      "localImports": [
-        "../src/lib/db"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "scripts/audit-phase1-migration-blockers.ts",
-      "imports": [
-        "node:crypto",
-        "../src/lib/db"
-      ],
-      "localImports": [
-        "../src/lib/db"
-      ],
-      "externalImports": [
-        "node:crypto"
-      ]
-    },
-    {
-      "file": "scripts/audit-public-video-url-exposure.ts",
-      "imports": [
-        "node:fs/promises",
-        "node:path"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "node:fs/promises",
-        "node:path"
-      ]
-    },
-    {
-      "file": "scripts/backfill-business-order-titles.ts",
-      "imports": [
-        "../src/lib/db",
-        "../src/lib/services/business-order-title-service"
-      ],
-      "localImports": [
-        "../src/lib/db",
-        "../src/lib/services/business-order-title-service"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "scripts/bakeoff-runner.ts",
-      "imports": [
-        "node:crypto",
-        "node:fs",
-        "node:path",
-        "./lib/experiment-budget",
-        "./lib/bakeoff-plan",
-        "../src/lib/providers/shuyu",
-        "@next/env"
-      ],
-      "localImports": [
-        "./lib/experiment-budget",
-        "./lib/bakeoff-plan",
-        "../src/lib/providers/shuyu"
-      ],
-      "externalImports": [
-        "node:crypto",
-        "node:fs",
-        "node:path",
-        "@next/env"
-      ]
-    },
-    {
       "file": "scripts/build-codemap.ts",
       "imports": [
         "node:fs",
@@ -4765,40 +4498,6 @@
       ],
       "localImports": [],
       "externalImports": [
-        "node:fs",
-        "node:path"
-      ]
-    },
-    {
-      "file": "scripts/check-pet-kit-walkthrough-video.ts",
-      "imports": [
-        "@next/env",
-        "node:fs",
-        "node:path",
-        "../src/lib/providers/seedance"
-      ],
-      "localImports": [
-        "../src/lib/providers/seedance"
-      ],
-      "externalImports": [
-        "@next/env",
-        "node:fs",
-        "node:path"
-      ]
-    },
-    {
-      "file": "scripts/check-real-footage-walkthrough-video.ts",
-      "imports": [
-        "@next/env",
-        "node:fs",
-        "node:path",
-        "../src/lib/providers/seedance"
-      ],
-      "localImports": [
-        "../src/lib/providers/seedance"
-      ],
-      "externalImports": [
-        "@next/env",
         "node:fs",
         "node:path"
       ]
@@ -4857,92 +4556,6 @@
         "../src/lib/services/historical-dispatch-quarantine"
       ],
       "externalImports": []
-    },
-    {
-      "file": "scripts/demo-brand-overlay.ts",
-      "imports": [
-        "node:fs",
-        "node:path",
-        "../src/lib/video-generation/brand-overlay-renderer",
-        "sharp",
-        "node:fs/promises"
-      ],
-      "localImports": [
-        "../src/lib/video-generation/brand-overlay-renderer"
-      ],
-      "externalImports": [
-        "node:fs",
-        "node:path",
-        "sharp",
-        "node:fs/promises"
-      ]
-    },
-    {
-      "file": "scripts/demo-mock-business-flow.ts",
-      "imports": [
-        "node:url",
-        "node:child_process",
-        "node:util",
-        "../src/lib/video-generation/mock-clip-generator",
-        "../src/lib/video-generation/brand-end-card-renderer",
-        "../src/types/video-generation"
-      ],
-      "localImports": [
-        "../src/lib/video-generation/mock-clip-generator",
-        "../src/lib/video-generation/brand-end-card-renderer",
-        "../src/types/video-generation"
-      ],
-      "externalImports": [
-        "node:url",
-        "node:child_process",
-        "node:util"
-      ]
-    },
-    {
-      "file": "scripts/diagnose-seedance-raw-status.ts",
-      "imports": [
-        "@next/env"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@next/env"
-      ]
-    },
-    {
-      "file": "scripts/diagnose-stuck-brief-detail.ts",
-      "imports": [
-        "@next/env",
-        "@prisma/client"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@next/env",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "scripts/diagnose-stuck-final-videos.ts",
-      "imports": [
-        "@next/env",
-        "@prisma/client"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@next/env",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "scripts/diagnose-stuck-video-jobs.ts",
-      "imports": [
-        "@next/env",
-        "@prisma/client"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@next/env",
-        "@prisma/client"
-      ]
     },
     {
       "file": "scripts/director/run.ts",
@@ -5010,195 +4623,6 @@
         "node:os",
         "node:path",
         "@next/env"
-      ]
-    },
-    {
-      "file": "scripts/e2e-1025/acceptance-account.ts",
-      "imports": [
-        "node:crypto",
-        "node:fs",
-        "bcryptjs",
-        "../../src/lib/db"
-      ],
-      "localImports": [
-        "../../src/lib/db"
-      ],
-      "externalImports": [
-        "node:crypto",
-        "node:fs",
-        "bcryptjs"
-      ]
-    },
-    {
-      "file": "scripts/e2e-1025/acceptance-growth-setup.ts",
-      "imports": [
-        "../../src/lib/db",
-        "../../src/lib/services/lead-service",
-        "../../src/lib/services/tracked-link-service"
-      ],
-      "localImports": [
-        "../../src/lib/db",
-        "../../src/lib/services/lead-service",
-        "../../src/lib/services/tracked-link-service"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "scripts/e2e-1025/route-truth-table.ts",
-      "imports": [
-        "../../src/lib/providers/tts/openai",
-        "node:fs",
-        "../../src/lib/providers/shuyu",
-        "../../src/lib/providers/shuyu-seedance25-probe",
-        "../lib/experiment-key-presence"
-      ],
-      "localImports": [
-        "../../src/lib/providers/tts/openai",
-        "../../src/lib/providers/shuyu",
-        "../../src/lib/providers/shuyu-seedance25-probe",
-        "../lib/experiment-key-presence"
-      ],
-      "externalImports": [
-        "node:fs"
-      ]
-    },
-    {
-      "file": "scripts/e2e-1025/template-reseed-dry-run.ts",
-      "imports": [
-        "@prisma/client",
-        "../../src/lib/db",
-        "../../src/lib/video-generation/batch-style-templates"
-      ],
-      "localImports": [
-        "../../src/lib/db",
-        "../../src/lib/video-generation/batch-style-templates"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "scripts/e2e-brand-logo-shipment.ts",
-      "imports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:os",
-        "node:path",
-        "node:util",
-        "@/lib/db",
-        "@/lib/services/product-image-service",
-        "@/lib/services/workspace-brand-package-service",
-        "@/lib/providers/shuyu",
-        "@/lib/video-generation/sunnyshutter-shade-pipeline",
-        "@/lib/video-generation/still-motion-clip",
-        "@/lib/video-generation/brand-packaging-service",
-        "@/lib/video-generation/audio-post-production"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/services/product-image-service",
-        "@/lib/services/workspace-brand-package-service",
-        "@/lib/providers/shuyu",
-        "@/lib/video-generation/sunnyshutter-shade-pipeline",
-        "@/lib/video-generation/still-motion-clip",
-        "@/lib/video-generation/brand-packaging-service",
-        "@/lib/video-generation/audio-post-production"
-      ],
-      "externalImports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:os",
-        "node:path",
-        "node:util"
-      ]
-    },
-    {
-      "file": "scripts/e2e-generic-commerce-acceptance.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/video-generation/commerce-template-catalog",
-        "@/lib/video-generation/generic-commerce-template",
-        "@/lib/video-generation/batch-style-templates",
-        "@/lib/schemas/unified-input",
-        "@/lib/services/batch-service",
-        "@/components/brand/customer-brand-wall"
-      ],
-      "localImports": [
-        "@/lib/video-generation/commerce-template-catalog",
-        "@/lib/video-generation/generic-commerce-template",
-        "@/lib/video-generation/batch-style-templates",
-        "@/lib/schemas/unified-input",
-        "@/lib/services/batch-service",
-        "@/components/brand/customer-brand-wall"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "scripts/e2e-package-existing.ts",
-      "imports": [
-        "node:child_process",
-        "node:util",
-        "node:fs",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "@prisma/client",
-        "@/lib/video-generation/brand-packaging-service",
-        "@/lib/schemas/unified-input",
-        "@/lib/services/batch-service"
-      ],
-      "localImports": [
-        "@/lib/video-generation/brand-packaging-service",
-        "@/lib/schemas/unified-input",
-        "@/lib/services/batch-service"
-      ],
-      "externalImports": [
-        "node:child_process",
-        "node:util",
-        "node:fs",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "scripts/e2e-real-shipment.ts",
-      "imports": [
-        "node:child_process",
-        "node:util",
-        "node:fs",
-        "node:os",
-        "node:path",
-        "@prisma/client",
-        "@/lib/services/batch-service",
-        "@/lib/services/quota-service",
-        "@/lib/video-generation/brand-packaging-service",
-        "@/lib/services/workspace-brand-package-service",
-        "@/lib/schemas/unified-input",
-        "next-auth",
-        "node:fs/promises"
-      ],
-      "localImports": [
-        "@/lib/services/batch-service",
-        "@/lib/services/quota-service",
-        "@/lib/video-generation/brand-packaging-service",
-        "@/lib/services/workspace-brand-package-service",
-        "@/lib/schemas/unified-input"
-      ],
-      "externalImports": [
-        "node:child_process",
-        "node:util",
-        "node:fs",
-        "node:os",
-        "node:path",
-        "@prisma/client",
-        "next-auth",
-        "node:fs/promises"
       ]
     },
     {
@@ -5299,31 +4723,6 @@
       ]
     },
     {
-      "file": "scripts/find-brief-owner.ts",
-      "imports": [
-        "@next/env",
-        "../src/lib/db"
-      ],
-      "localImports": [
-        "../src/lib/db"
-      ],
-      "externalImports": [
-        "@next/env"
-      ]
-    },
-    {
-      "file": "scripts/fix-stuck-video-jobs.ts",
-      "imports": [
-        "@next/env",
-        "@prisma/client"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@next/env",
-        "@prisma/client"
-      ]
-    },
-    {
       "file": "scripts/frame-qa.ts",
       "imports": [
         "@next/env",
@@ -5334,25 +4733,6 @@
       ],
       "externalImports": [
         "@next/env"
-      ]
-    },
-    {
-      "file": "scripts/generate-curtain-viral-ads.ts",
-      "imports": [
-        "@next/env",
-        "node:fs",
-        "node:path",
-        "@vercel/blob",
-        "../src/lib/providers/seedance"
-      ],
-      "localImports": [
-        "../src/lib/providers/seedance"
-      ],
-      "externalImports": [
-        "@next/env",
-        "node:fs",
-        "node:path",
-        "@vercel/blob"
       ]
     },
     {
@@ -5368,154 +4748,6 @@
       ]
     },
     {
-      "file": "scripts/generate-pet-kit-voiceover.ts",
-      "imports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "openai"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "openai"
-      ]
-    },
-    {
-      "file": "scripts/generate-pet-kit-walkthrough-video.ts",
-      "imports": [
-        "@next/env",
-        "node:fs",
-        "node:path",
-        "../src/lib/providers/seedance"
-      ],
-      "localImports": [
-        "../src/lib/providers/seedance"
-      ],
-      "externalImports": [
-        "@next/env",
-        "node:fs",
-        "node:path"
-      ]
-    },
-    {
-      "file": "scripts/generate-real-estate-placeholder-poster.ts",
-      "imports": [
-        "node:fs",
-        "node:path",
-        "sharp"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "node:fs",
-        "node:path",
-        "sharp"
-      ]
-    },
-    {
-      "file": "scripts/generate-real-footage-walkthrough-video.ts",
-      "imports": [
-        "@next/env",
-        "node:fs",
-        "node:path",
-        "../src/lib/providers/seedance"
-      ],
-      "localImports": [
-        "../src/lib/providers/seedance"
-      ],
-      "externalImports": [
-        "@next/env",
-        "node:fs",
-        "node:path"
-      ]
-    },
-    {
-      "file": "scripts/generate-sunnyshutter-business-card-endcard.ts",
-      "imports": [
-        "node:fs",
-        "node:path",
-        "@next/env",
-        "@vercel/blob",
-        "@/lib/providers/shuyu",
-        "@/lib/video-generation/sunnyshutter-shade-pipeline",
-        "@/lib/video-generation/sunnyshutter-brand-pack"
-      ],
-      "localImports": [
-        "@/lib/providers/shuyu",
-        "@/lib/video-generation/sunnyshutter-shade-pipeline",
-        "@/lib/video-generation/sunnyshutter-brand-pack"
-      ],
-      "externalImports": [
-        "node:fs",
-        "node:path",
-        "@next/env",
-        "@vercel/blob"
-      ]
-    },
-    {
-      "file": "scripts/generate-sunnyshutter-end-card.ts",
-      "imports": [
-        "node:fs",
-        "node:path",
-        "@next/env",
-        "@/lib/providers/openai-image",
-        "@/lib/video-generation/sunnyshutter-brand-pack"
-      ],
-      "localImports": [
-        "@/lib/providers/openai-image",
-        "@/lib/video-generation/sunnyshutter-brand-pack"
-      ],
-      "externalImports": [
-        "node:fs",
-        "node:path",
-        "@next/env"
-      ]
-    },
-    {
-      "file": "scripts/identify-ceo-storage-migration-candidates.ts",
-      "imports": [
-        "node:crypto",
-        "node:fs/promises",
-        "node:path",
-        "../src/lib/db"
-      ],
-      "localImports": [
-        "../src/lib/db"
-      ],
-      "externalImports": [
-        "node:crypto",
-        "node:fs/promises",
-        "node:path"
-      ]
-    },
-    {
-      "file": "scripts/import-booth-leads.ts",
-      "imports": [
-        "node:crypto",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "node:url",
-        "@prisma/client",
-        "../src/lib/db"
-      ],
-      "localImports": [
-        "../src/lib/db"
-      ],
-      "externalImports": [
-        "node:crypto",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "node:url",
-        "@prisma/client"
-      ]
-    },
-    {
       "file": "scripts/imprint-logo-composite.ts",
       "imports": [
         "@/lib/video-generation/logo-imprint-compositor"
@@ -5524,27 +4756,6 @@
         "@/lib/video-generation/logo-imprint-compositor"
       ],
       "externalImports": []
-    },
-    {
-      "file": "scripts/lib/bakeoff-plan.ts",
-      "imports": [
-        "node:crypto",
-        "zod",
-        "../../src/lib/experiments/run-key",
-        "../../src/lib/video-generation/prompt-intelligence",
-        "../../src/lib/video-generation/segment-planner-adapter",
-        "../../src/types/video-generation"
-      ],
-      "localImports": [
-        "../../src/lib/experiments/run-key",
-        "../../src/lib/video-generation/prompt-intelligence",
-        "../../src/lib/video-generation/segment-planner-adapter",
-        "../../src/types/video-generation"
-      ],
-      "externalImports": [
-        "node:crypto",
-        "zod"
-      ]
     },
     {
       "file": "scripts/lib/director-plan.ts",
@@ -5562,16 +4773,6 @@
         "node:crypto",
         "zod"
       ]
-    },
-    {
-      "file": "scripts/lib/real-samples-plan.ts",
-      "imports": [
-        "../../src/lib/experiments/run-key"
-      ],
-      "localImports": [
-        "../../src/lib/experiments/run-key"
-      ],
-      "externalImports": []
     },
     {
       "file": "scripts/lib/soak-run.ts",
@@ -5611,57 +4812,6 @@
         "node:fs",
         "node:path",
         "node:url"
-      ]
-    },
-    {
-      "file": "scripts/migrate-ceo-videos-to-iad1.ts",
-      "imports": [
-        "node:crypto",
-        "node:child_process",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "node:util",
-        "@vercel/blob",
-        "@prisma/client"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "node:crypto",
-        "node:child_process",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "node:util",
-        "@vercel/blob",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "scripts/mock-walkthrough-harness.ts",
-      "imports": [
-        "bcryptjs",
-        "node:crypto",
-        "@prisma/client",
-        "../src/lib/db",
-        "../src/lib/video-generation/generation-supervisor",
-        "../src/lib/video-generation/plan-to-director",
-        "../src/lib/services/video-service",
-        "../src/types/video-generation",
-        "../src/lib/video-generation/business-display-title"
-      ],
-      "localImports": [
-        "../src/lib/db",
-        "../src/lib/video-generation/generation-supervisor",
-        "../src/lib/video-generation/plan-to-director",
-        "../src/lib/services/video-service",
-        "../src/types/video-generation",
-        "../src/lib/video-generation/business-display-title"
-      ],
-      "externalImports": [
-        "bcryptjs",
-        "node:crypto",
-        "@prisma/client"
       ]
     },
     {
@@ -5777,433 +4927,6 @@
       "externalImports": []
     },
     {
-      "file": "scripts/persist-recovered-segment.ts",
-      "imports": [
-        "@next/env",
-        "node:fs/promises",
-        "node:url",
-        "../src/lib/db",
-        "../src/lib/storage"
-      ],
-      "localImports": [
-        "../src/lib/db",
-        "../src/lib/storage"
-      ],
-      "externalImports": [
-        "@next/env",
-        "node:fs/promises",
-        "node:url"
-      ]
-    },
-    {
-      "file": "scripts/phase5a-mock-capacity.ts",
-      "imports": [
-        "node:perf_hooks",
-        "node:timers/promises",
-        "@prisma/client",
-        "./lib/rehearsal-guard",
-        "@/lib/db",
-        "@/lib/services/batch-service"
-      ],
-      "localImports": [
-        "./lib/rehearsal-guard",
-        "@/lib/db",
-        "@/lib/services/batch-service"
-      ],
-      "externalImports": [
-        "node:perf_hooks",
-        "node:timers/promises",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "scripts/preserve-paid-segment.ts",
-      "imports": [
-        "@next/env",
-        "@prisma/client",
-        "node:fs/promises",
-        "node:path"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@next/env",
-        "@prisma/client",
-        "node:fs/promises",
-        "node:path"
-      ]
-    },
-    {
-      "file": "scripts/probe-ceo-source-access.ts",
-      "imports": [
-        "@volcengine/tos-sdk",
-        "../src/lib/db"
-      ],
-      "localImports": [
-        "../src/lib/db"
-      ],
-      "externalImports": [
-        "@volcengine/tos-sdk"
-      ]
-    },
-    {
-      "file": "scripts/publish-curtain-videos-to-library.ts",
-      "imports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "@vercel/blob",
-        "@prisma/client"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "@vercel/blob",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "scripts/qa-responsive-screenshots.ts",
-      "imports": [
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "puppeteer-core"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "puppeteer-core"
-      ]
-    },
-    {
-      "file": "scripts/real-template-samples-expansion.ts",
-      "imports": [
-        "node:fs",
-        "node:path",
-        "@next/env",
-        "@prisma/client",
-        "next-auth",
-        "@/lib/db",
-        "node:crypto",
-        "@/lib/services/batch-service",
-        "@/lib/services/quota-service",
-        "@/lib/config/seedance-runtime",
-        "@/lib/providers/openai-image",
-        "@/lib/providers/shuyu",
-        "./lib/experiment-budget",
-        "./lib/real-samples-plan"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/services/batch-service",
-        "@/lib/services/quota-service",
-        "@/lib/config/seedance-runtime",
-        "@/lib/providers/openai-image",
-        "@/lib/providers/shuyu",
-        "./lib/experiment-budget",
-        "./lib/real-samples-plan"
-      ],
-      "externalImports": [
-        "node:fs",
-        "node:path",
-        "@next/env",
-        "@prisma/client",
-        "next-auth",
-        "node:crypto"
-      ]
-    },
-    {
-      "file": "scripts/real-video-acceptance-30s.ts",
-      "imports": [
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "@next/env",
-        "@vercel/blob",
-        "@/lib/providers/seedance",
-        "@/lib/config/seedance-runtime",
-        "@/lib/services/stitch-service",
-        "@/lib/video-generation/shutter-shot-policy",
-        "@/lib/video-generation/storyboard-lock"
-      ],
-      "localImports": [
-        "@/lib/providers/seedance",
-        "@/lib/config/seedance-runtime",
-        "@/lib/services/stitch-service",
-        "@/lib/video-generation/shutter-shot-policy",
-        "@/lib/video-generation/storyboard-lock"
-      ],
-      "externalImports": [
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "@next/env",
-        "@vercel/blob"
-      ]
-    },
-    {
-      "file": "scripts/real-video-acceptance-backend.ts",
-      "imports": [
-        "node:crypto",
-        "node:fs",
-        "node:path",
-        "@next/env",
-        "@prisma/client",
-        "@vercel/blob",
-        "next-auth",
-        "@/lib/db",
-        "@/lib/services/batch-service",
-        "@/lib/services/quota-service",
-        "@/lib/providers/shuyu",
-        "@/lib/video-generation/sunnyshutter-commerce-template"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/services/batch-service",
-        "@/lib/services/quota-service",
-        "@/lib/providers/shuyu",
-        "@/lib/video-generation/sunnyshutter-commerce-template"
-      ],
-      "externalImports": [
-        "node:crypto",
-        "node:fs",
-        "node:path",
-        "@next/env",
-        "@prisma/client",
-        "@vercel/blob",
-        "next-auth"
-      ]
-    },
-    {
-      "file": "scripts/real-video-acceptance-batch20.ts",
-      "imports": [
-        "node:crypto",
-        "node:fs",
-        "node:path",
-        "@next/env",
-        "@prisma/client",
-        "@vercel/blob",
-        "next-auth",
-        "@/lib/db",
-        "@/lib/services/batch-service",
-        "@/lib/services/quota-service",
-        "@/lib/config/seedance-runtime",
-        "@/lib/video-generation/sunnyshutter-commerce-template"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/services/batch-service",
-        "@/lib/services/quota-service",
-        "@/lib/config/seedance-runtime",
-        "@/lib/video-generation/sunnyshutter-commerce-template"
-      ],
-      "externalImports": [
-        "node:crypto",
-        "node:fs",
-        "node:path",
-        "@next/env",
-        "@prisma/client",
-        "@vercel/blob",
-        "next-auth"
-      ]
-    },
-    {
-      "file": "scripts/real-video-acceptance-branding.ts",
-      "imports": [
-        "node:fs",
-        "node:path",
-        "@next/env",
-        "@/lib/video-generation/brand-overlay-renderer",
-        "@/lib/video-generation/brand-end-card-renderer",
-        "@/lib/services/stitch-service",
-        "@/lib/video-generation/sunnyshutter-brand-pack",
-        "@/types/video-generation"
-      ],
-      "localImports": [
-        "@/lib/video-generation/brand-overlay-renderer",
-        "@/lib/video-generation/brand-end-card-renderer",
-        "@/lib/services/stitch-service",
-        "@/lib/video-generation/sunnyshutter-brand-pack",
-        "@/types/video-generation"
-      ],
-      "externalImports": [
-        "node:fs",
-        "node:path",
-        "@next/env"
-      ]
-    },
-    {
-      "file": "scripts/real-video-acceptance-sunnyshutter-batch10.ts",
-      "imports": [
-        "node:fs",
-        "node:path",
-        "node:crypto",
-        "@next/env",
-        "@vercel/blob",
-        "@/lib/providers/shuyu",
-        "@/lib/video-generation/sunnyshutter-commerce-template",
-        "@/lib/video-generation/sunnyshutter-image2-pipeline",
-        "@/lib/video-generation/storyboard-lock",
-        "@/lib/video-generation/brand-overlay-renderer",
-        "@/lib/video-generation/tail-trim",
-        "@/lib/video-generation/brand-end-card-renderer",
-        "@/lib/services/stitch-service",
-        "@/lib/video-generation/sunnyshutter-brand-pack",
-        "@/types/video-generation"
-      ],
-      "localImports": [
-        "@/lib/providers/shuyu",
-        "@/lib/video-generation/sunnyshutter-commerce-template",
-        "@/lib/video-generation/sunnyshutter-image2-pipeline",
-        "@/lib/video-generation/storyboard-lock",
-        "@/lib/video-generation/brand-overlay-renderer",
-        "@/lib/video-generation/tail-trim",
-        "@/lib/video-generation/brand-end-card-renderer",
-        "@/lib/services/stitch-service",
-        "@/lib/video-generation/sunnyshutter-brand-pack",
-        "@/types/video-generation"
-      ],
-      "externalImports": [
-        "node:fs",
-        "node:path",
-        "node:crypto",
-        "@next/env",
-        "@vercel/blob"
-      ]
-    },
-    {
-      "file": "scripts/real-video-acceptance-sunnyshutter-shade-batch10.ts",
-      "imports": [
-        "node:fs",
-        "node:path",
-        "node:crypto",
-        "@next/env",
-        "@vercel/blob",
-        "@/lib/providers/shuyu",
-        "@/lib/video-generation/sunnyshutter-shade-template",
-        "@/lib/video-generation/sunnyshutter-shade-pipeline",
-        "@/lib/video-generation/storyboard-lock",
-        "@/lib/video-generation/brand-overlay-renderer",
-        "@/lib/video-generation/brand-end-card-renderer",
-        "@/lib/video-generation/frame-qa",
-        "@/lib/video-generation/tail-trim",
-        "@/lib/services/stitch-service",
-        "@/lib/video-generation/sunnyshutter-brand-pack",
-        "@/types/video-generation"
-      ],
-      "localImports": [
-        "@/lib/providers/shuyu",
-        "@/lib/video-generation/sunnyshutter-shade-template",
-        "@/lib/video-generation/sunnyshutter-shade-pipeline",
-        "@/lib/video-generation/storyboard-lock",
-        "@/lib/video-generation/brand-overlay-renderer",
-        "@/lib/video-generation/brand-end-card-renderer",
-        "@/lib/video-generation/frame-qa",
-        "@/lib/video-generation/tail-trim",
-        "@/lib/services/stitch-service",
-        "@/lib/video-generation/sunnyshutter-brand-pack",
-        "@/types/video-generation"
-      ],
-      "externalImports": [
-        "node:fs",
-        "node:path",
-        "node:crypto",
-        "@next/env",
-        "@vercel/blob"
-      ]
-    },
-    {
-      "file": "scripts/recover-stuck-final-video.ts",
-      "imports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "node:url",
-        "@prisma/client",
-        "../src/lib/db",
-        "../src/lib/services/stitch-service",
-        "../src/lib/storage"
-      ],
-      "localImports": [
-        "../src/lib/db",
-        "../src/lib/services/stitch-service",
-        "../src/lib/storage"
-      ],
-      "externalImports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "node:url",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "scripts/regenerate-curtain-videos-v2.ts",
-      "imports": [
-        "@next/env",
-        "node:fs",
-        "node:path",
-        "../src/lib/providers/seedance"
-      ],
-      "localImports": [
-        "../src/lib/providers/seedance"
-      ],
-      "externalImports": [
-        "@next/env",
-        "node:fs",
-        "node:path"
-      ]
-    },
-    {
-      "file": "scripts/replace-curtain-videos-in-library.ts",
-      "imports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "@vercel/blob",
-        "@prisma/client"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "@vercel/blob",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "scripts/report-video-route-health.ts",
-      "imports": [
-        "node:path",
-        "node:url",
-        "../src/lib/experiments/run-key",
-        "../src/lib/services/video-route-health-service",
-        "../src/lib/db"
-      ],
-      "localImports": [
-        "../src/lib/experiments/run-key",
-        "../src/lib/services/video-route-health-service",
-        "../src/lib/db"
-      ],
-      "externalImports": [
-        "node:path",
-        "node:url"
-      ]
-    },
-    {
       "file": "scripts/roadmap.ts",
       "imports": [
         "node:child_process",
@@ -6235,125 +4958,6 @@
       ]
     },
     {
-      "file": "scripts/scan-storage-migration-manifest.ts",
-      "imports": [
-        "node:crypto",
-        "node:fs/promises",
-        "node:path",
-        "../src/lib/db"
-      ],
-      "localImports": [
-        "../src/lib/db"
-      ],
-      "externalImports": [
-        "node:crypto",
-        "node:fs/promises",
-        "node:path"
-      ]
-    },
-    {
-      "file": "scripts/screenshot-recovered-brief.mjs",
-      "imports": [
-        "puppeteer-core",
-        "node:fs",
-        "node:os",
-        "node:path"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "puppeteer-core",
-        "node:fs",
-        "node:os",
-        "node:path"
-      ]
-    },
-    {
-      "file": "scripts/seed-creative-evidence-cards.ts",
-      "imports": [
-        "@next/env",
-        "../src/lib/db",
-        "../src/lib/services/creative-evidence-service",
-        "../src/lib/schemas/creative-evidence"
-      ],
-      "localImports": [
-        "../src/lib/db",
-        "../src/lib/services/creative-evidence-service",
-        "../src/lib/schemas/creative-evidence"
-      ],
-      "externalImports": [
-        "@next/env"
-      ]
-    },
-    {
-      "file": "scripts/seed-global-brand-packages.ts",
-      "imports": [
-        "node:fs/promises",
-        "node:crypto",
-        "@vercel/blob",
-        "@prisma/client",
-        "../src/lib/brand/global-brand-packs"
-      ],
-      "localImports": [
-        "../src/lib/brand/global-brand-packs"
-      ],
-      "externalImports": [
-        "node:fs/promises",
-        "node:crypto",
-        "@vercel/blob",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "scripts/seed-style-templates-target.ts",
-      "imports": [
-        "@/lib/db",
-        "@/lib/services/style-template-service",
-        "@/lib/video-generation/batch-style-templates"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/services/style-template-service",
-        "@/lib/video-generation/batch-style-templates"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "scripts/stitch-pet-kit-walkthrough-video.ts",
-      "imports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "@vercel/blob"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "@vercel/blob"
-      ]
-    },
-    {
-      "file": "scripts/stitch-real-footage-walkthrough-video.ts",
-      "imports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "@vercel/blob"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "@vercel/blob"
-      ]
-    },
-    {
       "file": "scripts/stitch-runner.ts",
       "imports": [
         "node:child_process",
@@ -6380,219 +4984,6 @@
         "node:os",
         "node:path",
         "@vercel/blob"
-      ]
-    },
-    {
-      "file": "scripts/sunny-shutter-investor-demo-v21.ts",
-      "imports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:fs/promises",
-        "node:path",
-        "node:url",
-        "node:util",
-        "@vercel/blob",
-        "bcryptjs",
-        "node:crypto",
-        "@prisma/client",
-        "@/lib/video-generation/brand-end-card-renderer",
-        "@/lib/video-generation/brand-overlay-renderer",
-        "@/lib/providers/openai-image",
-        "@/lib/providers/seedance",
-        "@/types/video-generation"
-      ],
-      "localImports": [
-        "@/lib/video-generation/brand-end-card-renderer",
-        "@/lib/video-generation/brand-overlay-renderer",
-        "@/lib/providers/openai-image",
-        "@/lib/providers/seedance",
-        "@/types/video-generation"
-      ],
-      "externalImports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:fs/promises",
-        "node:path",
-        "node:url",
-        "node:util",
-        "@vercel/blob",
-        "bcryptjs",
-        "node:crypto",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "scripts/sunny-shutter-investor-demo.ts",
-      "imports": [
-        "@next/env",
-        "node:child_process",
-        "node:util",
-        "node:fs",
-        "node:fs/promises",
-        "node:url",
-        "node:path",
-        "bcryptjs",
-        "node:crypto",
-        "@vercel/blob",
-        "@prisma/client",
-        "../src/lib/providers/seedance",
-        "../src/lib/video-generation/brand-end-card-renderer",
-        "../src/lib/video-generation/brand-overlay-renderer",
-        "../src/types/video-generation"
-      ],
-      "localImports": [
-        "../src/lib/providers/seedance",
-        "../src/lib/video-generation/brand-end-card-renderer",
-        "../src/lib/video-generation/brand-overlay-renderer",
-        "../src/types/video-generation"
-      ],
-      "externalImports": [
-        "@next/env",
-        "node:child_process",
-        "node:util",
-        "node:fs",
-        "node:fs/promises",
-        "node:url",
-        "node:path",
-        "bcryptjs",
-        "node:crypto",
-        "@vercel/blob",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "scripts/sunny-shutter-merchant-journey.ts",
-      "imports": [
-        "bcryptjs",
-        "node:crypto",
-        "@prisma/client",
-        "../src/lib/db",
-        "../src/lib/video-generation/generation-supervisor",
-        "../src/lib/video-generation/plan-to-director",
-        "../src/lib/services/video-service",
-        "../src/lib/services/business-metrics-import",
-        "../src/lib/services/business-insights-service",
-        "../src/types/video-generation",
-        "../src/lib/video-generation/business-display-title"
-      ],
-      "localImports": [
-        "../src/lib/db",
-        "../src/lib/video-generation/generation-supervisor",
-        "../src/lib/video-generation/plan-to-director",
-        "../src/lib/services/video-service",
-        "../src/lib/services/business-metrics-import",
-        "../src/lib/services/business-insights-service",
-        "../src/types/video-generation",
-        "../src/lib/video-generation/business-display-title"
-      ],
-      "externalImports": [
-        "bcryptjs",
-        "node:crypto",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "scripts/sunny-shutter-reconcile.ts",
-      "imports": [
-        "@prisma/client",
-        "../src/lib/services/video-service",
-        "../src/lib/providers/seedance"
-      ],
-      "localImports": [
-        "../src/lib/services/video-service",
-        "../src/lib/providers/seedance"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "scripts/sunny-shutter-ui-check.ts",
-      "imports": [
-        "@prisma/client",
-        "../src/lib/services/video-service",
-        "../src/lib/labels-user"
-      ],
-      "localImports": [
-        "../src/lib/services/video-service",
-        "../src/lib/labels-user"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "scripts/upload-pet-demo-bgm-v2.ts",
-      "imports": [
-        "@next/env",
-        "@vercel/blob",
-        "node:fs",
-        "node:path"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@next/env",
-        "@vercel/blob",
-        "node:fs",
-        "node:path"
-      ]
-    },
-    {
-      "file": "scripts/validate-batch-pipeline.ts",
-      "imports": [
-        "node:assert/strict",
-        "@prisma/client",
-        "../src/lib/db",
-        "../src/lib/config/env",
-        "../src/lib/services/batch-service",
-        "../src/lib/video-generation/asset-allocator"
-      ],
-      "localImports": [
-        "../src/lib/db",
-        "../src/lib/config/env",
-        "../src/lib/services/batch-service",
-        "../src/lib/video-generation/asset-allocator"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "scripts/validate-storage-migration-sources.ts",
-      "imports": [
-        "node:fs/promises",
-        "node:path"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "node:fs/promises",
-        "node:path"
-      ]
-    },
-    {
-      "file": "scripts/verify-phase1-rehearsal.ts",
-      "imports": [
-        "@prisma/client",
-        "../src/lib/db"
-      ],
-      "localImports": [
-        "../src/lib/db"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "scripts/verify-phase4-schema.ts",
-      "imports": [
-        "@prisma/client"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@prisma/client"
       ]
     },
     {
@@ -13282,29 +11673,6 @@
       "externalImports": []
     },
     {
-      "file": "src/lib/labels-user.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/services/video-service"
-      ],
-      "localImports": [
-        "@/lib/services/video-service"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "src/lib/labels.ts",
-      "imports": [
-        "@prisma/client"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
       "file": "src/lib/library/feedback-next-steps.ts",
       "imports": [
         "@/lib/contracts/video-feedback"
@@ -13451,18 +11819,6 @@
       ],
       "localImports": [
         "@/lib/services/onboarding-service"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/lib/prompts/creative-evidence-breakdown.ts",
-      "imports": [
-        "./index",
-        "@/lib/schemas/creative-evidence"
-      ],
-      "localImports": [
-        "./index",
-        "@/lib/schemas/creative-evidence"
       ],
       "externalImports": []
     },
@@ -14026,51 +12382,6 @@
       ]
     },
     {
-      "file": "src/lib/services/business-insights-service.ts",
-      "imports": [
-        "@prisma/client",
-        "@/i18n/config",
-        "@/i18n/dictionaries",
-        "@/i18n/translate",
-        "@/lib/db",
-        "@/lib/video-generation/business-status",
-        "@/lib/services/metrics-service"
-      ],
-      "localImports": [
-        "@/i18n/config",
-        "@/i18n/dictionaries",
-        "@/i18n/translate",
-        "@/lib/db",
-        "@/lib/video-generation/business-status",
-        "@/lib/services/metrics-service"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "src/lib/services/business-metrics-import.ts",
-      "imports": [
-        "@/lib/db",
-        "@/lib/services/metrics-service"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/services/metrics-service"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/lib/services/business-order-title-service.ts",
-      "imports": [
-        "@/lib/video-generation/business-display-title"
-      ],
-      "localImports": [
-        "@/lib/video-generation/business-display-title"
-      ],
-      "externalImports": []
-    },
-    {
       "file": "src/lib/services/capability-probe-service.ts",
       "imports": [
         "zod",
@@ -14243,27 +12554,6 @@
         "@/lib/db"
       ],
       "externalImports": []
-    },
-    {
-      "file": "src/lib/services/creative-evidence-service.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/ai",
-        "@/lib/schemas/creative-evidence",
-        "@/lib/prompts/creative-evidence-breakdown",
-        "./ai-usage-log-service"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/ai",
-        "@/lib/schemas/creative-evidence",
-        "@/lib/prompts/creative-evidence-breakdown",
-        "./ai-usage-log-service"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
     },
     {
       "file": "src/lib/services/director-service.ts",
@@ -15428,21 +13718,6 @@
       ],
       "externalImports": [
         "zod"
-      ]
-    },
-    {
-      "file": "src/lib/services/video-route-health-service.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/video-generation/video-route-registry"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/video-generation/video-route-registry"
-      ],
-      "externalImports": [
-        "@prisma/client"
       ]
     },
     {
@@ -16687,60 +14962,6 @@
       ]
     },
     {
-      "file": "src/lib/video-generation/sunnyshutter-commerce-template.ts",
-      "imports": [
-        "@/lib/video-generation/batch-style-templates",
-        "@/lib/video-generation/client-lock-profiles",
-        "@/lib/video-generation/shutter-shot-policy"
-      ],
-      "localImports": [
-        "@/lib/video-generation/batch-style-templates",
-        "@/lib/video-generation/client-lock-profiles",
-        "@/lib/video-generation/shutter-shot-policy"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/lib/video-generation/sunnyshutter-image2-pipeline.ts",
-      "imports": [
-        "@/lib/providers/shuyu",
-        "@/lib/video-generation/providers/submission-error",
-        "@/lib/video-generation/storyboard-gacha",
-        "@/lib/video-generation/storyboard-lock",
-        "@/lib/video-generation/sunnyshutter-commerce-template",
-        "@/lib/video-generation/sunnyshutter-shade-pipeline"
-      ],
-      "localImports": [
-        "@/lib/providers/shuyu",
-        "@/lib/video-generation/providers/submission-error",
-        "@/lib/video-generation/storyboard-gacha",
-        "@/lib/video-generation/storyboard-lock",
-        "@/lib/video-generation/sunnyshutter-commerce-template",
-        "@/lib/video-generation/sunnyshutter-shade-pipeline"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/lib/video-generation/sunnyshutter-shade-pipeline.ts",
-      "imports": [
-        "@/lib/providers/shuyu",
-        "@/lib/providers/shuyu-catalog",
-        "@/lib/video-generation/providers/submission-error",
-        "@/lib/video-generation/storyboard-gacha",
-        "@/lib/video-generation/storyboard-lock",
-        "@/lib/video-generation/sunnyshutter-shade-template"
-      ],
-      "localImports": [
-        "@/lib/providers/shuyu",
-        "@/lib/providers/shuyu-catalog",
-        "@/lib/video-generation/providers/submission-error",
-        "@/lib/video-generation/storyboard-gacha",
-        "@/lib/video-generation/storyboard-lock",
-        "@/lib/video-generation/sunnyshutter-shade-template"
-      ],
-      "externalImports": []
-    },
-    {
       "file": "src/lib/video-generation/tail-trim.ts",
       "imports": [
         "node:fs",
@@ -16911,26 +15132,6 @@
       "externalImports": [
         "@playwright/test"
       ]
-    },
-    {
-      "file": "tests/_aiusage_check.ts",
-      "imports": [
-        "../src/lib/db"
-      ],
-      "localImports": [
-        "../src/lib/db"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "tests/_videojob_check.ts",
-      "imports": [
-        "../src/lib/db"
-      ],
-      "localImports": [
-        "../src/lib/db"
-      ],
-      "externalImports": []
     },
     {
       "file": "tests/a4-cancel-cas-and-copy.test.ts",
@@ -17386,23 +15587,6 @@
       ]
     },
     {
-      "file": "tests/bakeoff-plan.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:test",
-        "../scripts/lib/bakeoff-plan"
-      ],
-      "localImports": [
-        "../scripts/lib/bakeoff-plan"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/batch-api-contract.test.ts",
       "imports": [
         "node:assert/strict",
@@ -17792,23 +15976,6 @@
       ]
     },
     {
-      "file": "tests/booth-config.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test",
-        "../src/lib/config/contact"
-      ],
-      "localImports": [
-        "../src/lib/config/contact"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/brand-end-card-edge-cases.test.ts",
       "imports": [
         "node:assert/strict",
@@ -18110,21 +16277,6 @@
       ]
     },
     {
-      "file": "tests/business-insights.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/business-insights-service"
-      ],
-      "localImports": [
-        "../src/lib/services/business-insights-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/business-locale-regression.test.ts",
       "imports": [
         "node:assert/strict",
@@ -18143,21 +16295,6 @@
         "node:test",
         "node:fs",
         "node:path"
-      ]
-    },
-    {
-      "file": "tests/business-order-title-service.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/business-order-title-service"
-      ],
-      "localImports": [
-        "../src/lib/services/business-order-title-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
       ]
     },
     {
@@ -19424,6 +17561,21 @@
       ]
     },
     {
+      "file": "tests/experiment-budget.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../scripts/lib/experiment-budget"
+      ],
+      "localImports": [
+        "../scripts/lib/experiment-budget"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
       "file": "tests/experiment-run-key.test.ts",
       "imports": [
         "node:assert/strict",
@@ -19953,27 +18105,6 @@
       ]
     },
     {
-      "file": "tests/global-brand-pack-assets.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "node:fs",
-        "node:child_process",
-        "node:path",
-        "../src/lib/brand/global-brand-packs"
-      ],
-      "localImports": [
-        "../src/lib/brand/global-brand-packs"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test",
-        "node:fs",
-        "node:child_process",
-        "node:path"
-      ]
-    },
-    {
       "file": "tests/golden-path-network-identity.test.ts",
       "imports": [
         "node:assert/strict",
@@ -20366,25 +18497,6 @@
         "node:fs",
         "node:path",
         ")) return false;\n      if (t.startsWith("
-      ]
-    },
-    {
-      "file": "tests/import-booth-leads.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:os",
-        "node:path",
-        "node:test",
-        "../scripts/import-booth-leads"
-      ],
-      "localImports": [
-        "../scripts/import-booth-leads"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:os",
-        "node:path",
-        "node:test"
       ]
     },
     {
@@ -22078,23 +20190,6 @@
       ]
     },
     {
-      "file": "tests/real-samples-plan.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../scripts/lib/experiment-budget",
-        "../scripts/lib/real-samples-plan"
-      ],
-      "localImports": [
-        "../scripts/lib/experiment-budget",
-        "../scripts/lib/real-samples-plan"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/reburn-captions-ops.test.ts",
       "imports": [
         "node:assert/strict",
@@ -22147,21 +20242,6 @@
         "node:assert/strict",
         "node:test",
         "@prisma/client"
-      ]
-    },
-    {
-      "file": "tests/rehearsal-guard.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../scripts/lib/rehearsal-guard"
-      ],
-      "localImports": [
-        "../scripts/lib/rehearsal-guard"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
       ]
     },
     {
@@ -22417,14 +20497,12 @@
         "node:test",
         "../src/lib/providers/shuyu",
         "../src/lib/providers/shuyu-seedance25-probe",
-        "../src/lib/services/capability-probe-service",
-        "../scripts/lib/experiment-key-presence"
+        "../src/lib/services/capability-probe-service"
       ],
       "localImports": [
         "../src/lib/providers/shuyu",
         "../src/lib/providers/shuyu-seedance25-probe",
-        "../src/lib/services/capability-probe-service",
-        "../scripts/lib/experiment-key-presence"
+        "../src/lib/services/capability-probe-service"
       ],
       "externalImports": [
         "node:assert/strict",
@@ -22939,18 +21017,14 @@
       "file": "tests/shuyu-image2-routing.test.ts",
       "imports": [
         "node:assert/strict",
-        "node:fs/promises",
         "node:test",
-        "../src/lib/video-generation/sunnyshutter-shade-pipeline",
         "../src/lib/video-generation/storyboard-gacha"
       ],
       "localImports": [
-        "../src/lib/video-generation/sunnyshutter-shade-pipeline",
         "../src/lib/video-generation/storyboard-gacha"
       ],
       "externalImports": [
         "node:assert/strict",
-        "node:fs/promises",
         "node:test"
       ]
     },
@@ -23633,20 +21707,6 @@
       ]
     },
     {
-      "file": "tests/storage-migration-candidate-identification.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "node:fs/promises"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test",
-        "node:fs/promises"
-      ]
-    },
-    {
       "file": "tests/storyboard-ack-unknown-single-retry.test.ts",
       "imports": [
         "node:assert/strict",
@@ -23929,25 +21989,6 @@
       ]
     },
     {
-      "file": "tests/sunnyshutter-commerce-template.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/video-generation/batch-style-templates",
-        "../src/lib/video-generation/sunnyshutter-commerce-template",
-        "../src/lib/video-generation/shutter-shot-policy"
-      ],
-      "localImports": [
-        "../src/lib/video-generation/batch-style-templates",
-        "../src/lib/video-generation/sunnyshutter-commerce-template",
-        "../src/lib/video-generation/shutter-shot-policy"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/surface-route-boundaries.test.ts",
       "imports": [
         "node:assert/strict",
@@ -24028,21 +22069,6 @@
         "node:assert/strict",
         "node:test",
         "@prisma/client"
-      ]
-    },
-    {
-      "file": "tests/sync-labs-provider.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/providers/sync-labs"
-      ],
-      "localImports": [
-        "../src/lib/providers/sync-labs"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
       ]
     },
     {
@@ -24634,12 +22660,10 @@
         "node:assert/strict",
         "node:test",
         "@prisma/client",
-        "../src/lib/services/video-service",
-        "../src/lib/labels-user"
+        "../src/lib/services/video-service"
       ],
       "localImports": [
-        "../src/lib/services/video-service",
-        "../src/lib/labels-user"
+        "../src/lib/services/video-service"
       ],
       "externalImports": [
         "node:assert/strict",
@@ -24739,27 +22763,6 @@
         "node:assert/strict",
         "node:fs/promises",
         "node:test"
-      ]
-    },
-    {
-      "file": "tests/video-route-health.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "@prisma/client",
-        "../src/lib/db",
-        "../src/lib/services/video-route-health-service",
-        "../scripts/report-video-route-health"
-      ],
-      "localImports": [
-        "../src/lib/db",
-        "../src/lib/services/video-route-health-service",
-        "../scripts/report-video-route-health"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test",
-        "@prisma/client"
       ]
     },
     {

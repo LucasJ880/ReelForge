@@ -54,7 +54,6 @@ AI 批量生成短视频广告与产品图，管理素材库与投放赢家，�
 
 - 真实客户 SunnyShutter 的成片样片已在成品库开放（LIBRARY_SHOWCASE）。
 - PRD v3.3：`docs/roadmap/2026-07-29-ecommerce-workflow-prd.md`。
-- 旧设计稿（已被本轮取代）：`designs/aivora-os/Aivora OS v2.html`。
 
 ## Product Principles
 

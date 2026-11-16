@@ -3,13 +3,11 @@
 小商家的内容获客与增长操作系统（Next.js 16 App Router + Prisma/Neon + Vercel Blob）。
 当前实施依据：[PRD v3.3](docs/roadmap/2026-07-29-ecommerce-workflow-prd.md)，从 **M0** 起做。
 
-> ⚠️ `.cursor/rules/reelforge-project-context.mdc` 描述的是已废弃的「代运营中台 / 只有 AdminUser」
-> 模型，与当前 PRD 冲突，**不要拿它当事实来源**。
 
 ## 1. 找代码：先查索引，别扫 repo
 
-600+ 个 src 文件、100+ 个 API route、70+ 个 npm scripts（2026-10-25 实数：src 下 608 个文件 / 604 个 .ts·tsx，
-`src/app/api` 下 109 个 `route.ts`，package.json 71 个 scripts）。全 repo grep 是本项目最大的 token 漏斗。
+600+ 个 src 文件、近百个 API route、40 个 npm scripts（2026-11-16 瘦身第 0 批之后的实数：src 下 622 个文件 / 618 个 .ts·tsx，
+`src/app/api` 下 95 个 `route.ts`，package.json 41 个 scripts）。全 repo grep 是本项目最大的 token 漏斗。
 
 ```bash
 npm run context:find -- "关键词1 关键词2"   # 0.3s，给 top 10 文件 + 阅读顺序

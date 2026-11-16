@@ -708,13 +708,3 @@ test("P01-D：批量 tick 与 cron 单条轮询都接了 {AWAITING_APPROVAL, AUT
   assert.match(poll, /await reviewAutoStoryboardRun\(run\.id\)/);
   assert.match(batch, /storyboardProviderAttempts\(frame\) < BATCH_FRAME_MAX_ATTEMPTS/);
 });
-
-test("P01-D：SunnyShutter 两条锁定管线不接审帧、不接抽卡评审", async () => {
-  const [lockedPipeline, shadePipeline] = await Promise.all([
-    readFile("src/lib/video-generation/sunnyshutter-image2-pipeline.ts", "utf8"),
-    readFile("src/lib/video-generation/sunnyshutter-shade-pipeline.ts", "utf8"),
-  ]);
-  for (const source of [lockedPipeline, shadePipeline]) {
-    assert.doesNotMatch(source, /reviewStoryboardFrames|reviewAutoStoryboardRun|STORYBOARD_AI_REVIEW|generateFrameWithGacha|analyzeImages/);
-  }
-});

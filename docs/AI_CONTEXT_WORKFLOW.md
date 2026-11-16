@@ -71,9 +71,8 @@ npm run context:find -- "ffmpeg stitching audio loudness"
 | 3 | `src/app/api/internal/stitch/claim/route.ts` | Stitch runner 拉取任务 |
 | 4 | `src/app/api/internal/stitch/complete/route.ts` | Stitch runner 回写结果 |
 | 5 | `scripts/stitch-runner.ts` | 在 GitHub Action runner / Cloud Run 上跑的独立 ffmpeg 拼接器 |
-| 6 | `scripts/stitch-real-footage-walkthrough-video.ts` | 一次性 demo 拼接脚本 |
-| 7 | `tests/stitch-service-runtime.test.ts` | 集成测试 |
-| 8 | `.github/workflows/stitch-videos.yml` | Stitch runner 的 CI workflow |
+| 6 | `tests/stitch-service-runtime.test.ts` | 集成测试 |
+| 7 | `.github/workflows/stitch-videos.yml` | Stitch runner 的 CI workflow |
 
 **典型场景**
 
@@ -83,36 +82,7 @@ npm run context:find -- "ffmpeg stitching audio loudness"
 
 ---
 
-## 3. Demo 页面 / Real Footage Ads 演示
-
-**入口命令**
-
-```bash
-npm run context:find -- "demo real footage walkthrough"
-```
-
-**最常命中的文件**
-
-| # | 文件 | 角色 |
-|---|------|------|
-| 1 | `src/lib/demo/ai-video-workflow-demo-data.ts` | ⚠ 1054 行 — demo 用的全部 sample data |
-| 2 | `src/components/demo/demo-hero.tsx` | demo 页主 hero |
-| 3 | `src/components/demo/demo-input-panel.tsx` | demo 输入面板 |
-| 4 | `src/components/demo/demo-section.tsx` | demo 容器 section |
-| 5 | `src/components/demo/ai-script-section.tsx` | AI 脚本展示 |
-| 6 | `src/components/demo/storyboard-grid.tsx` | 分镜网格 |
-| 7 | `src/components/demo/final-output-section.tsx` | 最终视频展示 |
-| 8 | `src/app/(public)/showcase/...` | 公开 showcase 页 |
-
-**典型场景**
-
-- "改 demo 文案 / sample data" → 只动 `lib/demo/ai-video-workflow-demo-data.ts`，组件不动。
-- "demo 视频文件路径错了" → 路径常量在 `ai-video-workflow-demo-data.ts`，**永远不要直接读 `public/generated/*.mp4`**。
-- "走查 demo 页面流程" → 顺序：`(public)/showcase/page.tsx` → `demo-section.tsx` → 各个 sub-section。
-
----
-
-## 4. Demo Leads / Waitlist
+## 3. Demo Leads / Waitlist
 
 **入口命令**
 
@@ -124,19 +94,18 @@ npm run context:find -- "demo leads waitlist"
 
 | # | 文件 | 角色 |
 |---|------|------|
-| 1 | `src/app/(internal)/internal/demo-leads/page.tsx` | 内部管理 lead 列表 (308 行) |
-| 2 | `src/app/api/demo/real-footage-ads/waitlist/route.ts` | POST 写 lead 到 Prisma |
-| 3 | `src/app/(public)/showcase/waitlist-form.tsx` | 公开 waitlist 表单组件 |
-| 4 | `prisma/schema.prisma` | Lead 模型（搜 `model Lead` / `WaitlistLead`） |
+| 1 | `src/app/api/demo/real-footage-ads/waitlist/route.ts` | POST 写 lead 到 Prisma |
+| 2 | `prisma/schema.prisma` | 模型 `RealFootageDemoLead`（搜 `model RealFootageDemoLead`） |
+
+公开 showcase 页的表单和内部 lead 列表页已在 2026-10-28 删除，只剩接口和表。商家询盘（`/l/[slug]` 进来的）是另一套：`model Lead` + `/app/leads`。
 
 **典型场景**
 
-- "新增 lead 字段" → 改 Prisma schema → 改 waitlist API → 改 form。
-- "看 lead 列表 UI 出 bug" → 先 `internal/demo-leads/page.tsx`。
+- "新增 lead 字段" → 改 Prisma schema → 改 waitlist API。
 
 ---
 
-## 5. Vercel Blob 上传 / 视频 URL
+## 4. Vercel Blob 上传 / 视频 URL
 
 **入口命令**
 
@@ -149,18 +118,18 @@ npm run context:find -- "vercel blob upload video url"
 | # | 文件 | 角色 |
 |---|------|------|
 | 1 | `src/app/api/upload/blob/route.ts` | Blob 上传 endpoint |
-| 2 | `src/components/video-generation/attachment-uploader.tsx` | 前端 uploader 组件 |
+| 2 | `src/lib/upload/blob-xhr.ts` | 前端直传（`uploadBlobWithProgress`，带进度与卡住超时） |
 | 3 | `src/lib/services/ad-render-service.ts` | 标记 `uses Vercel Blob storage` |
 | 4 | `src/lib/services/video-service.ts` | 持久化 final video URL |
 
 **典型场景**
 
-- "上传失败" → `upload/blob/route.ts` + `attachment-uploader.tsx` 一起看。
+- "上传失败" → `upload/blob/route.ts` + `lib/upload/blob-xhr.ts` 一起看。
 - "Blob URL 没回写到 DB" → `services/video-service.ts` 中存 finalVideoUrl 的位置。
 
 ---
 
-## 6. Prisma Schema 改动
+## 5. Prisma Schema 改动
 
 **入口**
 
@@ -179,7 +148,7 @@ ls docs/   # 找跟你要改的实体相关的 spec
 
 ---
 
-## 7. Next.js 路由 / API endpoint
+## 6. Next.js 路由 / API endpoint
 
 **入口**
 
@@ -197,7 +166,7 @@ grep -A2 "/api/your-thing" ai-context/route-map.json
 
 ---
 
-## 8. 认证 / NextAuth
+## 7. 认证 / NextAuth
 
 **入口命令**
 
@@ -217,7 +186,7 @@ npm run context:find -- "auth next-auth session admin"
 
 ---
 
-## 9. 测试
+## 8. 测试
 
 **入口**
 
@@ -232,7 +201,7 @@ npm run context:find -- "<feature>" --area=tests
 
 ---
 
-## 10. Dry-run 演示（"video generation dispatch"）
+## 9. Dry-run 演示（"video generation dispatch"）
 
 下面是这次 Phase 1.5 真实跑出来的输出片段（节选）。这就是 AI agent 在真实工作流里**应该先看到**的东西，而不是先扫 repo：
 
@@ -274,7 +243,7 @@ Top 文件（节选）：
 
 ---
 
-## 11. 重建 codemap
+## 10. 重建 codemap
 
 ```bash
 npm run codemap:build
@@ -291,7 +260,7 @@ npm run codemap:build
 
 ---
 
-## 12. 不要做的事（重申）
+## 11. 不要做的事（重申）
 
 - ❌ 一上来就 `Glob "**/*"` 列文件
 - ❌ 一上来就 `Grep` 整个 src

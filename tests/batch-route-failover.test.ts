@@ -201,11 +201,11 @@ function pickSnapshot(record: Record<string, unknown>) {
   );
 }
 
-test("前提：本夹具下备用线路确实可用（否则「没降级」证明不了任何事）", (t) => {
+test("前提：2026-11-16 Runway 下线后 Shuyu 没有备用线路（下面的用例继续守「批量绝不换线路」这条机制）", (t) => {
   realEnvWithBackup(t);
-  const backup = customerFailoverRouteSnapshot(process.env, "buddy");
-  assert.ok(backup);
-  assert.equal(backup.videoRouteSnapshot, "runway");
+  /// 夹具里 Runway 的 key 仍然配着：下线是代码里关死的，不靠删 key
+  assert.equal(customerFailoverRouteSnapshot(process.env, "buddy"), null);
+  assert.equal(customerFailoverRouteSnapshot(process.env, "runway")?.videoRouteSnapshot, "buddy");
 });
 
 test("Shuyu 上游不可用：批量按原原因 shuyu_unavailable 拒绝，零建批次、零换线路", async (t) => {

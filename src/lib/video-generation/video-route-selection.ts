@@ -21,14 +21,17 @@ import {
   type VideoRouteSnapshot,
 } from "./video-route-registry";
 
+/// 2026-11-16 Runway 出片下线：内部也不能再点名 runway（历史快照照常可读，见 video-route-registry）。
 export const STAFF_SELECTABLE_VIDEO_ROUTE_IDS = [
   "byteplus_international",
   "volcengine_cn_legacy",
   "buddy",
-  "runway",
 ] as const;
 
 /**
+ * 2026-11-16 起客户线路只有 buddy（Shuyu 的 Seedance）：Runway 出片下线（runway-rollout.ts 的 RUNWAY_RETIRED），
+ * 下面说的「全员切换」「高质量」都已关死，点名 runway 一律 FORBIDDEN。以下是下线前的说明：
+ *
  * 客户的视频线路（2026-10-29 起）：默认一律 buddy（Shuyu）；VIDEO_CUSTOMER_ROUTE=runway 是全员切到 Runway 的运维开关。
  * 客户可以主动选「高质量」= runway（开关与名单见 runway-rollout.ts 的 canChooseRunwayPremium）；
  * 任何时候都能显式点名 buddy，任何时候都不能点名直连线路。
@@ -102,6 +105,8 @@ export function selectCustomerVideoRouteSnapshot(args: {
  * 丢进必死的提交。火山 / BytePlus 直连线路仍在 STAFF_SELECTABLE_VIDEO_ROUTE_IDS 里，只供
  * 历史快照读取与内部脚本点名（A 级下线：撤客户入口，代码与数据保留）。
  *
+ *  - 2026-11-16 Runway 下线后：Shuyu 是唯一线路，Shuyu 不可用时没有备用（返回 null，走提前告知 + 免费取消）；
+ *    下线前已经交给 Runway 的任务失败时仍然改交 Shuyu。
  *  - 主线路 Runway → 备用 Shuyu；
  *  - 主线路 Shuyu（或没指明、或内部点名的直连线路）→ 备用 Runway，SHUYU_FALLBACK_TO_RUNWAY=off
  *    或没配 Runway key 时没有备用；

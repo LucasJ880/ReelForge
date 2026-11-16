@@ -31,7 +31,7 @@ export const CAPABILITY_KEYS = [
 export type CapabilityKey = (typeof CAPABILITY_KEYS)[number];
 
 /**
- * 线路精简（2026-11-09）：这些能力背后的外部线路已下线，对外只留 Shuyu（出图 / 出片）、Runway（出片备选）
+ * 线路精简（2026-11-09）：这些能力背后的外部线路已下线，对外只留 Shuyu（出图 / 出片）、Runway（出片备选；2026-11-16 也已下线，见 runway-rollout.ts）
  * 与只做出方案的 OpenAI。
  *
  *  - voice：OpenAI / ElevenLabs 配音只服务实拍图库线路（入口 10-28 已撤）；主线口播是视频模型原生对白

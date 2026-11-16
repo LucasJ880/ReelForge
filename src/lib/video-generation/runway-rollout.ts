@@ -1,4 +1,13 @@
 /**
+ * ⛔ 2026-11-16 CEO 决定：Runway 出片彻底下线，线路只留 OpenAI（出方案、出故事板图）+ Shuyu 的 Seedance（出片）。
+ * 按 A 级下线做（CLAUDE.md §4-8）：下面四个入口一律关死，**不再看任何环境变量**——Vercel 上残留的
+ * `RUNWAYML_API_SECRET` / `RUNWAY_PILOT_ACCOUNTS` / `VIDEO_CUSTOMER_ROUTE=runway` 都打不开它：
+ *   usesRunwayVideo（全员切换）、canChooseRunwayPremium（「高质量」选项）、
+ *   shuyuFallbackToRunwayEnabled（Shuyu 失败改交 Runway）、usesRunwayStoryboardImages（故事板出图）。
+ * 适配器、改交机制与历史快照读取都保留：下线前已经交给 Runway 的任务照常查到结果，Runway 任务失败照旧改交 Shuyu。
+ * 名单与开关的解析函数（isRunwayPilotAccount / runwayPremiumMode / isRunwayGlobalRollout）只剩读法，不再决定任何行为。
+ *
+ * —— 以下是下线前的说明，留作历史 ——
  * Runway 线路的三种用法（2026-10-29 Evan：Shuyu 作所有客户的默认线路，便宜；Runway 作更高质量的备选；
  * Shuyu 生成失败再换 Runway）。三种都要配了 `RUNWAYML_API_SECRET` 才生效。
  *
@@ -15,6 +24,9 @@
 import { runwayApiKey } from "@/lib/providers/runway";
 
 type Env = NodeJS.ProcessEnv | Record<string, string | undefined>;
+
+/** Runway 出片已下线（2026-11-16，CEO）。常量而不是环境变量：重新启用必须改代码、过评审。 */
+export const RUNWAY_RETIRED = true;
 
 export interface RolloutAccount {
   userId?: string | null;
@@ -44,6 +56,7 @@ export function isRunwayPilotAccount(account: RolloutAccount | null | undefined,
 
 /** 客户默认视频线路是不是 Runway：只看全员开关（10-29 起 Shuyu 是所有人的默认线路，灰度名单不再改默认）。 */
 export function usesRunwayVideo(env: Env = process.env): boolean {
+  if (RUNWAY_RETIRED) return false;
   return isRunwayGlobalRollout(env);
 }
 
@@ -56,6 +69,7 @@ export function runwayPremiumMode(env: Env = process.env): RunwayPremiumMode {
 
 /** 这个账号能不能选「高质量（Runway）」：配了 key，且开关对它开放。 */
 export function canChooseRunwayPremium(account: RolloutAccount | null | undefined, env: Env = process.env): boolean {
+  if (RUNWAY_RETIRED) return false;
   if (!runwayApiKey(env)) return false;
   const mode = runwayPremiumMode(env);
   return mode === "on" || (mode === "pilot" && isRunwayPilotAccount(account, env));
@@ -63,10 +77,12 @@ export function canChooseRunwayPremium(account: RolloutAccount | null | undefine
 
 /** Shuyu 明确失败后改交 Runway 的开关：缺省开，配了 key 才算数。 */
 export function shuyuFallbackToRunwayEnabled(env: Env = process.env): boolean {
+  if (RUNWAY_RETIRED) return false;
   return env.SHUYU_FALLBACK_TO_RUNWAY?.trim().toLowerCase() !== "off" && Boolean(runwayApiKey(env));
 }
 
 /** 这个账号的故事板出图该不该走 Runway：全员开关或灰度名单（与 10-28 一致），且必须配了 key（没 key 就留在 Shuyu）。 */
 export function usesRunwayStoryboardImages(account: RolloutAccount | null | undefined, env: Env = process.env): boolean {
+  if (RUNWAY_RETIRED) return false;
   return (isRunwayGlobalRollout(env) || isRunwayPilotAccount(account, env)) && Boolean(runwayApiKey(env));
 }

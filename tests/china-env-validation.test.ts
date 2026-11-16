@@ -380,12 +380,13 @@ test("validateDeploymentEnv: 火山直连密钥删掉后，只要 Shuyu 配着�
   const r = validateDeploymentEnv({ ...PROD_LIKE, SHUYU_API_KEY: "shuyu-key" });
   assert.equal(r.ok, true, r.missing.join("; "));
   assert.deepEqual(r.missing, []);
-  assert.ok(r.warnings.some((w) => /ARK_API_KEY 未配置/.test(w) && /Shuyu \/ Runway 不受影响/.test(w)));
+  assert.ok(r.warnings.some((w) => /ARK_API_KEY 未配置/.test(w) && /走 Shuyu 不受影响/.test(w)));
 });
 
-test("validateDeploymentEnv: 只配 Runway 也算有客户线路", () => {
+test("validateDeploymentEnv: 2026-11-16 Runway 出片下线，只配 Runway 不再算有客户线路", () => {
   const r = validateDeploymentEnv({ ...PROD_LIKE, RUNWAYML_API_SECRET: "runway-key" });
-  assert.equal(r.ok, true, r.missing.join("; "));
+  assert.equal(r.ok, false);
+  assert.ok(r.missing.some((m) => /ARK_API_KEY/.test(m)));
 });
 
 test("validateDeploymentEnv: 直连、Shuyu、Runway 都没配 → 照旧 fail closed（真的没有线路能出片）", () => {

@@ -14,7 +14,8 @@ import {
   VideoRouteSelectionError,
 } from "../src/lib/video-generation/video-route-selection";
 
-/// 2026-11-09 线路精简后的备用线路：只在 Shuyu（buddy）与 Runway 之间互换
+/// resolveRouteWithFailover 的机制用例里充当「备用线路」的那条（经 deps 注入）。
+/// 2026-11-16 Runway 下线后真实配置里 Shuyu 已没有备用（见下面的下线用例），机制本身保留。
 const BACKUP_ROUTE_ID = "runway";
 /// 已下线的旧降级目标（火山引擎直连）：客户入口撤了，内部脚本仍可点名
 const RETIRED_FAILOVER_ROUTE_ID = "volcengine_cn_legacy";
@@ -46,31 +47,30 @@ test("降级不等于把选择权交给客户：显式请求备用线路照旧 F
   );
 });
 
-test("备用线路配置齐全时给出可用快照：Shuyu 的备用是 Runway，Runway 的备用是 Shuyu", () => {
+test("2026-11-16 Runway 下线：Shuyu 没有备用线路；下线前交给 Runway 的任务失败仍改交 Shuyu", () => {
+  /// Runway 的 key 还配着、开关没关，也不再是 Shuyu 的备用
   for (const primary of ["buddy", undefined] as const) {
-    const snapshot = customerFailoverRouteSnapshot(REAL_ENV, primary);
-    assert.ok(snapshot);
-    assert.equal(snapshot.videoRouteSnapshot, BACKUP_ROUTE_ID);
-    assert.ok(snapshot.videoModelSnapshot);
+    assert.equal(customerFailoverRouteSnapshot(REAL_ENV, primary), null, String(primary));
+    assert.equal(customerFailoverRouteSnapshot({ ...REAL_ENV, SHUYU_FALLBACK_TO_RUNWAY: "on" }, primary), null);
   }
-  assert.equal(customerFailoverRouteSnapshot(REAL_ENV, "runway")?.videoRouteSnapshot, "buddy");
+  const backup = customerFailoverRouteSnapshot(REAL_ENV, "runway");
+  assert.ok(backup);
+  assert.equal(backup.videoRouteSnapshot, "buddy");
+  assert.ok(backup.videoModelSnapshot);
 });
 
 test("备用线路没配好时返回 null，而不是把用户丢进必死的提交", () => {
-  assert.equal(customerFailoverRouteSnapshot({ ...REAL_ENV, RUNWAYML_API_SECRET: "" }, "buddy"), null);
-  assert.equal(customerFailoverRouteSnapshot({ ...REAL_ENV, SHUYU_FALLBACK_TO_RUNWAY: "off" }, "buddy"), null);
   assert.equal(customerFailoverRouteSnapshot({ ...REAL_ENV, SHUYU_API_KEY: "" }, "runway"), null);
 });
 
 test("线路精简（2026-11-09）：火山直连不再是任何主线路的备用，凭据还配着也不行", () => {
   /// 以前「Runway 没开」或「主线路不是 buddy / runway」时会降到 volcengine_cn_legacy（账户已欠费）
-  const onlyArk = { ...REAL_ENV, RUNWAYML_API_SECRET: "" };
-  for (const primary of ["buddy", "byteplus_international", RETIRED_FAILOVER_ROUTE_ID, undefined]) {
-    assert.equal(customerFailoverRouteSnapshot(onlyArk, primary), null, String(primary));
-  }
-  for (const primary of ["buddy", "runway", "byteplus_international", RETIRED_FAILOVER_ROUTE_ID, undefined]) {
-    const backup = customerFailoverRouteSnapshot(REAL_ENV, primary)?.videoRouteSnapshot;
-    assert.ok(backup === "buddy" || backup === "runway", `${String(primary)} → ${String(backup)}`);
+  for (const env of [REAL_ENV, { ...REAL_ENV, RUNWAYML_API_SECRET: "" }]) {
+    for (const primary of ["buddy", "byteplus_international", RETIRED_FAILOVER_ROUTE_ID, undefined]) {
+      assert.equal(customerFailoverRouteSnapshot(env, primary), null, String(primary));
+    }
+    /// 备用只可能是 Shuyu（只给下线前的 Runway 任务用），绝不会是火山直连
+    assert.equal(customerFailoverRouteSnapshot(env, "runway")?.videoRouteSnapshot, "buddy");
   }
 });
 

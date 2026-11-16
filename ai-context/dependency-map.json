@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T05:35:18.761Z",
+  "generatedAt": "2026-11-16T22:07:49.403Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -4945,6 +4945,41 @@
       ]
     },
     {
+      "file": "scripts/director/run.ts",
+      "imports": [
+        "node:child_process",
+        "node:crypto",
+        "node:fs",
+        "node:path",
+        "@next/env",
+        "../lib/director-plan",
+        "../lib/experiment-budget",
+        "@/lib/storage",
+        "@/lib/providers/shuyu",
+        "openai",
+        "openai/uploads",
+        "@/lib/video-generation/providers/submission-error",
+        "@/lib/video-generation/providers/shuyu-video-provider"
+      ],
+      "localImports": [
+        "../lib/director-plan",
+        "../lib/experiment-budget",
+        "@/lib/storage",
+        "@/lib/providers/shuyu",
+        "@/lib/video-generation/providers/submission-error",
+        "@/lib/video-generation/providers/shuyu-video-provider"
+      ],
+      "externalImports": [
+        "node:child_process",
+        "node:crypto",
+        "node:fs",
+        "node:path",
+        "@next/env",
+        "openai",
+        "openai/uploads"
+      ]
+    },
+    {
       "file": "scripts/drift-calibrate.ts",
       "imports": [
         "node:fs",
@@ -5499,6 +5534,21 @@
         "../../src/lib/video-generation/prompt-intelligence",
         "../../src/lib/video-generation/segment-planner-adapter",
         "../../src/types/video-generation"
+      ],
+      "externalImports": [
+        "node:crypto",
+        "zod"
+      ]
+    },
+    {
+      "file": "scripts/lib/director-plan.ts",
+      "imports": [
+        "node:crypto",
+        "zod",
+        "../../src/lib/providers/shuyu-video-plan-tiers"
+      ],
+      "localImports": [
+        "../../src/lib/providers/shuyu-video-plan-tiers"
       ],
       "externalImports": [
         "node:crypto",
@@ -7063,6 +7113,10 @@
         "@/lib/auth",
         "@/lib/config/contact",
         "@/lib/services/create-retry-prefill-service",
+        "@/lib/contracts/product-profile",
+        "@/lib/services/product-profile-service",
+        "@/lib/create/product-size",
+        "@/lib/create/hook-angles",
         "@/lib/services/media-asset-service",
         "@/lib/services/machine-video-task-service",
         "@/lib/services/exchange-readings",
@@ -7079,6 +7133,10 @@
         "@/lib/auth",
         "@/lib/config/contact",
         "@/lib/services/create-retry-prefill-service",
+        "@/lib/contracts/product-profile",
+        "@/lib/services/product-profile-service",
+        "@/lib/create/product-size",
+        "@/lib/create/hook-angles",
         "@/lib/services/media-asset-service",
         "@/lib/services/machine-video-task-service",
         "@/lib/services/exchange-readings",
@@ -7541,6 +7599,37 @@
       ]
     },
     {
+      "file": "src/app/(platform)/app/products/page.tsx",
+      "imports": [
+        "next-auth",
+        "next/navigation",
+        "@/components/exchange/empty-state",
+        "@/components/exchange/workspace-page",
+        "@/components/products/product-library",
+        "@/lib/auth",
+        "@/lib/create/hook-angles",
+        "@/lib/create/product-size",
+        "@/lib/services/product-profile-service",
+        "@/i18n/platform-copy",
+        "@/i18n/server"
+      ],
+      "localImports": [
+        "@/components/exchange/empty-state",
+        "@/components/exchange/workspace-page",
+        "@/components/products/product-library",
+        "@/lib/auth",
+        "@/lib/create/hook-angles",
+        "@/lib/create/product-size",
+        "@/lib/services/product-profile-service",
+        "@/i18n/platform-copy",
+        "@/i18n/server"
+      ],
+      "externalImports": [
+        "next-auth",
+        "next/navigation"
+      ]
+    },
+    {
       "file": "src/app/(platform)/app/racing/error.tsx",
       "imports": [
         "@/components/platform/customer-route-error"
@@ -7674,9 +7763,7 @@
         "@/i18n/server",
         "@/lib/video-generation/template-sample",
         "@/lib/qa/customer-route-state-rehearsal",
-        "@/lib/video-generation/commerce-template-catalog",
-        "@/lib/exchange/readings-registry",
-        "@/lib/services/exchange-readings"
+        "@/lib/video-generation/commerce-template-catalog"
       ],
       "localImports": [
         "@/lib/auth",
@@ -7692,9 +7779,7 @@
         "@/i18n/server",
         "@/lib/video-generation/template-sample",
         "@/lib/qa/customer-route-state-rehearsal",
-        "@/lib/video-generation/commerce-template-catalog",
-        "@/lib/exchange/readings-registry",
-        "@/lib/services/exchange-readings"
+        "@/lib/video-generation/commerce-template-catalog"
       ],
       "externalImports": [
         "next/link",
@@ -9246,6 +9331,40 @@
       ]
     },
     {
+      "file": "src/app/api/products/[id]/route.ts",
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/contracts/product-profile",
+        "@/lib/services/product-profile-service"
+      ],
+      "localImports": [
+        "@/lib/api-auth",
+        "@/lib/contracts/product-profile",
+        "@/lib/services/product-profile-service"
+      ],
+      "externalImports": [
+        "next/server"
+      ]
+    },
+    {
+      "file": "src/app/api/products/route.ts",
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/contracts/product-profile",
+        "@/lib/services/product-profile-service"
+      ],
+      "localImports": [
+        "@/lib/api-auth",
+        "@/lib/contracts/product-profile",
+        "@/lib/services/product-profile-service"
+      ],
+      "externalImports": [
+        "next/server"
+      ]
+    },
+    {
       "file": "src/app/api/projects/[id]/logo/generate/route.ts",
       "imports": [
         "next/server",
@@ -10290,7 +10409,8 @@
         "@/components/ui/input",
         "@/components/ui/textarea",
         "@/lib/services/workspace-brand-package-service",
-        "@/i18n/useTranslation"
+        "@/i18n/useTranslation",
+        "@/components/brand/signoff-preview"
       ],
       "localImports": [
         "@/components/brand/brand-logo",
@@ -10303,7 +10423,8 @@
         "@/components/ui/input",
         "@/components/ui/textarea",
         "@/lib/services/workspace-brand-package-service",
-        "@/i18n/useTranslation"
+        "@/i18n/useTranslation",
+        "@/components/brand/signoff-preview"
       ],
       "externalImports": [
         "next/image",
@@ -10355,6 +10476,16 @@
         "next/image",
         "lucide-react"
       ]
+    },
+    {
+      "file": "src/components/brand/signoff-preview.tsx",
+      "imports": [
+        "@/lib/video-generation/brand-signoff"
+      ],
+      "localImports": [
+        "@/lib/video-generation/brand-signoff"
+      ],
+      "externalImports": []
     },
     {
       "file": "src/components/capabilities/capability-board.tsx",
@@ -10949,6 +11080,7 @@
         "next/navigation",
         "lucide-react",
         "@/components/ui/button",
+        "@/components/ui/confirm-dialog",
         "@/components/exchange/status-tick",
         "@/lib/exchange/state-vocab",
         "@/i18n/config",
@@ -10961,6 +11093,7 @@
       ],
       "localImports": [
         "@/components/ui/button",
+        "@/components/ui/confirm-dialog",
         "@/components/exchange/status-tick",
         "@/lib/exchange/state-vocab",
         "@/i18n/config",
@@ -11056,6 +11189,7 @@
         "next/navigation",
         "lucide-react",
         "@/components/ui/button",
+        "@/components/ui/confirm-dialog",
         "@/components/ui/input",
         "@/i18n/config",
         "@/i18n/growth-copy",
@@ -11064,6 +11198,7 @@
       ],
       "localImports": [
         "@/components/ui/button",
+        "@/components/ui/confirm-dialog",
         "@/components/ui/input",
         "@/i18n/config",
         "@/i18n/growth-copy",
@@ -11284,14 +11419,16 @@
         "@/components/video-generation/audio-caption-controls",
         "@/lib/exchange/pulse",
         "@/lib/video-generation/brand-signoff",
-        "@/types/video-generation"
+        "@/types/video-generation",
+        "@/components/video-generation/bgm-picker"
       ],
       "localImports": [
         "@/components/ui/button",
         "@/components/video-generation/audio-caption-controls",
         "@/lib/exchange/pulse",
         "@/lib/video-generation/brand-signoff",
-        "@/types/video-generation"
+        "@/types/video-generation",
+        "@/components/video-generation/bgm-picker"
       ],
       "externalImports": [
         "react",
@@ -11375,18 +11512,22 @@
       "file": "src/components/library/video-feedback-panel.tsx",
       "imports": [
         "react",
+        "next/link",
         "lucide-react",
         "@/components/ui/button",
+        "@/lib/library/feedback-next-steps",
         "@/lib/contracts/video-feedback",
         "@/lib/utils"
       ],
       "localImports": [
         "@/components/ui/button",
+        "@/lib/library/feedback-next-steps",
         "@/lib/contracts/video-feedback",
         "@/lib/utils"
       ],
       "externalImports": [
         "react",
+        "next/link",
         "lucide-react"
       ]
     },
@@ -11628,6 +11769,45 @@
       ]
     },
     {
+      "file": "src/components/products/product-library.tsx",
+      "imports": [
+        "react",
+        "next/link",
+        "next/navigation",
+        "lucide-react",
+        "@/components/exchange/empty-state",
+        "@/components/ui/button",
+        "@/components/ui/confirm-dialog",
+        "@/components/ui/dialog",
+        "@/components/ui/input",
+        "@/components/ui/textarea",
+        "@/lib/contracts/product-profile",
+        "@/lib/create/product-size",
+        "@/lib/upload/blob-xhr",
+        "@/i18n/config",
+        "@/i18n/platform-copy"
+      ],
+      "localImports": [
+        "@/components/exchange/empty-state",
+        "@/components/ui/button",
+        "@/components/ui/confirm-dialog",
+        "@/components/ui/dialog",
+        "@/components/ui/input",
+        "@/components/ui/textarea",
+        "@/lib/contracts/product-profile",
+        "@/lib/create/product-size",
+        "@/lib/upload/blob-xhr",
+        "@/i18n/config",
+        "@/i18n/platform-copy"
+      ],
+      "externalImports": [
+        "react",
+        "next/link",
+        "next/navigation",
+        "lucide-react"
+      ]
+    },
+    {
       "file": "src/components/providers/session-expiry-watcher.tsx",
       "imports": [
         "react",
@@ -11837,17 +12017,36 @@
       ]
     },
     {
+      "file": "src/components/ui/confirm-dialog.tsx",
+      "imports": [
+        "react",
+        "lucide-react",
+        "@/components/ui/button",
+        "@/components/ui/dialog"
+      ],
+      "localImports": [
+        "@/components/ui/button",
+        "@/components/ui/dialog"
+      ],
+      "externalImports": [
+        "react",
+        "lucide-react"
+      ]
+    },
+    {
       "file": "src/components/ui/dialog.tsx",
       "imports": [
         "react",
         "@base-ui/react/dialog",
         "@/lib/utils",
         "@/components/ui/button",
+        "@/i18n/useTranslation",
         "lucide-react"
       ],
       "localImports": [
         "@/lib/utils",
-        "@/components/ui/button"
+        "@/components/ui/button",
+        "@/i18n/useTranslation"
       ],
       "externalImports": [
         "react",
@@ -11944,11 +12143,13 @@
         "@base-ui/react/dialog",
         "@/lib/utils",
         "@/components/ui/button",
+        "@/i18n/useTranslation",
         "lucide-react"
       ],
       "localImports": [
         "@/lib/utils",
-        "@/components/ui/button"
+        "@/components/ui/button",
+        "@/i18n/useTranslation"
       ],
       "externalImports": [
         "react",
@@ -11999,6 +12200,8 @@
         "@/components/ui/button",
         "@/lib/utils",
         "@/lib/video-generation/bgm-attribution",
+        "@/components/video-generation/bgm-picker",
+        "@/lib/video-generation/voiceover-budget",
         "@/types/video-generation"
       ],
       "localImports": [
@@ -12006,9 +12209,28 @@
         "@/components/ui/button",
         "@/lib/utils",
         "@/lib/video-generation/bgm-attribution",
+        "@/components/video-generation/bgm-picker",
+        "@/lib/video-generation/voiceover-budget",
         "@/types/video-generation"
       ],
       "externalImports": [
+        "lucide-react"
+      ]
+    },
+    {
+      "file": "src/components/video-generation/bgm-picker.tsx",
+      "imports": [
+        "react",
+        "lucide-react",
+        "@/components/ui/button",
+        "@/lib/video-generation/bgm-catalog"
+      ],
+      "localImports": [
+        "@/components/ui/button",
+        "@/lib/video-generation/bgm-catalog"
+      ],
+      "externalImports": [
+        "react",
         "lucide-react"
       ]
     },
@@ -12173,6 +12395,7 @@
         "@/components/product-images/create-mode-tabs",
         "@/components/personal/upload-assets",
         "@/components/ui/button",
+        "@/components/ui/confirm-dialog",
         "@/components/ui/textarea",
         "@/components/video-generation/broll-quick-card",
         "@/components/video-generation/product-link-prefill",
@@ -12187,8 +12410,7 @@
         "@/i18n/useTranslation",
         "@/lib/capabilities/registry",
         "@/lib/api/customer-video-dispatch",
-        "@/lib/api/customer-video-dispatch-recovery",
-        "@/lib/utils"
+        "@/lib/api/customer-video-dispatch-recovery"
       ],
       "localImports": [
         "@/components/exchange/quote-header",
@@ -12199,6 +12421,7 @@
         "@/components/product-images/create-mode-tabs",
         "@/components/personal/upload-assets",
         "@/components/ui/button",
+        "@/components/ui/confirm-dialog",
         "@/components/ui/textarea",
         "@/components/video-generation/broll-quick-card",
         "@/components/video-generation/product-link-prefill",
@@ -12213,8 +12436,7 @@
         "@/i18n/useTranslation",
         "@/lib/capabilities/registry",
         "@/lib/api/customer-video-dispatch",
-        "@/lib/api/customer-video-dispatch-recovery",
-        "@/lib/utils"
+        "@/lib/api/customer-video-dispatch-recovery"
       ],
       "externalImports": [
         "next/link",
@@ -12886,6 +13108,21 @@
       ]
     },
     {
+      "file": "src/lib/contracts/product-profile.ts",
+      "imports": [
+        "zod",
+        "@/lib/create/hook-angles",
+        "@/lib/create/product-size"
+      ],
+      "localImports": [
+        "@/lib/create/hook-angles",
+        "@/lib/create/product-size"
+      ],
+      "externalImports": [
+        "zod"
+      ]
+    },
+    {
       "file": "src/lib/contracts/stitch-dispatch.ts",
       "imports": [
         "zod"
@@ -13058,6 +13295,16 @@
       "externalImports": [
         "@prisma/client"
       ]
+    },
+    {
+      "file": "src/lib/library/feedback-next-steps.ts",
+      "imports": [
+        "@/lib/contracts/video-feedback"
+      ],
+      "localImports": [
+        "@/lib/contracts/video-feedback"
+      ],
+      "externalImports": []
     },
     {
       "file": "src/lib/machine-auth.ts",
@@ -13250,6 +13497,19 @@
       "externalImports": [
         "openai",
         "openai/uploads"
+      ]
+    },
+    {
+      "file": "src/lib/providers/openai-transcription.ts",
+      "imports": [
+        "node:fs/promises",
+        "@/lib/video-generation/audio-post-production"
+      ],
+      "localImports": [
+        "@/lib/video-generation/audio-post-production"
+      ],
+      "externalImports": [
+        "node:fs/promises"
       ]
     },
     {
@@ -13510,10 +13770,12 @@
       "imports": [
         "@/lib/video-generation/brand-signoff",
         "zod",
+        "@/lib/video-generation/bgm-catalog",
         "@/types/video-generation"
       ],
       "localImports": [
         "@/lib/video-generation/brand-signoff",
+        "@/lib/video-generation/bgm-catalog",
         "@/types/video-generation"
       ],
       "externalImports": [
@@ -14629,6 +14891,23 @@
       ]
     },
     {
+      "file": "src/lib/services/product-profile-service.ts",
+      "imports": [
+        "@prisma/client",
+        "@/lib/db",
+        "@/lib/contracts/product-profile",
+        "@/lib/services/create-retry-prefill-service"
+      ],
+      "localImports": [
+        "@/lib/db",
+        "@/lib/contracts/product-profile",
+        "@/lib/services/create-retry-prefill-service"
+      ],
+      "externalImports": [
+        "@prisma/client"
+      ]
+    },
+    {
       "file": "src/lib/services/prompt-service.ts",
       "imports": [
         "@prisma/client",
@@ -14936,6 +15215,7 @@
         "@/lib/media/ephemeral-url",
         "@/lib/video-generation/restitch-patch",
         "@/lib/video-generation/broll-segment-compose",
+        "@/lib/providers/openai-transcription",
         "@/lib/video-generation/segment-redo",
         "@/lib/media/stitch-pipeline",
         "@/lib/media/stitch-runtime",
@@ -14956,6 +15236,7 @@
         "@/lib/media/ephemeral-url",
         "@/lib/video-generation/restitch-patch",
         "@/lib/video-generation/broll-segment-compose",
+        "@/lib/providers/openai-transcription",
         "@/lib/video-generation/segment-redo",
         "@/lib/media/stitch-pipeline",
         "@/lib/media/stitch-runtime",
@@ -15380,12 +15661,14 @@
         "@/lib/contracts/customer-api",
         "@/lib/contracts/upload-blob",
         "@/lib/upload/media-file-validation",
+        "@/lib/upload/stall-watchdog",
         "@vercel/blob/client"
       ],
       "localImports": [
         "@/lib/contracts/customer-api",
         "@/lib/contracts/upload-blob",
-        "@/lib/upload/media-file-validation"
+        "@/lib/upload/media-file-validation",
+        "@/lib/upload/stall-watchdog"
       ],
       "externalImports": [
         "@vercel/blob/client"
@@ -15474,10 +15757,12 @@
     {
       "file": "src/lib/video-generation/audio-post-production.ts",
       "imports": [
-        "@/lib/video-generation/platform-safe-zone"
+        "@/lib/video-generation/platform-safe-zone",
+        "@/lib/video-generation/bgm-catalog"
       ],
       "localImports": [
-        "@/lib/video-generation/platform-safe-zone"
+        "@/lib/video-generation/platform-safe-zone",
+        "@/lib/video-generation/bgm-catalog"
       ],
       "externalImports": []
     },
@@ -16523,6 +16808,16 @@
       "externalImports": []
     },
     {
+      "file": "src/lib/video-generation/voiceover-budget.ts",
+      "imports": [
+        "./detect-script-language"
+      ],
+      "localImports": [
+        "./detect-script-language"
+      ],
+      "externalImports": []
+    },
+    {
       "file": "src/lib/video-generation/voiceover-drive.ts",
       "imports": [
         "@/lib/video-generation/video-route-registry",
@@ -16537,10 +16832,12 @@
     {
       "file": "src/lib/video-generation/voiceover-writer.ts",
       "imports": [
-        "@/lib/ai"
+        "@/lib/ai",
+        "./voiceover-budget"
       ],
       "localImports": [
-        "@/lib/ai"
+        "@/lib/ai",
+        "./voiceover-budget"
       ],
       "externalImports": []
     },
@@ -16578,10 +16875,12 @@
     {
       "file": "src/types/video-generation.ts",
       "imports": [
-        "@/lib/duration/segment-planner"
+        "@/lib/duration/segment-planner",
+        "@/lib/video-generation/bgm-catalog"
       ],
       "localImports": [
-        "@/lib/duration/segment-planner"
+        "@/lib/duration/segment-planner",
+        "@/lib/video-generation/bgm-catalog"
       ],
       "externalImports": []
     },
@@ -17454,6 +17753,37 @@
       ]
     },
     {
+      "file": "tests/bgm-catalog.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "react",
+        "react-dom/server",
+        "../src/components/video-generation/bgm-picker",
+        "../src/lib/video-generation/bgm-catalog",
+        "../src/lib/video-generation/audio-post-production",
+        "../src/lib/schemas/unified-input",
+        "../src/lib/media/stitch-pipeline",
+        "../src/types/video-generation"
+      ],
+      "localImports": [
+        "../src/components/video-generation/bgm-picker",
+        "../src/lib/video-generation/bgm-catalog",
+        "../src/lib/video-generation/audio-post-production",
+        "../src/lib/schemas/unified-input",
+        "../src/lib/media/stitch-pipeline",
+        "../src/types/video-generation"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "react",
+        "react-dom/server"
+      ]
+    },
+    {
       "file": "tests/booth-config.test.ts",
       "imports": [
         "node:assert/strict",
@@ -17608,6 +17938,29 @@
         "node:fs",
         "node:path",
         "node:test"
+      ]
+    },
+    {
+      "file": "tests/brand-signoff-preview.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "react-dom/server",
+        "react",
+        "../src/components/brand/signoff-preview",
+        "../src/lib/video-generation/brand-signoff"
+      ],
+      "localImports": [
+        "../src/components/brand/signoff-preview",
+        "../src/lib/video-generation/brand-signoff"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "react-dom/server",
+        "react"
       ]
     },
     {
@@ -18035,6 +18388,50 @@
       ]
     },
     {
+      "file": "tests/caption-speech-align.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/audio-post-production"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/audio-post-production"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/caption-speech-transcription.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:os",
+        "node:path",
+        "node:test",
+        "../src/lib/providers/openai-transcription",
+        "../src/lib/media/stitch-pipeline",
+        "../src/lib/media/ffmpeg-bin",
+        "../src/types/video-generation",
+        "./helpers/synthetic-media"
+      ],
+      "localImports": [
+        "../src/lib/providers/openai-transcription",
+        "../src/lib/media/stitch-pipeline",
+        "../src/lib/media/ffmpeg-bin",
+        "../src/types/video-generation",
+        "./helpers/synthetic-media"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:os",
+        "node:path",
+        "node:test"
+      ]
+    },
+    {
       "file": "tests/check-node-version.test.ts",
       "imports": [
         "node:assert/strict",
@@ -18190,6 +18587,44 @@
       ],
       "externalImports": [
         "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/concurrent-wait.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "../src/lib/library/concurrent-wait",
+        "../src/i18n/platform-copy"
+      ],
+      "localImports": [
+        "../src/lib/library/concurrent-wait",
+        "../src/i18n/platform-copy"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/confirm-dialog.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:path",
+        "node:test",
+        "../src/i18n/growth-copy"
+      ],
+      "localImports": [
+        "../src/i18n/growth-copy"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:path",
         "node:test"
       ]
     },
@@ -18358,6 +18793,29 @@
       "externalImports": [
         "node:assert/strict",
         "node:fs/promises",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/create-reuse-and-size.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "../src/lib/db",
+        "../src/lib/services/create-retry-prefill-service",
+        "../src/lib/create/product-size",
+        "../src/lib/create/hook-angles"
+      ],
+      "localImports": [
+        "../src/lib/db",
+        "../src/lib/services/create-retry-prefill-service",
+        "../src/lib/create/product-size",
+        "../src/lib/create/hook-angles"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs",
         "node:test"
       ]
     },
@@ -18666,6 +19124,21 @@
       ]
     },
     {
+      "file": "tests/director-plan.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../scripts/lib/director-plan"
+      ],
+      "localImports": [
+        "../scripts/lib/director-plan"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
       "file": "tests/dispatch-breaker.test.ts",
       "imports": [
         "node:assert/strict",
@@ -18962,6 +19435,27 @@
       ],
       "externalImports": [
         "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/feedback-next-steps.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "../src/lib/library/feedback-next-steps",
+        "../src/lib/create/hook-angles",
+        "../src/i18n/platform-copy"
+      ],
+      "localImports": [
+        "../src/lib/library/feedback-next-steps",
+        "../src/lib/create/hook-angles",
+        "../src/i18n/platform-copy"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs",
         "node:test"
       ]
     },
@@ -21219,6 +21713,29 @@
       ]
     },
     {
+      "file": "tests/product-profile.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "../src/lib/contracts/product-profile",
+        "../src/lib/create/hook-angles",
+        "../src/lib/platform-routes",
+        "../src/i18n/platform-copy"
+      ],
+      "localImports": [
+        "../src/lib/contracts/product-profile",
+        "../src/lib/create/hook-angles",
+        "../src/lib/platform-routes",
+        "../src/i18n/platform-copy"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test"
+      ]
+    },
+    {
       "file": "tests/production-mock-runtime-guard.test.ts",
       "imports": [
         "node:assert/strict",
@@ -21795,6 +22312,22 @@
       "externalImports": [
         "node:assert/strict",
         "node:fs",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/retired-materials.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:path",
+        "node:test"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:path",
         "node:test"
       ]
     },
@@ -23989,6 +24522,25 @@
       ]
     },
     {
+      "file": "tests/upload-stall-watchdog.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "../src/lib/upload/stall-watchdog",
+        "@vercel/blob/client"
+      ],
+      "localImports": [
+        "../src/lib/upload/stall-watchdog"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "@vercel/blob/client"
+      ]
+    },
+    {
       "file": "tests/video-dispatch-idempotency.test.ts",
       "imports": [
         "node:assert/strict",
@@ -24423,6 +24975,25 @@
       ]
     },
     {
+      "file": "tests/voiceover-budget.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "../src/lib/video-generation/voiceover-budget",
+        "\\.\\/voiceover-budget"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/voiceover-budget"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "\\.\\/voiceover-budget"
+      ]
+    },
+    {
       "file": "tests/voiceover-draft-storage.test.ts",
       "imports": [
         "node:test",
@@ -24510,6 +25081,22 @@
         "node:fs/promises",
         "node:test",
         "@prisma/client"
+      ]
+    },
+    {
+      "file": "tests/walkthrough-polish-1110.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "@\\/i18n\\/useTranslation"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "@\\/i18n\\/useTranslation"
       ]
     },
     {

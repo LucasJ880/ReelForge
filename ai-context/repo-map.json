@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T05:35:18.754Z",
+  "generatedAt": "2026-11-16T22:07:49.393Z",
   "package": {
     "name": "aivora",
     "version": "0.2.0"
@@ -41,62 +41,62 @@
     "Apify TikTok scraper (^2.23.0)"
   ],
   "fileTotals": {
-    "total": 2168,
+    "total": 2203,
     "byType": {
       "unknown": 516,
-      "doc": 442,
+      "doc": 444,
       "style": 11,
       "workflow": 4,
       "config": 9,
-      "schema": 63,
+      "schema": 64,
       "prisma": 1,
-      "script": 109,
-      "page": 66,
+      "script": 111,
+      "page": 67,
       "layout": 5,
-      "api": 93,
-      "component": 117,
+      "api": 95,
+      "component": 121,
       "i18n": 17,
-      "util": 192,
-      "provider": 22,
-      "service": 92,
+      "util": 199,
+      "provider": 23,
+      "service": 93,
       "type": 2,
-      "test": 407
+      "test": 421
     },
     "byArea": {
-      "unknown": 953,
+      "unknown": 957,
       "media-processing": 96,
       "config": 11,
       "ffmpeg": 16,
-      "shared": 336,
-      "prisma": 58,
+      "shared": 344,
+      "prisma": 59,
       "auth": 25,
       "payments": 3,
       "upload": 7,
-      "scripts": 61,
+      "scripts": 63,
       "demo": 9,
       "real-footage-ads": 10,
-      "video-generation": 95,
-      "blob-storage": 12,
+      "video-generation": 98,
+      "blob-storage": 13,
       "admin": 5,
       "marketing-site": 5,
       "publishing": 3,
       "metrics": 2,
-      "shared-ui": 14,
+      "shared-ui": 15,
       "wizard": 1,
       "i18n": 17,
-      "ai-providers": 22,
-      "tests": 407
+      "ai-providers": 23,
+      "tests": 421
     }
   },
   "routes": {
-    "total": 165,
+    "total": 168,
     "byKind": {
       "error": 18,
       "layout": 5,
       "loading": 17,
       "not-found": 2,
-      "page": 29,
-      "api": 94
+      "page": 30,
+      "api": 96
     }
   },
   "importantFiles": [
@@ -220,6 +220,7 @@
     "brand:sunnyshutter:business-card": "tsx --env-file=.env.local scripts/generate-sunnyshutter-business-card-endcard.ts",
     "frame:qa": "tsx scripts/frame-qa.ts",
     "eval:video": "tsx scripts/eval/video-golden-set.ts",
+    "director": "tsx scripts/director/run.ts",
     "eval:shot-cards": "tsx --env-file=.env.local scripts/eval/shot-card-latency.ts",
     "report:feedback": "tsx --env-file=.env.local scripts/ops/video-feedback-report.ts",
     "demo:rehearsal": "tsx scripts/demo-rehearsal-e2e.ts",

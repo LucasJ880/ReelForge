@@ -72,7 +72,6 @@ npm run context:find -- "..."
 | `STORYBOARD_SHOT_CARDS_VISION=on` | 关 | 看着商品图写镜头卡。11-10 盲评与纯文字卡打平，线上已关 |
 | `STORYBOARD_DIRECTION=on` | 关 | 建故事板时合并一次看图调用。首次真机只成功一部分，所以缺省关 |
 | `FRAME_QA_ENABLED=on` | 关 | 成片画面质检（依赖 OpenAI 看图）。20 条真跑 0 次拦截后缺省关 |
-| `SHUYU_FALLBACK_TO_RUNWAY=off` | 开（配了 Runway 密钥时） | 关掉「Shuyu 失败后改交 Runway」 |
 | `CAPTION_SPEECH_ALIGN=on` | 关 | 合成时把 AI 段人声交给 OpenAI `whisper-1` 识别，字幕跟着人声走。要求这把 `OPENAI_API_KEY` 有 whisper-1 权限（11-10 实查没有，需在 OpenAI 项目里开通）；识别不到就照旧按字数摊，不影响出片 |
 | `OPS_ALERT_WEBHOOK_URL` | 未配 | 运维告警的群机器人地址；没配只进日志（`[ops-alert]`） |
 | `PROGRESS_SEGMENT_EXPECTED_MIN` | 10 | 进度条估算用的出片典型分钟数（实测中位数） |
@@ -94,9 +93,12 @@ npm run context:find -- "..."
 | 配乐曲库（8 首；7 首由 Runway 生成配乐接口一次性生成、随仓库带，出片不调接口） | 目录 `src/lib/video-generation/bgm-catalog.ts`，文件 `public/audio/bgm/`，选曲组件 `bgm-picker.tsx`；加曲子：放文件 + 目录加一行 |
 | 字幕跟着人声走（按语音识别对齐） | `alignCuesToSpeech`（`src/lib/video-generation/audio-post-production.ts`）、`src/lib/providers/openai-transcription.ts`；日志搜 `[captions]` |
 | 上传卡住超时（直传存储一直没进展时中止并明说「上传卡住了」；存储客户端自己会不报错地重试十几分钟） | `src/lib/upload/stall-watchdog.ts`，接在 `uploadBlobWithProgress`（`blob-xhr.ts`）的直传那一步；日志搜 `[upload] direct upload stalled` |
+| 导演线路（Claude 写镜头脚本 → OpenAI `gpt-image-2` 出故事板 → Shuyu Seedance 2.5 · 720P 出片；不走创作台、不碰库） | skill `aivora-director`；`npm run director -- check\|frames\|select\|video\|status tmp/director/<任务名>`；纯逻辑 `scripts/lib/director-plan.ts` |
 | 只重新合成（换字幕 / BGM / 落款，不扣额度） | `src/lib/video-generation/restitch-patch.ts`、`stitch-service` 的 `prepareRestitch` / `commitRestitch` |
 
-供应商现状（2026-11-10）：生产只留 Shuyu（出图、出片）、Runway（备用出片、出故事板图）、OpenAI（出方案；开关打开时另做字幕的语音识别）三把付费密钥；
+供应商现状（2026-11-16）：生产只留 Shuyu（出图、出片）、OpenAI（出方案、导演线路的故事板图；开关打开时另做字幕的语音识别）两把付费密钥。
+**Runway 出片 11-16 由 CEO 决定彻底下线**：四个入口（「高质量」选项、Shuyu 失败改交、灰度账号故事板出图、全员切换）在 `runway-rollout.ts` 用常量 `RUNWAY_RETIRED` 关死，
+不看环境变量；适配器与改交机制的代码保留（A 级下线），重新启用要改代码。Shuyu 现在没有备用线路，明确失败就是失败（可重试、可免费取消）。
 抠图、商品链接抓取、素材库、配音、内容审核这几条线路已下线（`RETIRED_CAPABILITY_KEYS`）。
 
 ## 5. 交付门

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-10T05:35:18.761Z",
+  "generatedAt": "2026-11-16T22:07:49.402Z",
   "routes": [
     {
       "routePath": "/",
@@ -691,6 +691,25 @@
       "isDynamic": false
     },
     {
+      "routePath": "/api/products",
+      "filePath": "src/app/api/products/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET",
+        "POST"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/products/[id]",
+      "filePath": "src/app/api/products/[id]/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "PATCH"
+      ],
+      "isDynamic": true
+    },
+    {
       "routePath": "/api/projects/[id]/logo/generate",
       "filePath": "src/app/api/projects/[id]/logo/generate/route.ts",
       "kind": "api",
@@ -1191,6 +1210,13 @@
     {
       "routePath": "/app/plan",
       "filePath": "src/app/(platform)/app/plan/page.tsx",
+      "kind": "page",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/products",
+      "filePath": "src/app/(platform)/app/products/page.tsx",
       "kind": "page",
       "group": "platform",
       "isDynamic": false

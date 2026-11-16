@@ -7,6 +7,8 @@
  *   frames  <任务目录>   出故事板帧（OpenAI）。不带 --confirm-spend 只打印要出几张
  *   select  <任务目录>   --frame <帧 id> --variant <第几张>：定稿这一帧
  *   video   <任务目录>   出片（Shuyu）。不带 --confirm-spend --max-points <上限> 只打印估算
+ *   review  <任务目录>   看片用的抽帧：每个镜头从切点起取几帧拼成图，外加静音段与片尾检查。不花钱
+ *   post    <任务目录>   本地后期：按 cuts 切成几条、烧字幕、压片尾落款（复用线上合成器）。不花点数
  *   status  <任务目录>   看进度
  *
  * 例：
@@ -16,25 +18,31 @@
  *   npm run director -- video tmp/director/zebra-blind-01 --confirm-spend --max-points 2000
  *
  * 出片缺省 Seedance 2.5 · 720P（按时长取最便宜的一档）；--resolution 1080P 才用 1080P。
+ * 试别家模型：--family any --plan <套餐 id>（必须点名套餐，例：MiniMax H3）。
  * 随时 Ctrl-C：每一步落盘（state.json），重跑从断点续上——有任务号的只续查、绝不重提；
  * 提交确认未知的用同一个幂等键重投。绝不碰数据库（DATABASE_URL 换成连不上的地址）。
  */
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, extname, isAbsolute, join, relative, resolve } from "node:path";
 import { loadEnvConfig } from "@next/env";
 import {
   buildFramePrompt,
   buildVideoPrompt,
+  directorParts,
   directorRequestKey,
+  directorSpokenLines,
   initialDirectorState,
   lintDirectorJob,
   meetsResolution,
   nextDirectorVideoStep,
   openAiFrameSize,
   parseDirectorJob,
+  partScript,
   rankDirectorVideoPlans,
+  reviewFrameTimes,
+  scriptSpeechWords,
   selectedFrameVariant,
   videoReferenceOrder,
   type DirectorJob,
@@ -216,7 +224,8 @@ function ladderFor(job: DirectorJob, prices: DirectorPriceEntry[], flags: Flags)
   const resolution = flag(flags, "resolution")?.toUpperCase() ?? null;
   if (resolution && !["1080P", "720P", "480P"].includes(resolution)) fail("--resolution 只能是 1080P / 720P / 480P");
   const family = flag(flags, "family");
-  if (family && family !== "seedance-2.5" && family !== "seedance-2.0") fail("--family 只能是 seedance-2.5 / seedance-2.0");
+  if (family && family !== "seedance-2.5" && family !== "seedance-2.0" && family !== "any") fail("--family 只能是 seedance-2.5 / seedance-2.0 / any");
+  if (family === "any" && !flag(flags, "plan")) fail("--family any 必须同时给 --plan <套餐 id>：别家模型只能点名一档来试");
   const maxResolution = (resolution as DirectorResolution | null) ?? undefined;
   return rankDirectorVideoPlans(prices, {
     durationSec: job.durationSec,
@@ -226,7 +235,7 @@ function ladderFor(job: DirectorJob, prices: DirectorPriceEntry[], flags: Flags)
     /// 点名了更低的档就以它为底；--no-step-down 把底抬到起始档
     ...(maxResolution === "480P" ? { minResolution: "480P" as const } : {}),
     ...(flags["no-step-down"] && maxResolution ? { minResolution: maxResolution } : {}),
-    ...(family ? { family: family as "seedance-2.5" | "seedance-2.0" } : {}),
+    ...(family ? { family: family as "seedance-2.5" | "seedance-2.0" | "any" } : {}),
     ...(flag(flags, "plan") ? { planId: flag(flags, "plan")! } : {}),
   });
 }
@@ -241,7 +250,14 @@ async function commandCheck(workspace: Workspace, flags: Flags): Promise<void> {
   }
   const prompt = buildVideoPrompt(job);
   console.log(`\n-- 出片参考图顺序（提示词里的 image N）`);
-  videoReferenceOrder(job).forEach((reference, index) => console.log(`   image ${index + 1} = ${reference.id}${reference.openingFrame ? "（开场帧）" : ""}`));
+  videoReferenceOrder(job).forEach((reference, index) => console.log(`   image ${index + 1} = ${reference.id}${reference.openingFrame ? "（开场帧）" : reference.frame ? "（故事板帧）" : ""}`));
+  const parts = directorParts(job);
+  if (parts.length > 1) console.log(`\n-- 分条交付：${parts.map((part) => `第 ${part.index} 条 ${part.fromSec}–${part.toSec} 秒`).join("，")}`);
+  const lines = directorSpokenLines(job);
+  if (lines.length > 0) {
+    console.log("\n-- 台词（字幕按这个时间烧；开通语音识别后跟着人声走）");
+    for (const line of lines) console.log(`   镜头 ${line.shot}（${line.fromSec.toFixed(1)}–${line.toSec.toFixed(1)} 秒）${line.text}`);
+  }
   console.log(`\n-- 出片提示词（${prompt.length} 字）\n${prompt}`);
   if (flags.offline) return;
   const ladder = ladderFor(job, await loadShuyuPrices(), flags);
@@ -372,8 +388,14 @@ function probeVideo(file: string): { width: number | null; height: number | null
 async function commandVideo(workspace: Workspace, flags: Flags): Promise<void> {
   const { job, state } = workspace;
   lintOrExit(job);
-  const opening = selectedFrameVariant(state, job.video.openingFrame);
-  if (!opening?.file) fail(`开场帧 ${job.video.openingFrame} 还没定稿：先 frames，看过图再 select`);
+  /// 出片要带的故事板帧（开场帧、关键帧、分镜总览图）都得先看过图、定了稿
+  const frameFiles = new Map<string, string>();
+  for (const reference of videoReferenceOrder(job)) {
+    if (!reference.frame) continue;
+    const chosen = selectedFrameVariant(state, reference.id);
+    if (!chosen?.file) fail(`故事板帧 ${reference.id} 还没定稿：先 frames，看过图再 select`);
+    frameFiles.set(reference.id, chosen.file);
+  }
 
   const { createShuyuVideoTask, getShuyuBalance } = await import("@/lib/providers/shuyu");
   const { ProviderSubmissionError } = await import("@/lib/video-generation/providers/submission-error");
@@ -386,8 +408,8 @@ async function commandVideo(workspace: Workspace, flags: Flags): Promise<void> {
   const referenceUrls = async (): Promise<string[]> => {
     const urls: string[] = [];
     for (const reference of videoReferenceOrder(job)) {
-      if (reference.openingFrame) {
-        const bytes = readFileSync(join(workspace.dir, opening.file!));
+      if (reference.frame) {
+        const bytes = readFileSync(join(workspace.dir, frameFiles.get(reference.id)!));
         urls.push(await publicUrlFor(workspace, `frame-${reference.id}`, { bytes, mimeType: "image/png", publicUrl: null, name: `${reference.id}.png` }));
       } else {
         const source = job.references.find((item) => item.id === reference.id)!.source;
@@ -497,6 +519,154 @@ async function commandVideo(workspace: Workspace, flags: Flags): Promise<void> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// review：看片用的抽帧（本机 ffmpeg，不花钱）
+// ---------------------------------------------------------------------------
+
+function latestTake(workspace: Workspace): { file: string; attempt: DirectorVideoAttempt } {
+  const attempt = [...workspace.state.video.attempts].reverse().find((item) => item.status === "succeeded" && item.localFile);
+  if (!attempt?.localFile) fail("还没有成片：先 video");
+  const file = join(workspace.dir, attempt.localFile);
+  if (!existsSync(file)) fail(`成片文件不见了：${attempt.localFile}`);
+  return { file, attempt };
+}
+
+async function commandReview(workspace: Workspace, flags: Flags): Promise<void> {
+  const { job } = workspace;
+  const { ffmpegBin, runFfmpeg } = await import("@/lib/media/ffmpeg-bin");
+  const source = flag(flags, "file") ? resolve(workspace.dir, flag(flags, "file")!) : latestTake(workspace).file;
+  if (!existsSync(source)) fail(`找不到 ${source}`);
+  const perShot = Math.min(6, Math.max(2, parsePositiveLimit(flag(flags, "per-shot")) ?? 4));
+  const reviewDir = join(workspace.dir, "review");
+  const stillsDir = join(reviewDir, "stills");
+  rmSync(stillsDir, { recursive: true, force: true });
+  mkdirSync(stillsDir, { recursive: true });
+
+  /// 每个镜头一行，第一帧紧贴切点
+  const times = reviewFrameTimes(job, perShot);
+  times.forEach((time, index) => {
+    execFileSync(ffmpegBin(), ["-v", "error", "-y", "-ss", time.atSec.toFixed(2), "-i", source, "-frames:v", "1", "-vf", "scale=300:-2", join(stillsDir, `${String(index).padStart(3, "0")}.jpg`)]);
+  });
+  const rowsPerSheet = 3;
+  const sheets: string[] = [];
+  for (let first = 0; first < job.video.shots.length; first += rowsPerSheet) {
+    const rows = Math.min(rowsPerSheet, job.video.shots.length - first);
+    const file = join(reviewDir, `shots-${first + 1}-${first + rows}.jpg`);
+    execFileSync(ffmpegBin(), [
+      "-v", "error", "-y", "-framerate", "1", "-start_number", String(first * perShot),
+      "-i", join(stillsDir, "%03d.jpg"), "-frames:v", "1", "-vf", `tile=${perShot}x${rows}:nb_frames=${perShot * rows}`, file,
+    ]);
+    sheets.push(file);
+  }
+  console.log(`[director] 抽帧（每行一个镜头，每个镜头 ${perShot} 帧，第一帧紧贴切点）：`);
+  for (const file of sheets) console.log(`   ${relative(REPO, file)}`);
+  job.video.shots.forEach((shot, index) => console.log(`   镜头 ${index + 1}（${shot.fromSec}–${shot.toSec} 秒）${shot.action}`));
+
+  /// 静音段与片尾：尾巴上一段静音多半是片尾被截或音乐提前收了
+  const probe = probeVideo(source);
+  const audio = await runFfmpeg(["-hide_banner", "-nostats", "-i", source, "-af", "silencedetect=noise=-35dB:d=0.4", "-f", "null", "-"], { allowNonZeroExit: true });
+  const silences = [...audio.stderr.matchAll(/silence_start: ([\d.]+)[\s\S]*?silence_end: ([\d.]+)/gu)].map((match) => [Number(match[1]), Number(match[2])] as const);
+  const openTail = /silence_start: ([\d.]+)(?![\s\S]*silence_end)/u.exec(audio.stderr);
+  console.log(`[director] 成片 ${probe.width}×${probe.height}，${probe.durationSec} 秒，${probe.hasAudio ? "有" : "没有"}声音`);
+  if (silences.length === 0 && !openTail) console.log("[director] 没有 0.4 秒以上的静音段");
+  for (const [from, to] of silences) console.log(`[director] 静音 ${from.toFixed(2)}–${to.toFixed(2)} 秒`);
+  if (openTail) console.log(`[director] 从 ${Number(openTail[1]).toFixed(2)} 秒起静音到片尾：核对最后一句台词和音乐有没有被截`);
+  if (probe.durationSec !== null && Math.abs(probe.durationSec - job.durationSec) > 0.6) console.log(`[director] 注意：脚本 ${job.durationSec} 秒，成片 ${probe.durationSec} 秒`);
+
+  /// 台词：有语音识别就自动听一遍，没有就明说要人听
+  const lines = directorSpokenLines(job);
+  if (lines.length > 0 && probe.hasAudio) {
+    const wav = join(reviewDir, "speech.wav");
+    execFileSync(ffmpegBin(), ["-v", "error", "-y", "-i", source, "-vn", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", wav]);
+    const { transcribeSpeechWithOpenAi } = await import("@/lib/providers/openai-transcription");
+    const language = lines.some((line) => /[㐀-鿿]/u.test(line.text)) ? "zh" : "en";
+    const words = await transcribeSpeechWithOpenAi({ audioPath: wav, language });
+    rmSync(wav, { force: true });
+    console.log(`[director] 脚本台词：${lines.map((line) => line.text).join(" ")}`);
+    if (words) console.log(`[director] 识别到的：${words.map((word) => word.text).join(language === "zh" ? "" : " ")}`);
+    else console.log("[director] 语音识别用不了（密钥没有 whisper-1 权限，或没识别出来）：台词念得对不对要人听");
+  }
+  console.log("[director] 下一步：导演逐张看抽帧（商品走样、正脸、每个镜头是不是脚本写的那样、死黑 / 偏色），没问题再 post");
+}
+
+// ---------------------------------------------------------------------------
+// post：本地后期（切条、字幕、片尾落款）。复用线上合成器，不花点数
+// ---------------------------------------------------------------------------
+
+async function commandPost(workspace: Workspace, flags: Flags): Promise<void> {
+  const { job } = workspace;
+  lintOrExit(job);
+  const { file: take, attempt } = latestTake(workspace);
+  const { ffmpegBin } = await import("@/lib/media/ffmpeg-bin");
+  const { composeTimeline } = await import("@/lib/media/stitch-pipeline");
+  const { transcribeSpeechWithOpenAi } = await import("@/lib/providers/openai-transcription");
+  const captions = job.post?.captions ?? true;
+  const signoff = job.post?.signoff ?? null;
+  const platform = flag(flags, "platform");
+  const lines = directorSpokenLines(job);
+  const parts = directorParts(job);
+  const language = lines.some((line) => /[㐀-鿿]/u.test(line.text)) ? "zh-CN" : "en-US";
+  const workRoot = join(workspace.dir, "post-work");
+  rmSync(workRoot, { recursive: true, force: true });
+  mkdirSync(workRoot, { recursive: true });
+  const useRecognition = !flags["script-timing"];
+
+  for (const part of parts) {
+    const suffix = parts.length > 1 ? `-part${part.index}` : "";
+    const workDir = join(workRoot, `part${part.index}`);
+    mkdirSync(workDir, { recursive: true });
+    let source = take;
+    if (parts.length > 1) {
+      /// 精确到帧只能重编码；高码率过一道，后面合成器再编最后一次
+      source = join(workDir, "cut.mp4");
+      execFileSync(ffmpegBin(), [
+        "-v", "error", "-y", "-ss", String(part.fromSec), "-i", take, "-t", String(part.toSec - part.fromSec),
+        "-c:v", "libx264", "-preset", "medium", "-crf", "14", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "256k", source,
+      ]);
+    }
+    const script = captions ? partScript(lines, part) : "";
+    const scriptWords = scriptSpeechWords(lines, part);
+    let timing = "没有字幕";
+    const composed = await composeTimeline({
+      clips: [{ path: source, intendedDurationSec: null, trimToFit: false, role: "ai_generated" }],
+      aspectRatio: job.aspectRatio,
+      postProduction: {
+        audio: {
+          /// 口播是视频模型自己说的，音乐也是它自己配的：这里只保留原声，不另加配音和曲库
+          voiceover: { enabled: true, voiceId: "native", language, script },
+          bgm: { trackId: "none", volume: 0 },
+        },
+        captions: { enabled: Boolean(script), style: "plain", language, position: "bottom", exportSrt: true },
+        ...(signoff ? { signoff: { enabled: true, brandName: signoff.brandName, cta: signoff.cta ?? null } } : {}),
+      },
+      /// 字幕时间：能识别就跟着人声走；识别不了（现在的密钥没有 whisper-1）按脚本里每句台词所在的镜头推
+      transcribeSpeech: script
+        ? async ({ audioPath, language: spoken }) => {
+            const heard = useRecognition ? await transcribeSpeechWithOpenAi({ audioPath, language: spoken }) : null;
+            timing = heard ? "跟着识别到的人声" : "按脚本的镜头时间估（没有语音识别）";
+            return heard ?? scriptWords;
+          }
+        : null,
+      platform: platform ?? null,
+      ...(flags["ai-badge"] ? { aiBadge: true } : platform ? {} : { aiBadge: false }),
+      workDir,
+      outputName: "composed.mp4",
+    });
+    const output = join(workspace.dir, `${job.id}-take${attempt.attempt}${suffix}-post.mp4`);
+    copyFileSync(composed.videoPath, output);
+    if (composed.srtPath) copyFileSync(composed.srtPath, output.replace(/\.mp4$/u, ".srt"));
+    const applied = [
+      composed.applied.captions ? `字幕（${timing}${composed.captionSource && composed.captionSource !== "speech" ? "；对齐没成，按字数摊的" : ""}）` : null,
+      composed.applied.signoff ? `片尾落款「${signoff?.brandName}」` : null,
+      composed.applied.aiBadge ? "AI 生成角标" : null,
+    ].filter(Boolean);
+    console.log(`[director] ${parts.length > 1 ? `第 ${part.index} 条（${part.fromSec}–${part.toSec} 秒）` : "成片"} → ${relative(REPO, output)}（${composed.durationSec} 秒；${applied.join("、") || "只重新封装，没有叠加任何东西"}）`);
+    if (signoff && !composed.applied.signoff) console.log("[director] 注意：落款没压上（这一条太短）");
+  }
+  rmSync(workRoot, { recursive: true, force: true });
+  console.log("[director] 下一步：review --file <后期后的文件>，看字幕压没压住画面、落款的字对不对");
+}
+
 function commandStatus(workspace: Workspace): void {
   const { job, state } = workspace;
   console.log(`${job.title}（${job.id}）· ${job.aspectRatio} · ${job.durationSec} 秒`);
@@ -514,8 +684,8 @@ function commandStatus(workspace: Workspace): void {
 
 async function main(): Promise<void> {
   const { command, jobDir, flags } = parseArgs(process.argv.slice(2));
-  if (!["check", "frames", "select", "video", "status"].includes(command)) {
-    fail("用法：npm run director -- <check | frames | select | video | status> <任务目录> [选项]（说明见本文件开头）");
+  if (!["check", "frames", "select", "video", "review", "post", "status"].includes(command)) {
+    fail("用法：npm run director -- <check | frames | select | video | review | post | status> <任务目录> [选项]（说明见本文件开头）");
   }
   loadEnv();
   const workspace = openWorkspace(jobDir);
@@ -523,6 +693,8 @@ async function main(): Promise<void> {
   if (command === "frames") return commandFrames(workspace, flags);
   if (command === "select") return commandSelect(workspace, flags);
   if (command === "video") return commandVideo(workspace, flags);
+  if (command === "review") return commandReview(workspace, flags);
+  if (command === "post") return commandPost(workspace, flags);
   return commandStatus(workspace);
 }
 

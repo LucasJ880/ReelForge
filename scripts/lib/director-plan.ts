@@ -10,9 +10,14 @@
  * 「否定句只在字幕与声音上管用」照 Seedance 2.5 官方提示词指南改（经 EVZheng-Lab/h3-seedance-prompt 转述，
  * 2026-08 快照）；口播 / 配乐 / 抽象形容词 / 只写「快」的检查借鉴了几个开源 skill 的做法
  *（zhouwei713/seedance-prompt、LeoYeAI/seedance-skills、liangdabiao/ecom-video-seedance-prompt 等，只取做法，不搬原文）。
+ *
+ * 2026-11-16 第三版（不加预算能做的提升）：关键帧当参考图（keyframes）、一次长片切成几条交付（cuts）、
+ * 本地后期（post：按脚本时间烧字幕 + 片尾落款，复用线上合成器）、按镜头抽帧看片（reviewFrameTimes）、
+ * 有人的镜头要写清脸在哪（第二条毛毯片第 4 镜写了「人藏在毯子后面」，还是露了 0.3 秒正脸）。
  */
 import { createHash } from "node:crypto";
 import { z } from "zod";
+import { SIGNOFF_BRAND_MAX, SIGNOFF_CTA_MAX, SIGNOFF_MIN_VIDEO_SEC } from "../../src/lib/video-generation/brand-signoff";
 import {
   shuyuVideoPlanFamily,
   type ShuyuVideoPlanFamily,
@@ -59,6 +64,9 @@ const frameSchema = z
     references: z.array(slug).max(DIRECTOR_FRAME_REFERENCES_MAX).default([]),
     /// 出几张择优（抽卡放在故事板）
     variants: z.number().int().min(1).max(4).default(2),
+    /// 分镜总览图：一张图里按镜头顺序排好编号小格，整张当参考图带给出片模型（Shuyu 自己的创作台就是只带这一张图出片）。
+    /// 各格画什么由脚本的镜头自动拼，prompt 里只写商品、场景与光这些每格都一样的东西。还没在我们这条线路上实测过。
+    sheet: z.boolean().default(false),
   })
   .strict();
 
@@ -86,12 +94,40 @@ const shotSchema = z
   })
   .strict();
 
+/** 关键帧：某个镜头长什么样的一张故事板帧，作为参考图带给出片模型（开场帧之外最多 4 张）。 */
+const keyframeSchema = z
+  .object({
+    /// frames 里的 id（不能是开场帧）
+    frame: slug,
+    /// 第几个镜头（从 1 数）
+    shot: z.number().int().min(1).max(10),
+  })
+  .strict();
+
+/** 本地后期：字幕与落款由合成器直接烧上去，不经过视频模型，所以不会乱码、不花点数。 */
+const postSchema = z
+  .object({
+    /// 把台词烧成字幕（按脚本里每句台词所在镜头的时间；开通了语音识别就跟着人声走）
+    captions: z.boolean().default(true),
+    /// 片尾落款：最后约两秒压品牌名 + 一句行动指引（可以是中文）
+    signoff: z
+      .object({
+        brandName: z.string().trim().min(1).max(SIGNOFF_BRAND_MAX),
+        cta: z.string().trim().min(1).max(SIGNOFF_CTA_MAX).optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
+
 const videoSchema = z
   .object({
     /// 开场帧用哪一帧（frames 里的 id）；它排在参考图最后，视频从它开始
     openingFrame: slug,
     /// 除开场帧以外带给出片模型的参考图（实拍在前）
     references: z.array(slug).min(1).max(DIRECTOR_VIDEO_REFERENCES_MAX - 1),
+    /// 关键帧：后面的镜头容易走样（换了场景、商品摆法不对）时，给那个镜头单独出一帧当参考
+    keyframes: z.array(keyframeSchema).max(4).default([]),
     /// 一句话说清这条片：主体 + 地点 + 事件 + 风格（官方顺序里紧跟在参考图之后）
     logline: z.string().trim().min(20).max(240),
     /// 呈现方式（例："handheld phone-style product ad, bright window daylight, fast but controlled cuts"）
@@ -121,6 +157,10 @@ export const directorJobSchema = z
     references: z.array(referenceSchema).min(1).max(DIRECTOR_FRAME_REFERENCES_MAX),
     frames: z.array(frameSchema).min(1).max(6),
     video: videoSchema,
+    /// 在这些整数秒把成片切成几条分别交付（必须落在镜头的交界上）。特价档 5–30 秒同价：
+    /// 一次拍 30 秒切成两条 15 秒，单条成本减半。每一条都要自成一条片（各有钩子和结尾）。
+    cuts: z.array(z.number().int().min(4).max(26)).max(3).default([]),
+    post: postSchema.optional(),
   })
   .strict();
 
@@ -160,27 +200,66 @@ function referenceRoleLines(references: ReadonlyArray<{ role: string }>): string
   return references.map((reference, index) => `image ${index + 1} = ${reference.role}`).join("; ");
 }
 
-/** 故事板帧：导演写的画面 + 按真正提交顺序编号的参考职责 + 画幅与禁止项。 */
+/** 分镜总览图的格子排法：竖片一行三格，横片与方片一行两格。 */
+export function sheetGrid(job: DirectorJob): { columns: number; rows: number } {
+  const columns = job.aspectRatio === "9:16" ? 3 : 2;
+  return { columns, rows: Math.ceil(job.video.shots.length / columns) };
+}
+
+/** 故事板帧：导演写的画面 + 按真正提交顺序编号的参考职责 + 画幅与禁止项。分镜总览图的各格内容由镜头自动拼。 */
 export function buildFramePrompt(job: DirectorJob, frame: DirectorFrame): string {
   const references = lookup(job, frame.references);
+  const roles = references.length > 0 ? `REFERENCE ROLES: ${referenceRoleLines(references)}.` : null;
+  if (frame.sheet) {
+    const { columns, rows } = sheetGrid(job);
+    const panels = job.video.shots.map((shot, index) => `Panel ${index + 1}: ${shot.action} ${shot.framing}`).join("\n");
+    return [
+      frame.prompt,
+      `PANELS (in reading order, left to right, top to bottom):\n${panels}`,
+      roles,
+      `FORMAT: one storyboard sheet, ${columns} columns by ${rows} rows of equal panels separated by thin white gutters, each panel a ${ORIENTATION[job.aspectRatio].toLowerCase()} photorealistic still. A small panel number in the top-left corner of each panel is the only text. The same product, setting and light in every panel. No captions, watermarks or logos that are not on the product.`,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+  }
   return [
     frame.prompt,
-    references.length > 0 ? `REFERENCE ROLES: ${referenceRoleLines(references)}.` : null,
-    `FORMAT: ${ORIENTATION[job.aspectRatio]} photorealistic still frame, the opening moment of a product video. No on-screen text, captions, watermarks, logos that are not on the product, borders or collage layouts.`,
+    roles,
+    `FORMAT: ${ORIENTATION[job.aspectRatio]} photorealistic still frame, one moment of a product video. No on-screen text, captions, watermarks, logos that are not on the product, borders or collage layouts.`,
   ]
     .filter(Boolean)
     .join("\n\n");
 }
 
-/** 出片参考图的顺序：脚本里列的参考图（实拍在前）→ 开场帧最后。提示词里的 image N 与它一一对应。 */
-export function videoReferenceOrder(job: DirectorJob): Array<{ id: string; role: string; openingFrame: boolean }> {
+/**
+ * 出片参考图的顺序：脚本里列的参考图（实拍在前）→ 关键帧（按镜头先后）→ 开场帧最后。
+ * 提示词里的 image N 与它一一对应。frame = true 的是故事板帧（文件在 frames/ 下），其余是 references 里的图。
+ */
+export function videoReferenceOrder(job: DirectorJob): Array<{ id: string; role: string; openingFrame: boolean; frame: boolean }> {
   return [
-    ...lookup(job, job.video.references).map((reference) => ({ id: reference.id, role: reference.role, openingFrame: false })),
+    ...lookup(job, job.video.references).map((reference) => ({ id: reference.id, role: reference.role, openingFrame: false, frame: false })),
+    ...[...job.video.keyframes]
+      .sort((left, right) => left.shot - right.shot)
+      .map((keyframe) => ({
+        id: keyframe.frame,
+        role: `a still of shot ${keyframe.shot}: when the timeline reaches shot ${keyframe.shot}, match this composition, pose and light`,
+        openingFrame: false,
+        frame: true,
+      })),
+    ...job.frames
+      .filter((frame) => frame.sheet)
+      .map((frame) => ({
+        id: frame.id,
+        role: `a storyboard sheet: its numbered panels show the composition of shots 1 to ${job.video.shots.length} in order; follow them shot by shot and never show the sheet, its grid or its numbers`,
+        openingFrame: false,
+        frame: true,
+      })),
     {
       id: job.video.openingFrame,
       /// 不写「保持构图」：后面的镜头可以硬切换景别，只锁场景与光
       role: "the exact opening frame: the video starts on this image; keep its setting, props and light throughout",
       openingFrame: true,
+      frame: true,
     },
   ];
 }
@@ -232,6 +311,106 @@ export function buildVideoPrompt(job: DirectorJob): string {
 }
 
 // ---------------------------------------------------------------------------
+// 分条交付、台词时间、看片抽帧（本地后期用，都不花点数）
+// ---------------------------------------------------------------------------
+
+export interface DirectorPart {
+  /// 第几条（从 1 数）
+  index: number;
+  fromSec: number;
+  toSec: number;
+}
+
+/** 成片切成几条交付：没写 cuts 就是整条。 */
+export function directorParts(job: DirectorJob): DirectorPart[] {
+  const edges = [0, ...[...new Set(job.cuts)].sort((left, right) => left - right), job.durationSec];
+  return edges.slice(0, -1).map((fromSec, index) => ({ index: index + 1, fromSec, toSec: edges[index + 1]! }));
+}
+
+export interface DirectorSpokenLine {
+  /// 第几个镜头（从 1 数）
+  shot: number;
+  text: string;
+  /// 这句台词可以占用的时间（它所在的镜头；一个镜头里有几句就按字数分）
+  fromSec: number;
+  toSec: number;
+}
+
+/** 脚本里的每一句台词（sound 里英文双引号内的内容）和它所在镜头的时间。 */
+export function directorSpokenLines(job: DirectorJob): DirectorSpokenLine[] {
+  return job.video.shots.flatMap((shot, index) => {
+    const quotes = [...shot.sound.matchAll(/"([^"]*)"/gu)].map((match) => (match[1] ?? "").trim()).filter(Boolean);
+    const total = quotes.reduce((sum, text) => sum + speechUnits(text).length, 0);
+    if (total === 0) return [];
+    let cursor = shot.fromSec;
+    return quotes.map((text) => {
+      const span = ((shot.toSec - shot.fromSec) * speechUnits(text).length) / total;
+      const line = { shot: index + 1, text, fromSec: cursor, toSec: cursor + span };
+      cursor += span;
+      return line;
+    });
+  });
+}
+
+/** 一句话拆成念的单位：中日韩一个字一个，其余按词。标点不算。 */
+function speechUnits(text: string): string[] {
+  return text.match(new RegExp(`${CJK.source}|[A-Za-z0-9']+`, "gu")) ?? [];
+}
+
+/// 切镜之后人声大约这么久才出来；一个汉字 / 一个英文词大约念这么久（偏快的口播）
+const SCRIPT_SPEECH_LEAD_MS = 250;
+const SCRIPT_SPEECH_TAIL_MS = 150;
+const SCRIPT_CJK_UNIT_MS = 210;
+const SCRIPT_WORD_UNIT_MS = 360;
+
+/**
+ * 没有语音识别时的字幕时间：按脚本推——每句台词从它所在镜头开头稍后一点起念，按正常语速往后排，
+ * 不超出这个镜头。返回的形状与语音识别的逐字时间相同（毫秒，相对这一条的开头），直接喂给字幕对齐。
+ * 这是「按脚本估」，不是量出来的：模型把话说早说晚，字幕就会偏；开通语音识别后以识别为准。
+ */
+export function scriptSpeechWords(
+  lines: ReadonlyArray<DirectorSpokenLine>,
+  part: { fromSec: number; toSec: number },
+): Array<{ text: string; startMs: number; endMs: number }> {
+  return lines.flatMap((line) => {
+    if (line.fromSec < part.fromSec - 0.001 || line.toSec > part.toSec + 0.001) return [];
+    const units = speechUnits(line.text);
+    const windowMs = (line.toSec - line.fromSec) * 1_000;
+    const lead = Math.min(SCRIPT_SPEECH_LEAD_MS, windowMs * 0.15);
+    const room = Math.max(0, windowMs - lead - SCRIPT_SPEECH_TAIL_MS);
+    const startMs = (line.fromSec - part.fromSec) * 1_000 + lead;
+    return units.map((text, index) => {
+      const unit = Math.min(CJK.test(text) ? SCRIPT_CJK_UNIT_MS : SCRIPT_WORD_UNIT_MS, room / units.length);
+      return { text, startMs: Math.round(startMs + unit * index), endMs: Math.round(startMs + unit * (index + 1)) };
+    });
+  });
+}
+
+/** 这一条的口播稿（烧字幕用）：属于这一条的台词按先后连起来。 */
+export function partScript(lines: ReadonlyArray<DirectorSpokenLine>, part: { fromSec: number; toSec: number }): string {
+  return lines
+    .filter((line) => line.fromSec >= part.fromSec - 0.001 && line.toSec <= part.toSec + 0.001)
+    .map((line) => line.text)
+    .join(" ");
+}
+
+/**
+ * 看片抽帧的时间点：每个镜头从切进来的那一下到切走之前均匀取几帧。第一帧紧贴切点——
+ * 第二条毛毯片的正脸只出现在切进来的头 0.3 秒，按固定间隔抽帧差点漏掉。
+ */
+export function reviewFrameTimes(job: DirectorJob, perShot = 4): Array<{ shot: number; atSec: number }> {
+  const count = Math.max(2, Math.floor(perShot));
+  return job.video.shots.flatMap((shot, index) => {
+    const from = shot.fromSec + 0.1;
+    const to = Math.max(from, shot.toSec - 0.12);
+    return Array.from({ length: count }, (_, step) => ({
+      shot: index + 1,
+      atSec: Math.round((from + ((to - from) * step) / (count - 1)) * 100) / 100,
+    }));
+  });
+}
+
+// ---------------------------------------------------------------------------
 // 出图 / 出片之前的检查
 // ---------------------------------------------------------------------------
 
@@ -252,6 +431,12 @@ function outsideQuotes(text: string): string {
 /// 清晰正脸会让 Seedance 把参考图整单拦下（10-29 评测 5 条全败）
 const FACE_RISK = /\b(face|faces|facial|portrait|headshot|selfie|looking (?:straight )?(?:at|into) (?:the )?camera|eye contact|smil(?:e|es|ing) (?:at|to) (?:the )?camera)\b/iu;
 const FACE_SAFE = /\b(no (?:visible )?face|face (?:is )?(?:not visible|out of frame|cropped out|turned away)|faceless|from behind|back to (?:the )?camera|hands only|only (?:her|his|their) hands)\b/iu;
+
+/// 镜头里有人、但没写脸在哪：模型会自己给一张正脸
+const SHOT_PERSON = /\b(woman|man|person|people|she|he|model|girl|boy|baby|toddler|child|kid|mother|mom|mum|dad|father|parent)\b/iu;
+const SHOT_FACE_PLACED = /\b(from behind|back to (?:the )?camera|back of (?:her|his|the|a) head|hands only|only (?:her|his|their|the) hands?|cropped (?:at|below|under) the (?:neck|chin|nose|mouth|shoulders)|(?:from|below) the (?:chin|neck|nose|mouth|shoulders) down|face (?:is |stays )?(?:out of frame|off frame|not visible|turned away|covered)|faceless|no (?:visible )?face|face (?:is )?visible|shows? (?:her|his|the) face|smiling face)\b/iu;
+
+const BODY_PART_OF = /\b[a-z]+['’]s (?:two |both |left |right )?(?:hands?|fingers?|fingertips?|thumbs?|palms?|arms?|forearms?|wrists?|chin|nape|neck|chest|shoulders?|lap)\b/giu;
 
 /// 抽象形容词：模型不知道怎么拍，换成看得见的物理现象（光从哪来、材质怎么动）
 const VAGUE_WORDS = /\b(beautiful|stunning|gorgeous|amazing|awesome|epic|perfect|cinematic|premium|luxurious|high[- ]quality|masterpiece|dynamic)\b/giu;
@@ -312,6 +497,26 @@ export function lintDirectorJob(job: DirectorJob): DirectorLint {
     if (!referenceIds.has(id)) errors.push(`出片引用了不存在的参考图：${id}`);
   }
   if (new Set(video.references).size !== video.references.length) errors.push("出片的参考图有重复");
+  const keyframeIds = new Set<string>();
+  for (const keyframe of video.keyframes) {
+    if (!frameIds.has(keyframe.frame)) errors.push(`关键帧 ${keyframe.frame} 不在 frames 里`);
+    if (keyframe.frame === video.openingFrame) errors.push(`关键帧 ${keyframe.frame} 就是开场帧：开场帧不用再列一遍`);
+    if (keyframeIds.has(keyframe.frame)) errors.push(`关键帧 ${keyframe.frame} 列了两次`);
+    keyframeIds.add(keyframe.frame);
+    if (keyframe.shot > video.shots.length) errors.push(`关键帧 ${keyframe.frame} 指向镜头 ${keyframe.shot}，脚本只有 ${video.shots.length} 个镜头`);
+    if (keyframe.shot === 1) warnings.push(`关键帧 ${keyframe.frame} 指向镜头 1：镜头 1 已经有开场帧了，关键帧留给后面容易走样的镜头`);
+  }
+  const sheets = job.frames.filter((frame) => frame.sheet);
+  if (sheets.length > 1) errors.push("分镜总览图只能有一张");
+  for (const frame of sheets) {
+    if (frame.id === video.openingFrame) errors.push(`分镜总览图 ${frame.id} 不能当开场帧`);
+    if (keyframeIds.has(frame.id)) errors.push(`分镜总览图 ${frame.id} 不用再列进 keyframes`);
+  }
+  for (const frame of job.frames) {
+    if (frame.id !== video.openingFrame && !keyframeIds.has(frame.id) && !frame.sheet) {
+      warnings.push(`帧 ${frame.id} 出了图但出片用不上：列进 video.keyframes，或从 frames 里删掉（出一张图也是钱）`);
+    }
+  }
   if (!lookup(job, video.references).some((reference) => reference.kind === "product")) {
     errors.push("出片的参考图里要有商品实拍图：只靠开场帧，后面的镜头里商品会走样");
   }
@@ -339,9 +544,16 @@ export function lintDirectorJob(job: DirectorJob): DirectorLint {
       warnings.push(`${label} 的 action 里像是写了不止一个主动作（then / after that）：一拍只做一件事`);
     }
     if (BARE_FAST.test(shot.camera)) warnings.push(`${label} 的 camera 只写了「快」：写成 fast but controlled，不然画面会乱`);
-    /// 念得完吗：中文约 4 字 / 秒，快销口播可以到 5；英文约 2.5 词 / 秒
+    /// 「mom's hand」「the baby's chin」说的是身体的一部分，不算把整个人放进画面
+    const staging = `${shot.action} ${shot.space ?? ""} ${shot.framing}`.replace(BODY_PART_OF, " ");
+    if (SHOT_PERSON.test(staging) && !SHOT_FACE_PLACED.test(staging)) {
+      warnings.push(
+        `${label} 里有人但没写脸在哪：模型会自己给正脸（毛毯片写了「人藏在毯子后面」照样露了 0.3 秒）。不要脸就写 from behind / cropped below the chin / hands only，并且从这一镜第一帧起就成立；要露脸就写 face visible 认下来`,
+      );
+    }
+    /// 念得完吗：中文 3.5 字 / 秒从容、4.5 是上限；英文 2.5 词 / 秒从容、3 是上限（切镜后人声还要等约四分之一秒才出来）
     const spoken = spokenLoad(shot.sound);
-    if (length > 0 && (spoken.cjk > 5 * length || spoken.words > 3 * length)) {
+    if (length > 0 && (spoken.cjk > 4.5 * length || spoken.words > 3 * length)) {
       warnings.push(`${label} 的台词 ${length} 秒念不完（${spoken.cjk > 0 ? `${spoken.cjk} 个字` : `${spoken.words} 个词`}）：缩短台词或挪一部分到下一个镜头`);
     }
   });
@@ -357,7 +569,32 @@ export function lintDirectorJob(job: DirectorJob): DirectorLint {
     if (video.shots.length < wanted) warnings.push(`快销广告 ${job.durationSec} 秒至少 ${wanted} 个镜头（现在 ${video.shots.length} 个）：节奏靠切，不靠慢动作`);
     if (!video.music) warnings.push("快销广告要写 music：风格、速度、乐器（例：upbeat pop beat around 120 bpm），切点才有拍子可跟");
     if (!hasDialogue) warnings.push("快销广告没有口播：至少一句卖点和一句结尾的行动指引");
+    const last = video.shots[video.shots.length - 1];
+    if (last && last.toSec - last.fromSec < 2) warnings.push("快销广告最后一个镜头留给商品：至少 2 秒、商品占满画面、停住不动，行动指引的那句话落在这里");
   }
+  /// 分条交付：切点落在镜头交界上，每一条自成一条片
+  const boundaries = new Set(video.shots.map((shot) => shot.toSec));
+  for (const cut of job.cuts) {
+    if (cut >= job.durationSec) errors.push(`切点 ${cut} 秒不在片子里（时长 ${job.durationSec} 秒）`);
+    else if (!boundaries.has(cut)) errors.push(`切点 ${cut} 秒不在镜头交界上：只能在两个镜头之间切`);
+  }
+  if (new Set(job.cuts).size !== job.cuts.length) errors.push("cuts 里有重复的切点");
+  const parts = directorParts(job);
+  if (parts.length > 1) {
+    const lines = directorSpokenLines(job);
+    for (const part of parts) {
+      const label = `第 ${part.index} 条（${part.fromSec}–${part.toSec} 秒）`;
+      const length = part.toSec - part.fromSec;
+      if (length < 5) errors.push(`${label} 只有 ${length} 秒：一条交付至少 5 秒`);
+      const first = video.shots.find((shot) => shot.fromSec === part.fromSec);
+      if (job.genre === "fmcg" && first && first.toSec - first.fromSec > 2) warnings.push(`${label} 的第一个镜头超过 2 秒：每一条都要有自己的钩子`);
+      if (!lines.some((line) => line.fromSec >= part.fromSec && line.toSec <= part.toSec)) warnings.push(`${label} 没有口播：每一条都要自成一条片`);
+    }
+  }
+  if (job.post?.signoff && parts.some((part) => part.toSec - part.fromSec < SIGNOFF_MIN_VIDEO_SEC)) {
+    warnings.push(`片尾落款要求一条至少 ${SIGNOFF_MIN_VIDEO_SEC} 秒：短于它的那几条不会带落款`);
+  }
+  if (job.post?.captions !== false && job.post && !hasDialogue) warnings.push("post.captions 开着但脚本里没有台词：没有字幕可烧");
   if (Math.abs(cursor - job.durationSec) > 0.01) {
     errors.push(`镜头铺到 ${seconds(cursor)} 秒，时长是 ${job.durationSec} 秒：要正好铺满`);
   }
@@ -431,7 +668,8 @@ const RESOLUTION_ORDER: readonly DirectorResolution[] = ["1080P", "720P", "480P"
 export interface DirectorVideoPlan {
   planId: string;
   displayName: string;
-  family: ShuyuVideoPlanFamily;
+  /// other = 不是 Seedance 的模型（点名套餐试片用，例：MiniMax H3）
+  family: ShuyuVideoPlanFamily | "other";
   resolution: DirectorResolution;
   billingUnit: "generation" | "second";
   unitSalePoints: number;
@@ -453,8 +691,8 @@ export interface DirectorPlanLadderOptions {
   maxResolution?: DirectorResolution;
   /// 最低降到哪一档（缺省 720P：不自动交 480P 的片）
   minResolution?: DirectorResolution;
-  /// 模型家族（缺省只用 Seedance 2.5）
-  family?: ShuyuVideoPlanFamily;
+  /// 模型家族（缺省只用 Seedance 2.5）。any = 不看家族，只能和 planId 一起用（点名一档别家模型试片）
+  family?: ShuyuVideoPlanFamily | "any";
   /// 只用这一档（点名套餐，仍要过下面的能力检查）
   planId?: string;
 }
@@ -471,12 +709,15 @@ export function rankDirectorVideoPlans(
   options: DirectorPlanLadderOptions,
 ): DirectorVideoPlan[] {
   const family = options.family ?? "seedance-2.5";
+  /// 不看家族必须点名套餐：不然会在几十档别家模型里挑最便宜的，出来的片谁也没验过
+  if (family === "any" && !options.planId) return [];
   const top = RESOLUTION_ORDER.indexOf(options.maxResolution ?? DIRECTOR_DEFAULT_RESOLUTION);
   const bottom = RESOLUTION_ORDER.indexOf(options.minResolution ?? "720P");
   return prices
     .flatMap((plan): DirectorVideoPlan[] => {
       if (plan.kind !== "video" || plan.model !== "studio-video" || plan.status !== "available") return [];
-      if (shuyuVideoPlanFamily(plan.display_name) !== family) return [];
+      const planFamily = shuyuVideoPlanFamily(plan.display_name);
+      if (family !== "any" && planFamily !== family) return [];
       const rank = RESOLUTION_ORDER.indexOf(plan.resolution as DirectorResolution);
       if (rank < 0 || rank < top || rank > bottom) return [];
       if (options.planId && plan.plan_id !== options.planId) return [];
@@ -489,7 +730,7 @@ export function rankDirectorVideoPlans(
         {
           planId: plan.plan_id,
           displayName: plan.display_name,
-          family,
+          family: planFamily ?? "other",
           resolution: plan.resolution as DirectorResolution,
           billingUnit: plan.unit,
           unitSalePoints: plan.sale_points,

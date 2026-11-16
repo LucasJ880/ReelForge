@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-16T22:07:49.395Z",
+  "generatedAt": "2026-11-16T22:54:33.501Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -52,8 +52,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 118,
-      "sizeBytes": 7764,
+      "lineCount": 258,
+      "sizeBytes": 21369,
       "notes": "Documentation"
     },
     {
@@ -10276,7 +10276,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 130,
-      "sizeBytes": 12521,
+      "sizeBytes": 12622,
       "notes": "Documentation"
     },
     {
@@ -15284,7 +15284,7 @@
     {
       "path": "scripts/director/run.ts",
       "type": "script",
-      "area": "scripts",
+      "area": "media-processing",
       "exports": [],
       "imports": [
         "node:child_process",
@@ -15299,12 +15299,15 @@
         "openai",
         "openai/uploads",
         "@/lib/video-generation/providers/submission-error",
-        "@/lib/video-generation/providers/shuyu-video-provider"
+        "@/lib/video-generation/providers/shuyu-video-provider",
+        "@/lib/media/ffmpeg-bin",
+        "@/lib/providers/openai-transcription",
+        "@/lib/media/stitch-pipeline"
       ],
       "importantSymbols": [],
-      "lineCount": 533,
-      "sizeBytes": 27560,
-      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
+      "lineCount": 705,
+      "sizeBytes": 38815,
+      "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
     },
     {
       "path": "scripts/drift-calibrate.ts",
@@ -15879,51 +15882,52 @@
         "DIRECTOR_ASPECT_RATIOS",
         "DirectorAspectRatio",
         "DIRECTOR_VIDEO_PROMPT_MAX",
+        "DIRECTOR_VIDEO_PROMPT_TARGET_PER_SEC",
         "DIRECTOR_FRAME_PROMPT_MAX",
         "DIRECTOR_VIDEO_REFERENCES_MAX",
         "DIRECTOR_FRAME_REFERENCES_MAX",
         "DIRECTOR_SHOT_ITEMS",
         "DirectorShotItem",
+        "DIRECTOR_GENRES",
+        "DirectorGenre",
         "directorJobSchema",
         "DirectorJob",
         "DirectorFrame",
         "DirectorReference",
         "parseDirectorJob",
         "openAiFrameSize",
+        "sheetGrid",
         "buildFramePrompt",
         "videoReferenceOrder",
+        "DIRECTOR_NO_TEXT_LINE",
         "buildVideoPrompt",
-        "DirectorLint",
-        "lintDirectorJob",
-        "DirectorPriceEntry",
-        "DirectorResolution",
-        "DirectorVideoPlan",
-        "DIRECTOR_DEFAULT_RESOLUTION",
-        "DirectorPlanLadderOptions",
-        "rankDirectorVideoPlans",
-        "meetsResolution",
-        "directorRequestKey",
-        "DirectorFrameVariant",
-        "DirectorVideoAttempt",
-        "DirectorState"
+        "DirectorPart",
+        "directorParts",
+        "DirectorSpokenLine",
+        "directorSpokenLines",
+        "scriptSpeechWords",
+        "partScript",
+        "reviewFrameTimes",
+        "DirectorLint"
       ],
       "imports": [
         "node:crypto",
         "zod",
+        "../../src/lib/video-generation/brand-signoff",
         "../../src/lib/providers/shuyu-video-plan-tiers"
       ],
       "importantSymbols": [
         "DIRECTOR_ASPECT_RATIOS",
         "DirectorAspectRatio",
         "DIRECTOR_VIDEO_PROMPT_MAX",
+        "DIRECTOR_VIDEO_PROMPT_TARGET_PER_SEC",
         "DIRECTOR_FRAME_PROMPT_MAX",
         "DIRECTOR_VIDEO_REFERENCES_MAX",
         "DIRECTOR_FRAME_REFERENCES_MAX",
-        "DIRECTOR_SHOT_ITEMS",
-        "DirectorShotItem"
+        "DIRECTOR_SHOT_ITEMS"
       ],
-      "lineCount": 499,
-      "sizeBytes": 22777,
+      "lineCount": 843,
+      "sizeBytes": 45104,
       "notes": "Maintenance / one-off script (run via tsx); area=scripts"
     },
     {
@@ -36933,8 +36937,8 @@
         "../scripts/lib/director-plan"
       ],
       "importantSymbols": [],
-      "lineCount": 297,
-      "sizeBytes": 16284,
+      "lineCount": 586,
+      "sizeBytes": 34836,
       "notes": "Unit / integration test; area=tests"
     },
     {

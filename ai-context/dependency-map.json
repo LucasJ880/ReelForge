@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-16T22:07:49.403Z",
+  "generatedAt": "2026-11-16T22:54:33.507Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -4959,7 +4959,10 @@
         "openai",
         "openai/uploads",
         "@/lib/video-generation/providers/submission-error",
-        "@/lib/video-generation/providers/shuyu-video-provider"
+        "@/lib/video-generation/providers/shuyu-video-provider",
+        "@/lib/media/ffmpeg-bin",
+        "@/lib/providers/openai-transcription",
+        "@/lib/media/stitch-pipeline"
       ],
       "localImports": [
         "../lib/director-plan",
@@ -4967,7 +4970,10 @@
         "@/lib/storage",
         "@/lib/providers/shuyu",
         "@/lib/video-generation/providers/submission-error",
-        "@/lib/video-generation/providers/shuyu-video-provider"
+        "@/lib/video-generation/providers/shuyu-video-provider",
+        "@/lib/media/ffmpeg-bin",
+        "@/lib/providers/openai-transcription",
+        "@/lib/media/stitch-pipeline"
       ],
       "externalImports": [
         "node:child_process",
@@ -5545,9 +5551,11 @@
       "imports": [
         "node:crypto",
         "zod",
+        "../../src/lib/video-generation/brand-signoff",
         "../../src/lib/providers/shuyu-video-plan-tiers"
       ],
       "localImports": [
+        "../../src/lib/video-generation/brand-signoff",
         "../../src/lib/providers/shuyu-video-plan-tiers"
       ],
       "externalImports": [

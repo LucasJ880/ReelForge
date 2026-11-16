@@ -3,15 +3,21 @@ import test from "node:test";
 import {
   buildFramePrompt,
   buildVideoPrompt,
+  directorParts,
   directorRequestKey,
+  directorSpokenLines,
   initialDirectorState,
   lintDirectorJob,
   meetsResolution,
   nextDirectorVideoStep,
   openAiFrameSize,
   parseDirectorJob,
+  partScript,
   rankDirectorVideoPlans,
+  reviewFrameTimes,
+  scriptSpeechWords,
   selectedFrameVariant,
+  sheetGrid,
   spokenLoad,
   videoReferenceOrder,
   DIRECTOR_VIDEO_PROMPT_MAX,
@@ -232,7 +238,7 @@ test("快销广告按节奏查：钩子 2 秒内、镜头够多够短、有配�
   assert.match(buildVideoPrompt(fast), /AUDIO: Voice: .*\. Music: upbeat pop beat around 120 bpm.*\. Mix: /);
 });
 
-test("口播念不念得完：中文约每秒 5 个字封顶、英文每秒 3 个词；有台词没写 voice 要提醒", () => {
+test("口播念不念得完：中文每秒 4.5 个字封顶、英文每秒 3 个词；有台词没写 voice 要提醒", () => {
   assert.deepEqual(spokenLoad('The voice says "一面细绒，一面羊羔绒。" softly'), { cjk: 9, words: 0 });
   assert.deepEqual(spokenLoad('He says "Six hours on the trail. Still hot."'), { cjk: 0, words: 7 });
   assert.deepEqual(spokenLoad("Room tone only."), { cjk: 0, words: 0 });
@@ -240,6 +246,10 @@ test("口播念不念得完：中文约每秒 5 个字封顶、英文每秒 3 �
   const video = base.video as Record<string, unknown> & { shots: Array<Record<string, unknown>> };
   const crammed = { ...video.shots[0], sound: 'The voice says "这条毯子一面是细绒一面是羊羔绒，冬天裹上特别暖和，现在下单还有优惠。"' };
   assert.match(lintDirectorJob(parsed({ video: { ...video, shots: [crammed, video.shots[1]] } })).warnings.join("\n"), /镜头 1 的台词 5 秒念不完（\d+ 个字）/);
+  /// 2 秒 10 个字（5 字 / 秒）以前放过，现在提醒：切镜后人声还要等一下才出来
+  const tight = { ...video.shots[0], toSec: 2, sound: 'The voice says "细绒面顺滑柔软不掉毛。"' };
+  const rest = { ...video.shots[1], fromSec: 2 };
+  assert.match(lintDirectorJob(parsed({ video: { ...video, shots: [tight, rest] } })).warnings.join("\n"), /镜头 1 的台词 2 秒念不完（10 个字）/);
   const { voice: _voice, ...noVoice } = video;
   void _voice;
   assert.match(lintDirectorJob(parsed({ video: noVoice })).warnings.join("\n"), /有台词但没写 voice/);
@@ -402,4 +412,174 @@ test("开场帧定稿：只有一张成的直接用；多张必须导演挑过�
   assert.equal(selectedFrameVariant(state, "opening")?.index, 2);
   state.frames.opening.selected = 3;
   assert.equal(selectedFrameVariant(state, "opening"), null);
+});
+
+// ---------------------------------------------------------------------------
+// 第三版：关键帧 / 分镜总览图当参考、分条交付、按脚本时间的字幕、看片抽帧、有人的镜头写清脸在哪
+// ---------------------------------------------------------------------------
+
+function fmcgJob(overrides: Record<string, unknown> = {}) {
+  const base = job();
+  const video = base.video as Record<string, unknown> & { shots: Array<Record<string, unknown>> };
+  const cut = (fromSec: number, toSec: number, sound: string) => {
+    const shot: Record<string, unknown> = { ...video.shots[0], fromSec, toSec, sound };
+    if (fromSec > 0) {
+      delete shot.space;
+      delete shot.light;
+    }
+    return shot;
+  };
+  return job({
+    genre: "fmcg",
+    video: {
+      ...video,
+      music: "upbeat pop beat around 120 bpm with claps and plucked bass",
+      shots: [
+        cut(0, 2, 'The voice says "一拉就亮！"'),
+        cut(2, 4, "A crisp click on the beat."),
+        cut(4, 7, 'The voice says "柔光不刺眼。"'),
+        cut(7, 10, "Fabric swish on the beat."),
+        cut(10, 13, 'The voice says "白天夜晚随你调。" then "Day or night."'),
+        cut(13, 15, 'The voice says "现在下单。"'),
+      ],
+    },
+    ...overrides,
+  });
+}
+
+test("关键帧与分镜总览图：排在实拍之后、开场帧之前，各有一句职责；出了图却用不上要提醒", () => {
+  const base = fmcgJob();
+  const still = { id: "wrap", prompt: (base.frames as Array<{ prompt: string }>)[0]!.prompt, references: ["product-front"], variants: 1 };
+  const sheet = { id: "board", prompt: "The same zebra blind, the same living room window and the same warm morning light in every panel.", references: ["product-front"], variants: 1, sheet: true };
+  const withBoth = parseDirectorJob({
+    ...base,
+    frames: [...(base.frames as unknown[]), still, sheet],
+    video: { ...(base.video as object), keyframes: [{ frame: "wrap", shot: 5 }] },
+  });
+  assert.deepEqual(lintDirectorJob(withBoth), { errors: [], warnings: [] });
+  const order = videoReferenceOrder(withBoth);
+  assert.deepEqual(order.map((reference) => [reference.id, reference.frame, reference.openingFrame]), [
+    ["product-front", false, false],
+    ["product-detail", false, false],
+    ["wrap", true, false],
+    ["board", true, false],
+    ["opening", true, true],
+  ]);
+  assert.match(order[2]!.role, /a still of shot 5: when the timeline reaches shot 5/);
+  assert.match(order[3]!.role, /numbered panels show the composition of shots 1 to 6 in order.*never show the sheet/);
+  assert.match(buildVideoPrompt(withBoth), /image 3 = a still of shot 5.*image 4 = a storyboard sheet.*image 5 = the exact opening frame/);
+
+  /// 分镜总览图的各格由镜头自动拼：竖片一行三格
+  assert.deepEqual(sheetGrid(withBoth), { columns: 3, rows: 2 });
+  const sheetPrompt = buildFramePrompt(withBoth, withBoth.frames[2]!);
+  assert.match(sheetPrompt, /Panel 1: The hand pulls the chain/);
+  assert.match(sheetPrompt, /Panel 6: /);
+  assert.match(sheetPrompt, /3 columns by 2 rows/);
+  assert.doesNotMatch(buildFramePrompt(withBoth, withBoth.frames[0]!), /Panel 1/);
+
+  const lint = (video: Record<string, unknown>, frames: unknown[] = [...(base.frames as unknown[]), still]) =>
+    lintDirectorJob(parseDirectorJob({ ...base, frames, video: { ...(base.video as object), ...video } }));
+  assert.match(lint({ keyframes: [{ frame: "missing", shot: 2 }] }).errors.join("\n"), /关键帧 missing 不在 frames 里/);
+  assert.match(lint({ keyframes: [{ frame: "opening", shot: 2 }] }).errors.join("\n"), /就是开场帧/);
+  assert.match(lint({ keyframes: [{ frame: "wrap", shot: 9 }] }).errors.join("\n"), /指向镜头 9，脚本只有 6 个镜头/);
+  assert.match(lint({ keyframes: [] }).warnings.join("\n"), /帧 wrap 出了图但出片用不上/);
+  assert.match(lint({ keyframes: [{ frame: "wrap", shot: 1 }] }).warnings.join("\n"), /镜头 1 已经有开场帧了/);
+  assert.match(lint({}, [...(base.frames as unknown[]), sheet, { ...sheet, id: "board-2" }]).errors.join("\n"), /分镜总览图只能有一张/);
+});
+
+test("分条交付：切点只能在镜头交界上，每一条都要有自己的钩子和口播；没写 cuts 就是整条", () => {
+  assert.deepEqual(directorParts(parseDirectorJob(fmcgJob())), [{ index: 1, fromSec: 0, toSec: 15 }]);
+  const split = parseDirectorJob(fmcgJob({ cuts: [7] }));
+  assert.deepEqual(directorParts(split), [
+    { index: 1, fromSec: 0, toSec: 7 },
+    { index: 2, fromSec: 7, toSec: 15 },
+  ]);
+  /// 第 2 条从 7 秒那个 3 秒的镜头开始：不是钩子
+  assert.match(lintDirectorJob(split).warnings.join("\n"), /第 2 条（7–15 秒） 的第一个镜头超过 2 秒/);
+  assert.match(lintDirectorJob(parseDirectorJob(fmcgJob({ cuts: [8] }))).errors.join("\n"), /切点 8 秒不在镜头交界上/);
+  assert.match(lintDirectorJob(parseDirectorJob(fmcgJob({ cuts: [4] }))).errors.join("\n"), /第 1 条（0–4 秒） 只有 4 秒/);
+  assert.throws(() => parseDirectorJob(fmcgJob({ cuts: [2] })), "切点太靠前在解析时就拒");
+  /// 落款要求一条至少 6 秒
+  const short = parseDirectorJob(fmcgJob({ cuts: [10], post: { signoff: { brandName: "晨光窗饰" } } }));
+  assert.match(lintDirectorJob(short).warnings.join("\n"), /片尾落款要求一条至少 6 秒/);
+});
+
+test("台词与字幕时间：每句台词落在它所在的镜头里，按这一条的开头平移；一个镜头两句按字数分", () => {
+  const parsedJob = parseDirectorJob(fmcgJob());
+  const lines = directorSpokenLines(parsedJob);
+  assert.deepEqual(lines.map((line) => [line.shot, line.text]), [
+    [1, "一拉就亮！"],
+    [3, "柔光不刺眼。"],
+    [5, "白天夜晚随你调。"],
+    [5, "Day or night."],
+    [6, "现在下单。"],
+  ]);
+  /// 镜头 5（10–13 秒）：7 个字 + 3 个词，按 7 : 3 分
+  assert.equal(lines[2]!.fromSec, 10);
+  assert.ok(Math.abs(lines[2]!.toSec - 12.1) < 0.001);
+  assert.equal(lines[3]!.toSec, 13);
+
+  const whole = scriptSpeechWords(lines, { fromSec: 0, toSec: 15 });
+  assert.deepEqual(whole.slice(0, 4).map((word) => word.text), ["一", "拉", "就", "亮"], "标点不算要念的字");
+  assert.equal(whole[0]!.startMs, 250, "切镜之后稍等一下人声才出来");
+  for (const line of lines) {
+    const mine = whole.filter((word) => word.startMs >= line.fromSec * 1_000 && word.startMs < line.toSec * 1_000);
+    assert.ok(mine.length > 0 && mine.every((word) => word.endMs <= line.toSec * 1_000), `${line.text} 不出它的镜头`);
+  }
+  assert.ok(whole.every((word, index) => index === 0 || word.startMs >= whole[index - 1]!.startMs), "时间只往前走");
+
+  /// 第二条（7–15 秒）：只带自己的台词，时间从这一条的开头算
+  const second = { fromSec: 7, toSec: 15 };
+  assert.equal(partScript(lines, second), "白天夜晚随你调。 Day or night. 现在下单。");
+  assert.equal(partScript(lines, { fromSec: 0, toSec: 7 }), "一拉就亮！ 柔光不刺眼。");
+  const shifted = scriptSpeechWords(lines, second);
+  assert.equal(shifted[0]!.text, "白");
+  assert.equal(shifted[0]!.startMs, 3_250);
+});
+
+test("看片抽帧：每个镜头第一帧紧贴切点（正脸可能只出现在切进来的头几帧），最后一帧在切走之前", () => {
+  const times = reviewFrameTimes(parseDirectorJob(fmcgJob()), 4);
+  assert.equal(times.length, 24);
+  assert.deepEqual(times.slice(0, 4).map((time) => time.atSec), [0.1, 0.69, 1.29, 1.88]);
+  assert.deepEqual(times.filter((time) => time.shot === 4).map((time) => time.atSec)[0], 7.1);
+  assert.ok(times.every((time) => time.atSec < 15));
+});
+
+test("有人的镜头要写清脸在哪；快销广告最后一个镜头至少 2 秒留给商品", () => {
+  const base = fmcgJob();
+  const video = base.video as Record<string, unknown> & { shots: Array<Record<string, unknown>> };
+  const withShot = (index: number, patch: Record<string, unknown>, more: Record<string, unknown> = {}) =>
+    lintDirectorJob(parseDirectorJob({ ...base, video: { ...video, ...more, shots: video.shots.map((shot, at) => (at === index ? { ...shot, ...patch } : shot)) } })).warnings.join("\n");
+  /// 第二条毛毯片的原话：写了「藏在后面」还是露了正脸
+  assert.match(withShot(3, { action: "Two hands shake the blind fabric open toward the camera, the person hidden behind it." }), /镜头 4 里有人但没写脸在哪/);
+  assert.doesNotMatch(withShot(3, { action: "A woman seen from behind pulls the chain and the slats rotate open." }), /没写脸在哪/);
+  assert.doesNotMatch(withShot(3, { action: "A baby cropped below the nose tugs at the chain with one hand." }), /没写脸在哪/);
+  assert.doesNotMatch(withShot(3, { action: "A woman pulls the chain, her face visible and relaxed." }), /没写脸在哪/);
+  /// 只出现某个人的手 / 下巴，不算把人放进了画面
+  assert.doesNotMatch(withShot(3, { action: "Mom's fingers lift the blind's bottom rail and the baby's chin rests on the sill." }), /没写脸在哪/);
+  assert.match(withShot(3, { action: "Mom's fingers lift the rail while the baby watches." }), /镜头 4 里有人但没写脸在哪/);
+
+  const shortEnd = video.shots.map((shot, at) => (at === 4 ? { ...shot, toSec: 14 } : at === 5 ? { ...shot, fromSec: 14 } : shot));
+  assert.match(lintDirectorJob(parseDirectorJob({ ...base, video: { ...video, shots: shortEnd } })).warnings.join("\n"), /最后一个镜头留给商品：至少 2 秒/);
+});
+
+test("本地后期的设置：落款的品牌名与行动指引有长度上限；开着字幕却没有台词要提醒", () => {
+  assert.equal(parseDirectorJob(fmcgJob({ post: {} })).post?.captions, true, "写了 post 不写 captions = 烧字幕");
+  assert.throws(() => parseDirectorJob(fmcgJob({ post: { signoff: { brandName: "" } } })));
+  assert.throws(() => parseDirectorJob(fmcgJob({ post: { signoff: { brandName: "晨光窗饰", cta: "字".repeat(29) } } })));
+  const silent = job({ post: { captions: true } });
+  const video = silent.video as Record<string, unknown> & { shots: Array<Record<string, unknown>> };
+  const mute = { ...silent, video: { ...video, shots: video.shots.map((shot) => ({ ...shot, sound: "Quiet room tone only." })) } };
+  assert.match(lintDirectorJob(parseDirectorJob(mute)).warnings.join("\n"), /post.captions 开着但脚本里没有台词/);
+});
+
+test("试别家模型必须点名套餐：--family any 不带套餐 id 一档都不给；点名后照样过能力检查", () => {
+  const options = { durationSec: 15, aspectRatio: "9:16" as const, referenceCount: 3 };
+  assert.deepEqual(rankDirectorVideoPlans(PRICES, { ...options, family: "any" }), []);
+  const kling = rankDirectorVideoPlans(PRICES, { ...options, family: "any", planId: "video-plan-70" });
+  assert.deepEqual(kling.map((plan) => [plan.planId, plan.family, plan.points]), [["video-plan-70", "other", 780]]);
+  /// 不写 family 时点名别家的套餐：照旧不给（缺省只用 Seedance 2.5）
+  assert.deepEqual(rankDirectorVideoPlans(PRICES, { ...options, planId: "video-plan-70" }), []);
+  /// 点名了也收不下这么多参考图：不给
+  assert.deepEqual(rankDirectorVideoPlans(PRICES, { ...options, family: "any", planId: "video-plan-70", referenceCount: 31 }), []);
 });

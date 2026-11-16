@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-16T22:07:49.393Z",
+  "generatedAt": "2026-11-16T22:54:33.500Z",
   "package": {
     "name": "aivora",
     "version": "0.2.0"
@@ -64,7 +64,7 @@
     },
     "byArea": {
       "unknown": 957,
-      "media-processing": 96,
+      "media-processing": 97,
       "config": 11,
       "ffmpeg": 16,
       "shared": 344,
@@ -72,7 +72,7 @@
       "auth": 25,
       "payments": 3,
       "upload": 7,
-      "scripts": 63,
+      "scripts": 62,
       "demo": 9,
       "real-footage-ads": 10,
       "video-generation": 98,

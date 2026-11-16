@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-16T22:07:49.407Z",
+  "generatedAt": "2026-11-16T22:54:33.511Z",
   "areas": {
     "unknown": [
       ".claude/launch.json",
@@ -985,6 +985,7 @@
       "scripts/check-real-mode.ts",
       "scripts/context-router.ts",
       "scripts/diagnose-stuck-final-videos.ts",
+      "scripts/director/run.ts",
       "scripts/drift-calibrate.ts",
       "scripts/e2e-1025/route-truth-table.ts",
       "scripts/e2e-brand-logo-shipment.ts",
@@ -1551,7 +1552,6 @@
       "scripts/confirm-production-db.mjs",
       "scripts/decide-historical-dispatch-quarantine.ts",
       "scripts/diagnose-stuck-brief-detail.ts",
-      "scripts/director/run.ts",
       "scripts/e2e-1025/acceptance-account.ts",
       "scripts/e2e-1025/acceptance-growth-setup.ts",
       "scripts/e2e-1025/template-reseed-dry-run.ts",

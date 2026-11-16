@@ -12,6 +12,7 @@ import {
   parseDirectorJob,
   rankDirectorVideoPlans,
   selectedFrameVariant,
+  spokenLoad,
   videoReferenceOrder,
   DIRECTOR_VIDEO_PROMPT_MAX,
   type DirectorPriceEntry,
@@ -27,6 +28,7 @@ function job(overrides: Record<string, unknown> = {}) {
   return {
     id: "zebra-blind-01",
     title: "Zebra blind morning light",
+    genre: "lifestyle",
     aspectRatio: "9:16",
     durationSec: 15,
     references: [
@@ -45,7 +47,9 @@ function job(overrides: Record<string, unknown> = {}) {
     video: {
       openingFrame: "opening",
       references: ["product-front", "product-detail"],
+      logline: "A hand opens a zebra blind in a quiet living room and morning light sweeps in.",
       look: "Photorealistic handheld commercial, natural morning daylight, shallow depth of field.",
+      voice: "a calm adult female voice speaking Mandarin, close-mic and unhurried",
       openingState: "The blind is lowered with slats closed; a hand rests on the chain, the room is dim and warm.",
       shots: [
         {
@@ -66,11 +70,11 @@ function job(overrides: Record<string, unknown> = {}) {
           framing: "Slow reveal from the window to the lit room, product stays in the left half.",
           camera: "Slow pull back, ending still.",
           light: "Bright striped daylight, neutral white balance.",
-          sound: 'A calm female voice says "让早晨的光，按你的节奏进来。" then silence.',
+          sound: 'The voice says "让早晨的光，按你的节奏进来。" over room tone.',
         },
       ],
       endState: "The blind is open with even light bands, the hand has left the frame, the room is bright.",
-      constraints: ["keep the slat count and spacing exactly as in image 1", "no on-screen text"],
+      throughout: ["the slat count and spacing stay exactly as in image 1"],
     },
     ...overrides,
   };
@@ -86,12 +90,15 @@ test("合格的脚本：零错误零提醒；提示词按固定顺序拼，参�
     [["product-front", false], ["product-detail", false], ["opening", true]],
   );
   const prompt = buildVideoPrompt(good);
-  const order = ["FORMAT: Vertical 9:16, 15 seconds", "REFERENCES: image 1 = product shape", "OPENING STATE:", "TIMELINE:", "END STATE:", "CONSTRAINTS:"].map((part) => prompt.indexOf(part));
+  /// Seedance 2.5 官方顺序：参考图对应 → 一句话梗概 → 时间线 → 全程成立的事
+  const order = ["REFERENCES: image 1 = product shape", "Vertical 9:16, 15 seconds. A hand opens a zebra blind", "OPENING STATE:", "TIMELINE:", "AUDIO: Voice: a calm adult female voice", "END STATE:", "THROUGHOUT:"].map((part) => prompt.indexOf(part));
   assert.ok(order.every((position) => position >= 0), prompt);
   assert.deepEqual([...order].sort((a, b) => a - b), order, "各段顺序固定");
   assert.match(prompt, /image 3 = the exact opening frame/);
-  assert.match(prompt, /0-5s: The hand pulls the chain/);
-  assert.match(prompt, /5-15s: .*Sound: A calm female voice says "让早晨的光，按你的节奏进来。"/);
+  assert.match(prompt, /Shot 1 \(0-5s\): The hand pulls the chain/);
+  assert.match(prompt, /Shot 2 \(5-15s\): .*Sound: The voice says "让早晨的光，按你的节奏进来。"/);
+  assert.match(prompt, /Mix: the voice is clean and prominent/);
+  assert.match(prompt, /THROUGHOUT: the slat count and spacing stay exactly as in image 1; No subtitles, no captions, no on-screen text\.$/);
   assert.ok(prompt.length < DIRECTOR_VIDEO_PROMPT_MAX);
 
   const frame = buildFramePrompt(good, good.frames[0]!);
@@ -108,14 +115,40 @@ test("出图尺寸：各画幅都是精确比例且宽高能被 16 整除（gpt-
   }
 });
 
-test("脚本结构不合格在解析时就拒：缺六项之一、时长越界、多余字段", () => {
+test("脚本结构不合格在解析时就拒：缺必写项、没定片种、小数秒、时长越界、多余字段", () => {
   const base = job();
-  const shots = (base.video as { shots: Array<Record<string, unknown>> }).shots;
-  const noLight: Record<string, unknown> = { ...shots[0] };
-  delete noLight.light;
-  assert.throws(() => parseDirectorJob({ ...base, video: { ...(base.video as object), shots: [noLight, shots[1]] } }));
+  const video = base.video as Record<string, unknown> & { shots: Array<Record<string, unknown>> };
+  const { shots } = video;
+  const noCamera: Record<string, unknown> = { ...shots[0] };
+  delete noCamera.camera;
+  assert.throws(() => parseDirectorJob({ ...base, video: { ...video, shots: [noCamera, shots[1]] } }));
+  const { genre: _genre, ...noGenre } = base as Record<string, unknown>;
+  void _genre;
+  assert.throws(() => parseDirectorJob(noGenre));
+  const { logline: _logline, ...noLogline } = video;
+  void _logline;
+  assert.throws(() => parseDirectorJob({ ...base, video: noLogline }));
+  assert.throws(() => parseDirectorJob({ ...base, video: { ...video, shots: [{ ...shots[0], toSec: 4.5 }, { ...shots[1], fromSec: 4.5 }] } }));
   assert.throws(() => parseDirectorJob({ ...base, durationSec: 31 }));
   assert.throws(() => parseDirectorJob({ ...base, mood: "happy" }));
+});
+
+test("空间与光色：镜头 1 必写；后面的镜头不写就是沿用，提示词里不重复", () => {
+  const base = job();
+  const video = base.video as Record<string, unknown> & { shots: Array<Record<string, unknown>> };
+  const bare = (shot: Record<string, unknown>) => {
+    const copy = { ...shot };
+    delete copy.space;
+    delete copy.light;
+    return copy;
+  };
+  const inherited = parsed({ video: { ...video, shots: [video.shots[0], bare(video.shots[1]!)] } });
+  assert.deepEqual(lintDirectorJob(inherited).errors, []);
+  const second = buildVideoPrompt(inherited).split("\n").find((line) => line.startsWith("Shot 2"))!;
+  assert.doesNotMatch(second, /Space:|Light:/);
+  assert.match(second, /Framing: .* Camera: .* Sound: /);
+  const missing = parsed({ video: { ...video, shots: [bare(video.shots[0]!), video.shots[1]] } });
+  assert.match(lintDirectorJob(missing).errors.join("\n"), /镜头 1 必须写 space 和 light/);
 });
 
 test("检查拦下的错误：时间线没铺满 / 不相接、引用不存在的图、提示词里有中文、没有商品实拍", () => {
@@ -157,6 +190,82 @@ test("检查给的提醒：正脸风险（写明不露脸就不提醒）、一�
     warnings({ video: { ...video, shots: [{ ...video.shots[0], toSec: 1 }, { ...video.shots[1], fromSec: 1 }] } }),
     /镜头 1 只有 1 秒/,
   );
+});
+
+test("快销广告按节奏查：钩子 2 秒内、镜头够多够短、有配乐有口播；生活方式片不受这些约束", () => {
+  const base = job();
+  const video = base.video as Record<string, unknown> & { shots: Array<Record<string, unknown>> };
+  /// 同一份慢节奏脚本标成快销：四条都要提醒
+  const slow = lintDirectorJob(parsed({ genre: "fmcg" })).warnings.join("\n");
+  assert.match(slow, /钩子要在 2 秒内/);
+  assert.match(slow, /15 秒至少 5 个镜头（现在 2 个）/);
+  assert.match(slow, /镜头 1 有 5 秒.*超过 4 秒就拖了/);
+  assert.match(slow, /快销广告要写 music/);
+  assert.equal(lintDirectorJob(parsed()).warnings.length, 0, "生活方式片照旧零提醒");
+
+  /// 合格的快销节奏：2 + 2 + 3 + 3 + 3 + 2，钩子 2 秒，带配乐与口播
+  /// 后面的镜头不重复写空间与光色，提示词才压得进紧凑目标
+  const cut = (fromSec: number, toSec: number, sound: string) => {
+    const shot: Record<string, unknown> = { ...video.shots[0], fromSec, toSec, sound };
+    if (fromSec > 0) {
+      delete shot.space;
+      delete shot.light;
+    }
+    return shot;
+  };
+  const fast = parsed({
+    genre: "fmcg",
+    video: {
+      ...video,
+      music: "upbeat pop beat around 120 bpm with claps and plucked bass",
+      shots: [
+        cut(0, 2, 'The voice says "一拉就亮！"'),
+        cut(2, 4, "A crisp click on the beat."),
+        cut(4, 7, 'The voice says "柔光不刺眼。"'),
+        cut(7, 10, "Fabric swish on the beat."),
+        cut(10, 13, 'The voice says "白天夜晚随你调。"'),
+        cut(13, 15, 'The voice says "现在下单。"'),
+      ],
+    },
+  });
+  assert.deepEqual(lintDirectorJob(fast), { errors: [], warnings: [] });
+  assert.match(buildVideoPrompt(fast), /AUDIO: Voice: .*\. Music: upbeat pop beat around 120 bpm.*\. Mix: /);
+});
+
+test("口播念不念得完：中文约每秒 5 个字封顶、英文每秒 3 个词；有台词没写 voice 要提醒", () => {
+  assert.deepEqual(spokenLoad('The voice says "一面细绒，一面羊羔绒。" softly'), { cjk: 9, words: 0 });
+  assert.deepEqual(spokenLoad('He says "Six hours on the trail. Still hot."'), { cjk: 0, words: 7 });
+  assert.deepEqual(spokenLoad("Room tone only."), { cjk: 0, words: 0 });
+  const base = job();
+  const video = base.video as Record<string, unknown> & { shots: Array<Record<string, unknown>> };
+  const crammed = { ...video.shots[0], sound: 'The voice says "这条毯子一面是细绒一面是羊羔绒，冬天裹上特别暖和，现在下单还有优惠。"' };
+  assert.match(lintDirectorJob(parsed({ video: { ...video, shots: [crammed, video.shots[1]] } })).warnings.join("\n"), /镜头 1 的台词 5 秒念不完（\d+ 个字）/);
+  const { voice: _voice, ...noVoice } = video;
+  void _voice;
+  assert.match(lintDirectorJob(parsed({ video: noVoice })).warnings.join("\n"), /有台词但没写 voice/);
+});
+
+test("写法提醒：抽象形容词、只写「快」的运镜、否定句的全程要求、自己又写了一遍不要字幕、提示词太长", () => {
+  const base = job();
+  const video = base.video as Record<string, unknown> & { shots: Array<Record<string, unknown>> };
+  const warnings = (overrides: Record<string, unknown>) => lintDirectorJob(parsed({ video: { ...video, ...overrides } })).warnings.join("\n");
+  assert.match(warnings({ look: "A stunning cinematic premium commercial with natural daylight." }), /抽象形容词模型拍不出来（stunning, cinematic, premium）/);
+  assert.match(warnings({ shots: [{ ...video.shots[0], camera: "Fast whip pan to the window." }, video.shots[1]] }), /镜头 1 的 camera 只写了「快」/);
+  assert.doesNotMatch(warnings({ shots: [{ ...video.shots[0], camera: "Fast but controlled whip pan to the window." }, video.shots[1]] }), /只写了「快」/);
+  assert.match(warnings({ throughout: ["never show a face"] }), /throughout 用正面描述写/);
+  assert.doesNotMatch(warnings({ throughout: ["no background music, only room tone"] }), /正面描述/, "声音上的否定句模型听");
+  assert.match(warnings({ throughout: ["no on-screen text or captions"] }), /不用写字幕 \/ 画面文字/);
+  const long = "The hand pulls the chain down slowly and the slats rotate open while light spills across the wall, the sofa, the rug and the far corner of the room in even bands";
+  const padded = Array.from({ length: 5 }, (_, index) => ({
+    ...(index === 0 ? video.shots[0] : {}),
+    fromSec: index * 3,
+    toSec: index * 3 + 3,
+    action: `${long} ${index}.`,
+    framing: `${long}.`,
+    camera: `${long}.`,
+    sound: `${long}.`,
+  }));
+  assert.match(warnings({ shots: padded }), /写到 3600 字以内更稳/);
 });
 
 function price(overrides: Partial<DirectorPriceEntry> & { plan_id: string; display_name: string }): DirectorPriceEntry {

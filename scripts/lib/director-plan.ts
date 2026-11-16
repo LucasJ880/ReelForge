@@ -5,6 +5,11 @@
  * 这里不读环境变量、不触网、不碰数据库：脚本文件的校验、提示词拼装、出片套餐的画质阶梯、花费估算、
  * 幂等键，全部可以单测。写法照 10-29 吸收的 Kelin 团队经验（docs/roadmap/2026-10-29-kelin-workflow-lessons.md）：
  * 全程英文、每个镜头六项齐全、参考图各管一件事、提示词按固定顺序拼紧凑。
+ *
+ * 2026-11-16 第二版：先定片种（快销 / 生活方式）再写镜头，节奏按片种检查；提示词顺序、整数秒时间码、
+ * 「否定句只在字幕与声音上管用」照 Seedance 2.5 官方提示词指南改（经 EVZheng-Lab/h3-seedance-prompt 转述，
+ * 2026-08 快照）；口播 / 配乐 / 抽象形容词 / 只写「快」的检查借鉴了几个开源 skill 的做法
+ *（zhouwei713/seedance-prompt、LeoYeAI/seedance-skills、liangdabiao/ecom-video-seedance-prompt 等，只取做法，不搬原文）。
  */
 import { createHash } from "node:crypto";
 import { z } from "zod";
@@ -18,6 +23,11 @@ export type DirectorAspectRatio = (typeof DIRECTOR_ASPECT_RATIOS)[number];
 
 /** Shuyu 单段提示词上限 5000（storyboard-beats.ts 的 VIDEO_PROMPT_LIMIT），留 200 余量。 */
 export const DIRECTOR_VIDEO_PROMPT_MAX = 4_800;
+/**
+ * 紧凑的目标：每秒不超过这么多字。官方 30 秒 9 镜头的例子约 1,200 个汉字；我们全英文（同样的意思英文字符数约多一倍）、
+ * 每个镜头带标签，六镜头的快销片压到 3,300 字上下已经没有重复内容了，所以定在 240 字 / 秒。这是经验数，不是测出来的阈值。
+ */
+export const DIRECTOR_VIDEO_PROMPT_TARGET_PER_SEC = 240;
 /** 故事板帧提示词上限：与线上出帧同一个数（fitStoryboardFramePrompt 的 5000），留余量。 */
 export const DIRECTOR_FRAME_PROMPT_MAX = 4_800;
 /** Shuyu 适配器的参考图硬顶（shuyu.ts 的 SHUYU_MAX_REFERENCE_IMAGES）。 */
@@ -56,17 +66,23 @@ const frameSchema = z
 export const DIRECTOR_SHOT_ITEMS = ["action", "space", "framing", "camera", "light", "sound"] as const;
 export type DirectorShotItem = (typeof DIRECTOR_SHOT_ITEMS)[number];
 
-const shotItem = z.string().trim().min(8).max(420);
+/** 片种决定节奏（2026-11-16：第一条毛毯片写成了慢节奏生活方式片，用户要的是快销广告）。 */
+export const DIRECTOR_GENRES = ["fmcg", "lifestyle"] as const;
+export type DirectorGenre = (typeof DIRECTOR_GENRES)[number];
+
+const shotItem = z.string().trim().min(8).max(320);
 const shotSchema = z
   .object({
-    fromSec: z.number().min(0).max(30),
-    toSec: z.number().min(0).max(30),
+    /// 整数秒、首尾相接（Seedance 2.5 官方写法：留空档模型会自己加戏，塞太满会多切或丢拍）
+    fromSec: z.number().int().min(0).max(30),
+    toSec: z.number().int().min(1).max(30),
     action: shotItem,
-    space: shotItem,
     framing: shotItem,
     camera: shotItem,
-    light: shotItem,
     sound: shotItem,
+    /// 空间与光色：第一个镜头必写；后面的镜头不写 = 沿用上一个镜头（六项照样要核对，只是不重复写进提示词）
+    space: shotItem.optional(),
+    light: shotItem.optional(),
   })
   .strict();
 
@@ -76,13 +92,20 @@ const videoSchema = z
     openingFrame: slug,
     /// 除开场帧以外带给出片模型的参考图（实拍在前）
     references: z.array(slug).min(1).max(DIRECTOR_VIDEO_REFERENCES_MAX - 1),
-    /// 呈现方式（例："photorealistic handheld commercial, natural daylight, shallow depth of field"）
+    /// 一句话说清这条片：主体 + 地点 + 事件 + 风格（官方顺序里紧跟在参考图之后）
+    logline: z.string().trim().min(20).max(240),
+    /// 呈现方式（例："handheld phone-style product ad, bright window daylight, fast but controlled cuts"）
     look: z.string().trim().min(12).max(280),
     openingState: z.string().trim().min(20).max(600),
-    shots: z.array(shotSchema).min(1).max(8),
+    shots: z.array(shotSchema).min(1).max(10),
+    /// 口播的声音，只描述一次：语言、性别与年龄感、语气（例："a bright young female voice speaking Mandarin, upbeat and close-mic"）
+    voice: z.string().trim().min(8).max(200).optional(),
+    /// 配乐：风格、速度、乐器、走向（例："upbeat pop beat around 120 bpm, claps and plucked bass, lifts at the last shot"）
+    music: z.string().trim().min(8).max(240).optional(),
     endState: z.string().trim().min(12).max(400),
-    /// 只留当前风险的限制，不写互相重复或矛盾的
-    constraints: z.array(z.string().trim().min(6).max(200)).max(6).default([]),
+    /// 从头到尾都成立的事，用正面描述写（"the blanket stays solid sage green"）。否定句模型只在字幕与声音上听话；
+    /// 「不要字幕 / 画面文字」脚本会自动加，不用写
+    throughout: z.array(z.string().trim().min(6).max(200)).max(5).default([]),
   })
   .strict();
 
@@ -90,6 +113,8 @@ export const directorJobSchema = z
   .object({
     id: slug,
     title: z.string().trim().min(1).max(120),
+    /// 先定片种再写镜头：fmcg = 快销广告（开头就是钩子、镜头短、口播带劲、结尾给行动指引）；lifestyle = 生活方式片（可以慢）
+    genre: z.enum(DIRECTOR_GENRES),
     aspectRatio: z.enum(DIRECTOR_ASPECT_RATIOS),
     /// Seedance 2.5 单段 4–30 秒
     durationSec: z.number().int().min(4).max(30),
@@ -164,31 +189,43 @@ function seconds(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
+/** 自动加在最后的一句：否定句里模型最听话的就是字幕与画面文字。 */
+export const DIRECTOR_NO_TEXT_LINE = "No subtitles, no captions, no on-screen text";
+
 /**
- * 出片提示词，固定顺序：画幅与呈现 → 参考职责 → 首态与空间 → 时间与动作 → 尾态 → 关键限制。
- * 声音写在各镜头里（台词放英文双引号内，模型逐字念；引号里可以是商家原文）。
+ * 出片提示词。顺序照 Seedance 2.5 官方写法：参考图对应 → 一句话梗概（画幅、时长、呈现方式跟在后面）→
+ * 首态 → 按整数秒首尾相接的镜头 → 声音 → 尾态 → 全程成立的事。
+ * 台词写在它被念出来的那个镜头的 sound 里（英文双引号内，可以是商家原文），声音只在 voice 里描述一次。
  */
 export function buildVideoPrompt(job: DirectorJob): string {
   const { video } = job;
   const timeline = video.shots
-    .map((shot) =>
+    .map((shot, index) =>
       [
-        `${seconds(shot.fromSec)}-${seconds(shot.toSec)}s: ${shot.action}`,
-        `Space: ${shot.space}`,
+        `Shot ${index + 1} (${seconds(shot.fromSec)}-${seconds(shot.toSec)}s): ${shot.action}`,
+        shot.space ? `Space: ${shot.space}` : null,
         `Framing: ${shot.framing}`,
         `Camera: ${shot.camera}`,
-        `Light: ${shot.light}`,
+        shot.light ? `Light: ${shot.light}` : null,
         `Sound: ${shot.sound}`,
-      ].join(" "),
+      ]
+        .filter(Boolean)
+        .join(" "),
     )
     .join("\n");
+  const audio = [
+    video.voice ? `Voice: ${video.voice}` : null,
+    video.music ? `Music: ${video.music}` : null,
+    video.voice ? "Mix: the voice is clean and prominent, music sits lower under it" : null,
+  ].filter(Boolean);
   return [
-    `FORMAT: ${ORIENTATION[job.aspectRatio]}, ${job.durationSec} seconds. ${video.look}`,
     `REFERENCES: ${referenceRoleLines(videoReferenceOrder(job))}.`,
+    `${ORIENTATION[job.aspectRatio]}, ${job.durationSec} seconds. ${video.logline} ${video.look}`,
     `OPENING STATE: ${video.openingState}`,
     `TIMELINE:\n${timeline}`,
+    audio.length > 0 ? `AUDIO: ${audio.join(". ")}.` : null,
     `END STATE: ${video.endState}`,
-    video.constraints.length > 0 ? `CONSTRAINTS: ${video.constraints.join("; ")}.` : null,
+    `THROUGHOUT: ${[...video.throughout, DIRECTOR_NO_TEXT_LINE].join("; ")}.`,
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -215,6 +252,23 @@ function outsideQuotes(text: string): string {
 /// 清晰正脸会让 Seedance 把参考图整单拦下（10-29 评测 5 条全败）
 const FACE_RISK = /\b(face|faces|facial|portrait|headshot|selfie|looking (?:straight )?(?:at|into) (?:the )?camera|eye contact|smil(?:e|es|ing) (?:at|to) (?:the )?camera)\b/iu;
 const FACE_SAFE = /\b(no (?:visible )?face|face (?:is )?(?:not visible|out of frame|cropped out|turned away)|faceless|from behind|back to (?:the )?camera|hands only|only (?:her|his|their) hands)\b/iu;
+
+/// 抽象形容词：模型不知道怎么拍，换成看得见的物理现象（光从哪来、材质怎么动）
+const VAGUE_WORDS = /\b(beautiful|stunning|gorgeous|amazing|awesome|epic|perfect|cinematic|premium|luxurious|high[- ]quality|masterpiece|dynamic)\b/giu;
+/// 只写「快」镜头会乱：写 fast but controlled（fast-paced 说的是节奏，不算）
+const BARE_FAST = /\b(?:fast|quick|quickly|rapid|rapidly)\b(?![- ]paced)(?! but controlled)/iu;
+/// 否定句：模型只在字幕与声音上听话
+const NEGATIVE_LEAD = /^(?:no|never|don't|do not|without|avoid)\b/iu;
+const NEGATIVE_OK = /\b(subtitle|caption|text|voice|dialogue|music|bgm|sound)/iu;
+const TEXT_TOPIC = /\b(subtitles?|captions?|on-screen text)\b/iu;
+
+/** 一个镜头里要念的台词量：引号里的中日韩字数与英文词数。 */
+export function spokenLoad(text: string): { cjk: number; words: number } {
+  const quoted = [...text.matchAll(/"([^"]*)"/gu)].map((match) => match[1] ?? "").join(" ");
+  const cjk = [...quoted].filter((char) => CJK.test(char)).length;
+  const words = quoted.replace(new RegExp(CJK.source, "gu"), " ").split(/\s+/u).filter((word) => /[a-z0-9]/iu.test(word)).length;
+  return { cjk, words };
+}
 
 /// 首帧不该提前露出结果
 const RESULT_SPOILER = /\b(already|fully) (?:open(?:ed)?|installed|assembled|finished|applied|poured|unboxed)\b/iu;
@@ -267,31 +321,80 @@ export function lintDirectorJob(job: DirectorJob): DirectorLint {
   video.shots.forEach((shot, index) => {
     const label = `镜头 ${index + 1}`;
     if (Math.abs(shot.fromSec - cursor) > 0.01) errors.push(`${label} 应从 ${seconds(cursor)} 秒开始（现在是 ${seconds(shot.fromSec)} 秒）`);
-    if (shot.toSec <= shot.fromSec) errors.push(`${label} 的结束时间不晚于开始时间`);
-    else if (shot.toSec - shot.fromSec < 2) warnings.push(`${label} 只有 ${seconds(shot.toSec - shot.fromSec)} 秒：一拍一个主动作，太短模型做不完`);
+    const length = shot.toSec - shot.fromSec;
+    if (length <= 0) errors.push(`${label} 的结束时间不晚于开始时间`);
+    else if (job.genre === "fmcg" ? length > 4 : length < 2) {
+      warnings.push(
+        job.genre === "fmcg"
+          ? `${label} 有 ${length} 秒：快销广告一个镜头 1–3 秒，超过 4 秒就拖了，拆开或删掉`
+          : `${label} 只有 ${length} 秒：一拍一个主动作，太短模型做不完`,
+      );
+    }
     cursor = shot.toSec;
+    if (index === 0 && (!shot.space || !shot.light)) errors.push("镜头 1 必须写 space 和 light：后面的镜头不写才有东西可沿用");
     for (const item of DIRECTOR_SHOT_ITEMS) {
-      if (CJK.test(outsideQuotes(shot[item]))) errors.push(`${label} 的 ${item} 里有非英文内容（台词放英文双引号里）`);
+      if (CJK.test(outsideQuotes(shot[item] ?? ""))) errors.push(`${label} 的 ${item} 里有非英文内容（台词放英文双引号里）`);
     }
     if (/\b(then|after that|next,|followed by|and then)\b/iu.test(shot.action)) {
       warnings.push(`${label} 的 action 里像是写了不止一个主动作（then / after that）：一拍只做一件事`);
     }
+    if (BARE_FAST.test(shot.camera)) warnings.push(`${label} 的 camera 只写了「快」：写成 fast but controlled，不然画面会乱`);
+    /// 念得完吗：中文约 4 字 / 秒，快销口播可以到 5；英文约 2.5 词 / 秒
+    const spoken = spokenLoad(shot.sound);
+    if (length > 0 && (spoken.cjk > 5 * length || spoken.words > 3 * length)) {
+      warnings.push(`${label} 的台词 ${length} 秒念不完（${spoken.cjk > 0 ? `${spoken.cjk} 个字` : `${spoken.words} 个词`}）：缩短台词或挪一部分到下一个镜头`);
+    }
   });
+  const hasDialogue = video.shots.some((shot) => {
+    const spoken = spokenLoad(shot.sound);
+    return spoken.cjk + spoken.words > 0;
+  });
+  if (hasDialogue && !video.voice) warnings.push("有台词但没写 voice：把口播的语言、性别与年龄感、语气描述一次（例：a bright young female voice speaking Mandarin）");
+  if (job.genre === "fmcg") {
+    const first = video.shots[0];
+    if (first && first.toSec - first.fromSec > 2) warnings.push("快销广告的钩子要在 2 秒内：镜头 1 放最抓人的那一下（触感、对比、结果），别铺垫");
+    const wanted = Math.ceil(job.durationSec / 3);
+    if (video.shots.length < wanted) warnings.push(`快销广告 ${job.durationSec} 秒至少 ${wanted} 个镜头（现在 ${video.shots.length} 个）：节奏靠切，不靠慢动作`);
+    if (!video.music) warnings.push("快销广告要写 music：风格、速度、乐器（例：upbeat pop beat around 120 bpm），切点才有拍子可跟");
+    if (!hasDialogue) warnings.push("快销广告没有口播：至少一句卖点和一句结尾的行动指引");
+  }
   if (Math.abs(cursor - job.durationSec) > 0.01) {
     errors.push(`镜头铺到 ${seconds(cursor)} 秒，时长是 ${job.durationSec} 秒：要正好铺满`);
   }
-  for (const [name, text] of [["look", video.look], ["openingState", video.openingState], ["endState", video.endState], ...video.constraints.map((text) => ["constraints", text] as const)] as const) {
+  const prose: Array<readonly [string, string]> = [
+    ["logline", video.logline],
+    ["look", video.look],
+    ["openingState", video.openingState],
+    ["endState", video.endState],
+    ...(video.voice ? [["voice", video.voice] as const] : []),
+    ...(video.music ? [["music", video.music] as const] : []),
+    ...video.throughout.map((text) => ["throughout", text] as const),
+  ];
+  for (const [name, text] of prose) {
     if (CJK.test(outsideQuotes(text))) errors.push(`${name} 里有非英文内容`);
+  }
+  const vague = new Set<string>();
+  for (const text of [...prose.map(([, value]) => value), ...video.shots.flatMap((shot) => DIRECTOR_SHOT_ITEMS.map((item) => shot[item] ?? "")), ...job.frames.map((frame) => frame.prompt)]) {
+    for (const match of outsideQuotes(text).matchAll(VAGUE_WORDS)) vague.add(match[0].toLowerCase());
+  }
+  if (vague.size > 0) warnings.push(`抽象形容词模型拍不出来（${[...vague].join(", ")}）：换成看得见的东西——光从哪来、材质怎么动`);
+  for (const text of video.throughout) {
+    if (TEXT_TOPIC.test(text)) warnings.push(`throughout 里不用写字幕 / 画面文字（脚本会自动加）：${text}`);
+    else if (NEGATIVE_LEAD.test(text) && !NEGATIVE_OK.test(text)) warnings.push(`throughout 用正面描述写，否定句模型不听（${text}）：例 "only hands and the back of the head are seen"`);
   }
   if (RESULT_SPOILER.test(video.openingState)) {
     warnings.push("openingState 像是提前露出了结果（already / fully …）：首帧放在主动作发生之前的清楚状态");
   }
-  const normalized = video.constraints.map((text) => text.toLowerCase().replace(/[^a-z0-9 ]/gu, "").trim());
-  if (new Set(normalized).size !== normalized.length) warnings.push("constraints 里有重复的限制");
+  const normalized = video.throughout.map((text) => text.toLowerCase().replace(/[^a-z0-9 ]/gu, "").trim());
+  if (new Set(normalized).size !== normalized.length) warnings.push("throughout 里有重复的内容");
 
   const prompt = buildVideoPrompt(job);
   if (prompt.length > DIRECTOR_VIDEO_PROMPT_MAX) {
     errors.push(`出片提示词 ${prompt.length} 字，超过 ${DIRECTOR_VIDEO_PROMPT_MAX}：删限制、并镜头，别指望截断`);
+  } else if (prompt.length > DIRECTOR_VIDEO_PROMPT_TARGET_PER_SEC * job.durationSec) {
+    warnings.push(
+      `出片提示词 ${prompt.length} 字，${job.durationSec} 秒的片写到 ${DIRECTOR_VIDEO_PROMPT_TARGET_PER_SEC * job.durationSec} 字以内更稳：太长模型会丢层。参考图已经说清的别再用文字描述一遍`,
+    );
   }
   const order = videoReferenceOrder(job);
   if (order.length > DIRECTOR_VIDEO_REFERENCES_MAX) {

@@ -610,6 +610,13 @@ async function commandPost(workspace: Workspace, flags: Flags): Promise<void> {
   rmSync(workRoot, { recursive: true, force: true });
   mkdirSync(workRoot, { recursive: true });
   const useRecognition = !flags["script-timing"];
+  /// 落款 Logo：只认本地图片文件（合成器要的是文件路径）；转成 png 放进工作目录
+  let signoffLogoPath: string | null = null;
+  if (signoff?.logo) {
+    const logo = await loadImage(workspace, signoff.logo);
+    signoffLogoPath = join(workRoot, `signoff-logo.${logo.mimeType === "image/png" ? "png" : logo.mimeType === "image/webp" ? "webp" : "jpg"}`);
+    writeFileSync(signoffLogoPath, logo.bytes);
+  }
 
   for (const part of parts) {
     const suffix = parts.length > 1 ? `-part${part.index}` : "";
@@ -637,7 +644,7 @@ async function commandPost(workspace: Workspace, flags: Flags): Promise<void> {
           bgm: { trackId: "none", volume: 0 },
         },
         captions: { enabled: Boolean(script), style: "plain", language, position: "bottom", exportSrt: true },
-        ...(signoff ? { signoff: { enabled: true, brandName: signoff.brandName, cta: signoff.cta ?? null } } : {}),
+        ...(signoff ? { signoff: { enabled: true, brandName: signoff.brandName, cta: signoff.cta ?? null, logo: Boolean(signoffLogoPath) } } : {}),
       },
       /// 字幕时间：能识别就跟着人声走；识别不了（现在的密钥没有 whisper-1）按脚本里每句台词所在的镜头推
       transcribeSpeech: script
@@ -648,6 +655,7 @@ async function commandPost(workspace: Workspace, flags: Flags): Promise<void> {
           }
         : null,
       platform: platform ?? null,
+      signoffLogoPath,
       ...(flags["ai-badge"] ? { aiBadge: true } : platform ? {} : { aiBadge: false }),
       workDir,
       outputName: "composed.mp4",
@@ -657,11 +665,12 @@ async function commandPost(workspace: Workspace, flags: Flags): Promise<void> {
     if (composed.srtPath) copyFileSync(composed.srtPath, output.replace(/\.mp4$/u, ".srt"));
     const applied = [
       composed.applied.captions ? `字幕（${timing}${composed.captionSource && composed.captionSource !== "speech" ? "；对齐没成，按字数摊的" : ""}）` : null,
-      composed.applied.signoff ? `片尾落款「${signoff?.brandName}」` : null,
+      composed.applied.signoff ? `片尾落款「${signoff?.brandName}」${composed.applied.signoffLogo ? "（带 Logo）" : ""}` : null,
       composed.applied.aiBadge ? "AI 生成角标" : null,
     ].filter(Boolean);
     console.log(`[director] ${parts.length > 1 ? `第 ${part.index} 条（${part.fromSec}–${part.toSec} 秒）` : "成片"} → ${relative(REPO, output)}（${composed.durationSec} 秒；${applied.join("、") || "只重新封装，没有叠加任何东西"}）`);
     if (signoff && !composed.applied.signoff) console.log("[director] 注意：落款没压上（这一条太短）");
+    if (signoffLogoPath && composed.applied.signoff && !composed.applied.signoffLogo) console.log("[director] 注意：Logo 没叠上去");
   }
   rmSync(workRoot, { recursive: true, force: true });
   console.log("[director] 下一步：review --file <后期后的文件>，看字幕压没压住画面、落款的字对不对");

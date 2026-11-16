@@ -566,6 +566,7 @@ test("有人的镜头要写清脸在哪；快销广告最后一个镜头至少 2
 test("本地后期的设置：落款的品牌名与行动指引有长度上限；开着字幕却没有台词要提醒", () => {
   assert.equal(parseDirectorJob(fmcgJob({ post: {} })).post?.captions, true, "写了 post 不写 captions = 烧字幕");
   assert.throws(() => parseDirectorJob(fmcgJob({ post: { signoff: { brandName: "" } } })));
+  assert.equal(parseDirectorJob(fmcgJob({ post: { signoff: { brandName: "晨光窗饰", logo: "logo/icon.png" } } })).post?.signoff?.logo, "logo/icon.png");
   assert.throws(() => parseDirectorJob(fmcgJob({ post: { signoff: { brandName: "晨光窗饰", cta: "字".repeat(29) } } })));
   const silent = job({ post: { captions: true } });
   const video = silent.video as Record<string, unknown> & { shots: Array<Record<string, unknown>> };

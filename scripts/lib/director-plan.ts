@@ -114,6 +114,9 @@ const postSchema = z
       .object({
         brandName: z.string().trim().min(1).max(SIGNOFF_BRAND_MAX),
         cta: z.string().trim().min(1).max(SIGNOFF_CTA_MAX).optional(),
+        /// 品牌 Logo 的本地图片（png / jpg / webp，相对任务目录或仓库根目录）。不用抠图：合成器会给它垫一块白底板，
+        /// 坐在落款文字正上方。Logo 永远不交给视频模型画（会被重绘走样）
+        logo: z.string().trim().min(1).max(2_000).optional(),
       })
       .strict()
       .optional(),

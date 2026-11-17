@@ -109,7 +109,7 @@ const keyframeSchema = z
     /// frames 里的 id（不能是开场帧）
     frame: slug,
     /// 第几个镜头（从 1 数）
-    shot: z.number().int().min(1).max(10),
+    shot: z.number().int().min(1).max(15),
   })
   .strict();
 
@@ -145,7 +145,8 @@ const videoSchema = z
     /// 呈现方式（例："handheld phone-style product ad, bright window daylight, fast but controlled cuts"）
     look: z.string().trim().min(12).max(280),
     openingState: z.string().trim().min(20).max(600),
-    shots: z.array(shotSchema).min(1).max(10),
+    /// 30 秒的快销片要 12 个上下的镜头；上限给到 15
+    shots: z.array(shotSchema).min(1).max(15),
     /// 口播的声音，只描述一次：语言、性别与年龄感、语气（例："a bright young female voice speaking Mandarin, upbeat and close-mic"）
     voice: z.string().trim().min(8).max(200).optional(),
     /// 配乐：风格、速度、乐器、走向（例："upbeat pop beat around 120 bpm, claps and plucked bass, lifts at the last shot"）

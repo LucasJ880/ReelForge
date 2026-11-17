@@ -110,8 +110,11 @@ export interface AiVisionAnalyzeOptions {
   /**
    * 用哪一档模型看图：缺省 "vision"（最强、最慢）。"fast" 走 fast 档的回退链（同样支持图像输入），
    * 给「要看图但更在乎响应时间」的调用用，例如建故事板时看着商品图写镜头卡。
+   * "director" 走 director 档的回退链：看着商品图写客户最终看到的镜头脚本（导演写手）。
    */
-  tier?: "vision" | "fast";
+  tier?: "vision" | "fast" | "director";
+  /** 点名一个模型排在这一档回退链的最前：只给这一次调用换模型（导演写手的 OPENAI_DIRECTOR_WRITER_MODEL）。 */
+  model?: string;
 }
 
 /**

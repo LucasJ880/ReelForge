@@ -14,6 +14,7 @@ import {
   isLLMAvailable,
   isLLMForcedMock,
   resolveFallbackChain,
+  resolveVisionModelChain,
   type OpenAITier,
 } from "@/lib/providers/openai";
 import {
@@ -43,6 +44,14 @@ export function openAiProbePlan(): { textModels: string[]; visionModels: string[
     textModels: resolveFallbackChain("fast").slice(0, 3),
     visionModels: resolveFallbackChain("vision").slice(0, 3),
   };
+}
+
+/**
+ * 一次看图调用会按什么顺序试哪些模型（传给 analyzeImages 的 tier / model 相同时，实际走的就是这个顺序）。
+ * 导演写手的命令行预演要先把模型报出来；走这里而不是直连 providers/openai，守住同一道门禁。
+ */
+export function openAiVisionModelChain(tier: "vision" | "fast" | "director", model?: string): string[] {
+  return resolveVisionModelChain(tier, model);
 }
 
 /** 与 chatJson 同一条规则：5.x / o 系只收 max_completion_tokens。 */
@@ -88,6 +97,7 @@ export class OpenAiProvider implements AiProvider {
       detail: options.detail,
       maxTokens: options.maxTokens,
       tier: options.tier,
+      model: options.model,
     });
   }
 

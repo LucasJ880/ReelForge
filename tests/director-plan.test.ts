@@ -25,7 +25,7 @@ import {
   DIRECTOR_VIDEO_PROMPT_MAX,
   type DirectorPriceEntry,
   type DirectorVideoAttempt,
-} from "../scripts/lib/director-plan";
+} from "../src/lib/video-generation/director-plan";
 
 /**
  * 导演线路（2026-11-16）：Claude 写镜头脚本 → OpenAI gpt-image-2 出故事板 → Shuyu Seedance 出片。

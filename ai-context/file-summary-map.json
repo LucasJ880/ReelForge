@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T01:37:18.839Z",
+  "generatedAt": "2026-11-17T02:07:37.559Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -52,8 +52,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 333,
-      "sizeBytes": 30464,
+      "lineCount": 335,
+      "sizeBytes": 30899,
       "notes": "Documentation"
     },
     {
@@ -9806,7 +9806,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 126,
-      "sizeBytes": 12285,
+      "sizeBytes": 12442,
       "notes": "Documentation"
     },
     {
@@ -10711,8 +10711,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 171,
-      "sizeBytes": 14686,
+      "lineCount": 223,
+      "sizeBytes": 20752,
       "notes": "Documentation"
     },
     {
@@ -13481,6 +13481,7 @@
         "node:path",
         "@next/env",
         "../lib/director-plan",
+        "../../src/lib/video-generation/director-writer",
         "../lib/experiment-budget",
         "@/lib/storage",
         "@/lib/providers/shuyu",
@@ -13490,11 +13491,13 @@
         "@/lib/video-generation/providers/shuyu-video-provider",
         "@/lib/media/ffmpeg-bin",
         "@/lib/providers/openai-transcription",
-        "@/lib/media/stitch-pipeline"
+        "@/lib/media/stitch-pipeline",
+        "@/lib/video-generation/director-writer-openai",
+        "@/lib/providers/openai-vision-inline"
       ],
       "importantSymbols": [],
-      "lineCount": 743,
-      "sizeBytes": 40974,
+      "lineCount": 846,
+      "sizeBytes": 48126,
       "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
     },
     {
@@ -13628,56 +13631,13 @@
       "path": "scripts/lib/director-plan.ts",
       "type": "script",
       "area": "scripts",
-      "exports": [
-        "DIRECTOR_ASPECT_RATIOS",
-        "DirectorAspectRatio",
-        "DIRECTOR_VIDEO_PROMPT_MAX",
-        "DIRECTOR_VIDEO_PROMPT_TARGET_PER_SEC",
-        "DIRECTOR_FRAME_PROMPT_MAX",
-        "DIRECTOR_VIDEO_REFERENCES_MAX",
-        "DIRECTOR_FRAME_REFERENCES_MAX",
-        "DIRECTOR_SHOT_ITEMS",
-        "DirectorShotItem",
-        "DIRECTOR_PRODUCT_TYPES",
-        "DirectorProductType",
-        "DIRECTOR_GENRES",
-        "DirectorGenre",
-        "directorJobSchema",
-        "DirectorJob",
-        "DirectorFrame",
-        "DirectorReference",
-        "parseDirectorJob",
-        "openAiFrameSize",
-        "sheetGrid",
-        "buildFramePrompt",
-        "videoReferenceOrder",
-        "DIRECTOR_NO_TEXT_LINE",
-        "buildVideoPrompt",
-        "DirectorPart",
-        "directorParts",
-        "DirectorSpokenLine",
-        "directorSpokenLines",
-        "scriptSpeechWords",
-        "cornerLogoGeometry"
-      ],
+      "exports": [],
       "imports": [
-        "node:crypto",
-        "zod",
-        "../../src/lib/video-generation/brand-signoff",
-        "../../src/lib/providers/shuyu-video-plan-tiers"
+        "../../src/lib/video-generation/director-plan"
       ],
-      "importantSymbols": [
-        "DIRECTOR_ASPECT_RATIOS",
-        "DirectorAspectRatio",
-        "DIRECTOR_VIDEO_PROMPT_MAX",
-        "DIRECTOR_VIDEO_PROMPT_TARGET_PER_SEC",
-        "DIRECTOR_FRAME_PROMPT_MAX",
-        "DIRECTOR_VIDEO_REFERENCES_MAX",
-        "DIRECTOR_FRAME_REFERENCES_MAX",
-        "DIRECTOR_SHOT_ITEMS"
-      ],
-      "lineCount": 949,
-      "sizeBytes": 53042,
+      "importantSymbols": [],
+      "lineCount": 2,
+      "sizeBytes": 62,
       "notes": "Maintenance / one-off script (run via tsx); area=scripts"
     },
     {
@@ -20355,6 +20315,7 @@
       "area": "shared",
       "exports": [
         "openAiProbePlan",
+        "openAiVisionModelChain",
         "openAiTokenLimitParam",
         "OpenAiProvider"
       ],
@@ -20366,10 +20327,11 @@
       "importantSymbols": [
         "OpenAiProvider",
         "openAiProbePlan",
+        "openAiVisionModelChain",
         "openAiTokenLimitParam"
       ],
-      "lineCount": 120,
-      "sizeBytes": 3677,
+      "lineCount": 130,
+      "sizeBytes": 4168,
       "notes": "Utility / helper module"
     },
     {
@@ -20401,8 +20363,8 @@
         "AiImageGenerationResult",
         "AiImageEditOptions"
       ],
-      "lineCount": 189,
-      "sizeBytes": 5761,
+      "lineCount": 192,
+      "sizeBytes": 6059,
       "notes": "Utility / helper module"
     },
     {
@@ -22531,6 +22493,7 @@
         "VisionAnalyzeOptions",
         "VISION_DEFAULT_DETAIL",
         "VISION_DEFAULT_MAX_TOKENS",
+        "resolveVisionModelChain",
         "analyzeImages",
         "isLLMAvailable",
         "__test__"
@@ -22551,8 +22514,8 @@
         "VisionAnalyzeOptions",
         "VISION_DEFAULT_DETAIL"
       ],
-      "lineCount": 636,
-      "sizeBytes": 25717,
+      "lineCount": 651,
+      "sizeBytes": 26510,
       "notes": "External API provider wrapper; uses OpenAI SDK; area=ai-providers"
     },
     {
@@ -25780,6 +25743,136 @@
       ],
       "lineCount": 23,
       "sizeBytes": 1094,
+      "notes": "Utility / helper module; area=video-generation"
+    },
+    {
+      "path": "src/lib/video-generation/director-plan.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "DIRECTOR_ASPECT_RATIOS",
+        "DirectorAspectRatio",
+        "DIRECTOR_VIDEO_PROMPT_MAX",
+        "DIRECTOR_VIDEO_PROMPT_TARGET_PER_SEC",
+        "DIRECTOR_FRAME_PROMPT_MAX",
+        "DIRECTOR_VIDEO_REFERENCES_MAX",
+        "DIRECTOR_FRAME_REFERENCES_MAX",
+        "DIRECTOR_SHOT_ITEMS",
+        "DirectorShotItem",
+        "DIRECTOR_PRODUCT_TYPES",
+        "DirectorProductType",
+        "DIRECTOR_GENRES",
+        "DirectorGenre",
+        "directorJobSchema",
+        "DirectorJob",
+        "DirectorFrame",
+        "DirectorReference",
+        "parseDirectorJob",
+        "openAiFrameSize",
+        "sheetGrid",
+        "buildFramePrompt",
+        "videoReferenceOrder",
+        "DIRECTOR_NO_TEXT_LINE",
+        "buildVideoPrompt",
+        "DirectorPart",
+        "directorParts",
+        "DirectorSpokenLine",
+        "directorSpokenLines",
+        "scriptSpeechWords",
+        "cornerLogoGeometry"
+      ],
+      "imports": [
+        "node:crypto",
+        "zod",
+        "@/lib/video-generation/brand-signoff",
+        "@/lib/providers/shuyu-video-plan-tiers"
+      ],
+      "importantSymbols": [
+        "DIRECTOR_ASPECT_RATIOS",
+        "DirectorAspectRatio",
+        "DIRECTOR_VIDEO_PROMPT_MAX",
+        "DIRECTOR_VIDEO_PROMPT_TARGET_PER_SEC",
+        "DIRECTOR_FRAME_PROMPT_MAX",
+        "DIRECTOR_VIDEO_REFERENCES_MAX",
+        "DIRECTOR_FRAME_REFERENCES_MAX",
+        "DIRECTOR_SHOT_ITEMS"
+      ],
+      "lineCount": 952,
+      "sizeBytes": 53336,
+      "notes": "Utility / helper module; area=video-generation"
+    },
+    {
+      "path": "src/lib/video-generation/director-writer-openai.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "DIRECTOR_WRITER_MODEL_ENV",
+        "DIRECTOR_WRITER_ANSWER_TOKENS",
+        "OpenAiDirectorCompleterOptions",
+        "directorWriterModelChain",
+        "createOpenAiDirectorCompleter"
+      ],
+      "imports": [
+        "@/lib/ai",
+        "@/lib/ai/providers/openai-provider",
+        "@/lib/video-generation/director-writer"
+      ],
+      "importantSymbols": [
+        "DIRECTOR_WRITER_MODEL_ENV",
+        "DIRECTOR_WRITER_ANSWER_TOKENS",
+        "OpenAiDirectorCompleterOptions",
+        "directorWriterModelChain",
+        "createOpenAiDirectorCompleter"
+      ],
+      "lineCount": 52,
+      "sizeBytes": 2710,
+      "notes": "Utility / helper module; area=video-generation"
+    },
+    {
+      "path": "src/lib/video-generation/director-writer.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "DirectorWriterVoiceLanguage",
+        "DirectorWriterInput",
+        "DirectorWriterScenario",
+        "DirectorWriterReference",
+        "DirectorWriterResult",
+        "DirectorWriterCompleter",
+        "DirectorWriterDeps",
+        "DIRECTOR_WRITER_PHOTOS_MAX",
+        "DIRECTOR_WRITER_MAX_ATTEMPTS",
+        "DIRECTOR_WRITER_SCHEMA_NAME",
+        "directorWriterInputSchema",
+        "directorDraftSchema",
+        "DirectorDraft",
+        "DIRECTOR_WRITER_EXAMPLE_DRAFT",
+        "DIRECTOR_WRITER_EXAMPLE_DURATION_SEC",
+        "DIRECTOR_WRITER_SYSTEM_PROMPT",
+        "buildDirectorWriterUserMessage",
+        "DIRECTOR_WRITER_BLOCKING_WARNINGS",
+        "isBlockingDirectorWarning",
+        "writeDirectorJob",
+        "compactDirectorJob",
+        "__test__"
+      ],
+      "imports": [
+        "node:crypto",
+        "zod",
+        "@/lib/video-generation/director-plan"
+      ],
+      "importantSymbols": [
+        "DirectorWriterVoiceLanguage",
+        "DirectorWriterInput",
+        "DirectorWriterScenario",
+        "DirectorWriterReference",
+        "DirectorWriterResult",
+        "DirectorWriterCompleter",
+        "DirectorWriterDeps",
+        "DIRECTOR_WRITER_PHOTOS_MAX"
+      ],
+      "lineCount": 838,
+      "sizeBytes": 45234,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -29157,11 +29250,31 @@
       "imports": [
         "node:assert/strict",
         "node:test",
-        "../scripts/lib/director-plan"
+        "../src/lib/video-generation/director-plan"
       ],
       "importantSymbols": [],
       "lineCount": 655,
-      "sizeBytes": 40651,
+      "sizeBytes": 40664,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/director-writer.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:path",
+        "node:test",
+        "../src/lib/providers/openai",
+        "../src/lib/video-generation/director-plan",
+        "../src/lib/video-generation/director-writer",
+        "../src/lib/video-generation/director-writer-openai"
+      ],
+      "importantSymbols": [],
+      "lineCount": 1084,
+      "sizeBytes": 61989,
       "notes": "Unit / integration test; area=tests"
     },
     {

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T01:37:18.845Z",
+  "generatedAt": "2026-11-17T02:07:37.566Z",
   "areas": {
     "unknown": [
       ".claude/launch.json",
@@ -1377,6 +1377,9 @@
       "src/lib/video-generation/creative-recipe.ts",
       "src/lib/video-generation/creative-strategist.ts",
       "src/lib/video-generation/detect-script-language.ts",
+      "src/lib/video-generation/director-plan.ts",
+      "src/lib/video-generation/director-writer-openai.ts",
+      "src/lib/video-generation/director-writer.ts",
       "src/lib/video-generation/douyin-cover-compositor.ts",
       "src/lib/video-generation/generation-supervisor.ts",
       "src/lib/video-generation/generic-commerce-template.ts",
@@ -1572,6 +1575,7 @@
       "tests/direct-dispatch-quota-compensation.test.ts",
       "tests/director-plan-schema.test.ts",
       "tests/director-plan.test.ts",
+      "tests/director-writer.test.ts",
       "tests/dispatch-breaker.test.ts",
       "tests/douyin-publish-kit.test.ts",
       "tests/douyin-safe-zone.test.ts",

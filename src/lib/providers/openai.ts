@@ -497,14 +497,29 @@ export interface VisionAnalyzeOptions {
   detail?: "low" | "high" | "auto";
   /** 正文 token 上限（5.x 系落到 max_completion_tokens，并另加思考余量，见 completionTokenBudget）。 */
   maxTokens?: number;
-  /** 用哪一档的回退链看图：缺省 vision；fast 换响应时间（fast 档的模型同样支持图像输入）。 */
-  tier?: "vision" | "fast";
+  /**
+   * 用哪一档的回退链看图：缺省 vision；fast 换响应时间（fast 档的模型同样支持图像输入）；
+   * director = 看着商品图写客户最终看到的镜头脚本（导演写手，2026-11-17；这一档的模型同样收图）。
+   */
+  tier?: "vision" | "fast" | "director";
+  /** 点名一个模型排在这一档回退链的最前：只给这一次调用换模型，不动这一档的其他调用方。 */
+  model?: string;
 }
 
 export const VISION_DEFAULT_DETAIL: NonNullable<VisionAnalyzeOptions["detail"]> = "low";
 export const VISION_DEFAULT_MAX_TOKENS = 1200;
 /** 一次最多看 8 张。 */
 const VISION_MAX_IMAGES = 8;
+
+/** 看图调用实际走的模型顺序：点名的模型排最前，后面是这一档的回退链。不点名就是这一档的回退链本身。 */
+export function resolveVisionModelChain(
+  tier: NonNullable<VisionAnalyzeOptions["tier"]> = "vision",
+  model?: string,
+): string[] {
+  const chain = resolveFallbackChain(tier);
+  const preferred = model?.trim();
+  return preferred ? [preferred, ...chain.filter((candidate) => candidate !== preferred)] : chain;
+}
 
 /**
  * 视觉分析：参考图理解 / 故事板抽卡评审都走这里。
@@ -524,7 +539,7 @@ export async function analyzeImages(
   options: VisionAnalyzeOptions = {},
 ): Promise<ChatJsonResult<Record<string, unknown>>> {
   const tier = options.tier ?? "vision";
-  const chain = resolveFallbackChain(tier);
+  const chain = resolveVisionModelChain(tier, options.model);
   let urls = imageUrls.slice(0, VISION_MAX_IMAGES);
   let inlineTried = false;
   let lastErr: unknown = null;

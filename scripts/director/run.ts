@@ -1,8 +1,12 @@
 /**
  * 导演线路 CLI（2026-11-16）：Claude 写镜头脚本 → OpenAI gpt-image-2 出故事板 → Shuyu Seedance 出片。
- * 规程：.claude/skills/aivora-director/SKILL.md；纯逻辑：scripts/lib/director-plan.ts。
+ * 规程：.claude/skills/aivora-director/SKILL.md；纯逻辑：src/lib/video-generation/director-plan.ts
+ *（scripts/lib/director-plan.ts 只是转出）。
  *
  * 一条视频一个任务目录（缺省 tmp/director/<任务名>/，tmp 不进仓库），里面的 job.json 由导演（Claude）写：
+ *   draft   <任务目录>   --from <brief.json>：让「导演写手」（线上要用的那个自动写手，src/lib/video-generation/director-writer.ts）
+ *                        按商家输入起一份 job.json，打印场景卡、校验结果、改了几稿。不带 --confirm-spend 只打印要发什么
+ *                        （模型、几张图、提示词多长），不调 OpenAI。已有 job.json 时要 --force 才覆盖
  *   check   <任务目录>   校验脚本、打印拼好的提示词与参考图顺序、按实时价目估算点数。不花钱
  *   frames  <任务目录>   出故事板帧（OpenAI）。不带 --confirm-spend 只打印要出几张
  *   select  <任务目录>   --frame <帧 id> --variant <第几张>：定稿这一帧
@@ -12,11 +16,17 @@
  *   status  <任务目录>   看进度
  *
  * 例：
+ *   npm run director -- draft tmp/director/blanket-auto-01 --from tmp/director/blanket-auto-01/brief.json
+ *   npm run director -- draft tmp/director/blanket-auto-01 --from tmp/director/blanket-auto-01/brief.json --confirm-spend
  *   npm run director -- check tmp/director/zebra-blind-01
  *   npm run director -- frames tmp/director/zebra-blind-01 --confirm-spend
  *   npm run director -- select tmp/director/zebra-blind-01 --frame opening --variant 2
  *   npm run director -- video tmp/director/zebra-blind-01 --confirm-spend --max-points 2000
  *
+ * brief.json 是一份 DirectorWriterInput：{ "productName", "description", "sellingPoints", "productSize", "photos": [{ "id", "url" }],
+ * "durationSec": 15 | 30, "aspectRatio", "voiceLanguage", "genre", "brandName", "cta" }。photos 的 url 可以是 https 地址，
+ * 也可以是本地图片（相对任务目录或仓库根目录；发给模型时转成内嵌图，写进 job.json 的仍是这个路径）。
+ * 写手的模型缺省是 director 档（gpt-5.6-sol），OPENAI_DIRECTOR_WRITER_MODEL 可以换一个来对比。
  * 出片缺省 Seedance 2.5 · 720P（按时长取最便宜的一档）；--resolution 1080P 才用 1080P。
  * 试别家模型：--family any --plan <套餐 id>（必须点名套餐，例：MiniMax H3）。
  * 随时 Ctrl-C：每一步落盘（state.json），重跑从断点续上——有任务号的只续查、绝不重提；
@@ -54,6 +64,16 @@ import {
   type DirectorVideoAttempt,
   type DirectorVideoPlan,
 } from "../lib/director-plan";
+import {
+  DIRECTOR_WRITER_PHOTOS_MAX,
+  DIRECTOR_WRITER_SYSTEM_PROMPT,
+  buildDirectorWriterUserMessage,
+  compactDirectorJob,
+  directorWriterInputSchema,
+  writeDirectorJob,
+  type DirectorWriterCompleter,
+  type DirectorWriterInput,
+} from "../../src/lib/video-generation/director-writer";
 import { SHUYU_RESERVE_POINTS_DEFAULT, checkBudgetGate, estimateSpend, parsePositiveLimit } from "../lib/experiment-budget";
 
 const REPO = resolve(__dirname, "../..");
@@ -174,7 +194,7 @@ interface LoadedImage {
   name: string;
 }
 
-async function loadImage(workspace: Workspace, source: string): Promise<LoadedImage> {
+async function loadImage(workspace: Pick<Workspace, "dir">, source: string): Promise<LoadedImage> {
   if (/^https:\/\//iu.test(source)) {
     const response = await fetch(source);
     if (!response.ok) throw new Error(`取不到参考图 ${source}（HTTP ${response.status}）`);
@@ -705,6 +725,87 @@ async function commandPost(workspace: Workspace, flags: Flags): Promise<void> {
   console.log("[director] 下一步：review --file <后期后的文件>，看字幕压没压住画面、落款的字对不对");
 }
 
+// ---------------------------------------------------------------------------
+// draft：让「导演写手」起一份脚本（线上对齐第 1 步；线上流程还没接它，这条命令是给人试写手用的）
+// ---------------------------------------------------------------------------
+
+async function commandDraft(jobDir: string | null, flags: Flags): Promise<void> {
+  if (!jobDir) fail("要给任务目录，例：npm run director -- draft tmp/director/<任务名> --from <brief.json>");
+  const from = flag(flags, "from");
+  if (!from) fail("要给商家输入：--from <brief.json>（一份 DirectorWriterInput，字段见本文件开头）");
+  const dir = resolve(REPO, jobDir);
+  const jobFile = join(dir, "job.json");
+  const briefFile = [resolve(REPO, from), join(dir, from)].find((candidate) => existsSync(candidate));
+  if (!briefFile) fail(`找不到 ${from}（按仓库根目录和任务目录都找过）`);
+  let input: DirectorWriterInput;
+  try {
+    input = JSON.parse(readFileSync(briefFile, "utf8")) as DirectorWriterInput;
+    directorWriterInputSchema.parse(input);
+  } catch (error) {
+    fail(`${relative(REPO, briefFile)} 不合格：\n${errorText(error)}`);
+  }
+
+  const { createOpenAiDirectorCompleter, directorWriterModelChain } = await import("@/lib/video-generation/director-writer-openai");
+  const chain = directorWriterModelChain();
+  const sources = input.photos.slice(0, DIRECTOR_WRITER_PHOTOS_MAX).map((photo) => photo.url.trim());
+  const local = sources.filter((source) => !/^https:\/\//iu.test(source));
+  const userMessage = buildDirectorWriterUserMessage(input);
+  const exists = existsSync(jobFile);
+  console.log(`[director] 导演写手：模型 ${chain[0]}${chain.length > 1 ? `（不可用时依次回退 ${chain.slice(1).join(" → ")}）` : ""}`);
+  console.log(`[director] 图片 ${sources.length} 张${input.photos.length > sources.length ? `（给了 ${input.photos.length} 张，只用前 ${sources.length} 张）` : ""}${local.length > 0 ? `，其中 ${local.length} 张是本地文件，发送时转成内嵌图` : ""}`);
+  console.log(`[director] 系统提示词 ${DIRECTOR_WRITER_SYSTEM_PROMPT.length} 字，用户消息 ${userMessage.length} 字；不合格会带着原稿再问，最多 3 次调用`);
+  if (!flags["confirm-spend"]) {
+    console.log(`\n-- 用户消息\n${userMessage}\n`);
+    if (exists) console.log(`[director] 注意：${relative(REPO, jobFile)} 已经存在，正式跑要加 --force 才覆盖`);
+    console.log("[director] 没带 --confirm-spend：只是预演，没有调用 OpenAI");
+    return;
+  }
+  if (exists && !flags.force) fail(`${relative(REPO, jobFile)} 已经存在：加 --force 才覆盖（先看一眼是不是还要留着）`);
+  if (!process.env.OPENAI_API_KEY) fail("没有 OPENAI_API_KEY");
+
+  /// 本地图先确认都读得到，再花钱
+  const { inlineMaxEdge, toInlineDataUrl } = await import("@/lib/providers/openai-vision-inline");
+  const inlined = new Map<string, string>();
+  for (const source of local) {
+    const image = await loadImage({ dir }, source);
+    inlined.set(source, await toInlineDataUrl(image.bytes, inlineMaxEdge("high")));
+  }
+  const openAi = createOpenAiDirectorCompleter();
+  const complete: DirectorWriterCompleter = async (args) => {
+    const value = await openAi({ ...args, images: args.images.map((source) => inlined.get(source) ?? source) });
+    complete.model = openAi.model;
+    return value;
+  };
+
+  const jobId = flag(flags, "id") ?? basename(dir);
+  const result = await writeDirectorJob(input, {
+    complete,
+    jobId,
+    onAttempt: ({ attempt, outcome, problems }) => {
+      console.log(`[director] 第 ${attempt} 稿：${outcome === "clean" ? "合格" : outcome === "invalid" ? "交回来的不是合格的草稿" : "送回去改"}`);
+      for (const problem of problems) console.log(`   · ${problem}`);
+    },
+  });
+  if (!result.ok) {
+    console.error(`[director] 写手没写成（${result.reason}，${result.attempts} 稿）`);
+    for (const error of result.lastErrors) console.error(`[director] 不合格：${error}`);
+    process.exit(1);
+  }
+  const { scenario } = result;
+  console.log(`\n== 场景卡（模型 ${result.model}，${result.attempts} 稿）`);
+  console.log(`   谁用：${scenario.who}\n   在哪：${scenario.where}\n   哪个时刻：${scenario.moment}\n   麻烦：${scenario.trouble}\n   用了之后：${scenario.after}\n   情绪：${scenario.emotion}`);
+  console.log(`   商品类型：${scenario.productType}（${scenario.productTypeReason}）\n   片种：${scenario.genre}（${scenario.genreReason}）`);
+  console.log("\n-- 每张图的去向");
+  for (const reference of result.references) {
+    console.log(`   ${reference.referenceId}（${reference.kind}）${reference.videoImage ? `→ image ${reference.videoImage}` : "不带给出片模型"}：${reference.role || "模型没写"}`);
+  }
+  console.log(`\n-- 校验：0 条错误，${result.lint.warnings.length} 条提醒`);
+  for (const warning of result.lint.warnings) console.log(`[director] 提醒：${warning}`);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(jobFile, `${JSON.stringify(compactDirectorJob(result.job), null, 2)}\n`);
+  console.log(`\n[director] 写好了 ${relative(REPO, jobFile)}（出片提示词 ${buildVideoPrompt(result.job).length} 字）。下一步：check ${relative(REPO, dir)}，把脚本通读一遍再往下走`);
+}
+
 function commandStatus(workspace: Workspace): void {
   const { job, state } = workspace;
   console.log(`${job.title}（${job.id}）· ${job.aspectRatio} · ${job.durationSec} 秒`);
@@ -722,10 +823,12 @@ function commandStatus(workspace: Workspace): void {
 
 async function main(): Promise<void> {
   const { command, jobDir, flags } = parseArgs(process.argv.slice(2));
-  if (!["check", "frames", "select", "video", "review", "post", "status"].includes(command)) {
-    fail("用法：npm run director -- <check | frames | select | video | review | post | status> <任务目录> [选项]（说明见本文件开头）");
+  if (!["draft", "check", "frames", "select", "video", "review", "post", "status"].includes(command)) {
+    fail("用法：npm run director -- <draft | check | frames | select | video | review | post | status> <任务目录> [选项]（说明见本文件开头）");
   }
   loadEnv();
+  /// draft 是写 job.json 的那一步：这时候还没有脚本可开
+  if (command === "draft") return commandDraft(jobDir, flags);
   const workspace = openWorkspace(jobDir);
   if (command === "check") return commandCheck(workspace, flags);
   if (command === "frames") return commandFrames(workspace, flags);

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T01:37:18.843Z",
+  "generatedAt": "2026-11-17T02:07:37.564Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -4224,6 +4224,7 @@
         "node:path",
         "@next/env",
         "../lib/director-plan",
+        "../../src/lib/video-generation/director-writer",
         "../lib/experiment-budget",
         "@/lib/storage",
         "@/lib/providers/shuyu",
@@ -4233,10 +4234,13 @@
         "@/lib/video-generation/providers/shuyu-video-provider",
         "@/lib/media/ffmpeg-bin",
         "@/lib/providers/openai-transcription",
-        "@/lib/media/stitch-pipeline"
+        "@/lib/media/stitch-pipeline",
+        "@/lib/video-generation/director-writer-openai",
+        "@/lib/providers/openai-vision-inline"
       ],
       "localImports": [
         "../lib/director-plan",
+        "../../src/lib/video-generation/director-writer",
         "../lib/experiment-budget",
         "@/lib/storage",
         "@/lib/providers/shuyu",
@@ -4244,7 +4248,9 @@
         "@/lib/video-generation/providers/shuyu-video-provider",
         "@/lib/media/ffmpeg-bin",
         "@/lib/providers/openai-transcription",
-        "@/lib/media/stitch-pipeline"
+        "@/lib/media/stitch-pipeline",
+        "@/lib/video-generation/director-writer-openai",
+        "@/lib/providers/openai-vision-inline"
       ],
       "externalImports": [
         "node:child_process",
@@ -4376,19 +4382,12 @@
     {
       "file": "scripts/lib/director-plan.ts",
       "imports": [
-        "node:crypto",
-        "zod",
-        "../../src/lib/video-generation/brand-signoff",
-        "../../src/lib/providers/shuyu-video-plan-tiers"
+        "../../src/lib/video-generation/director-plan"
       ],
       "localImports": [
-        "../../src/lib/video-generation/brand-signoff",
-        "../../src/lib/providers/shuyu-video-plan-tiers"
+        "../../src/lib/video-generation/director-plan"
       ],
-      "externalImports": [
-        "node:crypto",
-        "zod"
-      ]
+      "externalImports": []
     },
     {
       "file": "scripts/lib/soak-run.ts",
@@ -11825,6 +11824,52 @@
       "externalImports": []
     },
     {
+      "file": "src/lib/video-generation/director-plan.ts",
+      "imports": [
+        "node:crypto",
+        "zod",
+        "@/lib/video-generation/brand-signoff",
+        "@/lib/providers/shuyu-video-plan-tiers"
+      ],
+      "localImports": [
+        "@/lib/video-generation/brand-signoff",
+        "@/lib/providers/shuyu-video-plan-tiers"
+      ],
+      "externalImports": [
+        "node:crypto",
+        "zod"
+      ]
+    },
+    {
+      "file": "src/lib/video-generation/director-writer-openai.ts",
+      "imports": [
+        "@/lib/ai",
+        "@/lib/ai/providers/openai-provider",
+        "@/lib/video-generation/director-writer"
+      ],
+      "localImports": [
+        "@/lib/ai",
+        "@/lib/ai/providers/openai-provider",
+        "@/lib/video-generation/director-writer"
+      ],
+      "externalImports": []
+    },
+    {
+      "file": "src/lib/video-generation/director-writer.ts",
+      "imports": [
+        "node:crypto",
+        "zod",
+        "@/lib/video-generation/director-plan"
+      ],
+      "localImports": [
+        "@/lib/video-generation/director-plan"
+      ],
+      "externalImports": [
+        "node:crypto",
+        "zod"
+      ]
+    },
+    {
       "file": "src/lib/video-generation/douyin-cover-compositor.ts",
       "imports": [
         "sharp",
@@ -14309,13 +14354,38 @@
       "imports": [
         "node:assert/strict",
         "node:test",
-        "../scripts/lib/director-plan"
+        "../src/lib/video-generation/director-plan"
       ],
       "localImports": [
-        "../scripts/lib/director-plan"
+        "../src/lib/video-generation/director-plan"
       ],
       "externalImports": [
         "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/director-writer.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:path",
+        "node:test",
+        "../src/lib/providers/openai",
+        "../src/lib/video-generation/director-plan",
+        "../src/lib/video-generation/director-writer",
+        "../src/lib/video-generation/director-writer-openai"
+      ],
+      "localImports": [
+        "../src/lib/providers/openai",
+        "../src/lib/video-generation/director-plan",
+        "../src/lib/video-generation/director-writer",
+        "../src/lib/video-generation/director-writer-openai"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:path",
         "node:test"
       ]
     },

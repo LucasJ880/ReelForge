@@ -329,4 +329,6 @@ npm run director -- status tmp/director/<任务名>
   卖点写成「动作 → 看得见的结果」、商品定格至少 2 秒、语速按每秒 3.5 个字估、分镜总览图当参考、提交前先报价。
   它的流程是：编剧定稿（改一个字就要重新确认）→ 角色 → 导演把故事编成分镜描述与出片提示词 → 一张分镜总览图 → 验收后提交；
   提示词外面再包一层固定的中文执行规格。我们没有照搬那层包装：它和 Seedance 2.5 官方指南的顺序不是一回事，哪个好要靠成片对比。
-- 纯逻辑在 `scripts/lib/director-plan.ts`（有 `tests/director-plan.test.ts`），命令在 `scripts/director/run.ts`。
+- 纯逻辑在 `src/lib/video-generation/director-plan.ts`（有 `tests/director-plan.test.ts`；`scripts/lib/director-plan.ts` 只是转出），命令在 `scripts/director/run.ts`。
+- 「导演写手」`src/lib/video-generation/director-writer.ts`：把这份规程提炼成系统提示词，让模型写镜头脚本、用同一套检查把关并自动返修，是线上创作台对齐本线路用的。
+  `npm run director -- draft <任务目录> --from <brief.json> --confirm-spend` 可以拿它起一份草稿，起完照样要人看过再出图出片。

@@ -86,7 +86,7 @@ npm run context:find -- "..."
 | 配乐曲库（8 首；7 首由 Runway 生成配乐接口一次性生成、随仓库带，出片不调接口） | 目录 `src/lib/video-generation/bgm-catalog.ts`，文件 `public/audio/bgm/`，选曲组件 `bgm-picker.tsx`；加曲子：放文件 + 目录加一行 |
 | 字幕跟着人声走（按语音识别对齐） | `alignCuesToSpeech`（`src/lib/video-generation/audio-post-production.ts`）、`src/lib/providers/openai-transcription.ts`；日志搜 `[captions]` |
 | 上传卡住超时（直传存储一直没进展时中止并明说「上传卡住了」；存储客户端自己会不报错地重试十几分钟） | `src/lib/upload/stall-watchdog.ts`，接在 `uploadBlobWithProgress`（`blob-xhr.ts`）的直传那一步；日志搜 `[upload] direct upload stalled` |
-| 导演线路（Claude 写镜头脚本 → OpenAI `gpt-image-2` 出故事板 → Shuyu Seedance 2.5 · 720P 出片；不走创作台、不碰库） | skill `aivora-director`；`npm run director -- check\|frames\|select\|video\|review\|post\|status tmp/director/<任务名>`（`post` = 本地烧字幕 / 落款 / 切条，复用线上合成器，不花点数）；纯逻辑 `scripts/lib/director-plan.ts` |
+| 导演线路（Claude 写镜头脚本 → OpenAI `gpt-image-2` 出故事板 → Shuyu Seedance 2.5 · 720P 出片；不走创作台、不碰库） | skill `aivora-director`；`npm run director -- check\|frames\|select\|video\|review\|post\|status tmp/director/<任务名>`（`post` = 本地烧字幕 / 落款 / 切条，复用线上合成器，不花点数）；纯逻辑 `src/lib/video-generation/director-plan.ts`（scripts 下那份只是转出）；让模型写镜头脚本的「导演写手」在 `director-writer.ts`，`npm run director -- draft` 可试 |
 | 只重新合成（换字幕 / BGM / 落款，不扣额度） | `src/lib/video-generation/restitch-patch.ts`、`stitch-service` 的 `prepareRestitch` / `commitRestitch` |
 
 供应商现状（2026-11-16）：生产只留 Shuyu（出图、出片）、OpenAI（出方案、导演线路的故事板图；开关打开时另做字幕的语音识别）两把付费密钥。

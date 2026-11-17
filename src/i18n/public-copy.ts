@@ -80,7 +80,7 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
       },
       processors: {
         title: "处理方与数据路径",
-        body: "目前参与处理数据的服务商：Neon（数据库托管，北美）；Vercel（应用托管与文件存储，美国）；OpenAI（文字、产品图生成与编辑、视觉理解、配音与内容审核，美国）；Shuyu（合作视频与产品图生成线路，会收到你提交的产品图、提示词与创意指令）。只在用到对应功能时参与：remove.bg 或 Clipdrop（产品图抠图）、Firecrawl（读取你提交的商品链接页面）、Pexels 或 Pixabay（只收到素材检索关键词，不接触你的文件）、Resend（开通邮件通知后，发送新询盘与试点申请提醒）。Seedance 视频线路只在启用时使用：BytePlus（东南亚）或火山引擎（中国北京），以实际启用的一条为准。Shuyu 的处理区域与合同条款仍在确认中，确认后我们会在本节写明。",
+        body: "目前参与处理数据的服务商：Neon（数据库托管，北美）；Vercel（应用托管与文件存储，美国）；OpenAI（文字、故事板图片生成与编辑、视觉理解，美国）；Shuyu（合作视频与图片生成线路，会收到你提交的产品图、提示词与创意指令）。只在用到对应功能时参与：Resend（开通邮件通知后，发送新询盘与试点申请提醒）。Seedance 视频线路只在启用时使用：BytePlus（东南亚）或火山引擎（中国北京），以实际启用的一条为准。Shuyu 的处理区域与合同条款仍在确认中，确认后我们会在本节写明。",
       },
       retention: {
         title: "保存与删除",
@@ -171,7 +171,7 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
       },
       processors: {
         title: "Processors and data routes",
-        body: "Processors that handle data today: Neon (database hosting, North America); Vercel (application hosting and file storage, United States); OpenAI (text, product-image generation and editing, vision, voiceover and moderation, United States); and Shuyu (partner video and product-image generation route, which receives the product images, prompts and creative instructions you submit). Used only when the matching feature runs: remove.bg or Clipdrop (product cut-outs), Firecrawl (reads the product page link you submit), Pexels or Pixabay (receive stock-search keywords only, never your files), and Resend (sends new-inquiry and pilot-application alerts once email notifications are turned on). Seedance video routes are used only when enabled: BytePlus (Southeast Asia) or Volcengine (Beijing, China), whichever one is actually active. Shuyu's processing region and contract terms are still being confirmed; we will state them in this section once they are.",
+        body: "Processors that handle data today: Neon (database hosting, North America); Vercel (application hosting and file storage, United States); OpenAI (text, storyboard image generation and editing, and vision, United States); and Shuyu (partner video and image generation route, which receives the product images, prompts and creative instructions you submit). Used only when the matching feature runs: Resend (sends new-inquiry and pilot-application alerts once email notifications are turned on). Seedance video routes are used only when enabled: BytePlus (Southeast Asia) or Volcengine (Beijing, China), whichever one is actually active. Shuyu's processing region and contract terms are still being confirmed; we will state them in this section once they are.",
       },
       retention: {
         title: "Retention and deletion",

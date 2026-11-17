@@ -55,9 +55,8 @@ test("LENS-2 代码里真在调的外部供应商，中英两版处理方名单�
   const wired: Array<[file: string, names: string[]]> = [
     ["src/lib/providers/shuyu.ts", ["Shuyu"]],
     ["src/lib/providers/openai.ts", ["OpenAI"]],
-    /// 2026-11-16：抠图（remove.bg / Clipdrop）、链接抓取（Firecrawl）、实拍图库（Pexels / Pixabay）三条线路的
-    /// 代码已删，不再有数据交给它们。隐私政策这一节的文字这一批没有动（法务草案，且同一行另有改动在途），
-    /// 名单里仍写着这几家与 OpenAI 的「配音」——多写不漏写，等政策下次修订时删掉。
+    /// 2026-11-17：抠图（remove.bg / Clipdrop）、链接抓取（Firecrawl）、实拍图库（Pexels / Pixabay）三条线路的代码已删，
+    /// 政策里也同步去掉了这几家和 OpenAI 的「配音」——不再用的不写，下面的反向检查守着。
     ["src/lib/services/notification-service.ts", ["Resend"]],
     ["src/lib/config/seedance-runtime.ts", ["BytePlus"]],
   ];
@@ -68,6 +67,9 @@ test("LENS-2 代码里真在调的外部供应商，中英两版处理方名单�
       for (const name of names) assert.ok(body.includes(name), `${locale} 处理方名单缺 ${name}`);
     }
     for (const name of ["Neon", "Vercel"]) assert.ok(body.includes(name), `${locale} 缺 ${name}`);
+    for (const gone of ["remove.bg", "Clipdrop", "Firecrawl", "Pexels", "Pixabay", "配音", "voiceover", "Runway", "Stripe"]) {
+      assert.ok(!body.includes(gone), `${locale} 处理方名单里还写着已经不用的 ${gone}`);
+    }
   }
   /// Seedance 两个档位都只在启用时使用：中国区端点必须写明是北京
   assert.match(getPublicPageCopy("zh-CN").privacy.processors.body, /Seedance 视频线路只在启用时使用：BytePlus（东南亚）或火山引擎（中国北京）/);

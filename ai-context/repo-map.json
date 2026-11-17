@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T01:08:17.756Z",
+  "generatedAt": "2026-11-17T01:37:18.839Z",
   "package": {
     "name": "aivora",
     "version": "0.2.0"
@@ -36,10 +36,10 @@
     "bcryptjs (^3.0.3)"
   ],
   "fileTotals": {
-    "total": 1781,
+    "total": 1765,
     "byType": {
-      "unknown": 418,
-      "doc": 429,
+      "unknown": 415,
+      "doc": 430,
       "style": 8,
       "workflow": 4,
       "config": 9,
@@ -51,17 +51,17 @@
       "api": 69,
       "component": 108,
       "i18n": 17,
-      "util": 172,
+      "util": 170,
       "provider": 11,
-      "service": 52,
+      "service": 47,
       "type": 2,
-      "test": 334
+      "test": 327
     },
     "byArea": {
-      "unknown": 827,
-      "media-processing": 57,
+      "unknown": 824,
+      "media-processing": 54,
       "config": 11,
-      "shared": 280,
+      "shared": 277,
       "prisma": 59,
       "auth": 25,
       "payments": 1,
@@ -78,7 +78,7 @@
       "demo": 1,
       "ai-providers": 11,
       "publishing": 1,
-      "tests": 334
+      "tests": 327
     }
   },
   "routes": {
@@ -251,6 +251,7 @@
     ],
     "filenames": [
       ".DS_Store",
+      ".git",
       "next-env.d.ts",
       "package-lock.json",
       "pnpm-lock.yaml",

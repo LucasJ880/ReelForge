@@ -50,20 +50,17 @@ export const uploadTicketRequestSchema = z
 
 /**
  * mode=direct：浏览器拿 clientToken 直接 PUT 到 pathname，传完拿 ticket 来登记。
- * mode=server：存储不支持直传，退回 multipart 中转（现在只有 Vercel Blob，服务端不会回这个）。
+ *（mode=server「退回 multipart 中转」2026-11-16 删了：存储只有 Vercel Blob，服务端从来不回它。）
  */
-export const uploadTicketResponseSchema = z.discriminatedUnion("mode", [
-  z
-    .object({
-      ok: z.literal(true),
-      mode: z.literal("direct"),
-      pathname: z.string().min(1),
-      clientToken: z.string().min(1),
-      ticket: z.string().min(1),
-    })
-    .strict(),
-  z.object({ ok: z.literal(true), mode: z.literal("server") }).strict(),
-]);
+export const uploadTicketResponseSchema = z
+  .object({
+    ok: z.literal(true),
+    mode: z.literal("direct"),
+    pathname: z.string().min(1),
+    clientToken: z.string().min(1),
+    ticket: z.string().min(1),
+  })
+  .strict();
 
 export type UploadTicketResponse = z.infer<typeof uploadTicketResponseSchema>;
 

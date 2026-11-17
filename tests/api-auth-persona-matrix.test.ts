@@ -3,7 +3,7 @@ import test from "node:test";
 import { __test__ } from "../src/lib/api-auth";
 
 const { classifyAccess } = __test__;
-const surfaces = ["operator", "reviewer", "platform", "generation", "internal"] as const;
+const surfaces = ["operator", "platform", "generation"] as const;
 
 test("SUPER_ADMIN 与 OPERATOR 保留系统权限并可使用统一平台", () => {
   for (const role of ["SUPER_ADMIN", "OPERATOR"] as const) {
@@ -13,11 +13,9 @@ test("SUPER_ADMIN 与 OPERATOR 保留系统权限并可使用统一平台", () =
   }
 });
 
-test("REVIEWER 可使用 reviewer/platform/generation，但不可进入 operator/internal", () => {
+test("REVIEWER 可使用 platform/generation，但不可进入 operator", () => {
   const account = { role: "REVIEWER" as const, userType: "OPERATOR" as const };
   assert.equal(classifyAccess({ ...account, expecting: "operator" }), "deny-forbidden");
-  assert.equal(classifyAccess({ ...account, expecting: "internal" }), "deny-forbidden");
-  assert.equal(classifyAccess({ ...account, expecting: "reviewer" }), "allow");
   assert.equal(classifyAccess({ ...account, expecting: "platform" }), "allow");
   assert.equal(classifyAccess({ ...account, expecting: "generation" }), "allow");
 });
@@ -26,8 +24,6 @@ test("starter/studio CUSTOMER 只获得 platform/generation，plan 不提升系�
   for (const userType of ["PERSONAL", "BUSINESS"] as const) {
     const account = { role: "CUSTOMER" as const, userType, hasWorkspace: true };
     assert.equal(classifyAccess({ ...account, expecting: "operator" }), "deny-forbidden");
-    assert.equal(classifyAccess({ ...account, expecting: "reviewer" }), "deny-forbidden");
-    assert.equal(classifyAccess({ ...account, expecting: "internal" }), "deny-forbidden");
     assert.equal(classifyAccess({ ...account, expecting: "platform" }), "allow");
     assert.equal(classifyAccess({ ...account, expecting: "generation" }), "allow");
   }

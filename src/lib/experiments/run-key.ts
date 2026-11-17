@@ -19,11 +19,3 @@ export function isExperimentBatchKey(key: string | null | undefined): boolean {
 export function notExperimentBatchWhere(): Prisma.BatchJobWhereInput {
   return { idempotencyKey: { not: { startsWith: EXPERIMENT_BATCH_KEY_PREFIX } } };
 }
-
-/**
- * VideoJob 维度：排除实验批次里的任务；没有批次的单条任务（batchJobId 为空）照常计入。
- * 自带 OR，调用方放进 AND 里用，别和自己的 OR 撞键。
- */
-export function notExperimentVideoJobWhere(): Prisma.VideoJobWhereInput {
-  return { OR: [{ batchJobId: null }, { batchJob: { is: notExperimentBatchWhere() } }] };
-}

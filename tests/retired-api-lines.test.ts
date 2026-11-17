@@ -120,18 +120,17 @@ test("入口开关随代码一起拿掉：要放回得取回代码，不是改�
   assert.match(brands, /<CustomerBrandWall/, "全局品牌墙照旧");
 });
 
-test("每分钟的 poll-videos 不再调抠图续跑；其余推进与清扫都还在", () => {
+test("每分钟的 poll-videos 不再调抠图续跑，也不再轮询产品图 / 图文配图；出片、故事板、清扫都还在", () => {
   const cron = read("src/app/api/cron/poll-videos/route.ts");
   assert.doesNotMatch(cron, /sweepProductAnchorCutouts|anchorCutout|anchorResult/);
   for (const kept of [
     "dependencies.pollRunningJobs(30)",
-    "dependencies.pollPendingProductImageJobs(20)",
     "dependencies.pollPendingStoryboardRuns(20)",
-    "dependencies.pollPendingContentPostRenders(20)",
     "dependencies.sweepStuckTasks()",
   ]) {
     assert.ok(cron.includes(kept), kept);
   }
+  assert.doesNotMatch(cron, /pollPendingProductImageJobs|pollPendingContentPostRenders/);
 });
 
 test("数据库不动：ProductAnchor 表留着；库里已删能力键的旧状态行读出来被忽略，不让任何页面出错", () => {
@@ -176,7 +175,7 @@ test("客户视图：没在用的审核不列出、不计数；它出错不点�
     "「影响哪些功能」里不列依赖审核的上传审核",
   );
   const writing = customer.items.find((item) => item.key === "text");
-  assert.ok(writing?.features.includes("contentPlanWriting"), "仍在用的功能照列");
+  assert.ok(writing?.features.includes("scriptWriting"), "仍在用的功能照列");
   assert.equal(
     Object.values(customer.counts).reduce((sum, count) => sum + count, 0),
     customer.items.length,
@@ -308,10 +307,24 @@ test("成品库里以前做好的图文帖照旧摆着，但不再链到已删�
   assert.doesNotMatch(routeState, /"createImages"|"racing"|"plan"|"wins"/);
 });
 
-test("每分钟的 poll-videos 还在给在途的产品图 / 图文配图任务收尾（两张表与任务都留着）", () => {
-  const cron = read("src/app/api/cron/poll-videos/route.ts");
-  assert.match(cron, /pollPendingProductImageJobs/);
-  assert.match(cron, /pollPendingContentPostRenders/);
-  assert.ok(existsSync("src/lib/services/product-image-service.ts"));
-  assert.ok(existsSync("src/lib/services/content-post-image-job-service.ts"));
+test("产品图 / 图文配图的出图与轮询代码整套删了（2026-11-16 收尾）；表留着，以前出好的图文帖成品库照样摆", () => {
+  for (const gone of [
+    "src/lib/services/product-image-service.ts",
+    "src/lib/services/content-post-image-job-service.ts",
+    "src/lib/services/content-post-render-service.ts",
+    "src/lib/services/content-post-render-state.ts",
+    "src/lib/contracts/content-post-render.ts",
+  ]) {
+    assert.equal(existsSync(gone), false, gone);
+  }
+  /// 数据库只加不删：表与枚举原样留着
+  const schema = read("prisma/schema.prisma");
+  for (const model of ["ProductImageJob", "ProductImageProviderTask", "ContentPost", "ContentPostImageTask"]) {
+    assert.match(schema, new RegExp(`^model ${model} \\{`, "m"), model);
+  }
+  /// 成品库还读 ContentPost：出过图的帖子是成品（展示用的代码留着），只是不再有「出图中」
+  const library = read("src/lib/services/unified-library-service.ts");
+  assert.match(library, /db\.contentPost\.findMany\(/);
+  assert.match(library, /export function toContentPostLibraryRow\(/);
+  assert.doesNotMatch(library, /isContentPostRendering|content-post-render-state/);
 });

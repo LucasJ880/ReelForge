@@ -56,7 +56,8 @@ test("H1 UI contract: batch create consumes template, upload, and submit recover
     /\(item\.recoveryAction \?\? "retry"\) === "retry"[\s\S]{0,500}uploadOne\(item\)/,
   );
   assert.match(upload, /class BlobUploadHttpError/);
-  assert.match(upload, /action:\s*payload\.action/);
+  /// 服务端给的恢复动作原样带进错误（ticket / complete 两步都走 postJson）
+  assert.match(upload, /action:\s*payload\?\.action/);
 });
 
 test("H1 UI contract: unsafe batch failures show guidance, never a retry control", async () => {

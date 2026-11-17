@@ -86,7 +86,6 @@ const zh = {
       leads: "询盘",
       status: "能力状态",
       public: "公共页面",
-      internal: "内部运营工作台",
     },
   },
   auth: {
@@ -681,7 +680,6 @@ const en: CopyShape<typeof zh> = {
       leads: "Inquiries",
       status: "Service status",
       public: "Public page",
-      internal: "Internal operations",
     },
   },
   auth: {

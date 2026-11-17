@@ -33,7 +33,6 @@ import { getPlatformCopy, type PlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
 import { readingFormula, readingName } from "@/lib/exchange/readings-registry";
 import { libraryRowState } from "@/lib/exchange/state-vocab";
-import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
 import { listWorkspaceBrandPackagesForUser } from "@/lib/services/workspace-brand-package-service";
 import { cn } from "@/lib/utils";
 import { contactEmail } from "@/lib/config/contact";
@@ -60,7 +59,6 @@ function failureReason(item: NeedsAttentionItem, english: boolean, failures: Pla
   }
 }
 
-const EMPTY_PRODUCTION = { generating: 0, queued: 0, activeBatches: 0, pausedBatches: 0, awaitingImages: 0 };
 
 export default async function PlatformLibraryPage({
   searchParams,
@@ -73,19 +71,18 @@ export default async function PlatformLibraryPage({
   const params = await searchParams;
   const query = params.q?.trim().toLocaleLowerCase() ?? "";
   const highlight = typeof params.highlight === "string" && params.highlight ? params.highlight : null;
-  const [routeState, locale] = await Promise.all([getCustomerRouteRehearsalState("library"), getServerLocale()]);
-  const empty = routeState === "empty";
+  const locale = await getServerLocale();
   /// 行标题里的模板名按界面语言取（英文界面不挂中文模板名）
   const [library, attention, production, finished, brandPackages, pendingStoryboard, publishRegistered] = await Promise.all([
-    empty ? Promise.resolve({ rows: [] as UnifiedLibraryRow[], truncated: false, perSourceLimit: 0 }) : loadUnifiedLibrary(userId, { locale }),
-    empty ? Promise.resolve({ items: [] as NeedsAttentionItem[], total: 0 }) : loadNeedsAttention(userId, { locale }),
-    empty ? Promise.resolve(EMPTY_PRODUCTION) : loadProductionCounts(userId),
-    empty ? Promise.resolve(0) : countFinished(userId),
+    loadUnifiedLibrary(userId, { locale }),
+    loadNeedsAttention(userId, { locale }),
+    loadProductionCounts(userId),
+    countFinished(userId),
     listWorkspaceBrandPackagesForUser(userId),
     /// 还没走完的一轮故事板（出帧中 / 等确认 / 已确认没派发 / 有帧失败）：只读一行
-    empty ? Promise.resolve(null) : peekPendingStoryboardForUser(userId),
+    peekPendingStoryboardForUser(userId),
     /// 第三格读数：读不到不挡成品库（按 0 显示）
-    empty ? Promise.resolve(0) : countPublishRegistered(userId).catch(() => 0),
+    countPublishRegistered(userId).catch(() => 0),
   ]);
   const preferredBrandPackage = brandPackages.find((brandPackage) => brandPackage.isDefault)
     ?? brandPackages[0]
@@ -122,8 +119,7 @@ export default async function PlatformLibraryPage({
   const readyPostRows = rows.filter((row) => row.status === "ready" && isPost(row));
   const nothing = rows.length === 0 && failures.length === 0;
 
-  /* 持仓读数墙：这页在整条生产线里的位置，名字与口径来自读数注册表，与壳层同源；能去的格子整格可点。
-     1028 闭环轮：「待出图」（图文帖）一格撤掉——图文帖入口已 A 级下线，这格只会把人带去一个导航里没有的页面 */
+  /* 持仓读数墙：这页在整条生产线里的位置，名字与口径来自读数注册表，与壳层同源；能去的格子整格可点。 */
   const workflow: QuoteStat[] = [
     { label: `01 · ${readingName("generating", locale)}`, caption: readingFormula("generating", locale), value: production.generating, tone: production.generating > 0 ? "live" : "neutral", href: "/app/batches" },
     { label: `02 · ${readingName("finished", locale)}`, caption: readingFormula("finished", locale), value: finished, tone: finished > 0 ? "filled" : "neutral" },

@@ -31,8 +31,6 @@ export type ExchangePulse = {
   activeBatches: number;
   /** 已暂停的批次。 */
   pausedBatches: number;
-  /** 排好但还没出图的图文帖（金色待办）。 */
-  awaitingImages: number;
   /** 需要处理：近 7 天、未重试成功、在「看过了」之后的失败视频。 */
   needsAttention: number;
   /** 未归档的新询盘（金色徽标）。 */

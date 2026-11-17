@@ -13,7 +13,6 @@ import {
   createShuyuImageTask,
   getAvailableShuyuImagePlans,
   getShuyuVideoTask,
-  resolveShuyuImagePlan,
   type ShuyuFetchOptions,
 } from "./shuyu";
 
@@ -57,19 +56,6 @@ function mockPlan(resolution: ShuyuResolution): AuditedShuyuImagePlan {
 }
 
 export type ShuyuImageAspectRatio = ShuyuAspectRatio;
-
-/**
- * C2 · 按「分辨率 + 画幅」解析一轮出图要用的套餐（实时目录，5 分钟缓存）。
- *
- * 图文帖每轮只解析一次、把快照写进每一屏的任务行，之后提交 / 自动重投都按快照原样重放。
- * 与 submitShuyuImageTask 同一套 mock 判据：dry-run / IMAGE_ENGINE_MOCK 下不打真实价目表。
- */
-export async function resolveShuyuImagePlanForAspect(
-  input: { resolution: ShuyuResolution; aspectRatio: ShuyuImageAspectRatio } & ShuyuFetchOptions,
-): Promise<AuditedShuyuImagePlan> {
-  if (mockImageRuntime()) return mockPlan(input.resolution);
-  return resolveShuyuImagePlan(input);
-}
 
 export interface SubmitShuyuImageTaskInput extends ShuyuFetchOptions {
   requestKey: string;

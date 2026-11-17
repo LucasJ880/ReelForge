@@ -241,10 +241,11 @@ test("状态页：行情头读数（零就写零）+ 每个能力一格（Status
   // 读数墙四格：正常 / 不稳定 / 暂停 / 未开通（状态词从词典取）
   for (const word of ["正常", "不稳定", "暂停", "未开通"]) assert.match(html, new RegExp(`>${word}<`));
   assert.match(html, /data-state="unavailable"/);
-  assert.match(html, /AI 写作暂停：脚本与周计划先用模板生成，恢复后自动启用。/);
+  assert.match(html, /AI 写作暂停：脚本与口播稿先用模板生成，恢复后自动启用。/);
   assert.match(html, /影响/);
-  assert.match(html, /周计划撰写/);
+  assert.match(html, /口播稿起草/);
   assert.doesNotMatch(html, /实拍图库|AI 配音|图库素材|链接抓取|产品抠图/, "已删的线路不再出现在状态页");
+  assert.doesNotMatch(html, /周计划|图文配图|产品图|配图与 Logo/, "已删的功能（周计划 / 图文配图 / 产品图）不再出现在状态页");
   assert.match(html, /tabular-nums/);
   // 没有主行动、没有眉题：一页最多一枚实心钮，这页一枚都不需要
   assert.doesNotMatch(html, /<button/);

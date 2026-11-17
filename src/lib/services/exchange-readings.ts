@@ -6,9 +6,7 @@ import type { CustomerRecoveryAction } from "@/lib/contracts/customer-api";
 import type { ExchangePulse, PulsePlan, TapeEntry } from "@/lib/exchange/pulse";
 import { countNewLeads } from "@/lib/services/lead-service";
 import { getUsageSummary } from "@/lib/services/quota-service";
-import { notExperimentBatchWhere } from "@/lib/experiments/run-key";
 import { CUSTOMER_CANCELLED_CLASS } from "@/lib/services/single-video-cancel-service";
-import { contentPostRenderingWhere } from "@/lib/services/content-post-render-state";
 import {
   loadRecentVideoRows,
   templateDisplayName,
@@ -129,24 +127,6 @@ export function orderFailureWhere(userId: string, range: Range): Prisma.VideoBri
 /** 不看时间的单条失败判据（用来把失败排除在「成片 / 生成中 / 排队中」之外）。 */
 const ORDER_FAILED_ANY: Prisma.VideoBriefWhereInput = { OR: orderFailureClauses(), NOT: CUSTOMER_CANCELLED_ORDER };
 
-/**
- * 全平台口径（创始人每日汇总用，2026-10-25 审计 B8）：与 orderFailureWhere / batchFailureWhere
- * 同一套判据——取消不算失败、按「失败那一刻」落窗——只是不限定访问者。只读。
- */
-export function platformOrderFailureWhere(range: Range): Prisma.VideoBriefWhereInput {
-  return {
-    takedownAt: null,
-    contentAngle: { round: { deliveryOrder: { productCategory: "unified_input" } } },
-    OR: orderFailureClauses(range),
-    NOT: CUSTOMER_CANCELLED_ORDER,
-  };
-}
-
-export function platformBatchFailureWhere(range: Range): Prisma.VideoJobWhereInput {
-  /// X-SCAF-0：实验批次（exp-2611-*）走生产管线写库，但不是平台故障，不进创始人汇总与「需要处理」候选。
-  return { status: "FAILED", batchJobId: { not: null }, batchJob: notExperimentBatchWhere(), ...failedAtIn(range) };
-}
-
 /** 批量成片：成片时刻取 finishedAt，旧数据没有就退回 updatedAt。 */
 export function batchReadyWhere(userId: string, range?: Range): Prisma.VideoJobWhereInput {
   return {
@@ -188,21 +168,6 @@ export function orderQueuedWhere(userId: string): Prisma.VideoBriefWhereInput {
     ...ownedBriefWhere(userId),
     NOT: [ORDER_FAILED_ANY, ORDER_READY, { finalVideo: { is: { status: "STITCHING" } } }],
     videoJobs: { some: { status: "QUEUED", batchJobId: null }, none: { status: "RUNNING" } },
-  };
-}
-
-/**
- * 待出图：排好、还没出图、也不在出图中的单图帖与轮播（短视频帖是「待生产」，不算这里）。
- * C2：Shuyu 出图是异步的，一轮可能要好几分钟——商家已经点过「生成配图」的不再算待办，
- * 「出图中」的口径与本周内容 / 成品库同一个（content-post-render-state）。
- */
-export function awaitingImagesWhere(userId: string, now: Date = new Date()): Prisma.ContentPostWhereInput {
-  return {
-    plan: { userId },
-    status: { not: "DISCARDED" },
-    format: { in: ["SINGLE_IMAGE", "CAROUSEL"] },
-    renderedImageUrls: { isEmpty: true },
-    NOT: contentPostRenderingWhere(now),
   };
 }
 
@@ -263,11 +228,11 @@ export async function countNeedsAttention(userId: string, since: Date): Promise<
   return batch + orders;
 }
 
-export type ProductionCounts = Pick<ExchangePulse, "generating" | "queued" | "activeBatches" | "pausedBatches" | "awaitingImages">;
+export type ProductionCounts = Pick<ExchangePulse, "generating" | "queued" | "activeBatches" | "pausedBatches">;
 
-/** 生产线现在的样子：生成中 / 排队中 / 进行中与暂停的批次 / 待出图。页面读数与壳层同源。 */
+/** 生产线现在的样子：生成中 / 排队中 / 进行中与暂停的批次。页面读数与壳层同源。 */
 export async function loadProductionCounts(userId: string): Promise<ProductionCounts> {
-  const [batchStatuses, batchJobStatuses, orderGenerating, orderQueued, awaitingImages] = await Promise.all([
+  const [batchStatuses, batchJobStatuses, orderGenerating, orderQueued] = await Promise.all([
     db.batchJob.groupBy({
       by: ["status"],
       where: { userId, status: { in: ["EXPANDING", "RUNNING", "PAUSED"] } },
@@ -280,7 +245,6 @@ export async function loadProductionCounts(userId: string): Promise<ProductionCo
     }),
     db.videoBrief.count({ where: orderGeneratingWhere(userId) }),
     db.videoBrief.count({ where: orderQueuedWhere(userId) }),
-    db.contentPost.count({ where: awaitingImagesWhere(userId) }),
   ]);
   const batchCount = (status: string) => batchStatuses.find((group) => group.status === status)?._count._all ?? 0;
   const jobCount = (status: string) => batchJobStatuses.find((group) => group.status === status)?._count._all ?? 0;
@@ -290,7 +254,6 @@ export async function loadProductionCounts(userId: string): Promise<ProductionCo
     /// 「进行中批次」不含暂停：暂停的批次没有在出片，算进来就是顶栏「生成中 2」配表格里只有 1 行在跑。
     activeBatches: batchCount("EXPANDING") + batchCount("RUNNING"),
     pausedBatches: batchCount("PAUSED"),
-    awaitingImages,
   };
 }
 

@@ -218,9 +218,7 @@ test("[media-runtime] 4.3 poll-videos 的轮询 / 清扫跑在看图预算上下
       seen.push(visionBudgetLabel());
       return { polled: 0, updated: 0 };
     },
-    pollPendingProductImageJobs: async () => ({ polled: 0, recovered: 0 }) as never,
     pollPendingStoryboardRuns: async () => 0 as never,
-    pollPendingContentPostRenders: async () => 0 as never,
     sweepStuckTasks: async () => {
       seen.push(visionBudgetLabel());
       return {} as never;

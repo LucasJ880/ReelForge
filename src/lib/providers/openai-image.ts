@@ -100,7 +100,7 @@ export async function generateImages(
       quality: args.quality,
     })
     .catch(async (err: unknown) => {
-      /// C4 · 「配图与 Logo」能力实时回写：额度 / 权限错误即暂停（超时与 5xx 不改状态）。
+      /// C4 · 「Logo」能力（graphics）实时回写：额度 / 权限错误即暂停（超时与 5xx 不改状态）。
       await markCapability("graphics", { error: err }, { detail: { provider: "openai", model } });
       throw err;
     });

@@ -1,154 +1,76 @@
 # Aivora
 
-**外贸电商视频闭环交付系统** · 面向内部运营团队，第一阶段聚焦毛毯 / blanket 类目。
+小商家的内容获客与增长操作系统：上传商品图，Aivora 写镜头、出故事板，商家点头后出片，成片带字幕、配乐和片尾落款。
 
-核心闭环：
-`产品输入 → 市场分析 → 卖点提炼 → 多版本视频 → 发布 → 数据回流 → 赛马打分 → 特征蒸馏 → 下一轮`
+当前实施依据：[PRD v3.3](./docs/roadmap/2026-07-29-ecommerce-workflow-prd.md)。给 AI agent 的工作须知在 [CLAUDE.md](./CLAUDE.md)，界面规矩在 [DESIGN.md](./DESIGN.md)。
 
----
+## 现在做什么
+
+- **单条创作**（`/app/create`）：商品图 + 一句描述 → 出方案 → 故事板（逐帧可重做）→ 出片 → 合成。
+- **批量生产**（`/app/batches`）：一批商品图按模板批量出片，可暂停、取消、逐条重试。
+- **成品库**（`/app/library`）：成片详情、只重新合成（换字幕 / 配乐 / 落款，不扣额度）、重做一段、成片评价、抖音发布包。
+- **商品 / 品牌 / 模板库**（`/app/products`、`/app/brands`、`/app/templates`）。
+- **询盘**（`/app/leads`，匿名询盘页 `/l/[slug]`，追踪链接 `/t/[code]`）。
+- **能力状态**（`/app/status`）、**使用指南**（`/app/guide`）、**行情大屏**（`/wall`）。
+- **机器接口**：`/api/videos`、`/api/machine/video-tasks`、`/api/performance`（见 [docs/machine-video-api.md](./docs/machine-video-api.md)）。
+- **导演线路**（不走创作台、不碰库）：`npm run director -- check|frames|select|video|status tmp/director/<任务名>`。
+
+2026-11-16 瘦身后已经不在的：Runway 出片、实拍图库与配音（b-roll）、商品链接抓取、抠图、成片画面质检、Stripe 收款、
+国内版部署（火山大模型 / TOS / 短信登录）、创始人日报，以及「本周内容」「战绩」「投放赛马」「产品图工作台」四个页面和旧代运营中台。
+数据库的表与列都留着（只加不删），以前出好的成片和图文帖照样能在成品库打开。清单见 [瘦身计划](./docs/roadmap/2026-11-16-slimming-plan.md)。
 
 ## 技术栈
 
-- Next.js 16 App Router + React 19 + TypeScript
-- Tailwind CSS v4 + shadcn/ui
-- Prisma + Neon Postgres
-- NextAuth v4 Credentials（仅 Admin 登录）
-- OpenAI（LLM 管线）+ 即梦/Seedance（T2V/I2V via 火山方舟 Ark）
-- Vercel Blob + Vercel Cron
+- Next.js 16 App Router + React 19 + TypeScript，Tailwind CSS v4
+- Prisma + Neon Postgres，NextAuth v4（邮箱密码登录）
+- 供应商：Shuyu（出图、出片，Seedance）、OpenAI（出方案、导演线路的故事板图）；BytePlus Seedance 直连线路的代码保留
+- Vercel（应用、Cron、Blob 存储）；成片合成用随包带的 ffmpeg
 
-## 快速开始
+## 本地开发
 
 ```bash
-# 1. 装依赖
 npm install
-
-# 2. 配置环境变量
-cp .env.example .env.local
-# 填入 DATABASE_URL / OPENAI_API_KEY / AUTH_SECRET / BLOB_READ_WRITE_TOKEN
-# （可选）BYTEPLUS_ARK_API_KEY（不填走 mock）
-
-# 3. 建库 + 种子管理员
-npm run db:push
-SEED_ADMIN_EMAIL=admin@aivora.internal SEED_ADMIN_PASSWORD=your-strong-pass npm run db:seed
-
-# 4. 启动
-npm run dev
+cp .env.example .env.local   # 按文件里的说明填
+npm run dev                  # 真机模式（predev 会跑 mode:check）
+npm run dev:mock             # 纯前端联调：不调任何付费供应商
 ```
 
-打开 http://localhost:3000 → 自动跳 `/login`（已登录则按 `userType` 跳 `/business` / `/personal` / `/internal/orders`）。
+> `.env.local` 如果指向生产库，任何 `db:*` 命令都是对生产执行。迁移只走 `npm run db:migrate:deploy`；
+> `db:migrate` / `db:push` / `db:seed` 有确认闸。细节见 CLAUDE.md §4。
 
-公开素材展示页：`/showcase` —— 不需要登录，用于呈现 Aivora 的 real-footage 广告示例（继承自旧 `/demo/real-footage-ads`）。
-
-## 产品形态（Phase 1）
-
-Aivora 整合为统一平台，按 `AdminUser.userType` 区分三种工作台：
-
-| Persona | 入口路由 | 主要场景 |
-| --- | --- | --- |
-| `business` | `/business/**` | 电商广告：产品/素材导入 → 统一创意输入 → AI 生成 → 品牌包装 → 数据回流 |
-| `personal` | `/personal/**` | 个人创作：文/图/视频素材 → 一键生成短视频 → 下载/分享 |
-| `operator` / `super_admin` / `reviewer` | `/internal/**` | 内部运营：交付单、赛马、QA、发布、数据、蒸馏、设置 |
-
-未指定 persona 的访客先进 `/persona` 选择。详细数据模型参见 [`prisma/schema.prisma`](./prisma/schema.prisma) 的 `AdminUser.userType`。
-
-## 统一视频生成管线（Phase 5）
-
-唯一视频创建入口：`Unified Creative Input`（`/business/create-ad-video` 与 `/personal/create-video`）。背后由 `src/lib/video-generation/` 11 个模块顺序编排：
-
-```
-classifyInput → classifyAsset → buildCreativeBrief → buildBrandPackagingPlan
-  → buildClipPlacementPlan → planUnifiedSegments → buildVideoSegments
-  → buildAssemblyPlan → buildQualityReview → buildPlanPreview → buildPlan(supervisor)
-```
-
-对外 API：
-
-- `POST /api/video-generation/classify-asset` —— 上传后实时推断 `inferredRole`
-- `POST /api/video-generation/plan` —— 无副作用预览 `VideoGenerationPlan` + `PlanPreview` + `QualityReview`
-- `POST /api/video-generation/dispatch` —— 校验后落 `DeliveryOrder` / `Round` / `Brief`，然后调 `dispatchVideoForBrief` 启动 Seedance 多段流水线
-
-`QualityReview` 内置硬约束：Seedance prompt 不允许出现 logo URL、品牌名、CTA 文案、QR 码等精确视觉元素 —— 这些一律由 Aivora 自己的 overlay 层后期合成。
-
-旧 6 步 Wizard、`/demo/ai-video` 等遗产已删除；`/wizard/*` 路由返回 `410 Gone`，旧 `/orders` / `/rounds` / `/briefs` / `/projects` / `/videos` 在 [`next.config.ts`](./next.config.ts) 用 308 永久重定向到新位置。
-
-## 目录结构
-
-```
-src/
-├── app/
-│   ├── (public)/         # 公开页（/persona、/showcase）
-│   ├── (auth)/login/
-│   ├── (business)/business/    # Business persona 工作台
-│   ├── (personal)/personal/    # Personal persona 工作台
-│   ├── (internal)/internal/    # 内部运营 / 旧 (app) 全部迁到这里
-│   └── api/
-│       ├── video-generation/   # plan / dispatch / classify-asset
-│       ├── persona/            # 切换 userType
-│       └── ...
-├── lib/
-│   ├── video-generation/  # Phase 5 统一管线 11 个模块
-│   ├── services/          # 已有业务 service
-│   ├── providers/         # 外部 API 封装
-│   ├── schemas/           # zod schemas（含 unified-input）
-│   └── validators/
-├── components/
-│   ├── ui/
-│   ├── layout/           # business-sidebar / personal-sidebar / internal-sidebar
-│   ├── video-generation/ # unified-creative-input / attachment-uploader / plan-preview-card
-│   └── features/
-└── types/                # video-generation.ts 等
-prisma/
-├── schema.prisma         # 新增 AdminUser.userType / VideoBrief.persona / RawAsset.inferredRole
-└── seed.ts
-```
-
-## 角色
-
-- `SUPER_ADMIN` — 全权限 + 管理员账号管理
-- `OPERATOR` — 创建交付单、执行流程、发布
-- `REVIEWER` — QA 审核
-
-Phase 1 起额外引入 `AdminUser.userType`（`business` / `personal` / `OPERATOR`）用于分流 UI；Role 仍然控制后端权限。Phase 2 将引入真正的 end-customer User 模型 + 多租户隔离。
-
-## 发布链路（MVP 半自动）
-
-1. 系统生成 5 条视频（3 优化 + 2 探索）
-2. AI + 人工 QA 双打分
-3. 运营在 `/internal/publish` 下载成片
-4. 人工上传到 TikTok 后在 UI 回填 post_id
-5. 12h / 24h / 48h 后运营上传 CSV 数据
-6. 系统自动打分、选 top3、蒸馏特征
-7. 进入下一轮
-
-## 测试
+## 常用命令
 
 ```bash
-npm test           # 全部 node:test 测试（含 unified-* 系列）
-npm run typecheck  # tsc --noEmit
+npm run typecheck      # tsc --noEmit
+npm run lint
+npm test               # node --test tests/*.test.ts（要 Node 22+）
+npm run build
+npm run test:prod-smoke   # 发布后冒烟（Playwright，对线上跑）
+npm run context:find -- "关键词"   # 按 ai-context/ 索引找文件
+npm run codemap:build     # 重建索引
 ```
 
-`tests/unified-*.test.ts` 覆盖统一视频生成管线的所有节点：
-`unified-input-classifier` / `unified-asset-classifier` / `unified-brand-packaging` /
-`unified-segment-placement` / `unified-prompt-intelligence` /
-`unified-quality-reviewer` / `unified-assembly-plan` / `unified-plan-preview` /
-`unified-creative-strategist` / `unified-duration-mapping` /
-`unified-supervisor.integration`。
+## 目录
 
-所有 LLM 相关测试通过 `LLM_FORCE_MOCK=true` 强制走启发式路径，零外部依赖，可离线运行。
+```
+src/app/(platform)/app/   客户自助面（创作、批量、成品库、商品、品牌、模板库、询盘、状态、指南）
+src/app/(public)/         法务页（/privacy、/terms）；首页在 src/app/page.tsx
+src/app/(auth)/           登录、注册、找回密码
+src/app/(wall)/           行情大屏 /wall
+src/app/api/              路由只做鉴权与参数校验，业务在 src/lib/services/
+src/lib/services/         业务层
+src/lib/video-generation/ 出方案、故事板、合成
+src/lib/providers/        外部 API 封装
+src/lib/contracts/        对外契约
+scripts/                  导演线路、评测、运维脚本
+tests/                    node:test 单测；e2e/ 是发布后冒烟
+```
 
 ## 文档
 
-- [TESTING.md](./docs/TESTING.md) — 端到端冒烟脚本、真实 UAT、PRD §3 对齐矩阵
-- [DEPLOYMENT.md](./docs/DEPLOYMENT.md) — Vercel 部署、环境变量、Cron、冒烟
-
-## Phase 2 路线图
-
-- 引入真正的 end-customer User 模型 + 多租户隔离（替换当前 `AdminUser.userType` 临时方案）
-- `dispatch` 路由真正校验 Business / Personal 权限边界（当前 Phase 1 复用 `requireOperator`）
-- Brand packaging 接 ffmpeg overlay，真正合成 end card（当前仅生成 plan）
-- 接 TikTok Content Posting API 做全自动发布
-- 接 TikTok Shop API 拿商业分（CTR / ROAS）
-- 扩展到更多类目
+- [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) — 部署、环境变量、Cron
+- [docs/TESTING.md](./docs/TESTING.md) — 测试说明
+- [docs/AI_CONTEXT_WORKFLOW.md](./docs/AI_CONTEXT_WORKFLOW.md) — 代码索引的用法
 
 ## License
 

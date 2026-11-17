@@ -175,21 +175,25 @@ test("每个能力 × 每种状态都有中英一句人话：中文有中文、�
   }
 });
 
-test("写作暂停：照抄验收口径——脚本与周计划先用模板生成，恢复后自动启用", () => {
-  assert.equal(CAPABILITY_COPY.text.messages.unavailable["zh-CN"], "AI 写作暂停：脚本与周计划先用模板生成，恢复后自动启用。");
+test("写作暂停：脚本与口播稿先用模板生成，恢复后自动启用（周计划 2026-11-16 随本周内容删除，不再提）", () => {
+  assert.equal(CAPABILITY_COPY.text.messages.unavailable["zh-CN"], "AI 写作暂停：脚本与口播稿先用模板生成，恢复后自动启用。");
   assert.match(CAPABILITY_COPY.text.messages.unavailable["en-US"], /templates/);
   // 暂停文案都要说「恢复后」怎么办或改用什么，不能只说「不可用」
   for (const key of ["text", "vision", "image", "graphics", "video"] as const) {
     assert.match(CAPABILITY_COPY[key].messages.unavailable["zh-CN"], /恢复后|照常|保留|不受影响/, key);
   }
-  // 文案不再提已经删掉的线路（实拍图库 / 配音 / 链接抓取 / 抠图）
+  // 文案不再提已经删掉的线路（实拍图库 / 配音 / 链接抓取 / 抠图）与已删的页面（周计划 / 图文帖 / 产品图）
   for (const key of CAPABILITY_KEYS) {
+    assert.doesNotMatch(CAPABILITY_COPY[key].label["zh-CN"], /产品图|配图|周计划/, key);
+    assert.doesNotMatch(CAPABILITY_COPY[key].label["en-US"], /product image|post image|weekly/i, key);
     for (const status of CAPABILITY_STATUSES) {
       const message = CAPABILITY_COPY[key].messages[status];
-      assert.doesNotMatch(message["zh-CN"], /实拍|图库|配音|抓取|抠图/, `${key}.${status}`);
-      assert.doesNotMatch(message["en-US"], /stock|voiceover|link import|cutout/i, `${key}.${status}`);
+      assert.doesNotMatch(message["zh-CN"], /实拍|图库|配音|抓取|抠图|周计划|图文帖|产品图|生成配图/, `${key}.${status}`);
+      assert.doesNotMatch(message["en-US"], /stock|voiceover|link import|cutout|weekly|image post|product image/i, `${key}.${status}`);
     }
   }
+  assert.equal(CAPABILITY_COPY.image.label["zh-CN"], "故事板出图");
+  assert.equal(CAPABILITY_COPY.graphics.label["zh-CN"], "Logo");
   // 看图暂停：成片照常生成
   assert.match(CAPABILITY_COPY.vision.messages.unavailable["zh-CN"], /成片照常生成/);
 });
@@ -232,20 +236,16 @@ test("P03-K：视频「不稳定」不承诺备用线路（生产没有可切的
   }
 });
 
-test("功能依赖写在一处：周计划 / 口播稿 = 写作；图文配图 = Shuyu 图像、Logo = OpenAI 图像；故事板审帧 = 看图；已删线路的功能不在表里", () => {
-  for (const gone of ["broll", "linkImport", "productCutout", "frameQa"]) {
+test("功能依赖写在一处：口播稿 / 脚本 = 写作；故事板 = Shuyu 图像、Logo = OpenAI 图像；故事板审帧 = 看图；已删功能不在表里", () => {
+  for (const gone of ["broll", "linkImport", "productCutout", "frameQa", "contentPlanWriting", "imagePosts", "productImages"]) {
     assert.equal((FEATURE_KEYS as readonly string[]).includes(gone), false, gone);
   }
   for (const feature of FEATURE_KEYS) {
     for (const need of FEATURES[feature].needs) assert.ok(isCapabilityKey(need), `${feature} 依赖的 ${need} 必须是现存的能力键`);
   }
-  assert.deepEqual([...FEATURES.contentPlanWriting.needs], ["text"]);
   assert.deepEqual([...FEATURES.narrationDraft.needs], ["text"]);
   assert.deepEqual([...FEATURES.scriptWriting.needs], ["text"]);
-  /// C2：图文配图默认走 Shuyu 图像线路
-  assert.deepEqual([...FEATURES.imagePosts.needs], ["image"]);
   assert.deepEqual([...FEATURES.logo.needs], ["graphics"]);
-  assert.deepEqual([...FEATURES.productImages.needs], ["image"]);
   assert.deepEqual([...FEATURES.storyboardFrames.needs], ["image"]);
   /// P01-F：故事板抽卡评审靠看图；看图暂停时跳过评审、照常生成（fail-open）
   assert.deepEqual([...FEATURES.storyboardReview.needs], ["vision"]);
@@ -258,7 +258,8 @@ test("功能依赖写在一处：周计划 / 口播稿 = 写作；图文配图 =
   }
   assert.deepEqual(featuresForCapability("moderation"), ["uploadReview"]);
   assert.deepEqual(featuresForCapability("graphics"), ["logo"]);
-  assert.ok(featuresForCapability("image").includes("imagePosts"));
+  assert.deepEqual(featuresForCapability("image"), ["storyboardFrames"]);
+  assert.deepEqual(featuresForCapability("text"), ["narrationDraft", "scriptWriting"]);
 });
 
 test("状态词典有 capability 一行：记号与颜色成对（暂停 = 失败记号，未开通 = 叉）", () => {
@@ -412,7 +413,7 @@ test("闸门：依赖暂停即被挡，原因写清楚是哪一项、改用什�
     gate.message?.["en-US"],
     "Script and shot planning paused (unavailable: AI writing). Scripts and shots are planned from templates for now; videos still render.",
   );
-  assert.equal(featureGate(view, "productImages").status, "available", "产品图走另一家供应商，不受影响");
+  assert.equal(featureGate(view, "storyboardFrames").status, "available", "故事板出图走另一家供应商，不受影响");
 });
 
 test("闸门：未开通与暂停分开说；不稳定只提示可能变慢、不挡", () => {
@@ -440,7 +441,7 @@ test("闸门：未开通与暂停分开说；不稳定只提示可能变慢、�
   assert.match(review.message?.["en-US"] ?? "", /may be slow \(unstable: AI vision\)\.$/);
 });
 
-test("中文拼接：拉丁字母结尾的名字后补空格（「配图与 Logo 暂不可用」），汉字结尾不补", () => {
+test("中文拼接：拉丁字母结尾的名字后补空格（「Logo 暂不可用」），汉字结尾不补", () => {
   const view = resolveCapabilities({
     records: [record("graphics", { status: "unavailable", reason: "permission", checkedAt: NOW.toISOString() })],
     configured: ALL_CONFIGURED,
@@ -448,6 +449,6 @@ test("中文拼接：拉丁字母结尾的名字后补空格（「配图与 Logo
   });
   assert.equal(
     featureGate(view, "logo").message?.["zh-CN"],
-    "Logo 生成暂停：配图与 Logo 暂不可用。暂时不能生成 Logo，可以先在品牌页上传现有 Logo。",
+    "Logo 生成暂停：Logo 暂不可用。暂时不能生成 Logo，可以先在品牌页上传现有 Logo。",
   );
 });

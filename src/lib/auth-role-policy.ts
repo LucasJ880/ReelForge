@@ -25,22 +25,3 @@ export function normalizeUserTypeForRole(
   if (userType === "BUSINESS" || userType === "PERSONAL") return userType;
   return null;
 }
-
-export type InternalAccessDecision =
-  | "allow"
-  | "login"
-  | "customer-business"
-  | "customer-personal"
-  | "deny";
-
-export function decideInternalAccess(args: {
-  authenticated: boolean;
-  role: AccountRole | null | undefined;
-  userType: AccountUserType | null | undefined;
-}): InternalAccessDecision {
-  if (!args.authenticated || !args.role) return "login";
-  if (isInternalRole(args.role)) return "allow";
-  if (args.userType === "BUSINESS") return "customer-business";
-  if (args.userType === "PERSONAL") return "customer-personal";
-  return "deny";
-}

@@ -118,11 +118,6 @@ export function createUploadTicketPostHandler(
     } catch {
       return storageUnavailable("contact_support");
     }
-    /// 不是 Vercel Blob 就没有浏览器直传凭证：让前端退回 multipart 中转。现在只有 Vercel Blob 一个实现，
-    /// 这条走不到；留着是因为 mode=server 仍在上传契约与前端里（国内 TOS 2026-11-16 已删）。
-    if (storage.id !== "vercel_blob") {
-      return NextResponse.json(uploadTicketResponseSchema.parse({ ok: true, mode: "server" }));
-    }
     if (!storage.isConfigured()) return storageUnavailable("contact_support");
 
     const now = dependencies.now();

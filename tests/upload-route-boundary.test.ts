@@ -2,8 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createUploadBlobPostHandler } from "../src/app/api/upload/blob/route";
-import { db } from "../src/lib/db";
-import { findProductImageResultForUser } from "../src/lib/services/product-image-service";
 
 const ONE_PIXEL_PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
@@ -95,35 +93,4 @@ test("upload route deletes stored bytes when asset persistence fails", async () 
   const response = await handler(uploadRequest(new File([ONE_PIXEL_PNG], "source.png", { type: "image/png" })) as never);
   assert.equal(response.status, 503);
   assert.deepEqual(calls, ["cleanup:uploads/random.png"]);
-});
-
-/// 产品图工作台的接口（/api/product-images）2026-11-16 删除，它的六条路由用例随之删除；下面这条测的是还留着的服务函数。
-test("result-scoped handoff resolves outputs two through four by authenticated owner", async (t) => {
-  const model = db.productImageResult as unknown as Record<string, unknown>;
-  const original = model.findFirst;
-  const captured: Array<Record<string, unknown>> = [];
-  model.findFirst = async (args: Record<string, unknown>) => {
-    captured.push(args);
-    const where = args.where as { id: string };
-    return {
-      id: where.id,
-      assetId: `asset-${where.id}`,
-      asset: { id: `asset-${where.id}`, url: `https://assets.example.test/${where.id}.png` },
-      productImageJob: { id: "job-4", userId: "owner-1", status: "SUCCEEDED" },
-    };
-  };
-  t.after(() => { model.findFirst = original; });
-
-  for (const position of [2, 3, 4]) {
-    const result = await findProductImageResultForUser(`result-${position}`, "owner-1");
-    assert.equal(result?.id, `result-${position}`);
-  }
-  for (const [index, call] of captured.entries()) {
-    const where = call.where as {
-      id: string;
-      productImageJob: { userId: string; status: string };
-    };
-    assert.equal(where.id, `result-${index + 2}`);
-    assert.deepEqual(where.productImageJob, { userId: "owner-1", status: "SUCCEEDED" });
-  }
 });

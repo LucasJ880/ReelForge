@@ -65,7 +65,6 @@ function installPulseStubs(t: TestContext, options: { ackedAt?: Date | null; tri
     finalVideo: { finishedAt: new Date("2026-10-24T08:30:00.000Z") },
     contentAngle: { round: { deliveryOrder: { id: "order-ready-1", title: "保温杯通勤广告" } } },
   }));
-  stub(t, calls, "contentPost", "count", () => 11);
   stub(t, calls, "lead", "count", () => 6);
   stub(t, calls, "userUsagePeriod", "findMany", () => [{ resource: "VIDEO_DISPATCH", amount: options.used ?? 2 }]);
   stub(t, calls, "batchJob", "findMany", () => [{
@@ -88,7 +87,8 @@ test("脉搏：生成中只数供应商侧在跑的视频；进行中批次不�
   assert.equal(pulse.queued, 4 + 2);
   assert.equal(pulse.activeBatches, 2, "EXPANDING + RUNNING，PAUSED 不算");
   assert.equal(pulse.pausedBatches, 2);
-  assert.equal(pulse.awaitingImages, 11);
+  assert.equal("awaitingImages" in pulse, false, "「待出图」读数 2026-11-16 随图文出图删除");
+  assert.equal(calls["contentPost.count"], undefined, "脉搏不再数图文帖");
   assert.equal(pulse.needsAttention, 7 + 5);
   assert.equal(pulse.newLeads, 6);
   assert.deepEqual(pulse.tape.map((entry) => entry.name), ["开箱"]);
@@ -102,10 +102,6 @@ test("脉搏：生成中只数供应商侧在跑的视频；进行中批次不�
   assert.deepEqual(jobGroup.where.batchJob, { userId: "user-1" });
   // 询盘徽标按工作区数未归档的新询盘
   assert.deepEqual((calls["lead.count"]![0] as { where: unknown }).where, { workspaceId: "ws-1", archivedAt: null, status: "NEW" });
-  // 待出图：只数单图 / 轮播（短视频帖是「待生产」）
-  const postWhere = (calls["contentPost.count"]![0] as { where: { format: { in: string[] }; renderedImageUrls: unknown } }).where;
-  assert.deepEqual(postWhere.format.in, ["SINGLE_IMAGE", "CAROUSEL"]);
-  assert.deepEqual(postWhere.renderedImageUrls, { isEmpty: true });
 });
 
 test("需要处理：近 7 天、在「看过了」之后——徽标从 ack 那一刻重新起算", async (t) => {
@@ -148,7 +144,7 @@ test("注册表：同名必同值——每种语言里名字唯一，零不上�
   assert.equal(readingStat("generating", 0, "zh-CN").tone, "neutral");
   assert.equal(readingStat("generating", 2, "zh-CN").tone, "live");
   assert.equal(readingStat("needsAttention", 1, "zh-CN").tone, "fault");
-  assert.equal(readingStat("awaitingImages", 1, "zh-CN").tone, "winner");
+  assert.equal("awaitingImages" in READINGS, false);
   assert.equal(readingStat("batchCompletion", "53%", "zh-CN", { params: { n: 12 } }).caption, "已成片 ÷ 下单条数（近 12 批）");
   // 视频侧读数名不出现「成交」
   for (const id of Object.keys(READINGS) as ReadingId[]) assert.doesNotMatch(READINGS[id].name["zh-CN"], /成交/);

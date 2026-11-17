@@ -17,15 +17,7 @@ import { readMachineVideoTaskPrefill } from "@/lib/services/machine-video-task-s
 import { countFinished, loadExchangeReadings, loadProductionCounts, loadVideoQuota } from "@/lib/services/exchange-readings";
 import type { UploadedAsset } from "@/types/video-generation";
 import { getServerLocale } from "@/i18n/server";
-import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
 import { listWorkspaceBrandPackagesForUser } from "@/lib/services/workspace-brand-package-service";
-
-/// 空态演练：等同一个全新账号，成片读数全为零（零就写零）；额度仍取真实计量。
-const EMPTY_ACTIVITY: Pick<StudioReadings, "generating" | "filled24h" | "successRate7d"> = {
-  generating: 0,
-  filled24h: 0,
-  successRate7d: null,
-};
 
 export default async function PlatformCreatePage({
   searchParams,
@@ -44,18 +36,17 @@ export default async function PlatformCreatePage({
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/create");
-  const [{ styleTemplate, prompt, guide, retry, hook, machineTask, product }, locale, routeState] = await Promise.all([
+  const [{ styleTemplate, prompt, guide, retry, hook, machineTask, product }, locale] = await Promise.all([
     searchParams,
     getServerLocale(),
-    getCustomerRouteRehearsalState("create"),
   ]);
   const [brandPackages, readings, capabilities, finishedCount] = await Promise.all([
     listWorkspaceBrandPackagesForUser(session.user.id),
-    loadCreateReadings(session.user.id, routeState === "empty"),
+    loadCreateReadings(session.user.id),
     /// C4：能力状态（纯 DTO）交给客户端——口播稿起草与镜头规划的说明据此诚实显示。永不抛出。
     getCapabilities(),
     /// 出过成片的账号不再被当成新人弹首启引导（只看本地记号时，换台电脑就又弹一次）
-    routeState === "empty" ? Promise.resolve(0) : countFinished(session.user.id).catch(() => 0),
+    countFinished(session.user.id).catch(() => 0),
   ]);
   /// 成品库「重新生成」：按属主读回原订单的产品照片与创作方向（别人的订单当作不存在）。
   const retryPrefill = typeof retry === "string" && retry
@@ -74,7 +65,7 @@ export default async function PlatformCreatePage({
   const hookAngle = HOOK_ANGLES.find((angle) => angle.id === hook)?.id ?? null;
   /// 「接着拍这些商品」：只在空白创作页上用得着（带着预填进来的不查）；读不到由服务层记日志、当作没有，不拦创作
   /// 存好的商品在前，不够四格再用最近拍过、还没存的补上。
-  const recentSources = routeState === "empty" || retryPrefill || machinePrefill || productPrefill
+  const recentSources = retryPrefill || machinePrefill || productPrefill
     ? []
     : (await loadCreateShortcutsOrNone(session.user.id)).map((shortcut) => ({
         id: `${shortcut.kind}:${shortcut.id}`,
@@ -127,7 +118,7 @@ export default async function PlatformCreatePage({
         ? productAssets
         : machineAssets;
   return (
-    <div data-route-state={routeState === "empty" ? "empty" : "ready"}>
+    <div data-route-state="ready">
       <StreamlinedVideoStudio
         initialAssets={initialAssets}
         initialStyleTemplateId={styleTemplate}
@@ -172,10 +163,10 @@ export default async function PlatformCreatePage({
  * 额度格读本月真实用量（UserUsagePeriod）对生效上限——试用账号是 3 条，不是套餐表里的 30。
  * 只把纯数字交给客户端组件（client bundle 铁律）。读失败不吞成空数据（RF-012）：交给本路由的 error.tsx。
  */
-async function loadCreateReadings(userId: string, rehearseEmpty: boolean): Promise<StudioReadings> {
+async function loadCreateReadings(userId: string): Promise<StudioReadings> {
   const [activity, production, quota] = await Promise.all([
-    rehearseEmpty ? Promise.resolve(EMPTY_ACTIVITY) : loadExchangeReadings(userId),
-    rehearseEmpty ? Promise.resolve({ generating: 0 }) : loadProductionCounts(userId),
+    loadExchangeReadings(userId),
+    loadProductionCounts(userId),
     loadVideoQuota(userId),
   ]);
   return {

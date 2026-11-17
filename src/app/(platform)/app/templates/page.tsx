@@ -20,7 +20,6 @@ import {
   verifiedTemplateSample,
   verifiedTemplateVideo,
 } from "@/lib/video-generation/template-sample";
-import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
 import { commerceTemplateSummary } from "@/lib/video-generation/commerce-template-catalog";
 
 export const dynamic = "force-dynamic";
@@ -69,14 +68,10 @@ async function loadTemplateUsage(userId: string): Promise<TemplateUsage> {
 export default async function PlatformTemplatesPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/templates");
-  const [routeState, locale] = await Promise.all([
-    getCustomerRouteRehearsalState("templates"),
-    getServerLocale(),
-  ]);
-  const empty = routeState === "empty";
+  const locale = await getServerLocale();
   const [templates, usage] = await Promise.all([
-    empty ? Promise.resolve([]) : listActiveStyleTemplates(),
-    empty ? Promise.resolve(NO_USAGE) : loadTemplateUsage(session.user.id),
+    listActiveStyleTemplates(),
+    loadTemplateUsage(session.user.id),
   ]);
   const copy = getPlatformCopy(locale).templates;
   const board = TEMPLATE_LIBRARY_COPY[locale].board;

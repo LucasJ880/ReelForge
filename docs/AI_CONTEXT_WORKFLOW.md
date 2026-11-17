@@ -82,26 +82,29 @@ npm run context:find -- "ffmpeg stitching audio loudness"
 
 ---
 
-## 3. Demo Leads / Waitlist
+## 3. 询盘（Leads）
 
 **入口命令**
 
 ```bash
-npm run context:find -- "demo leads waitlist"
+npm run context:find -- "leads 询盘"
 ```
 
 **最常命中的文件**
 
 | # | 文件 | 角色 |
 |---|------|------|
-| 1 | `src/app/api/demo/real-footage-ads/waitlist/route.ts` | POST 写 lead 到 Prisma |
-| 2 | `prisma/schema.prisma` | 模型 `RealFootageDemoLead`（搜 `model RealFootageDemoLead`） |
+| 1 | `src/app/api/public/leads/route.ts` | 匿名询盘页（`/l/[slug]`）提交询盘 |
+| 2 | `src/app/api/leads/route.ts` | 商家侧询盘列表（`/app/leads`） |
+| 3 | `src/lib/services/lead-service.ts` | 询盘业务层 |
+| 4 | `prisma/schema.prisma` | 模型 `Lead`（搜 `model Lead`） |
 
-公开 showcase 页的表单和内部 lead 列表页已在 2026-10-28 删除，只剩接口和表。商家询盘（`/l/[slug]` 进来的）是另一套：`model Lead` + `/app/leads`。
+旧的 demo waitlist（公开 showcase 页的表单、内部 lead 列表页、`/api/demo/real-footage-ads/waitlist` 接口）都已删除，
+只剩 `RealFootageDemoLead` 这张表（数据库只加不删）。
 
 **典型场景**
 
-- "新增 lead 字段" → 改 Prisma schema → 改 waitlist API。
+- "新增询盘字段" → 改 Prisma schema → 改 `lead-service.ts` 与两条接口。
 
 ---
 

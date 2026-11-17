@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
 
-export type SurfaceRouteArea = "public" | "internal";
+export type SurfaceRouteArea = "public";
 
 export async function SurfaceRouteLoading({
   area,

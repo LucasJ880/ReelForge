@@ -36,7 +36,6 @@ import {
   soakStoryboardBody,
   soakSubmitAllowance,
   summarizeSoak,
-  type SoakFirstPassInput,
   type SoakItem,
   type SoakJobFact,
   type SoakRecord,
@@ -58,7 +57,6 @@ async function loadItems(): Promise<SoakItem[]> {
 
 const T0 = "2026-11-10T01:00:00.000Z";
 const at = (minutes: number) => new Date(Date.parse(T0) + minutes * 60_000).toISOString();
-const noScores = (input: Omit<SoakFirstPassInput, "scores">): SoakFirstPassInput => ({ ...input, scores: {} });
 
 function job(overrides: Partial<SoakJobFact> = {}): SoakJobFact {
   return {
@@ -67,10 +65,6 @@ function job(overrides: Partial<SoakJobFact> = {}): SoakJobFact {
     submissionState: "ACCEPTED",
     submissionErrorClass: null,
     route: "buddy",
-    frameQaStatus: "PASSED",
-    frameQaBlockCount: 0,
-    frameQaCheckedAt: at(12),
-    frameQaClaimedAt: null,
     retryCount: 0,
     submitAttempts: 1,
     submittedAt: at(5),
@@ -114,11 +108,11 @@ function recordAt(
   if (stage === "approved") return record;
   Object.assign(dispatch, { state: "accepted", briefId: `brief-${item.id}`, deliveryOrderId: `order-${item.id}`, httpStatus: 200 });
   video.briefStatus = "RENDERING";
-  video.jobs = [job({ id: `job-${item.id}`, status: "RUNNING", finishedAt: null, frameQaStatus: null, frameQaCheckedAt: null })];
+  video.jobs = [job({ id: `job-${item.id}`, status: "RUNNING", finishedAt: null })];
   if (stage === "rendering") return record;
   if (stage === "video_failed") {
     video.briefStatus = "RENDER_FAILED";
-    video.jobs = [job({ id: `job-${item.id}`, status: "FAILED", frameQaStatus: null, frameQaCheckedAt: null, error: "[provider:failed] refunded" })];
+    video.jobs = [job({ id: `job-${item.id}`, status: "FAILED", error: "[provider:failed] refunded" })];
     return record;
   }
   video.briefStatus = "RENDER_SUCCEEDED";
@@ -407,45 +401,44 @@ test("百分位与端到端：最近秩；没成片没有端到端时长", async
   assert.equal(soakEndToEndMs(recordAt(item, "rendering").current), null);
 });
 
-test("放行线：四项全达标", async () => {
+test("放行线：三项全达标（「帧质检 UNVERIFIED」那一项 2026-11-16 随质检删除）", async () => {
   const items = (await loadItems()).slice(0, 20);
   /// 20 条里 19 条成功（95%），成片用时 11–29 分钟
   const records = items.map((item, index) => (index === 0 ? recordAt(item, "video_failed") : recordAt(item, "ready", 10 + index)));
-  const summary = summarizeSoak(records, { now: new Date(at(60)), firstPass: noScores({ firstPass: 17, total: 20, rated: 19 }) });
+  const summary = summarizeSoak(records, { now: new Date(at(60)), firstPass: { firstPass: 17, total: 20, rated: 19 } });
   assert.equal(summary.succeeded, 19);
   assert.equal(summary.failed, 1);
   assert.equal(summary.successRate, 0.95);
   assert.equal(summary.p50Ms, 20 * 60_000);
   assert.equal(summary.p90Ms, 28 * 60_000);
-  assert.deepEqual(summary.gates.map((gate) => gate.verdict), ["达标", "达标", "达标", "达标"]);
-  assert.deepEqual(summary.frameQa, { PASSED: 19, "(未写入)": 1 });
+  assert.deepEqual(summary.gates.map((gate) => [gate.name, gate.verdict]), [
+    ["成功率", "达标"],
+    ["端到端 P90", "达标"],
+    ["人工首过率", "达标"],
+  ]);
   assert.deepEqual(summary.failures, [{ id: items[0].id, stage: "video", reason: "[provider:failed] refunded" }]);
   const report = renderSoakReport("soak-1110", summary, new Date(at(60)));
   assert.match(report, /\| 成功率 \| ≥ 90\.0% \| 95\.0%（19 成 \/ 1 败） \| 达标 \|/u);
   assert.match(report, /\| 端到端 P90 \| ≤ 30 分 \| 28\.0 分（19 条成片） \| 达标 \|/u);
   assert.match(report, /\| 人工首过率 \| ≥ 80\.0% \| 85\.0%（17 \/ 20，已评 19 条） \| 达标 \|/u);
-  assert.match(report, /没检不等于通过/u, "没写质检状态的段要提醒");
+  assert.doesNotMatch(report, /帧质检|质检/u, "报告里不再有质检的读数、放行线与「去留依据」一节");
   assert.match(report, /放行线按全部条目算（A、B 两组合在一起）/u);
 });
 
-test("放行线：成功率、P90、UNVERIFIED、首过率逐项不达标", async () => {
+test("放行线：成功率、P90、首过率逐项不达标", async () => {
   const items = (await loadItems()).slice(0, 10);
-  /// 10 条里 2 条失败（80%），一条 45 分钟才出，一段质检没检成
+  /// 10 条里 2 条失败（80%），一条 45 分钟才出
   const records = items.map((item, index) =>
     index < 2 ? recordAt(item, index === 0 ? "storyboard_failed" : "video_failed") : recordAt(item, "ready", index === 9 ? 45 : 12),
   );
-  records[5].current.video.jobs[0].frameQaStatus = "UNVERIFIED";
-  records[6].current.video.jobs[0].frameQaStatus = "SKIPPED";
-  const summary = summarizeSoak(records, { now: new Date(at(120)), firstPass: noScores({ firstPass: 6, total: 10, rated: 8 }) });
+  const summary = summarizeSoak(records, { now: new Date(at(120)), firstPass: { firstPass: 6, total: 10, rated: 8 } });
   assert.equal(summary.successRate, 0.8);
   assert.equal(summary.p90Ms, 45 * 60_000);
   assert.deepEqual(summary.gates.map((gate) => [gate.name, gate.verdict]), [
     ["成功率", "不达标"],
     ["端到端 P90", "不达标"],
-    ["帧质检 UNVERIFIED", "不达标"],
     ["人工首过率", "不达标"],
   ]);
-  assert.deepEqual(summary.frameQa, { PASSED: 6, UNVERIFIED: 1, SKIPPED: 1, "(未写入)": 1 });
   assert.deepEqual(summary.frames, { total: 40, failed: 1, cancelled: 0, ackUnknown: 1, failureRate: 1 / 40, byPlan: { "image-2k": 40 } });
   assert.match(renderSoakReport("soak-1110", summary, new Date(at(120))), /故事板出图走的套餐：image-2k 40 帧\n/u);
 });
@@ -457,7 +450,7 @@ test("放行线：还有在途或没投的不抢着下结论；没有评分输�
   assert.equal(summary.inFlight, 1);
   assert.equal(summary.notStarted, 2);
   assert.equal(summary.longestInFlightMs, 200 * 60_000, "卡了 200 分钟的那条要看得见");
-  assert.deepEqual(summary.gates.map((gate) => gate.verdict), ["待定", "待定", "待定", "待人工评分"]);
+  assert.deepEqual(summary.gates.map((gate) => gate.verdict), ["待定", "待定", "待人工评分"]);
   assert.match(summary.gates[0].actual, /3 条未出结果/u);
 
   /// 剩下的全成功也到不了 90%：现在就能判不达标
@@ -470,7 +463,7 @@ test("放行线：还有在途或没投的不抢着下结论；没有评分输�
   /// 一条都没投
   const empty = summarizeSoak(items.map((item) => recordAt(item, "pending")), { now: new Date(at(0)) });
   assert.equal(empty.successRate, null);
-  assert.deepEqual(empty.gates.map((gate) => gate.verdict), ["待定", "待定", "待定", "待人工评分"]);
+  assert.deepEqual(empty.gates.map((gate) => gate.verdict), ["待定", "待定", "待人工评分"]);
 });
 
 test("汇总口径：取消的不进分母；重试救回来的不算首次成功；确认未知单独数；按波分组", async () => {
@@ -504,65 +497,6 @@ test("汇总口径：取消的不进分母；重试救回来的不算首次成�
   assert.match(report, /视频提交确认未知：1 条/u);
   assert.doesNotMatch(report, /计划线路|改交/u);
   assert.match(report, /## 失败明细/u);
-});
-
-test("帧质检去留依据：结论分布、累计拦截次数、认领到成功的间隔（没撞上的如实标无法测量）、与人工评分对照", async () => {
-  const items = (await loadItems()).slice(0, 6);
-  const records = items.map((item, index) => (index === 5 ? recordAt(item, "video_failed") : recordAt(item, "ready", 12)));
-  const qa = (index: number) => records[index].current.video.jobs[0];
-  /// 第 1 段：轮询撞上了质检进行中，认领到任务成功隔了 30 秒
-  qa(0).frameQaClaimedAt = at(11.5);
-  /// 第 2 段：被拦过一次、重抽后放行；这一次的认领到成功隔了 60 秒
-  Object.assign(qa(1), { frameQaBlockCount: 1, frameQaClaimedAt: at(11) });
-  qa(2).frameQaStatus = "WOULD_BLOCK";
-  qa(3).frameQaStatus = "UNVERIFIED";
-  qa(4).frameQaStatus = "SKIPPED";
-  /// 第 6 段：连拦两次、免费重抽用完，停在 BLOCKED
-  Object.assign(qa(5), { frameQaStatus: "BLOCKED", frameQaBlockCount: 2 });
-
-  const bare = summarizeSoak(records, { now: new Date(at(60)) }).frameQaEvidence;
-  assert.equal(bare.jobs, 6);
-  assert.deepEqual(bare.statuses, { PASSED: 2, BLOCKED: 1, WOULD_BLOCK: 1, UNVERIFIED: 1, SKIPPED: 1 });
-  assert.equal(bare.blockCount, 3);
-  assert.equal(bare.flaggedItems, 3, "拦过一次的、影子判拦的、停在 BLOCKED 的");
-  assert.deepEqual(bare.overhead, { measured: 2, unmeasured: 4, p50Ms: 30_000, p90Ms: 60_000 });
-  assert.equal(bare.human, null);
-  const bareReport = renderSoakReport("soak-1110", summarizeSoak(records, { now: new Date(at(60)) }), new Date(at(60)));
-  assert.match(bareReport, /## 帧质检去留依据/u);
-  assert.match(bareReport, /PASSED 2，BLOCKED 1，WOULD_BLOCK 1，UNVERIFIED 1，SKIPPED 1/u);
-  assert.match(bareReport, /累计拦截 3 次/u);
-  assert.match(bareReport, /供应商出片到任务转成功的间隔无法测量/u);
-  assert.match(bareReport, /测到 2 段，P50 30\.0 秒 \/ P90 60\.0 秒；另有 4 段没测到/u);
-  assert.match(bareReport, /与人工评分的对照：待人工评分/u);
-  assert.match(bareReport, /数字小结：6 段里放行 2 段、拦下 1 段、影子判拦 1 段、没检成 1 段、跳过 1 段，累计拦截 3 次；人工对照待人工评分。/u);
-
-  /// 人工：前两条合格，影子判拦的与没检成的两条不合格，跳过的合格，停在 BLOCKED 的没有成片可评
-  const scores = { [items[0].id]: "ok", [items[1].id]: "ok", [items[2].id]: "bad", [items[3].id]: "bad", [items[4].id]: "ok" } as const;
-  const rated = summarizeSoak(records, { now: new Date(at(60)), firstPass: { firstPass: 3, total: 6, rated: 5, scores } });
-  assert.deepEqual(rated.frameQaEvidence.human, {
-    rated: 5,
-    humanBad: 2,
-    humanBadFlagged: 1,
-    flaggedRated: 2,
-    flaggedHumanBad: 1,
-    table: [
-      { status: "BLOCKED", ok: 0, bad: 0, unrated: 1 },
-      { status: "PASSED", ok: 2, bad: 0, unrated: 0 },
-      { status: "SKIPPED", ok: 1, bad: 0, unrated: 0 },
-      { status: "UNVERIFIED", ok: 0, bad: 1, unrated: 0 },
-      { status: "WOULD_BLOCK", ok: 0, bad: 1, unrated: 0 },
-    ],
-  });
-  const ratedReport = renderSoakReport("soak-1110", rated, new Date(at(60)));
-  assert.match(ratedReport, /\| WOULD_BLOCK \| 0 \| 1 \| 0 \|/u);
-  assert.match(ratedReport, /人工判不合格 2 条，其中质检拦过 1 条；质检拦过的 3 条里人工评了 2 条，判不合格 1 条。/u);
-
-  /// 一段都没撞上质检进行中：整项如实标无法测量，不估
-  qa(0).frameQaClaimedAt = null;
-  qa(1).frameQaClaimedAt = null;
-  const blind = summarizeSoak(records, { now: new Date(at(60)) });
-  assert.deepEqual(blind.frameQaEvidence.overhead, { measured: 0, unmeasured: 6, p50Ms: null, p90Ms: null });
-  assert.match(renderSoakReport("soak-1110", blind, new Date(at(60))), /认领到任务转成功的间隔：无法测量（6 段有结论/u);
 });
 
 test("出方案对照：两组各自的成功率、P50 / P90、出方案阶段用时；两组都出片的才配成一对；盲评揭盲给 B 组的胜平负", async () => {

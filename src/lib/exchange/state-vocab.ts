@@ -56,22 +56,6 @@ export const STATE_VOCAB = {
     done: entry("filled", "已出图", "Drawn"),
     failed: FAILED,
   },
-  /** 图文帖的一屏配图（C2 · Shuyu 异步出图）。cancelled = 停止出图时还没提交，不产生费用。 */
-  slide: {
-    queued: QUEUED,
-    generating: GENERATING,
-    done: entry("filled", "已出图", "Drawn"),
-    failed: FAILED,
-    cancelled: CANCELLED,
-  },
-  /** 一轮产品图。 */
-  image: {
-    queued: QUEUED,
-    generating: GENERATING,
-    done: entry("filled", "已完成", "Done"),
-    failed: FAILED,
-    cancelled: CANCELLED,
-  },
   /** 询盘：「成交」只在这里出现。 */
   lead: {
     NEW: entry("live", "新询盘", "New"),
@@ -184,20 +168,6 @@ const LIBRARY_STATE: Record<LibraryStatusKey, ItemState> = {
 
 export function libraryRowState(status: LibraryStatusKey): ItemState {
   return LIBRARY_STATE[status];
-}
-
-export type ProductImageStatusKey = "QUEUED" | "PROCESSING" | "SUCCEEDED" | "FAILED" | "CANCELLED";
-
-const IMAGE_STATE: Record<ProductImageStatusKey, VocabState<"image">> = {
-  QUEUED: "queued",
-  PROCESSING: "generating",
-  SUCCEEDED: "done",
-  FAILED: "failed",
-  CANCELLED: "cancelled",
-};
-
-export function productImageState(status: ProductImageStatusKey): VocabState<"image"> {
-  return IMAGE_STATE[status];
 }
 
 /** 批次词按 DB 枚举取（批量表、成交带、大屏共用）。 */

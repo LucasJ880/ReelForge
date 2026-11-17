@@ -6,7 +6,7 @@
 
 ## 1. 找代码：先查索引，别扫 repo
 
-约 500 个 src 文件、近 70 个 API route、30+ 个 npm scripts（2026-11-17 瘦身之后的实数：src 下 498 个文件 / 495 个 .ts·tsx，
+约 500 个 src 文件、近 70 个 API route、30+ 个 npm scripts（2026-11-17 瘦身之后的实数：src 下 491 个文件 / 488 个 .ts·tsx，
 `src/app/api` 下 69 个 `route.ts`，package.json 32 个 scripts；瘦身前是 608 / 109 / 71）。全 repo grep 是本项目最大的 token 漏斗。
 
 ```bash
@@ -25,7 +25,7 @@ npm run context:find -- "关键词1 关键词2"   # 0.3s，给 top 10 文件 + �
 | `src/app/page.tsx` · `(public)/` · `(auth)/` · `(wall)/` | 公开首页「展厅」/ 法务页（/persona、/showcase 2026-10-28 已删）/ 登录注册 / 行情大屏 `/wall` |
 | `src/app/l/[slug]` · `src/app/t/[code]` | 商家询盘页（匿名可访问）/ 追踪链接跳转（`route.ts`） |
 | `src/app/api/` | 路由只做鉴权 + 参数校验，业务委托 `src/lib/services/` |
-| `src/lib/services/` | 业务层（50+ service），Provider 层封装外部 API |
+| `src/lib/services/` | 业务层（近 50 个 service），Provider 层封装外部 API |
 | `src/lib/contracts/` | 对外契约（`customer-api` / `batch-api` / …），M0 的 `/api/videos` 在这层定 |
 
 ## 3. 常用命令

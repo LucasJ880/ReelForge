@@ -105,10 +105,9 @@ export const runtimeTracingExcludes: Record<string, string[]> = {
 };
 
 /**
- * Phase 5 — legacy URL redirects.
- *
- * 老路径 308 permanent redirect 到 /internal/* 或 /business/*；
- * /wizard/* 由 middleware.ts 直接返回 410 Gone（旧 wizard 已下线）。
+ * 旧地址重定向：已删页面的旧书签一律落到还在的页面（/app、/app/create、/app/library…）。
+ * /internal、/business、/personal 这些旧面都已删除，它们只作为「来源」出现在下面，不再是目的地。
+ * /wizard/* 由 src/proxy.ts 直接返回 410 Gone（旧 wizard 已下线）。
  *
  * 308 vs 301: 308 在 method 改变方面更严格（GET/POST 都保留 method）；
  * 这些路径都是页面 GET，影响等价。
@@ -148,11 +147,9 @@ const nextConfig: NextConfig = {
       { source: "/persona", destination: "/app", permanent: false },
       { source: "/showcase", destination: "/", permanent: false },
 
-      // Customer-facing projects → business products
+      // 更早的 /projects、/videos：落到成品库
       { source: "/projects", destination: "/app/library", permanent: true },
       { source: "/projects/:path*", destination: "/app/library/:path*", permanent: true },
-      // Legacy /videos was an operator-friendly aggregate; redirect to internal until Phase 2
-      // splits it explicitly into business + personal libraries.
       { source: "/videos", destination: "/app/library", permanent: true },
       { source: "/videos/:path*", destination: "/app/library/:path*", permanent: true },
     ];

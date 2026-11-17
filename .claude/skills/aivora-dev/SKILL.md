@@ -38,8 +38,7 @@ provider (src/lib/providers) 外部 API 封装（openai / seedance / shuyu …�
 contract (src/lib/contracts) 对外契约与 zod schema —— 跨系统的字段定义放这里
 ```
 
-客户面在 `src/app/(platform)`。`src/app/(internal)` 是旧代运营中台，PRD §10 正在 A 级下线，
-**只减不加**。
+客户面在 `src/app/(platform)`。旧代运营中台 `src/app/(internal)` 已在 2026-11-17 的瘦身里整个删掉（`/api/internal/*` 是接口，还在）。
 
 ### 加一个对外 API
 

@@ -14,7 +14,6 @@ import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
 import { batchState } from "@/lib/exchange/state-vocab";
 import { formatRate, readingStat } from "@/lib/exchange/readings-registry";
-import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
 import { loadExchangeReadings, loadProductionCounts } from "@/lib/services/exchange-readings";
 
 export const dynamic = "force-dynamic";
@@ -22,17 +21,15 @@ export const dynamic = "force-dynamic";
 export default async function PlatformBatchesPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/batches");
-  const routeState = await getCustomerRouteRehearsalState("batches");
-  const empty = routeState === "empty";
   const [batches, production, readings, locale] = await Promise.all([
-    empty ? Promise.resolve([]) : db.batchJob.findMany({
+    db.batchJob.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: "desc" },
       take: 50,
       include: { template: { select: { name: true, nameZh: true, coverImage: true } } },
     }),
-    empty ? Promise.resolve(null) : loadProductionCounts(session.user.id),
-    empty ? Promise.resolve(null) : loadExchangeReadings(session.user.id),
+    loadProductionCounts(session.user.id),
+    loadExchangeReadings(session.user.id),
     getServerLocale(),
   ]);
   const copy = getPlatformCopy(locale).batches;

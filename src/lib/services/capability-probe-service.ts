@@ -270,7 +270,7 @@ export function diagnoseDrift(plans: ShuyuPlan[]): {
   return { auditedPlanFound: false, videoPlansGone: false, drifts };
 }
 
-/** C4：从 /prices 里摘出图像线路与最低计价（图像套餐不存在 → 产品图与故事板暂停）。 */
+/** C4：从 /prices 里摘出图像线路与最低计价（图像套餐不存在 → 故事板出图暂停）。 */
 export function summarizeShuyuCatalog(plans: ShuyuPlan[]): ShuyuCatalogSummary {
   let imagePoints: number[] = [];
   try {
@@ -381,9 +381,10 @@ export async function probeShuyuCapabilities(
  *
  * 只做免费或近乎免费的探测（与 scripts/e2e-1025/route-truth-table.ts 同一批端点）：
  *  - text / vision：1 token 的 chat completion（额度用完 429 insufficient_quota → 暂停）
- *  - moderation：免费端点（配了 OPENAI_API_KEY 就每轮探一次，与内容审核开没开无关）
+ *  - moderation：免费端点，但只在内容审核真开着（CONTENT_REVIEW_ENABLED + openai_moderation）时才探；
+ *    关着就记「未开通」，不发任何请求（capabilityConfiguration 里判）
  *  - image / video：复用上面的 Shuyu /prices 探测 + 余额
- *  - graphics（配图与 Logo）没有便宜的探测：由账户状态推断 + 生产回写
+ *  - graphics（Logo）没有便宜的探测：由账户状态推断 + 生产回写
  *  - email：只看配置
  * 任何一项探测失败都只影响它自己那一行，不会抛给调用方。
  * 配音、图库、链接抓取、抠图四条线路的探测随线路一起删了（2026-11-16）。
@@ -569,7 +570,7 @@ export type ShuyuBalanceOutcome =
   | null;
 
 /**
- * Shuyu /prices 探测 + 余额 → 图像（产品图与故事板）与视频两条能力。
+ * Shuyu /prices 探测 + 余额 → 图像（故事板出图）与视频两条能力。
  *  - 视频：契约匹配 → 正常；套餐还在但漂移 → 不稳定（提交照常走、自动重试；生产没有可切的备用套餐）；视频套餐整体消失 → 暂停
  *  - 图像：没有可用的图像套餐 → 暂停
  *  - 余额不够一条 15 秒视频 / 一张图 → 对应能力暂停（提交必然 402）
@@ -691,8 +692,7 @@ export async function runCapabilityProbeCycle(deps: CapabilityProbeDeps = {}): P
     (await store.readAll().catch(() => [] as CapabilityRecord[])).map((record) => [record.key, record]),
   );
   const configured = capabilityConfiguration(ctx.env);
-  /// 中国区（AI_PROVIDER=volcengine）的写作 / 看图 / 配图不走 OpenAI：不拿 OpenAI 的结论冒充它们。
-  const openAiChat = configured.text && ctx.env.AI_PROVIDER?.trim() !== "volcengine";
+  const openAiChat = configured.text;
   const safely = async (run: () => Promise<CapabilityObservation>): Promise<CapabilityObservation> => {
     try {
       return await run();

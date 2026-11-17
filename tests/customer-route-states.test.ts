@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
-import { resolveCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
 
 const ROOT = process.cwd();
 const ROUTES = [
@@ -68,10 +67,23 @@ test("RF-012 shared route states are accessible, retryable, and bilingual", asyn
 });
 
 test("RF-012 customer routes expose successful empty states separately from errors", async () => {
-  for (const route of ROUTES.filter((candidate) => !candidate.endsWith("/[id]"))) {
+  /// 创作页没有「空」这个状态（对话框永远在），它只标 ready；列表页各自有真实的空态。
+  for (const route of ROUTES.filter((candidate) => !candidate.endsWith("/[id]") && !candidate.endsWith("/create"))) {
     const source = await readFile(path.join(ROOT, route, "page.tsx"), "utf8");
-    assert.match(source, /data-route-state=(?:"empty"|\{routeState === "empty")/);
+    assert.match(source, /data-route-state="empty"/);
   }
+  const create = await readFile(path.join(ROOT, "src/app/(platform)/app/create/page.tsx"), "utf8");
+  assert.match(create, /data-route-state="ready"/);
+});
+
+test("RF-012 customer pages no longer honour a header-driven state injection", async () => {
+  /// 预演用的 x-aivora-qa-route-state 注入（customer-route-state-rehearsal）2026-11-16 删了：
+  /// 它在生产里永远返回 live，只给已删的旧浏览器验收用。页面直接读真实数据。
+  for (const route of ROUTES) {
+    const source = await readFile(path.join(ROOT, route, "page.tsx"), "utf8");
+    assert.doesNotMatch(source, /customer-route-state-rehearsal|getCustomerRouteRehearsalState|x-aivora-qa-route-state/);
+  }
+  await assert.rejects(access(path.join(ROOT, "src/lib/qa/customer-route-state-rehearsal.ts")));
 });
 
 test("RF-012 batch detail maps only typed missing access to 404 and rethrows service faults", async () => {
@@ -91,49 +103,4 @@ test("RF-012 batch detail maps only typed missing access to 404 and rethrows ser
   // operational failure remains a retryable 500.
   assert.match(statusRoute, /code: "RESOURCE_NOT_FOUND"[\s\S]*?\{ status: 404 \}/);
   assert.match(statusRoute, /code: "INTERNAL_ERROR"[\s\S]*?\{ status: 500 \}/);
-});
-
-test("RF-012 route-state network injection is locked to explicit mock rehearsal", () => {
-  const headerValue = "batches:error";
-  const rehearsal = {
-    VERCEL_ENV: "preview",
-    FINAL_ACCEPTANCE_REQUIRE_REHEARSAL: "true",
-    AIVORA_DRY_RUN: "1",
-    VIDEO_PROVIDER: "mock",
-  };
-
-  assert.equal(
-    resolveCustomerRouteRehearsalState({ headerValue, route: "batches", env: rehearsal }),
-    "error",
-  );
-  assert.equal(
-    resolveCustomerRouteRehearsalState({
-      headerValue,
-      route: "batches",
-      env: { ...rehearsal, VERCEL_ENV: "production" },
-    }),
-    "live",
-    "production must ignore a caller-supplied rehearsal header",
-  );
-  assert.equal(
-    resolveCustomerRouteRehearsalState({
-      headerValue,
-      route: "batches",
-      env: { ...rehearsal, FINAL_ACCEPTANCE_REQUIRE_REHEARSAL: "false" },
-    }),
-    "live",
-  );
-  assert.equal(
-    resolveCustomerRouteRehearsalState({
-      headerValue,
-      route: "batches",
-      env: { ...rehearsal, VIDEO_PROVIDER: "byteplus" },
-    }),
-    "live",
-  );
-  assert.equal(
-    resolveCustomerRouteRehearsalState({ headerValue, route: "templates", env: rehearsal }),
-    "live",
-    "a route-scoped signal must never affect another route",
-  );
 });

@@ -63,7 +63,7 @@ interface AssetPayload {
  *   1. POST {endpoint}/ticket   只报类型与大小，换一张限定路径 / 类型 / 大小的写入凭证
  *   2. 浏览器直接 PUT 到 Vercel Blob（100MB 以内都行）
  *   3. POST {endpoint}/complete 服务端验签名、扣额度、登记资产，返回资产 ID
- * 存储不支持直传时 ticket 回 mode=server，退回 multipart 中转（现在只有 Vercel Blob，不会走到）。
+ * 文件永远不退回去穿过函数：旧的 multipart 中转（POST {endpoint}）在 Vercel 上收不了 4.5MB 以上。
  */
 export async function uploadBlobWithProgress({
   file,
@@ -79,9 +79,6 @@ export async function uploadBlobWithProgress({
     { contentType, size: file.size, prefix },
     signal,
   );
-  if (ticket.mode === "server") {
-    return uploadThroughServer({ file, endpoint, prefix, signal, onProgress });
-  }
 
   const { put } = await import("@vercel/blob/client");
   /// 存储客户端遇到网络错误 / 5xx 会不声不响地重试十几分钟。卡住看门狗盯着「传到过的最远位置」，
@@ -193,67 +190,4 @@ async function postJson<T>(url: string, body: unknown, signal?: AbortSignal): Pr
     });
   }
   return payload as T;
-}
-
-/** 服务端中转（multipart）：只给不支持直传的存储用，见 uploadBlobWithProgress。 */
-function uploadThroughServer({
-  file,
-  endpoint = "/api/upload/blob",
-  prefix = "unified-input",
-  signal,
-  onProgress,
-}: BlobUploadOptions): Promise<BlobUploadResult> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    const form = new FormData();
-    form.append("file", file);
-    form.append("prefix", prefix);
-
-    const abort = () => {
-      xhr.abort();
-      reject(abortError());
-    };
-
-    if (signal) {
-      if (signal.aborted) {
-        abort();
-        return;
-      }
-      signal.addEventListener("abort", abort, { once: true });
-    }
-
-    xhr.upload.onprogress = (event) => {
-      if (!event.lengthComputable || !onProgress) return;
-      onProgress(Math.round((event.loaded / event.total) * 100));
-    };
-
-    xhr.onerror = () => reject(new Error(NETWORK_FAILURE_MESSAGE));
-    xhr.onabort = () => reject(abortError());
-    xhr.onload = () => {
-      if (signal) signal.removeEventListener("abort", abort);
-      let payload: AssetPayload = {};
-      try {
-        payload = JSON.parse(xhr.responseText) as AssetPayload;
-      } catch {
-        reject(new BlobUploadHttpError(statusMessage(xhr.status), { status: xhr.status }));
-        return;
-      }
-      const result = toUploadResult(payload);
-      if (xhr.status < 200 || xhr.status >= 300 || !result) {
-        reject(
-          new BlobUploadHttpError(payload.error ?? statusMessage(xhr.status), {
-            status: xhr.status,
-            code: payload.code,
-            retryable: payload.retryable,
-            action: payload.action,
-          }),
-        );
-        return;
-      }
-      resolve(result);
-    };
-
-    xhr.open("POST", endpoint);
-    xhr.send(form);
-  });
 }

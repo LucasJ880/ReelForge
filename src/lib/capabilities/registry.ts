@@ -10,9 +10,12 @@
  * （client-bundle-safety 与 capability-registry 测试守着这一点）。
  *
  * 能力键说明：
- *  - image    = 产品图与故事板出图（Shuyu 图像线路）
- *  - graphics = 图文帖配图与 Logo（OpenAI 图像模型，经 getAiProvider().generateImages）——
+ *  - image    = 故事板出图（Shuyu 图像线路）
+ *  - graphics = Logo 生成（OpenAI 图像模型，经 getAiProvider().generateImages）——
  *               与 image 分开，是因为两者走不同供应商，一个能用不代表另一个能用。
+ *
+ * 2026-11-16 收尾：产品图工作台、图文帖配图、周计划随页面一起删了，这里的名字与文案只写还在做的事
+ * （image 只剩故事板，graphics 只剩 Logo，text 只剩脚本与口播稿）；键名不变，CapabilityStatus 表里的旧行照用。
  */
 
 export const CAPABILITY_KEYS = [
@@ -139,20 +142,20 @@ export const CAPABILITY_COPY: Record<CapabilityKey, CapabilityCopy> = {
     label: b("AI 写作", "AI writing"),
     messages: {
       available: b(
-        "AI 写作正常：脚本与周计划由 AI 撰写。",
-        "AI writing is on: scripts and weekly plans are written by AI.",
+        "AI 写作正常：脚本与口播稿由 AI 撰写。",
+        "AI writing is on: scripts and narration drafts are written by AI.",
       ),
       degraded: b(
         "AI 写作不稳定：可能变慢；单次失败会先用模板顶上，不会卡住。",
         "AI writing is unstable: it may be slow, and a failed call falls back to a template instead of blocking you.",
       ),
       unavailable: b(
-        "AI 写作暂停：脚本与周计划先用模板生成，恢复后自动启用。",
-        "AI writing is paused: scripts and weekly plans use templates for now and switch back automatically once it recovers.",
+        "AI 写作暂停：脚本与口播稿先用模板生成，恢复后自动启用。",
+        "AI writing is paused: scripts and narration drafts use templates for now and switch back automatically once it recovers.",
       ),
       not_configured: b(
-        "AI 写作尚未开通：脚本与周计划使用模板生成。",
-        "AI writing isn't set up yet: scripts and weekly plans use templates.",
+        "AI 写作尚未开通：脚本与口播稿使用模板生成。",
+        "AI writing isn't set up yet: scripts and narration drafts use templates.",
       ),
     },
   },
@@ -180,38 +183,35 @@ export const CAPABILITY_COPY: Record<CapabilityKey, CapabilityCopy> = {
     },
   },
   image: {
-    label: b("产品图与故事板", "Product images & storyboards"),
+    label: b("故事板出图", "Storyboard images"),
     messages: {
-      available: b("产品图与故事板出图正常。", "Product images and storyboards are rendering normally."),
+      available: b("故事板出图正常。", "Storyboard images are rendering normally."),
       degraded: b(
-        "产品图与故事板不稳定：可能变慢或个别失败，失败的那一张可以单独重出。",
-        "Product images and storyboards are unstable: they may be slow or occasionally fail, and a failed image can be redone on its own.",
+        "故事板出图不稳定：可能变慢或个别失败，失败的那一帧可以单独重出。",
+        "Storyboard images are unstable: they may be slow or occasionally fail, and a failed frame can be redone on its own.",
       ),
       unavailable: b(
-        "产品图与故事板暂停：已出的图都保留，恢复后自动启用。",
-        "Product images and storyboards are paused: images already made are kept, and rendering resumes once it recovers.",
+        "故事板出图暂停：已出的帧都保留，恢复后自动启用。",
+        "Storyboard images are paused: frames already made are kept, and rendering resumes once it recovers.",
       ),
-      not_configured: b("产品图与故事板未开通。", "Product images and storyboards aren't set up."),
+      not_configured: b("故事板出图未开通。", "Storyboard images aren't set up."),
     },
   },
   graphics: {
-    label: b("配图与 Logo", "Post images & logos"),
+    label: b("Logo", "Logos"),
     messages: {
-      available: b(
-        "配图与 Logo 正常：图文帖配图与 Logo 由 AI 出图。",
-        "Post images and logos are on: image posts and logos are drawn by AI.",
-      ),
+      available: b("Logo 生成正常：Logo 由 AI 出图。", "Logo generation is on: logos are drawn by AI."),
       degraded: b(
-        "配图与 Logo 不稳定：可能变慢；已出的图都保留。",
-        "Post images and logos are unstable: they may be slow; finished images are kept.",
+        "Logo 生成不稳定：可能变慢；已出的 Logo 都保留。",
+        "Logo generation is unstable: it may be slow; finished logos are kept.",
       ),
       unavailable: b(
-        "配图与 Logo 暂停：周计划文案照常排好，图文帖先不出图；已出的图都保留，恢复后再点「生成配图」即可。产品图不受影响。",
-        "Post images and logos are paused: weekly copy is still planned, but image posts won't render yet. Finished images are kept; tap Generate images again once it recovers. Product images are unaffected.",
+        "Logo 生成暂停：可以先在品牌页上传现有 Logo；已出的 Logo 都保留，恢复后自动启用。故事板与视频不受影响。",
+        "Logo generation is paused: upload an existing logo on the Brands page for now. Finished logos are kept, and it resumes once it recovers. Storyboards and videos are unaffected.",
       ),
       not_configured: b(
-        "配图与 Logo 未开通：图文帖只排文案。",
-        "Post images and logos aren't set up: image posts include copy only.",
+        "Logo 生成未开通：可以在品牌页上传现有 Logo。",
+        "Logo generation isn't set up: upload an existing logo on the Brands page.",
       ),
     },
   },
@@ -274,12 +274,9 @@ export function capabilityMessage(key: CapabilityKey, status: CapabilityStatus, 
 /* ── 功能依赖 ───────────────────────────────────────────────────────── */
 
 export const FEATURE_KEYS = [
-  "contentPlanWriting",
   "narrationDraft",
   "scriptWriting",
-  "imagePosts",
   "logo",
-  "productImages",
   "storyboardFrames",
   "storyboardReview",
   "videoGeneration",
@@ -297,18 +294,10 @@ type FeatureSpec = {
 };
 
 /**
- * 功能 → 能力依赖。Logo 走 OpenAI 图像模型（graphics）；产品图、故事板与图文配图走 Shuyu 图像线路（image）——
- * 图文配图 C2 起默认 Shuyu 异步出图（CONTENT_POST_IMAGE_PROVIDER=openai 才回到 graphics，属回滚，不在这里分支）。
+ * 功能 → 能力依赖。Logo 走 OpenAI 图像模型（graphics）；故事板走 Shuyu 图像线路（image）。
+ * 周计划撰写、图文配图、产品图三项随页面一起删了（2026-11-16），状态页「影响哪些功能」不再列它们。
  */
 export const FEATURES: Record<FeatureKey, FeatureSpec> = {
-  contentPlanWriting: {
-    needs: ["text"],
-    label: b("周计划撰写", "Weekly plan writing"),
-    whenBlocked: b(
-      "周计划先按模板排好，恢复后重新排一周即可换成 AI 撰写。",
-      "Weekly plans use a template for now; plan a new week after it recovers to get AI-written posts.",
-    ),
-  },
   narrationDraft: {
     needs: ["text"],
     label: b("口播稿起草", "Voiceover drafting"),
@@ -325,28 +314,12 @@ export const FEATURES: Record<FeatureKey, FeatureSpec> = {
       "Scripts and shots are planned from templates for now; videos still render.",
     ),
   },
-  imagePosts: {
-    needs: ["image"],
-    label: b("图文配图", "Post images"),
-    whenBlocked: b(
-      "文案照常排好，图文帖先不出图；已出的图都保留，恢复后再点「生成配图」。",
-      "Copy is still planned, but image posts won't render yet. Finished images are kept; tap Generate images again after it recovers.",
-    ),
-  },
   logo: {
     needs: ["graphics"],
     label: b("Logo 生成", "Logo generation"),
     whenBlocked: b(
       "暂时不能生成 Logo，可以先在品牌页上传现有 Logo。",
       "Logos can't be generated right now; upload an existing logo on the Brands page instead.",
-    ),
-  },
-  productImages: {
-    needs: ["image"],
-    label: b("产品图", "Product images"),
-    whenBlocked: b(
-      "已出的图都保留，恢复后可以继续出图。",
-      "Images already made are kept, and you can continue once it recovers.",
     ),
   },
   storyboardFrames: {
@@ -596,13 +569,13 @@ export type FeatureGate = {
   message: Bilingual | null;
 };
 
-/** 中文接在拉丁字母后面时补一个空格（「配图与 Logo 暂不可用」），接在汉字后面不补。 */
+/** 中文接在拉丁字母后面时补一个空格（「Logo 暂不可用」），接在汉字后面不补。 */
 function zhAppend(head: string, tail: string): string {
   return /[A-Za-z0-9]$/.test(head) ? `${head} ${tail}` : `${head}${tail}`;
 }
 
 /**
- * 被挡住的原因。英文写成「状态：名单」，不拼主谓一致（标签有单有复：Post images / AI vision）。
+ * 被挡住的原因。英文写成「状态：名单」，不拼主谓一致（标签有单有复：Storyboard images / AI vision）。
  * zh：AI 写作、AI 看图暂不可用；邮件通知尚未开通
  * en：unavailable: AI writing, AI vision; not set up: Email alerts
  */

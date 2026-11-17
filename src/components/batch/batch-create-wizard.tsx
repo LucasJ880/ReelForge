@@ -115,14 +115,12 @@ function categoryLabel(
 export function BatchCreateWizard({
   batchDetailsBasePath = "/batches",
   initialTemplateId,
-  initialImages = [],
   showProviderPoints = false,
   remainingVideos = null,
   contactEmail = null,
 }: {
   batchDetailsBasePath?: string;
   initialTemplateId?: string;
-  initialImages?: Array<{ id: string; url: string; fileName: string }>;
   /**
    * 供应商积分只给内部角色看（运营对账）。客户的成本是本月额度里的「成片条数」——
    * 失败与取消返还；把「本批预计消耗 7,200 积分」摆给客户，读起来像要花一种他从没买过的钱。
@@ -151,18 +149,7 @@ export function BatchCreateWizard({
   /// 跨多次提交累计已建成的批次（全部成功后决定跳详情还是跳列表）。
   const createdBatchIdsRef = useRef<string[]>([]);
   const [step, setStep] = useState(0);
-  const [uploads, setUploads] = useState<UploadItem[]>(() =>
-    initialImages.map((image) => ({
-      localId: `existing-${image.id}`,
-      file: null,
-      fileName: image.fileName,
-      previewUrl: image.url,
-      status: "uploaded",
-      progress: 100,
-      assetId: image.id,
-      url: image.url,
-    })),
-  );
+  const [uploads, setUploads] = useState<UploadItem[]>([]);
   const [templates, setTemplates] = useState<StyleTemplateDto[]>([]);
   const [templateId, setTemplateId] = useState("");
   const [templateQuery, setTemplateQuery] = useState("");

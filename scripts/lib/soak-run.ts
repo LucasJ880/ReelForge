@@ -1,6 +1,7 @@
 /**
  * 真机压测（2026-11，抖音矩阵上线前「轮 2」）的纯逻辑：用例 × 钩子角度 × A/B 两组展开、分波与线路指派、
- * 点数估算、断点续跑的下一步判定、终态判定、汇总与放行线、帧质检去留依据、出方案对照。
+ * 点数估算、断点续跑的下一步判定、终态判定、汇总与放行线、出方案对照。
+ *（「帧质检去留依据」一节与「帧质检 UNVERIFIED」放行线 2026-11-16 随成片画面质检一起删了。）
  * 不读 env、不触网、不碰数据库，便于单测（tests/soak-run.test.ts）。驱动在 scripts/ops/soak-run.ts。
  */
 import { estimateSpend, type SpendEstimate } from "./experiment-budget";
@@ -254,13 +255,6 @@ export interface SoakJobFact {
   submissionErrorClass: string | null;
   /// 这一段实际走的线路（VideoJob.videoRouteSnapshot）
   route: string | null;
-  frameQaStatus: string | null;
-  /// 这一段累计被帧质检拦了几次（frameQaDetail.blockCount，跨重抽累计）
-  frameQaBlockCount: number;
-  /// 库里最后一次写质检结论的时刻
-  frameQaCheckedAt: string | null;
-  /// 质检认领这一段的时刻：库里只在质检进行中（CHECKING）留着，结论一写就被覆盖，所以只有轮询正好撞上才抄得到
-  frameQaClaimedAt: string | null;
   retryCount: number;
   submitAttempts: number;
   submittedAt: string | null;
@@ -683,7 +677,7 @@ export function soakCardPairs(
 // 汇总与放行线
 // ---------------------------------------------------------------------------
 
-export const SOAK_GATES = { successRate: 0.9, p90Minutes: 30, unverified: 0, firstPassRate: 0.8 } as const;
+export const SOAK_GATES = { successRate: 0.9, p90Minutes: 30, firstPassRate: 0.8 } as const;
 
 export type SoakVerdict = "达标" | "不达标" | "待定" | "待人工评分";
 
@@ -718,35 +712,6 @@ export interface SoakGroupStats {
   successRate: number | null;
   p50Ms: number | null;
   p90Ms: number | null;
-}
-
-/** 质检的五种结论（未合并分支上的 UNVERIFIED 按字符串读） */
-export const FRAME_QA_STATUSES = ["PASSED", "BLOCKED", "WOULD_BLOCK", "UNVERIFIED", "SKIPPED"] as const;
-
-export interface SoakFrameQaEvidence {
-  /// 已建出的段数（不含被换下去的旧段）
-  jobs: number;
-  /// 五种结论各几段（没出现记 0）；还在检或没写状态的记在「(未写入)」等原样的键下
-  statuses: Record<string, number>;
-  /// 累计拦截次数：各段 frameQaDetail.blockCount 之和
-  blockCount: number;
-  /// 被质检拦过的条数：拦截次数 > 0，或最后结论是 BLOCKED / WOULD_BLOCK
-  flaggedItems: number;
-  /// 质检多花的时间。库里没有「供应商出片」的时刻，所以「出片 → 任务成功」这一段无法测量；
-  /// 能测的是「质检认领 → 任务转成功」，而且只有轮询正好撞上质检进行中的段才抄得到认领时刻
-  overhead: { measured: number; unmeasured: number; p50Ms: number | null; p90Ms: number | null };
-  /// 与人工评分的对照；没有评分输入为 null
-  human: null | {
-    /// 两位评分人都评了的条数
-    rated: number;
-    humanBad: number;
-    /// 人工判不合格的条里，质检拦过的
-    humanBadFlagged: number;
-    /// 质检拦过的条里，人工评了的 / 人工也判不合格的
-    flaggedRated: number;
-    flaggedHumanBad: number;
-    table: Array<{ status: string; ok: number; bad: number; unrated: number }>;
-  };
 }
 
 export interface SoakPlanGroupStats extends SoakGroupStats {
@@ -825,11 +790,8 @@ export interface SoakSummary {
     /// 各出图套餐的帧数（StoryboardFrame.planId）
     byPlan: Record<string, number>;
   };
-  /// 帧质检各状态的段数；没写状态的记在「(未写入)」
-  frameQa: Record<string, number>;
   byWave: SoakGroupStats[];
   gates: SoakGate[];
-  frameQaEvidence: SoakFrameQaEvidence;
   planComparison: SoakPlanComparison;
   /// 只有镜头卡对照的重拍轮才有
   cardComparison: SoakCardComparison | null;
@@ -840,8 +802,6 @@ export interface SoakFirstPassInput {
   total: number;
   /// 两位评分人都评了的条数
   rated: number;
-  /// 两位评分人都评了的条目：ok = 每位的商品分、人物分都 ≥ 1；bad = 有 0 分。键是条目 id
-  scores: Record<string, "ok" | "bad">;
 }
 
 const minutes = (ms: number | null) => (ms === null ? "—" : `${(ms / 60_000).toFixed(1)} 分`);
@@ -864,63 +824,6 @@ function groupStats(key: string, attempts: readonly SoakAttempt[]): SoakGroupSta
     successRate: succeeded + failed === 0 ? null : succeeded / (succeeded + failed),
     p50Ms: percentile(durations, 0.5),
     p90Ms: percentile(durations, 0.9),
-  };
-}
-
-const latestJob = (attempt: SoakAttempt) => currentJobs(attempt).at(-1) ?? null;
-const qaFlagged = (job: SoakJobFact | null) =>
-  job !== null && (job.frameQaBlockCount > 0 || job.frameQaStatus === "BLOCKED" || job.frameQaStatus === "WOULD_BLOCK");
-
-function frameQaEvidence(started: ReadonlyArray<{ record: SoakRecord; attempt: SoakAttempt }>, firstPass: SoakFirstPassInput | null): SoakFrameQaEvidence {
-  const jobs = started.flatMap(({ attempt }) => currentJobs(attempt));
-  const statuses: Record<string, number> = Object.fromEntries(FRAME_QA_STATUSES.map((status) => [status, 0]));
-  for (const job of jobs) {
-    const key = job.frameQaStatus ?? "(未写入)";
-    statuses[key] = (statuses[key] ?? 0) + 1;
-  }
-  const checked = jobs.filter((job) => (FRAME_QA_STATUSES as readonly string[]).includes(job.frameQaStatus ?? ""));
-  const overhead = numbers(
-    checked.map((job) => {
-      if (job.status !== "SUCCEEDED" || !job.frameQaClaimedAt || !job.finishedAt) return null;
-      const ms = Date.parse(job.finishedAt) - Date.parse(job.frameQaClaimedAt);
-      return Number.isFinite(ms) && ms >= 0 ? ms : null;
-    }),
-  );
-  const rows = started.map(({ record, attempt }) => {
-    const job = latestJob(attempt);
-    return { status: job?.frameQaStatus ?? (job ? "(未写入)" : "(没有段)"), flagged: qaFlagged(job), human: firstPass?.scores[record.id] ?? null };
-  });
-  const flagged = rows.filter((row) => row.flagged);
-  return {
-    jobs: jobs.length,
-    statuses,
-    blockCount: jobs.reduce((sum, job) => sum + job.frameQaBlockCount, 0),
-    flaggedItems: flagged.length,
-    overhead: {
-      measured: overhead.length,
-      unmeasured: checked.length - overhead.length,
-      p50Ms: percentile(overhead, 0.5),
-      p90Ms: percentile(overhead, 0.9),
-    },
-    human:
-      firstPass === null || Object.keys(firstPass.scores).length === 0
-        ? null
-        : {
-            rated: rows.filter((row) => row.human !== null).length,
-            humanBad: rows.filter((row) => row.human === "bad").length,
-            humanBadFlagged: rows.filter((row) => row.human === "bad" && row.flagged).length,
-            flaggedRated: flagged.filter((row) => row.human !== null).length,
-            flaggedHumanBad: flagged.filter((row) => row.human === "bad").length,
-            table: [...new Set(rows.map((row) => row.status))].sort().map((status) => {
-              const matching = rows.filter((row) => row.status === status);
-              return {
-                status,
-                ok: matching.filter((row) => row.human === "ok").length,
-                bad: matching.filter((row) => row.human === "bad").length,
-                unrated: matching.filter((row) => row.human === null).length,
-              };
-            }),
-          },
   };
 }
 
@@ -963,13 +866,6 @@ export function summarizeSoak(
   const allFrames = started.flatMap(({ attempt }) => attempt.storyboard.frames);
   const cancelledFrames = allFrames.filter((frame) => frame.status === "FAILED" && frame.errorCode === "RUN_CANCELLED").length;
   const failedFrames = allFrames.filter((frame) => frame.status === "FAILED" && frame.errorCode !== "RUN_CANCELLED").length;
-  const jobs = started.flatMap(({ attempt }) => currentJobs(attempt));
-  const frameQa: Record<string, number> = {};
-  for (const job of jobs) {
-    const key = job.frameQaStatus ?? "(未写入)";
-    frameQa[key] = (frameQa[key] ?? 0) + 1;
-  }
-  const unverified = frameQa.UNVERIFIED ?? 0;
 
   const successRate = decided === 0 ? null : succeeded / decided;
   const worstRate = decided + open === 0 ? null : succeeded / (decided + open);
@@ -984,8 +880,6 @@ export function summarizeSoak(
           : "待定";
   const p90Verdict: SoakVerdict =
     p90Ms === null || open > 0 ? "待定" : p90Ms <= SOAK_GATES.p90Minutes * 60_000 ? "达标" : "不达标";
-  const unverifiedVerdict: SoakVerdict =
-    unverified > SOAK_GATES.unverified ? "不达标" : open > 0 || jobs.length === 0 ? "待定" : "达标";
   const firstPass = options.firstPass ?? null;
   const firstPassRate = firstPass && firstPass.total > 0 ? firstPass.firstPass / firstPass.total : null;
   const firstPassVerdict: SoakVerdict =
@@ -1050,7 +944,6 @@ export function summarizeSoak(
         return counts;
       }, {}),
     },
-    frameQa,
     byWave: group((record) => record.wave, SOAK_WAVES),
     gates: [
       {
@@ -1060,7 +953,6 @@ export function summarizeSoak(
         verdict: successVerdict,
       },
       { name: "端到端 P90", target: `≤ ${SOAK_GATES.p90Minutes} 分`, actual: `${minutes(p90Ms)}（${durations.length} 条成片）`, verdict: p90Verdict },
-      { name: "帧质检 UNVERIFIED", target: `= ${SOAK_GATES.unverified}`, actual: `${unverified} 段（共 ${jobs.length} 段）`, verdict: unverifiedVerdict },
       {
         name: "人工首过率",
         target: `≥ ${percent(SOAK_GATES.firstPassRate)}`,
@@ -1068,7 +960,6 @@ export function summarizeSoak(
         verdict: firstPassVerdict,
       },
     ],
-    frameQaEvidence: frameQaEvidence(started, firstPass),
     planComparison: {
       groups: SOAK_GROUPS.map((entry) => {
         const attempts = firsts.filter(({ record }) => record.group === entry.id).map(({ attempt }) => attempt);
@@ -1128,42 +1019,6 @@ function groupTable(title: string, groups: readonly SoakGroupStats[], label: (ke
       (entry) =>
         `| ${label(entry.key)} | ${entry.started} | ${entry.succeeded} | ${entry.failed} | ${entry.inFlight} | ${minutes(entry.p50Ms)} | ${minutes(entry.p90Ms)} |`,
     ),
-  ];
-}
-
-/** 「帧质检去留依据」一节：只陈述数字，不替人做决定。 */
-function frameQaSection(evidence: SoakFrameQaEvidence): string[] {
-  const { statuses, overhead, human } = evidence;
-  const others = Object.entries(statuses).filter(([status]) => !(FRAME_QA_STATUSES as readonly string[]).includes(status));
-  const overheadLine =
-    overhead.measured === 0
-      ? `认领到任务转成功的间隔：无法测量（${overhead.unmeasured} 段有结论，但轮询都没撞上质检进行中，认领时刻已被结论覆盖）`
-      : `认领到任务转成功的间隔：测到 ${overhead.measured} 段，P50 ${seconds(overhead.p50Ms)} / P90 ${seconds(overhead.p90Ms)}；另有 ${overhead.unmeasured} 段没测到`;
-  const humanSummary = human
-    ? `人工判不合格 ${human.humanBad} 条，其中质检拦过 ${human.humanBadFlagged} 条；质检拦过的 ${evidence.flaggedItems} 条里人工评了 ${human.flaggedRated} 条，判不合格 ${human.flaggedHumanBad} 条`
-    : "人工对照待人工评分";
-  return [
-    "## 帧质检去留依据",
-    "",
-    `- 结论分布（共 ${evidence.jobs} 段）：${FRAME_QA_STATUSES.map((status) => `${status} ${statuses[status] ?? 0}`).join("，")}${
-      others.length > 0 ? `；其它：${others.map(([status, count]) => `${status} ${count}`).join("，")}` : ""
-    }`,
-    `- 累计拦截 ${evidence.blockCount} 次（各段 frameQaDetail.blockCount 之和），涉及 ${evidence.flaggedItems} 条`,
-    "- 质检多花的时间：供应商出片到任务转成功的间隔无法测量——库里没有记供应商出片的时刻",
-    `- ${overheadLine}`,
-    ...(human
-      ? [
-          "",
-          "| 质检最后结论 | 人工合格 | 人工不合格 | 未评 |",
-          "| --- | --- | --- | --- |",
-          ...human.table.map((row) => `| ${row.status} | ${row.ok} | ${row.bad} | ${row.unrated} |`),
-          "",
-          "- 被拦后重抽的条，人工看到的是重抽后的成片，被拦下的那一版看不到；所以「质检拦对了没有」只能从最后结论是 WOULD_BLOCK 的条上直接对照",
-        ]
-      : ["- 与人工评分的对照：待人工评分（report 加 --qa-csv）"]),
-    "",
-    `数字小结：${evidence.jobs} 段里放行 ${statuses.PASSED ?? 0} 段、拦下 ${statuses.BLOCKED ?? 0} 段、影子判拦 ${statuses.WOULD_BLOCK ?? 0} 段、没检成 ${statuses.UNVERIFIED ?? 0} 段、跳过 ${statuses.SKIPPED ?? 0} 段，累计拦截 ${evidence.blockCount} 次；${humanSummary}。`,
-    "",
   ];
 }
 
@@ -1252,9 +1107,8 @@ function cardComparisonSection(comparison: SoakCardComparison, visionSince: stri
   ];
 }
 
-/** 报告正文（markdown）：放行线在最前，后面是读数、帧质检去留依据、出方案对照与失败明细。 */
+/** 报告正文（markdown）：放行线在最前，后面是读数、出方案对照与失败明细。 */
 export function renderSoakReport(runKey: string, summary: SoakSummary, generatedAt: Date): string {
-  const qa = Object.entries(summary.frameQa).sort(([left], [right]) => left.localeCompare(right));
   return [
     `# 真机压测 ${runKey}`,
     "",
@@ -1280,14 +1134,9 @@ export function renderSoakReport(runKey: string, summary: SoakSummary, generated
         ? "还没有帧"
         : Object.entries(summary.frames.byPlan).map(([plan, count]) => `${plan} ${count} 帧`).join("，")
     }`,
-    `- 帧质检：${qa.length === 0 ? "还没有段" : qa.map(([status, count]) => `${status} ${count}`).join("，")}`,
-    (summary.frameQa.SKIPPED ?? 0) + (summary.frameQa["(未写入)"] ?? 0) > 0
-      ? "- 注意：有段是 SKIPPED 或没写质检状态。没检不等于通过，先查原因（门禁没开、没给视频地址，还是轮 1 的 UNVERIFIED 改动没上线）。"
-      : "",
     "",
     ...groupTable("时段", summary.byWave, (key) => SOAK_WAVE_LABELS[key as SoakWave] ?? key),
     "",
-    ...frameQaSection(summary.frameQaEvidence),
     ...(summary.cardComparison
       ? cardComparisonSection(summary.cardComparison, summary.planComparison.visionSince)
       : planComparisonSection(summary.planComparison)),

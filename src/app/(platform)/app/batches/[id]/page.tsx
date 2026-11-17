@@ -13,7 +13,6 @@ import { BatchMonitor, type BatchMonitorData } from "@/components/batch/batch-mo
 import { Button } from "@/components/ui/button";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
-import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
 import { isShowcaseBatchAllowed, resolveShowcaseFor } from "@/lib/services/showcase-library";
 
 export const dynamic = "force-dynamic";
@@ -22,8 +21,6 @@ export default async function PlatformBatchPage({ params }: { params: Promise<{ 
   const session = await getServerSession(authOptions);
   const { id } = await params;
   if (!session?.user?.id) redirect(`/login?from=/app/batches/${id}`);
-  const routeState = await getCustomerRouteRehearsalState("batchDetail");
-  if (routeState === "empty") notFound();
   let batch: Awaited<ReturnType<typeof getBatchStatus>>;
   /// 样片批次（别人的批次）只读：不轮询、不出现重试 / 取消（1025 · B2.9）
   let readOnly = false;

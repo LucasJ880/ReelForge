@@ -101,6 +101,8 @@ const EXCLUDED_FILENAMES = new Set([
   "pnpm-lock.yaml",
   ".DS_Store",
   "next-env.d.ts",
+  /// git worktree 里 .git 是一个文件（指向主仓库），不是目录：不跳过的话在 worktree 里重建会多出一条 `.git`
+  ".git",
 ]);
 
 // .env / 任何 secret-looking file 一律跳过

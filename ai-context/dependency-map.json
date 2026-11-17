@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T01:08:17.762Z",
+  "generatedAt": "2026-11-17T01:37:18.843Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -4149,54 +4149,6 @@
       ]
     },
     {
-      "file": "qa/phase0/global-teardown.ts",
-      "imports": [
-        "node:fs/promises",
-        "node:path",
-        "@prisma/client",
-        "../../src/lib/db"
-      ],
-      "localImports": [
-        "../../src/lib/db"
-      ],
-      "externalImports": [
-        "node:fs/promises",
-        "node:path",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "qa/phase0/route-audit.spec.ts",
-      "imports": [
-        "node:fs/promises",
-        "node:path",
-        "@playwright/test",
-        "next-auth/jwt",
-        "../../src/lib/db"
-      ],
-      "localImports": [
-        "../../src/lib/db"
-      ],
-      "externalImports": [
-        "node:fs/promises",
-        "node:path",
-        "@playwright/test",
-        "next-auth/jwt"
-      ]
-    },
-    {
-      "file": "qa/playwright.phase0.config.ts",
-      "imports": [
-        "node:crypto",
-        "@playwright/test"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "node:crypto",
-        "@playwright/test"
-      ]
-    },
-    {
       "file": "scripts/build-codemap.ts",
       "imports": [
         "node:fs",
@@ -4839,7 +4791,6 @@
         "@/components/ui/button",
         "@/i18n/platform-copy",
         "@/i18n/server",
-        "@/lib/qa/customer-route-state-rehearsal",
         "@/lib/services/showcase-library"
       ],
       "localImports": [
@@ -4850,7 +4801,6 @@
         "@/components/ui/button",
         "@/i18n/platform-copy",
         "@/i18n/server",
-        "@/lib/qa/customer-route-state-rehearsal",
         "@/lib/services/showcase-library"
       ],
       "externalImports": [
@@ -4952,7 +4902,6 @@
         "@/i18n/server",
         "@/lib/exchange/state-vocab",
         "@/lib/exchange/readings-registry",
-        "@/lib/qa/customer-route-state-rehearsal",
         "@/lib/services/exchange-readings"
       ],
       "localImports": [
@@ -4968,7 +4917,6 @@
         "@/i18n/server",
         "@/lib/exchange/state-vocab",
         "@/lib/exchange/readings-registry",
-        "@/lib/qa/customer-route-state-rehearsal",
         "@/lib/services/exchange-readings"
       ],
       "externalImports": [
@@ -5066,7 +5014,6 @@
         "@/lib/services/exchange-readings",
         "@/types/video-generation",
         "@/i18n/server",
-        "@/lib/qa/customer-route-state-rehearsal",
         "@/lib/services/workspace-brand-package-service"
       ],
       "localImports": [
@@ -5084,7 +5031,6 @@
         "@/lib/services/exchange-readings",
         "@/types/video-generation",
         "@/i18n/server",
-        "@/lib/qa/customer-route-state-rehearsal",
         "@/lib/services/workspace-brand-package-service"
       ],
       "externalImports": [
@@ -5418,7 +5364,7 @@
         "@/i18n/server",
         "@/lib/exchange/readings-registry",
         "@/lib/exchange/state-vocab",
-        "@/lib/qa/customer-route-state-rehearsal"
+        "@/lib/services/workspace-brand-package-service"
       ],
       "localImports": [
         "@/lib/auth",
@@ -5445,7 +5391,7 @@
         "@/i18n/server",
         "@/lib/exchange/readings-registry",
         "@/lib/exchange/state-vocab",
-        "@/lib/qa/customer-route-state-rehearsal"
+        "@/lib/services/workspace-brand-package-service"
       ],
       "externalImports": [
         "next/link",
@@ -5599,7 +5545,6 @@
         "@/i18n/platform-copy",
         "@/i18n/server",
         "@/lib/video-generation/template-sample",
-        "@/lib/qa/customer-route-state-rehearsal",
         "@/lib/video-generation/commerce-template-catalog"
       ],
       "localImports": [
@@ -5615,7 +5560,6 @@
         "@/i18n/platform-copy",
         "@/i18n/server",
         "@/lib/video-generation/template-sample",
-        "@/lib/qa/customer-route-state-rehearsal",
         "@/lib/video-generation/commerce-template-catalog"
       ],
       "externalImports": [
@@ -6179,8 +6123,6 @@
         "@/lib/scheduler-heartbeat",
         "@/lib/services/vision-budget-context",
         "@/lib/services/video-service",
-        "@/lib/services/product-image-service",
-        "@/lib/services/content-post-image-job-service",
         "@/lib/services/sweep-service",
         "@/lib/video-generation/storyboard-service",
         "@/lib/services/ops-alert-service"
@@ -6190,8 +6132,6 @@
         "@/lib/scheduler-heartbeat",
         "@/lib/services/vision-budget-context",
         "@/lib/services/video-service",
-        "@/lib/services/product-image-service",
-        "@/lib/services/content-post-image-job-service",
         "@/lib/services/sweep-service",
         "@/lib/video-generation/storyboard-service",
         "@/lib/services/ops-alert-service"
@@ -9485,11 +9425,9 @@
     {
       "file": "src/i18n/dictionaries/en-US.ts",
       "imports": [
-        "../../../editorial-design-tokens.generated.json",
         "../types"
       ],
       "localImports": [
-        "../../../editorial-design-tokens.generated.json",
         "../types"
       ],
       "externalImports": []
@@ -9513,11 +9451,9 @@
     {
       "file": "src/i18n/dictionaries/zh-CN.ts",
       "imports": [
-        "../../../editorial-design-tokens.generated.json",
         "../types"
       ],
       "localImports": [
-        "../../../editorial-design-tokens.generated.json",
         "../types"
       ],
       "externalImports": []
@@ -9709,7 +9645,6 @@
       "imports": [
         "next-auth",
         "next/server",
-        "next/navigation",
         "@/lib/auth",
         "@/lib/contracts/customer-api",
         "@/lib/auth-role-policy",
@@ -9723,8 +9658,7 @@
       ],
       "externalImports": [
         "next-auth",
-        "next/server",
-        "next/navigation"
+        "next/server"
       ]
     },
     {
@@ -10472,21 +10406,6 @@
       ]
     },
     {
-      "file": "src/lib/qa/customer-route-state-rehearsal.ts",
-      "imports": [
-        "next/headers",
-        "@/lib/config/env",
-        "@/components/platform/customer-route-state"
-      ],
-      "localImports": [
-        "@/lib/config/env",
-        "@/components/platform/customer-route-state"
-      ],
-      "externalImports": [
-        "next/headers"
-      ]
-    },
-    {
       "file": "src/lib/scheduler-heartbeat.ts",
       "imports": [
         "node:crypto"
@@ -10660,74 +10579,6 @@
       "externalImports": []
     },
     {
-      "file": "src/lib/services/content-post-image-job-service.ts",
-      "imports": [
-        "node:crypto",
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/contracts/content-post-render",
-        "@/lib/providers/provider-billing-error",
-        "@/lib/providers/shuyu",
-        "@/lib/providers/shuyu-catalog",
-        "@/lib/providers/shuyu-image-provider",
-        "@/lib/services/ai-usage-log-service",
-        "@/lib/services/content-post-render-service",
-        "@/lib/services/content-post-render-state",
-        "@/lib/services/media-asset-service",
-        "@/lib/storage",
-        "@/lib/video-generation/providers/submission-error"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/contracts/content-post-render",
-        "@/lib/providers/provider-billing-error",
-        "@/lib/providers/shuyu",
-        "@/lib/providers/shuyu-catalog",
-        "@/lib/providers/shuyu-image-provider",
-        "@/lib/services/ai-usage-log-service",
-        "@/lib/services/content-post-render-service",
-        "@/lib/services/content-post-render-state",
-        "@/lib/services/media-asset-service",
-        "@/lib/storage",
-        "@/lib/video-generation/providers/submission-error"
-      ],
-      "externalImports": [
-        "node:crypto",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "src/lib/services/content-post-render-service.ts",
-      "imports": [
-        "@/lib/db",
-        "@/lib/providers/provider-billing-error",
-        "@/lib/ai",
-        "@/lib/ai/types"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/providers/provider-billing-error",
-        "@/lib/ai",
-        "@/lib/ai/types"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/lib/services/content-post-render-state.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/contracts/content-post-render",
-        "@/lib/services/content-post-render-service"
-      ],
-      "localImports": [
-        "@/lib/contracts/content-post-render",
-        "@/lib/services/content-post-render-service"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
       "file": "src/lib/services/create-retry-prefill-service.ts",
       "imports": [
         "@/lib/db"
@@ -10820,9 +10671,7 @@
         "@/lib/exchange/pulse",
         "@/lib/services/lead-service",
         "@/lib/services/quota-service",
-        "@/lib/experiments/run-key",
         "@/lib/services/single-video-cancel-service",
-        "@/lib/services/content-post-render-state",
         "@/lib/services/unified-library-service"
       ],
       "localImports": [
@@ -10833,9 +10682,7 @@
         "@/lib/exchange/pulse",
         "@/lib/services/lead-service",
         "@/lib/services/quota-service",
-        "@/lib/experiments/run-key",
         "@/lib/services/single-video-cancel-service",
-        "@/lib/services/content-post-render-state",
         "@/lib/services/unified-library-service"
       ],
       "externalImports": [
@@ -10876,16 +10723,6 @@
       "externalImports": [
         "@prisma/client",
         "zod"
-      ]
-    },
-    {
-      "file": "src/lib/services/logo-fidelity-gate.ts",
-      "imports": [
-        "sharp"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "sharp"
       ]
     },
     {
@@ -11089,33 +10926,6 @@
         "@/lib/contracts/performance-api"
       ],
       "externalImports": []
-    },
-    {
-      "file": "src/lib/services/product-image-service.ts",
-      "imports": [
-        "node:crypto",
-        "@prisma/client",
-        "@/lib/providers/shuyu-catalog",
-        "@/lib/providers/shuyu-image-provider",
-        "@/lib/db",
-        "@/lib/services/ai-usage-log-service",
-        "@/lib/services/media-asset-service",
-        "@/lib/storage",
-        "@/lib/video-generation/providers/submission-error"
-      ],
-      "localImports": [
-        "@/lib/providers/shuyu-catalog",
-        "@/lib/providers/shuyu-image-provider",
-        "@/lib/db",
-        "@/lib/services/ai-usage-log-service",
-        "@/lib/services/media-asset-service",
-        "@/lib/storage",
-        "@/lib/video-generation/providers/submission-error"
-      ],
-      "externalImports": [
-        "node:crypto",
-        "@prisma/client"
-      ]
     },
     {
       "file": "src/lib/services/product-profile-service.ts",
@@ -11404,7 +11214,6 @@
         "@/lib/config/showcase-allowlist",
         "@/lib/services/showcase-library",
         "@/lib/video-generation/bgm-attribution",
-        "@/lib/services/content-post-render-state",
         "@/lib/video-generation/creative-recipe",
         "@/lib/schemas/unified-input",
         "@/lib/media/ephemeral-url",
@@ -11421,7 +11230,6 @@
         "@/lib/config/showcase-allowlist",
         "@/lib/services/showcase-library",
         "@/lib/video-generation/bgm-attribution",
-        "@/lib/services/content-post-render-state",
         "@/lib/video-generation/creative-recipe",
         "@/lib/schemas/unified-input",
         "@/lib/media/ephemeral-url",
@@ -12705,23 +12513,6 @@
       ]
     },
     {
-      "file": "tests/a4-cancel-cas-and-copy.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/db",
-        "../src/lib/services/product-image-service"
-      ],
-      "localImports": [
-        "../src/lib/db",
-        "../src/lib/services/product-image-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/ad-law-terms.test.ts",
       "imports": [
         "node:assert/strict",
@@ -13839,22 +13630,6 @@
       ]
     },
     {
-      "file": "tests/c2-pricing-rules.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:path",
-        "node:test"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:path",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/c4-capability-probe.test.ts",
       "imports": [
         "node:assert/strict",
@@ -14163,81 +13938,6 @@
       ]
     },
     {
-      "file": "tests/content-post-image-job.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:test",
-        "next/server",
-        "../src/lib/video-generation/providers/submission-error",
-        "../src/lib/providers/shuyu-catalog",
-        "../src/lib/providers/shuyu",
-        "../src/lib/providers/provider-billing-error",
-        "../src/lib/services/content-post-render-service",
-        "../src/lib/services/content-post-image-job-service",
-        "../src/lib/services/content-post-render-state",
-        "../src/lib/services/exchange-readings",
-        "../src/lib/services/unified-library-service",
-        "../src/app/api/cron/poll-videos/route",
-        "./helpers/content-post-image-fake-db"
-      ],
-      "localImports": [
-        "../src/lib/video-generation/providers/submission-error",
-        "../src/lib/providers/shuyu-catalog",
-        "../src/lib/providers/shuyu",
-        "../src/lib/providers/provider-billing-error",
-        "../src/lib/services/content-post-render-service",
-        "../src/lib/services/content-post-image-job-service",
-        "../src/lib/services/content-post-render-state",
-        "../src/lib/services/exchange-readings",
-        "../src/lib/services/unified-library-service",
-        "../src/app/api/cron/poll-videos/route",
-        "./helpers/content-post-image-fake-db"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:test",
-        "next/server"
-      ]
-    },
-    {
-      "file": "tests/content-post-render-lock.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/db",
-        "../src/lib/services/content-post-render-service"
-      ],
-      "localImports": [
-        "../src/lib/db",
-        "../src/lib/services/content-post-render-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/content-post-render.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:path",
-        "node:test",
-        "../src/lib/services/content-post-render-service"
-      ],
-      "localImports": [
-        "../src/lib/services/content-post-render-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:path",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/content-report-contract.test.ts",
       "imports": [
         "node:assert/strict",
@@ -14348,6 +14048,23 @@
         "node:test",
         "node:fs",
         "node:path"
+      ]
+    },
+    {
+      "file": "tests/cron-poll-videos.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "../src/app/api/cron/poll-videos/route"
+      ],
+      "localImports": [
+        "../src/app/api/cron/poll-videos/route"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test"
       ]
     },
     {
@@ -14479,12 +14196,9 @@
         "node:assert/strict",
         "node:fs/promises",
         "node:path",
-        "node:test",
-        "@/lib/qa/customer-route-state-rehearsal"
+        "node:test"
       ],
-      "localImports": [
-        "@/lib/qa/customer-route-state-rehearsal"
-      ],
+      "localImports": [],
       "externalImports": [
         "node:assert/strict",
         "node:fs/promises",
@@ -14784,12 +14498,10 @@
       "imports": [
         "node:assert/strict",
         "node:test",
-        "../src/lib/experiments/run-key",
-        "../src/lib/services/exchange-readings"
+        "../src/lib/experiments/run-key"
       ],
       "localImports": [
-        "../src/lib/experiments/run-key",
-        "../src/lib/services/exchange-readings"
+        "../src/lib/experiments/run-key"
       ],
       "externalImports": [
         "node:assert/strict",
@@ -15356,23 +15068,6 @@
       ]
     },
     {
-      "file": "tests/logo-fidelity-gate.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "sharp",
-        "../src/lib/services/logo-fidelity-gate"
-      ],
-      "localImports": [
-        "../src/lib/services/logo-fidelity-gate"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test",
-        "sharp"
-      ]
-    },
-    {
       "file": "tests/logo-generation-mock.test.ts",
       "imports": [
         "node:assert/strict",
@@ -15757,6 +15452,23 @@
         "node:test",
         "node:fs",
         "@\\/lib\\/services\\/onboarding-service"
+      ]
+    },
+    {
+      "file": "tests/openai-image-and-media-signatures.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/upload/media-file-validation",
+        "../src/lib/providers/openai-image"
+      ],
+      "localImports": [
+        "../src/lib/upload/media-file-validation",
+        "../src/lib/providers/openai-image"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
       ]
     },
     {
@@ -16214,62 +15926,6 @@
       ]
     },
     {
-      "file": "tests/product-image-recovery.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "node:fs/promises",
-        "@prisma/client",
-        "../src/app/api/cron/poll-videos/route",
-        "../src/lib/db",
-        "../src/lib/services/product-image-service"
-      ],
-      "localImports": [
-        "../src/app/api/cron/poll-videos/route",
-        "../src/lib/db",
-        "../src/lib/services/product-image-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test",
-        "node:fs/promises",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "tests/product-image-studio.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/product-image-service",
-        "../src/lib/upload/media-file-validation",
-        "../src/lib/providers/openai-image"
-      ],
-      "localImports": [
-        "../src/lib/services/product-image-service",
-        "../src/lib/upload/media-file-validation",
-        "../src/lib/providers/openai-image"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/product-image-ui-contract.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/product-own-logo-prompts.test.ts",
       "imports": [
         "node:assert/strict",
@@ -16391,16 +16047,18 @@
       "file": "tests/provider-billing-error.test.ts",
       "imports": [
         "node:assert/strict",
-        "node:fs/promises",
         "node:test",
-        "../src/lib/providers/provider-billing-error"
+        "../src/lib/providers/provider-billing-error",
+        "../src/lib/providers/shuyu",
+        "../src/lib/video-generation/providers/submission-error"
       ],
       "localImports": [
-        "../src/lib/providers/provider-billing-error"
+        "../src/lib/providers/provider-billing-error",
+        "../src/lib/providers/shuyu",
+        "../src/lib/video-generation/providers/submission-error"
       ],
       "externalImports": [
         "node:assert/strict",
-        "node:fs/promises",
         "node:test"
       ]
     },
@@ -17358,6 +17016,21 @@
       ]
     },
     {
+      "file": "tests/shuyu-image-plan-aspect.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/providers/shuyu-catalog"
+      ],
+      "localImports": [
+        "../src/lib/providers/shuyu-catalog"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
       "file": "tests/shuyu-image-plan-resolution.test.ts",
       "imports": [
         "node:assert/strict",
@@ -17366,6 +17039,21 @@
       ],
       "localImports": [
         "../src/lib/providers/shuyu-catalog"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/shuyu-image-provider.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/providers/shuyu-image-provider"
+      ],
+      "localImports": [
+        "../src/lib/providers/shuyu-image-provider"
       ],
       "externalImports": [
         "node:assert/strict",
@@ -17445,27 +17133,6 @@
         "node:assert/strict",
         "node:fs",
         "node:test"
-      ]
-    },
-    {
-      "file": "tests/shuyu-product-image-service.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "@prisma/client",
-        "../src/lib/providers/shuyu-image-provider",
-        "../src/lib/db",
-        "../src/lib/services/product-image-service"
-      ],
-      "localImports": [
-        "../src/lib/providers/shuyu-image-provider",
-        "../src/lib/db",
-        "../src/lib/services/product-image-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test",
-        "@prisma/client"
       ]
     },
     {
@@ -18774,14 +18441,16 @@
         "../src/app/api/upload/blob/ticket/route",
         "../src/lib/services/quota-service",
         "../src/lib/services/media-asset-service",
-        "../src/lib/upload/direct-upload-ticket"
+        "../src/lib/upload/direct-upload-ticket",
+        "../src/lib/contracts/upload-blob"
       ],
       "localImports": [
         "../src/app/api/upload/blob/complete/route",
         "../src/app/api/upload/blob/ticket/route",
         "../src/lib/services/quota-service",
         "../src/lib/services/media-asset-service",
-        "../src/lib/upload/direct-upload-ticket"
+        "../src/lib/upload/direct-upload-ticket",
+        "../src/lib/contracts/upload-blob"
       ],
       "externalImports": [
         "node:assert/strict",
@@ -18795,14 +18464,10 @@
       "imports": [
         "node:assert/strict",
         "node:test",
-        "../src/app/api/upload/blob/route",
-        "../src/lib/db",
-        "../src/lib/services/product-image-service"
+        "../src/app/api/upload/blob/route"
       ],
       "localImports": [
-        "../src/app/api/upload/blob/route",
-        "../src/lib/db",
-        "../src/lib/services/product-image-service"
+        "../src/app/api/upload/blob/route"
       ],
       "externalImports": [
         "node:assert/strict",

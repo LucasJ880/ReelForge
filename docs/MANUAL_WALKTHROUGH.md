@@ -1,5 +1,10 @@
 # Aivora — 双端 user flow 自检清单（5 分钟跑完）
 
+> **已过期（2026-11-16 标注）**：这份清单写的是早期的「个人 / 商家 / 内部」三端（`/persona`、`/personal`、`/business`、
+> `/internal/*`），这些页面都已经删除，下面的步骤现在走不通，只当历史记录留着。
+> 现在的客户路径是 `/register` → `/app/welcome` → `/app/create`（故事板 → 出片）→ `/app/library`，另有 `/app/batches`、
+> `/app/products`、`/app/brands`、`/app/templates`、`/app/leads`；线上回归看发布后冒烟（`npm run test:prod-smoke`，`e2e/`）。
+
 > 任何一次大改之后，按这份清单跑一遍。两边都过 = 上线就绪。
 > 全部都是 mock 模式，不烧任何真钱（前提：已设 `LLM_FORCE_MOCK / VIDEO_ENGINE_MOCK / IMAGE_ENGINE_MOCK = true`）。
 

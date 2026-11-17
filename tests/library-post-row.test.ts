@@ -76,21 +76,3 @@ test("全局 404 不再引用旧代运营入口（交付单列表 /orders）", (
   assert.doesNotMatch(source, /href="\/orders"/);
   assert.match(source, /href="\/"/, "回 / 由角色路由决定去处");
 });
-
-test("铁律 #7：产品图的取消语义为清幂等键、保留素材（接口随工作台 2026-11-16 删除，服务函数还在）", () => {
-  const service = readFileSync(
-    path.join(process.cwd(), "src/lib/services/product-image-service.ts"),
-    "utf8",
-  );
-  const start = service.indexOf("export async function cancelProductImageJob");
-  const end = service.indexOf("\nexport ", start + 1);
-  const block = service.slice(start, end === -1 ? undefined : end);
-  assert.ok(block.length > 100, "cancelProductImageJob 必须存在");
-  /// 清幂等键：改写而不是复用，商家可立刻用同样输入重新发起。
-  assert.match(block, /idempotencyKey: `cancelled:/);
-  /// 保留素材：只把未终态 task 置 CANCELLED，绝不动 SUCCEEDED 的产出。
-  assert.match(block, /in: \[ProductImageStatus\.QUEUED, ProductImageStatus\.PROCESSING\]/);
-  assert.doesNotMatch(block, /delete|Delete/);
-  /// owner 校验进查询条件。
-  assert.match(block, /id: args\.jobId, userId: args\.userId/);
-});

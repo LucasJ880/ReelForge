@@ -183,6 +183,13 @@ const ENV = {
   ELEVENLABS_API_KEY: "el-test",
 } as const;
 
+/// 内容审核真开着的环境（开关 + provider 都要对）：只有这时每小时的探测才去打审核端点。
+const ENV_REVIEW_ON = {
+  ...ENV,
+  CONTENT_REVIEW_ENABLED: "true",
+  CONTENT_REVIEW_PROVIDER: "openai_moderation",
+} as const;
+
 type Call = { url: string; method: string; body: Record<string, unknown> | null };
 
 function json(status: number, body: unknown): Response {
@@ -232,7 +239,7 @@ function cycle(store: ReturnType<typeof createMemoryCapabilityStore>, now: Date,
   };
 }
 
-test("一整轮：OpenAI 429 额度 → 写作 / 看图暂停；其余正常；邮件未开通；已删线路（配音 / 图库 / 抓取 / 抠图）不探也不落库", async () => {
+test("一整轮：OpenAI 429 额度 → 写作 / 看图暂停；其余正常；邮件未开通；审核关着 → 未开通且不发请求；已删线路（配音 / 图库 / 抓取 / 抠图）不探也不落库", async () => {
   const store = createMemoryCapabilityStore();
   const { providers, run } = cycle(store, NOW);
   const report = await run;
@@ -240,9 +247,14 @@ test("一整轮：OpenAI 429 额度 → 写作 / 看图暂停；其余正常；�
 
   assert.deepEqual([byKey.get("text")?.status, byKey.get("text")?.reason], ["unavailable", "quota"]);
   assert.deepEqual([byKey.get("vision")?.status, byKey.get("vision")?.reason], ["unavailable", "quota"]);
-  for (const key of ["moderation", "image", "video"] as const) {
+  for (const key of ["image", "video"] as const) {
     assert.equal(byKey.get(key)?.status, "available", key);
   }
+  /// 内容审核默认关着：这项按「未开通」记（来源是配置），不去打审核端点
+  assert.deepEqual(
+    [byKey.get("moderation")?.status, byKey.get("moderation")?.reason, byKey.get("moderation")?.source],
+    ["not_configured", "not_configured", "config"],
+  );
   assert.deepEqual(report.items.map((item) => item.key).sort(), [...CAPABILITY_KEYS].sort(), "报告只有现存的能力键");
   assert.equal(byKey.get("email")?.status, "not_configured");
   assert.equal(byKey.get("graphics")?.source, "derived", "配图没有便宜的探测：由账户推断");
@@ -253,10 +265,10 @@ test("一整轮：OpenAI 429 额度 → 写作 / 看图暂停；其余正常；�
   assert.equal(chat?.body?.model, "gpt-5.6-terra");
   // 看图与文本同一个模型：沿用文本结论，不重复花钱
   assert.equal(providers.calls.filter((call) => call.url.endsWith("/chat/completions")).length, 1);
-  // 整轮只打两个地址：写作探测与审核探测（Shuyu 走注入的结果）
+  // 整轮只打一个地址：写作探测（Shuyu 走注入的结果；审核关着，不探）
   assert.deepEqual(
     providers.calls.map((call) => new URL(call.url).pathname).sort(),
-    ["/v1/chat/completions", "/v1/moderations"],
+    ["/v1/chat/completions"],
   );
 
   // 落库：每个能力一行
@@ -269,14 +281,59 @@ test("一整轮：OpenAI 429 额度 → 写作 / 看图暂停；其余正常；�
   assert.equal(view.paused, true);
 });
 
-test("下一轮（1 小时后）：持续失败保留最早时刻；审核每轮都探一次（免费端点，与内容审核开没开无关）", async () => {
+test("下一轮（1 小时后）：持续失败保留最早时刻；审核关着时哪一轮都不打审核端点", async () => {
   const store = createMemoryCapabilityStore();
-  await cycle(store, NOW).run;
+  const first = cycle(store, NOW);
+  await first.run;
 
   const later = cycle(store, new Date(NOW.getTime() + HOUR));
   await later.run;
   assert.equal(store.records.get("text")?.failingSince, NOW.toISOString(), "持续失败保留最早时刻");
-  assert.equal(later.providers.calls.filter((call) => call.url.endsWith("/moderations")).length, 1);
+  for (const round of [first, later]) {
+    assert.equal(round.providers.calls.filter((call) => call.url.endsWith("/moderations")).length, 0);
+  }
+  assert.equal(store.records.get("moderation")?.status, "not_configured");
+});
+
+test("审核探测只在内容审核真开着时才发：开关与 provider 缺一个都不发请求，直接记未开通", async () => {
+  const run = async (env: Record<string, string>) => {
+    const store = createMemoryCapabilityStore();
+    const providers = fakeProviders({ chat: () => json(200, { choices: [{ message: { content: "" } }] }) });
+    const report = await runCapabilityProbeCycle({
+      env,
+      fetchImpl: providers.fetchImpl,
+      now: () => NOW,
+      store,
+      shuyu: SHUYU_RESULT,
+      getShuyuBalance: async () => ({ available_points: 9_000 }),
+      models: { text: ["gpt-5.6-terra"], vision: "gpt-5.6-terra" },
+    });
+    return {
+      moderationCalls: providers.calls.filter((call) => call.url.endsWith("/moderations")).length,
+      item: report.items.find((item) => item.key === "moderation"),
+    };
+  };
+
+  // 关着的几种写法：没配、明确 false、开了但 provider 是 noop（等同没开）、只配了 provider 没开开关
+  for (const off of [
+    {},
+    { CONTENT_REVIEW_ENABLED: "false", CONTENT_REVIEW_PROVIDER: "openai_moderation" },
+    { CONTENT_REVIEW_ENABLED: "true" },
+    { CONTENT_REVIEW_ENABLED: "true", CONTENT_REVIEW_PROVIDER: "noop" },
+    { CONTENT_REVIEW_PROVIDER: "openai_moderation" },
+  ] as Array<Record<string, string>>) {
+    const result = await run({ ...ENV, ...off });
+    assert.equal(result.moderationCalls, 0, `审核关着不发请求：${JSON.stringify(off)}`);
+    assert.deepEqual([result.item?.status, result.item?.source], ["not_configured", "config"], JSON.stringify(off));
+  }
+
+  // 真开着：每轮探一次（免费端点），结论照常落库
+  const on = await run(ENV_REVIEW_ON);
+  assert.equal(on.moderationCalls, 1);
+  assert.deepEqual([on.item?.status, on.item?.source], ["available", "probe"]);
+  assert.equal(capabilityConfiguration(ENV).moderation, false);
+  assert.equal(capabilityConfiguration(ENV_REVIEW_ON).moderation, true);
+  assert.equal(capabilityConfiguration({ CONTENT_REVIEW_ENABLED: "true", CONTENT_REVIEW_PROVIDER: "openai_moderation" }).moderation, false, "没有 OpenAI 密钥也算未开通");
 });
 
 test("账户恢复：文本 200 → 写作恢复、failingSince 清空；配图「因账户而停」的旧结论翻回正常", async () => {
@@ -340,7 +397,7 @@ test("单项探测挂了只影响它自己：审核端点网络错误 → 审核
     },
   });
   const report = await runCapabilityProbeCycle({
-    env: ENV,
+    env: ENV_REVIEW_ON,
     fetchImpl: providers.fetchImpl,
     now: () => NOW,
     store,

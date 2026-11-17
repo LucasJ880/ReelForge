@@ -77,7 +77,7 @@ function unavailableError(args: {
  * ⚠️ 部署在 Vercel 上时，这条中转路径只收得下 4.5MB 以内的文件：函数请求体超过上限，
  * 平台直接回 413 FUNCTION_PAYLOAD_TOO_LARGE（纯文本），本 handler 根本不会被调用
  * （10-30 CEO 演示翻车）。Vercel Blob 存储下，前端一律走 ticket → 直传 → complete
- * （src/lib/upload/blob-xhr.ts）；这里只给旧客户端与「存储不支持直传」的情形兜底。
+ * （src/lib/upload/blob-xhr.ts），不会再调这里；这条只给旧客户端兜底，也是发布后冒烟「5MB 必 413」的对照对象。
  */
 export function createUploadBlobPostHandler(
   overrides: Partial<UploadBlobDependencies> = {},

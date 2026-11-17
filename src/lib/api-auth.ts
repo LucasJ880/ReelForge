@@ -1,9 +1,8 @@
-import { getServerSession, type Session } from "next-auth";
+import type { Session } from "next-auth";
 import { NextResponse } from "next/server";
-import { redirect } from "next/navigation";
-import { authOptions, getActiveServerSession } from "@/lib/auth";
+import { getActiveServerSession } from "@/lib/auth";
 import { customerApiError } from "@/lib/contracts/customer-api";
-import { decideInternalAccess, isInternalRole } from "@/lib/auth-role-policy";
+import { isInternalRole } from "@/lib/auth-role-policy";
 
 function authRequiredResponse() {
   return NextResponse.json(
@@ -89,78 +88,6 @@ export async function requireOperator(): Promise<AuthGuardResult> {
   return requireRole(["SUPER_ADMIN", "OPERATOR"]);
 }
 
-export async function requireReviewer(): Promise<AuthGuardResult> {
-  return requireRole(["SUPER_ADMIN", "OPERATOR", "REVIEWER"]);
-}
-
-/**
- * Server Component / Page 层的 role guard。
- * - 未登录 → /login
- * - 登录但角色不在允许列表 → /orders（用户可见的安全 fallback）
- * 直接 throw 'NEXT_REDIRECT'，调用方拿到 session 即可继续。
- */
-export async function requirePageRole(allowed: readonly Role[]): Promise<Session> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    redirect("/login");
-  }
-  if (!allowed.includes(session.user.role)) {
-    redirect("/orders");
-  }
-  return session;
-}
-
-/** Wizard 全部页面用：仅 SUPER_ADMIN / OPERATOR
- *
- * @deprecated Phase 5 — Wizard 已下线，保留 helper 仅为兼容旧 import；
- * 任何调用都会 redirect 到 /business/create-ad-video。
- */
-export function requireWizardPage() {
-  return requirePageRole(["SUPER_ADMIN", "OPERATOR"]);
-}
-
-/**
- * Server Component / Page 层的 persona guard。
- *
- * - 未登录          → /login?from=<intended>
- * - 登录但 persona 不匹配（且非内部 staff） → 跳到他自己 persona 的根页面，
- *   避免「BUSINESS 用户跑去 /personal 被踢回 /login，看到登录框，懵」。
- * - 内部 staff     → 直接放行
- *
- * 使用方式：在 layout.tsx 顶部 await，函数永不 return 给错误用户。
- */
-export async function requirePersonaPage(
-  allowed: readonly ("BUSINESS" | "PERSONAL")[],
-  intendedPath: string,
-): Promise<Session> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    redirect(`/login?from=${encodeURIComponent(intendedPath)}`);
-  }
-  const userType = session.user.userType;
-
-  if (userType === "OPERATOR" || userType === "SUPER_ADMIN") {
-    return session;
-  }
-
-  if (
-    (userType === "BUSINESS" || userType === "PERSONAL") &&
-    allowed.includes(userType)
-  ) {
-    return session;
-  }
-
-  /// 已登录但 persona 不在允许列表 → 跳他自己的家
-  if (userType === "BUSINESS") {
-    redirect("/business");
-  }
-  if (userType === "PERSONAL") {
-    redirect("/personal");
-  }
-  /// 没有身份类型（罕见的存量账号）→ 工作台（/persona 选择页 2026-10-28 已删除）
-  redirect("/app");
-}
-
 /**
  * Phase 5 — Persona-aware guards.
  *
@@ -207,35 +134,6 @@ export async function requirePersonalUser(): Promise<AuthGuardResult> {
 }
 
 /**
- * 内部 only 入口（与 requireOperator 等价；保留命名做意图区分）。
- */
-export async function requireInternal(): Promise<AuthGuardResult> {
-  return requireOperator();
-}
-
-/**
- * Server Component / Page 层的 internal guard。
- * - 未登录 → /login?from=…
- * - PERSONAL / BUSINESS 已登录但无 internal 权限 → 各自 persona 首页（与 requirePersonaPage 对称）
- * - 内部 staff → 放行
- */
-export async function requireInternalPage(
-  intendedPath = "/internal",
-): Promise<Session> {
-  const session = await getServerSession(authOptions);
-  const decision = decideInternalAccess({
-    authenticated: Boolean(session?.user),
-    role: session?.user.role,
-    userType: session?.user.userType,
-  });
-  if (decision === "login") redirect(`/login?from=${encodeURIComponent(intendedPath)}`);
-  if (decision === "customer-personal") redirect("/personal");
-  if (decision === "customer-business") redirect("/business");
-  if (decision === "deny") redirect("/app");
-  return session!;
-}
-
-/**
  * 共享 video generation 端点专用（plan / dispatch / classify-asset / blob upload）。
  *
  * 任何已选 persona 的客户用户（BUSINESS 或 PERSONAL）都可调用；内部 staff bypass。
@@ -268,18 +166,14 @@ export const __test__ = {
     role: Role | null | undefined;
     userType: UserPersona | null | undefined;
     hasWorkspace?: boolean;
-    expecting: "operator" | "reviewer" | "platform" | "generation" | "internal";
+    expecting: "operator" | "platform" | "generation";
   }): "allow" | "deny-not-logged-in" | "deny-forbidden" {
     if (!args.role) return "deny-not-logged-in";
     const internalRole = isInternalRole(args.role);
-    const isReviewerRole = args.role === "REVIEWER" || internalRole;
 
     switch (args.expecting) {
       case "operator":
-      case "internal":
         return internalRole ? "allow" : "deny-forbidden";
-      case "reviewer":
-        return isReviewerRole ? "allow" : "deny-forbidden";
       case "platform":
       case "generation":
         if (args.role === "CUSTOMER" && args.hasWorkspace !== true) return "deny-forbidden";

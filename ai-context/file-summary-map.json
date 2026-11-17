@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T01:08:17.757Z",
+  "generatedAt": "2026-11-17T01:37:18.839Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -41,8 +41,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 121,
-      "sizeBytes": 10509,
+      "lineCount": 120,
+      "sizeBytes": 10541,
       "notes": "Documentation; area=media-processing"
     },
     {
@@ -9457,7 +9457,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 0,
-      "sizeBytes": 13934,
+      "sizeBytes": 13084,
       "notes": "area=config"
     },
     {
@@ -9468,7 +9468,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 0,
-      "sizeBytes": 2980,
+      "sizeBytes": 2579,
       "notes": "area=config"
     },
     {
@@ -9806,7 +9806,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 126,
-      "sizeBytes": 12278,
+      "sizeBytes": 12285,
       "notes": "Documentation"
     },
     {
@@ -9937,8 +9937,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 270,
-      "sizeBytes": 9592,
+      "lineCount": 273,
+      "sizeBytes": 9739,
       "notes": "Documentation"
     },
     {
@@ -10146,8 +10146,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 165,
-      "sizeBytes": 6871,
+      "lineCount": 170,
+      "sizeBytes": 7427,
       "notes": "Documentation"
     },
     {
@@ -10705,6 +10705,17 @@
       "notes": "Documentation"
     },
     {
+      "path": "docs/roadmap/2026-11-17-handoff.md",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 171,
+      "sizeBytes": 14686,
+      "notes": "Documentation"
+    },
+    {
       "path": "docs/s5-ceo-video-confirmation-table.md",
       "type": "doc",
       "area": "shared",
@@ -11086,8 +11097,8 @@
         "runtimeTracingExcludes",
         "default"
       ],
-      "lineCount": 163,
-      "sizeBytes": 9066,
+      "lineCount": 160,
+      "sizeBytes": 9046,
       "notes": "Build / runtime config; area=media-processing"
     },
     {
@@ -12055,8 +12066,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 71,
-      "sizeBytes": 3872,
+      "lineCount": 72,
+      "sizeBytes": 3972,
       "notes": "Documentation"
     },
     {
@@ -13308,63 +13319,6 @@
       "notes": "Documentation"
     },
     {
-      "path": "qa/phase0/global-teardown.ts",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [
-        "globalTeardown",
-        "default"
-      ],
-      "imports": [
-        "node:fs/promises",
-        "node:path",
-        "@prisma/client",
-        "../../src/lib/db"
-      ],
-      "importantSymbols": [
-        "globalTeardown",
-        "default"
-      ],
-      "lineCount": 27,
-      "sizeBytes": 937,
-      "notes": ""
-    },
-    {
-      "path": "qa/phase0/route-audit.spec.ts",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [
-        "node:fs/promises",
-        "node:path",
-        "@playwright/test",
-        "next-auth/jwt",
-        "../../src/lib/db"
-      ],
-      "importantSymbols": [],
-      "lineCount": 310,
-      "sizeBytes": 13004,
-      "notes": ""
-    },
-    {
-      "path": "qa/playwright.phase0.config.ts",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [
-        "default"
-      ],
-      "imports": [
-        "node:crypto",
-        "@playwright/test"
-      ],
-      "importantSymbols": [
-        "default"
-      ],
-      "lineCount": 60,
-      "sizeBytes": 1756,
-      "notes": ""
-    },
-    {
       "path": "qa/RELEASE_GATE.md",
       "type": "doc",
       "area": "unknown",
@@ -13393,8 +13347,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 156,
-      "sizeBytes": 6624,
+      "lineCount": 78,
+      "sizeBytes": 4131,
       "notes": "Documentation"
     },
     {
@@ -13407,8 +13361,8 @@
         "node:path"
       ],
       "importantSymbols": [],
-      "lineCount": 886,
-      "sizeBytes": 33343,
+      "lineCount": 888,
+      "sizeBytes": 33495,
       "notes": "Maintenance / one-off script (run via tsx); NextAuth session check; area=media-processing"
     },
     {
@@ -13805,8 +13759,8 @@
         "SoakAngleId",
         "SOAK_GROUPS"
       ],
-      "lineCount": 1301,
-      "sizeBytes": 65905,
+      "lineCount": 1150,
+      "sizeBytes": 57196,
       "notes": "Maintenance / one-off script (run via tsx); area=scripts"
     },
     {
@@ -14016,8 +13970,8 @@
         "@/lib/ai"
       ],
       "importantSymbols": [],
-      "lineCount": 1273,
-      "sizeBytes": 68595,
+      "lineCount": 1244,
+      "sizeBytes": 66811,
       "notes": "Maintenance / one-off script (run via tsx); NextAuth session check; area=media-processing"
     },
     {
@@ -14352,7 +14306,6 @@
         "@/components/ui/button",
         "@/i18n/platform-copy",
         "@/i18n/server",
-        "@/lib/qa/customer-route-state-rehearsal",
         "@/lib/services/showcase-library"
       ],
       "importantSymbols": [
@@ -14360,8 +14313,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 69,
-      "sizeBytes": 2953,
+      "lineCount": 66,
+      "sizeBytes": 2747,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -14496,7 +14449,6 @@
         "@/i18n/server",
         "@/lib/exchange/state-vocab",
         "@/lib/exchange/readings-registry",
-        "@/lib/qa/customer-route-state-rehearsal",
         "@/lib/services/exchange-readings"
       ],
       "importantSymbols": [
@@ -14504,8 +14456,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 139,
-      "sizeBytes": 8059,
+      "lineCount": 136,
+      "sizeBytes": 7765,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -14639,15 +14591,14 @@
         "@/lib/services/exchange-readings",
         "@/types/video-generation",
         "@/i18n/server",
-        "@/lib/qa/customer-route-state-rehearsal",
         "@/lib/services/workspace-brand-package-service"
       ],
       "importantSymbols": [
         "PlatformCreatePage",
         "default"
       ],
-      "lineCount": 236,
-      "sizeBytes": 10954,
+      "lineCount": 227,
+      "sizeBytes": 10277,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -15015,15 +14966,15 @@
         "@/i18n/server",
         "@/lib/exchange/readings-registry",
         "@/lib/exchange/state-vocab",
-        "@/lib/qa/customer-route-state-rehearsal"
+        "@/lib/services/workspace-brand-package-service"
       ],
       "importantSymbols": [
         "PlatformLibraryPage",
         "dynamic",
         "default"
       ],
-      "lineCount": 452,
-      "sizeBytes": 27301,
+      "lineCount": 448,
+      "sizeBytes": 26522,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -15229,7 +15180,6 @@
         "@/i18n/platform-copy",
         "@/i18n/server",
         "@/lib/video-generation/template-sample",
-        "@/lib/qa/customer-route-state-rehearsal",
         "@/lib/video-generation/commerce-template-catalog"
       ],
       "importantSymbols": [
@@ -15237,8 +15187,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 134,
-      "sizeBytes": 5151,
+      "lineCount": 129,
+      "sizeBytes": 4868,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -15877,8 +15827,6 @@
         "@/lib/scheduler-heartbeat",
         "@/lib/services/vision-budget-context",
         "@/lib/services/video-service",
-        "@/lib/services/product-image-service",
-        "@/lib/services/content-post-image-job-service",
         "@/lib/services/sweep-service",
         "@/lib/video-generation/storyboard-service",
         "@/lib/services/ops-alert-service"
@@ -15890,8 +15838,8 @@
         "maxDuration",
         "createPollVideosHandler"
       ],
-      "lineCount": 164,
-      "sizeBytes": 7433,
+      "lineCount": 135,
+      "sizeBytes": 5487,
       "notes": "Next.js API route handler"
     },
     {
@@ -16828,7 +16776,7 @@
         "createUploadBlobPostHandler"
       ],
       "lineCount": 210,
-      "sizeBytes": 7477,
+      "sizeBytes": 7515,
       "notes": "Next.js API route handler; area=blob-storage"
     },
     {
@@ -16854,8 +16802,8 @@
         "POST",
         "createUploadTicketPostHandler"
       ],
-      "lineCount": 162,
-      "sizeBytes": 5485,
+      "lineCount": 157,
+      "sizeBytes": 5085,
       "notes": "Next.js API route handler; area=blob-storage"
     },
     {
@@ -17538,8 +17486,8 @@
       "importantSymbols": [
         "BatchCreateWizard"
       ],
-      "lineCount": 1178,
-      "sizeBytes": 53217,
+      "lineCount": 1165,
+      "sizeBytes": 52860,
       "notes": "React component; client component"
     },
     {
@@ -18265,7 +18213,7 @@
         "SurfaceRouteLoading"
       ],
       "lineCount": 46,
-      "sizeBytes": 1593,
+      "sizeBytes": 1580,
       "notes": "React component"
     },
     {
@@ -20004,15 +19952,14 @@
         "default"
       ],
       "imports": [
-        "../../../editorial-design-tokens.generated.json",
         "../types"
       ],
       "importantSymbols": [
         "enUS",
         "default"
       ],
-      "lineCount": 902,
-      "sizeBytes": 33956,
+      "lineCount": 195,
+      "sizeBytes": 5849,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -20046,15 +19993,14 @@
         "default"
       ],
       "imports": [
-        "../../../editorial-design-tokens.generated.json",
         "../types"
       ],
       "importantSymbols": [
         "zhCN",
         "default"
       ],
-      "lineCount": 873,
-      "sizeBytes": 33971,
+      "lineCount": 190,
+      "sizeBytes": 5860,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -20247,8 +20193,8 @@
         "PlatformCopy",
         "getPlatformCopy"
       ],
-      "lineCount": 988,
-      "sizeBytes": 64221,
+      "lineCount": 986,
+      "sizeBytes": 64141,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -20267,7 +20213,7 @@
         "getPublicPageCopy"
       ],
       "lineCount": 251,
-      "sizeBytes": 15365,
+      "sizeBytes": 14964,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -20331,8 +20277,8 @@
         "DotPath",
         "TranslationKey"
       ],
-      "lineCount": 767,
-      "sizeBytes": 18344,
+      "lineCount": 213,
+      "sizeBytes": 4629,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -20470,22 +20416,15 @@
         "requireRole",
         "requireSuperAdmin",
         "requireOperator",
-        "requireReviewer",
-        "requirePageRole",
-        "requireWizardPage",
-        "requirePersonaPage",
         "requireUserOfPersona",
         "requireBusinessUser",
         "requirePersonalUser",
-        "requireInternal",
-        "requireInternalPage",
         "requireUserOfTypeForGeneration",
         "__test__"
       ],
       "imports": [
         "next-auth",
         "next/server",
-        "next/navigation",
         "@/lib/auth",
         "@/lib/contracts/customer-api",
         "@/lib/auth-role-policy",
@@ -20498,11 +20437,11 @@
         "requireRole",
         "requireSuperAdmin",
         "requireOperator",
-        "requireReviewer",
-        "requirePageRole"
+        "requireUserOfPersona",
+        "requireBusinessUser"
       ],
-      "lineCount": 290,
-      "sizeBytes": 9429,
+      "lineCount": 184,
+      "sizeBytes": 5820,
       "notes": "Utility / helper module; NextAuth session check; area=auth"
     },
     {
@@ -20639,21 +20578,17 @@
         "AccountRole",
         "AccountUserType",
         "isInternalRole",
-        "normalizeUserTypeForRole",
-        "InternalAccessDecision",
-        "decideInternalAccess"
+        "normalizeUserTypeForRole"
       ],
       "imports": [],
       "importantSymbols": [
         "AccountRole",
         "AccountUserType",
-        "InternalAccessDecision",
         "isInternalRole",
-        "normalizeUserTypeForRole",
-        "decideInternalAccess"
+        "normalizeUserTypeForRole"
       ],
-      "lineCount": 47,
-      "sizeBytes": 1747,
+      "lineCount": 28,
+      "sizeBytes": 1183,
       "notes": "Utility / helper module; area=auth"
     },
     {
@@ -20874,8 +20809,8 @@
         "CapabilityReason",
         "CapabilitySource"
       ],
-      "lineCount": 662,
-      "sizeBytes": 28121,
+      "lineCount": 635,
+      "sizeBytes": 27116,
       "notes": "Utility / helper module"
     },
     {
@@ -21345,29 +21280,6 @@
       "notes": "Utility / helper module"
     },
     {
-      "path": "src/lib/contracts/content-post-render.ts",
-      "type": "util",
-      "area": "media-processing",
-      "exports": [
-        "ContentPostSlideState",
-        "ContentPostRenderState",
-        "ContentPostSlideView",
-        "ContentPostRenderView",
-        "isContentPostRenderActive"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "ContentPostSlideState",
-        "ContentPostRenderState",
-        "ContentPostSlideView",
-        "ContentPostRenderView",
-        "isContentPostRenderActive"
-      ],
-      "lineCount": 63,
-      "sizeBytes": 2232,
-      "notes": "Utility / helper module; area=media-processing"
-    },
-    {
       "path": "src/lib/contracts/customer-api.ts",
       "type": "util",
       "area": "shared",
@@ -21682,8 +21594,8 @@
         "uploadTicketResponseSchema",
         "uploadCompleteRequestSchema"
       ],
-      "lineCount": 86,
-      "sizeBytes": 2692,
+      "lineCount": 83,
+      "sizeBytes": 2564,
       "notes": "Utility / helper module; area=upload"
     },
     {
@@ -21956,8 +21868,8 @@
         "sessionExpiredLoginUrl",
         "requestPulseRefresh"
       ],
-      "lineCount": 73,
-      "sizeBytes": 3022,
+      "lineCount": 71,
+      "sizeBytes": 2932,
       "notes": "Utility / helper module"
     },
     {
@@ -21990,8 +21902,8 @@
         "readingName",
         "readingFormula"
       ],
-      "lineCount": 117,
-      "sizeBytes": 7060,
+      "lineCount": 116,
+      "sizeBytes": 6871,
       "notes": "Utility / helper module"
     },
     {
@@ -22034,8 +21946,6 @@
         "videoJobState",
         "LibraryStatusKey",
         "libraryRowState",
-        "ProductImageStatusKey",
-        "productImageState",
         "batchStatusWords",
         "videoJobStatusWords",
         "libraryStatusWords"
@@ -22053,8 +21963,8 @@
         "BatchJobStatusKey",
         "VideoJobStatusKey"
       ],
-      "lineCount": 223,
-      "sizeBytes": 8859,
+      "lineCount": 193,
+      "sizeBytes": 7972,
       "notes": "Utility / helper module"
     },
     {
@@ -22064,8 +21974,7 @@
       "exports": [
         "EXPERIMENT_BATCH_KEY_PREFIX",
         "isExperimentBatchKey",
-        "notExperimentBatchWhere",
-        "notExperimentVideoJobWhere"
+        "notExperimentBatchWhere"
       ],
       "imports": [
         "@prisma/client"
@@ -22073,11 +21982,10 @@
       "importantSymbols": [
         "EXPERIMENT_BATCH_KEY_PREFIX",
         "isExperimentBatchKey",
-        "notExperimentBatchWhere",
-        "notExperimentVideoJobWhere"
+        "notExperimentBatchWhere"
       ],
-      "lineCount": 30,
-      "sizeBytes": 1334,
+      "lineCount": 22,
+      "sizeBytes": 966,
       "notes": "Utility / helper module; hits Prisma DB"
     },
     {
@@ -22529,7 +22437,7 @@
         "ComposeReferenceImageArgs"
       ],
       "lineCount": 341,
-      "sizeBytes": 11834,
+      "sizeBytes": 11838,
       "notes": "External API provider wrapper; uses OpenAI SDK; area=ai-providers"
     },
     {
@@ -22743,7 +22651,6 @@
       "area": "ai-providers",
       "exports": [
         "ShuyuImageAspectRatio",
-        "resolveShuyuImagePlanForAspect",
         "SubmitShuyuImageTaskInput",
         "ShuyuImageTaskResult",
         "submitShuyuImageTask",
@@ -22765,13 +22672,13 @@
         "SubmitShuyuImageTaskInput",
         "ShuyuImageTaskResult",
         "FetchShuyuOutputOptions",
-        "resolveShuyuImagePlanForAspect",
         "submitShuyuImageTask",
         "pollShuyuImageTask",
-        "validateShuyuOutputUrl"
+        "validateShuyuOutputUrl",
+        "fetchShuyuOutputImage"
       ],
-      "lineCount": 363,
-      "sizeBytes": 12423,
+      "lineCount": 349,
+      "sizeBytes": 11750,
       "notes": "External API provider wrapper; area=ai-providers"
     },
     {
@@ -22887,33 +22794,8 @@
         "SHUYU_IMAGE_MODEL"
       ],
       "lineCount": 1371,
-      "sizeBytes": 50543,
+      "sizeBytes": 50537,
       "notes": "External API provider wrapper; area=ai-providers"
-    },
-    {
-      "path": "src/lib/qa/customer-route-state-rehearsal.ts",
-      "type": "util",
-      "area": "shared",
-      "exports": [
-        "CUSTOMER_ROUTE_STATE_HEADER",
-        "CustomerRouteRehearsalState",
-        "resolveCustomerRouteRehearsalState",
-        "getCustomerRouteRehearsalState"
-      ],
-      "imports": [
-        "next/headers",
-        "@/lib/config/env",
-        "@/components/platform/customer-route-state"
-      ],
-      "importantSymbols": [
-        "CUSTOMER_ROUTE_STATE_HEADER",
-        "CustomerRouteRehearsalState",
-        "resolveCustomerRouteRehearsalState",
-        "getCustomerRouteRehearsalState"
-      ],
-      "lineCount": 62,
-      "sizeBytes": 1922,
-      "notes": "Utility / helper module"
     },
     {
       "path": "src/lib/quota-next-steps.ts",
@@ -23225,7 +23107,7 @@
         "diagnoseDrift"
       ],
       "lineCount": 785,
-      "sizeBytes": 32927,
+      "sizeBytes": 32837,
       "notes": "Business logic service"
     },
     {
@@ -23243,6 +23125,7 @@
         "__setCapabilityStoreForTests",
         "defaultCapabilityStore",
         "isCapabilityWriteThroughEnabled",
+        "isOpenAiContentReviewEnabled",
         "capabilityConfiguration",
         "rememberCapabilityRecords",
         "__resetCapabilityCacheForTests",
@@ -23268,136 +23151,9 @@
         "prismaCapabilityStore",
         "createMemoryCapabilityStore"
       ],
-      "lineCount": 420,
-      "sizeBytes": 17219,
+      "lineCount": 430,
+      "sizeBytes": 17928,
       "notes": "Business logic service"
-    },
-    {
-      "path": "src/lib/services/content-post-image-job-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "CONTENT_POST_IMAGE_PROMPT_VERSION",
-        "CONTENT_POST_IMAGE_MAX_IN_FLIGHT",
-        "CONTENT_POST_IMAGE_SUBMIT_TIMEOUT_MS",
-        "CONTENT_POST_IMAGE_SUBMIT_STALL_MS",
-        "CONTENT_POST_IMAGE_MAX_AUTO_RESUBMITS",
-        "CONTENT_POST_IMAGE_ACK_UNKNOWN_RETRY_WINDOW_MS",
-        "CONTENT_POST_IMAGE_PROCESSING_TIMEOUT_MS",
-        "CONTENT_POST_IMAGE_CRON_BUDGET_MS",
-        "CONTENT_POST_IMAGE_ASPECT_PREFERENCE",
-        "ContentPostImageProvider",
-        "contentPostImageProvider",
-        "contentPostImageRequestKey",
-        "canStartNewContentPostImageAttempt",
-        "loadContentPostRenderViews",
-        "startContentPostRender",
-        "advanceContentPostRender",
-        "reconcileContentPostRender",
-        "pollPendingContentPostRenders",
-        "cancelContentPostRender",
-        "cancelUnsubmittedContentPostImages",
-        "__test__"
-      ],
-      "imports": [
-        "node:crypto",
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/contracts/content-post-render",
-        "@/lib/providers/provider-billing-error",
-        "@/lib/providers/shuyu",
-        "@/lib/providers/shuyu-catalog",
-        "@/lib/providers/shuyu-image-provider",
-        "@/lib/services/ai-usage-log-service",
-        "@/lib/services/content-post-render-service",
-        "@/lib/services/content-post-render-state",
-        "@/lib/services/media-asset-service",
-        "@/lib/storage",
-        "@/lib/video-generation/providers/submission-error"
-      ],
-      "importantSymbols": [
-        "CONTENT_POST_IMAGE_PROMPT_VERSION",
-        "CONTENT_POST_IMAGE_MAX_IN_FLIGHT",
-        "CONTENT_POST_IMAGE_SUBMIT_TIMEOUT_MS",
-        "CONTENT_POST_IMAGE_SUBMIT_STALL_MS",
-        "CONTENT_POST_IMAGE_MAX_AUTO_RESUBMITS",
-        "CONTENT_POST_IMAGE_ACK_UNKNOWN_RETRY_WINDOW_MS",
-        "CONTENT_POST_IMAGE_PROCESSING_TIMEOUT_MS",
-        "CONTENT_POST_IMAGE_CRON_BUDGET_MS"
-      ],
-      "lineCount": 1501,
-      "sizeBytes": 62936,
-      "notes": "Business logic service; hits Prisma DB"
-    },
-    {
-      "path": "src/lib/services/content-post-render-service.ts",
-      "type": "service",
-      "area": "media-processing",
-      "exports": [
-        "RENDER_LOCK_TTL_MS",
-        "ContentPostRenderError",
-        "hardenImagePrompt",
-        "missingSlideIndexes",
-        "mergeRenderedUrls",
-        "renderContentPost",
-        "discardContentPost",
-        "readSlides"
-      ],
-      "imports": [
-        "@/lib/db",
-        "@/lib/providers/provider-billing-error",
-        "@/lib/ai",
-        "@/lib/ai/types"
-      ],
-      "importantSymbols": [
-        "RENDER_LOCK_TTL_MS",
-        "ContentPostRenderError",
-        "hardenImagePrompt",
-        "missingSlideIndexes",
-        "mergeRenderedUrls",
-        "renderContentPost",
-        "discardContentPost",
-        "readSlides"
-      ],
-      "lineCount": 364,
-      "sizeBytes": 13330,
-      "notes": "Business logic service; area=media-processing"
-    },
-    {
-      "path": "src/lib/services/content-post-render-state.ts",
-      "type": "service",
-      "area": "media-processing",
-      "exports": [
-        "LIVE_CONTENT_POST_IMAGE_STATUSES",
-        "CANCELLED_RENDER_RUN_PREFIX",
-        "isCancelledRenderRun",
-        "isImagePostFormat",
-        "contentPostSlidePrompts",
-        "contentPostRenderingWhere",
-        "isContentPostRendering",
-        "RenderViewPost",
-        "RenderViewTask",
-        "currentTasksBySlide",
-        "buildContentPostRenderView"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/contracts/content-post-render",
-        "@/lib/services/content-post-render-service"
-      ],
-      "importantSymbols": [
-        "LIVE_CONTENT_POST_IMAGE_STATUSES",
-        "CANCELLED_RENDER_RUN_PREFIX",
-        "RenderViewPost",
-        "RenderViewTask",
-        "isCancelledRenderRun",
-        "isImagePostFormat",
-        "contentPostSlidePrompts",
-        "contentPostRenderingWhere"
-      ],
-      "lineCount": 161,
-      "sizeBytes": 6089,
-      "notes": "Business logic service; hits Prisma DB; area=media-processing"
     },
     {
       "path": "src/lib/services/create-retry-prefill-service.ts",
@@ -23526,13 +23282,10 @@
         "ownedBriefWhere",
         "batchFailureWhere",
         "orderFailureWhere",
-        "platformOrderFailureWhere",
-        "platformBatchFailureWhere",
         "batchReadyWhere",
         "orderReadyWhere",
         "orderGeneratingWhere",
         "orderQueuedWhere",
-        "awaitingImagesWhere",
         "needsAttentionSince",
         "loadVideoQuota",
         "countNeedsAttention",
@@ -23557,9 +23310,7 @@
         "@/lib/exchange/pulse",
         "@/lib/services/lead-service",
         "@/lib/services/quota-service",
-        "@/lib/experiments/run-key",
         "@/lib/services/single-video-cancel-service",
-        "@/lib/services/content-post-render-state",
         "@/lib/services/unified-library-service"
       ],
       "importantSymbols": [
@@ -23572,8 +23323,8 @@
         "batchFailureWhere",
         "orderFailureWhere"
       ],
-      "lineCount": 573,
-      "sizeBytes": 24813,
+      "lineCount": 536,
+      "sizeBytes": 22967,
       "notes": "Business logic service; hits Prisma DB"
     },
     {
@@ -23668,42 +23419,6 @@
       "lineCount": 903,
       "sizeBytes": 36766,
       "notes": "Business logic service; hits Prisma DB"
-    },
-    {
-      "path": "src/lib/services/logo-fidelity-gate.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "LogoBox",
-        "GateThresholds",
-        "DEFAULT_GATE_THRESHOLDS",
-        "GateCheck",
-        "GateResult",
-        "extractLogoRegion",
-        "structuralSimilarity",
-        "dominantColor",
-        "sharpness",
-        "deltaE",
-        "textSimilarity",
-        "GateInput",
-        "runLogoFidelityGate"
-      ],
-      "imports": [
-        "sharp"
-      ],
-      "importantSymbols": [
-        "LogoBox",
-        "GateThresholds",
-        "DEFAULT_GATE_THRESHOLDS",
-        "GateCheck",
-        "GateResult",
-        "GateInput",
-        "extractLogoRegion",
-        "structuralSimilarity"
-      ],
-      "lineCount": 483,
-      "sizeBytes": 16300,
-      "notes": "Business logic service"
     },
     {
       "path": "src/lib/services/logo-service.ts",
@@ -24100,57 +23815,6 @@
       "notes": "Business logic service"
     },
     {
-      "path": "src/lib/services/product-image-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "PRODUCT_IMAGE_PROMPT_VERSION",
-        "PRODUCT_IMAGE_PRESETS",
-        "ProductImagePreset",
-        "ProductImageAspectRatio",
-        "ProductImageRequest",
-        "ProductImageJobWithAssets",
-        "ProductImageResultWithOwner",
-        "isRetryableProductImageTask",
-        "hasFatalProductImageTask",
-        "ProductImageRequestError",
-        "buildProductImagePrompt",
-        "findProductImageJobForUser",
-        "findProductImageResultForUser",
-        "listProductImageJobsForUser",
-        "createProductImageJob",
-        "retryRejectedProductImageProviderTask",
-        "cancelProductImageJob",
-        "reconcileProductImageJob",
-        "pollPendingProductImageJobs",
-        "__test__"
-      ],
-      "imports": [
-        "node:crypto",
-        "@prisma/client",
-        "@/lib/providers/shuyu-catalog",
-        "@/lib/providers/shuyu-image-provider",
-        "@/lib/db",
-        "@/lib/services/ai-usage-log-service",
-        "@/lib/services/media-asset-service",
-        "@/lib/storage",
-        "@/lib/video-generation/providers/submission-error"
-      ],
-      "importantSymbols": [
-        "PRODUCT_IMAGE_PROMPT_VERSION",
-        "PRODUCT_IMAGE_PRESETS",
-        "ProductImagePreset",
-        "ProductImageAspectRatio",
-        "ProductImageRequest",
-        "ProductImageJobWithAssets",
-        "ProductImageResultWithOwner",
-        "ProductImageRequestError"
-      ],
-      "lineCount": 1534,
-      "sizeBytes": 54927,
-      "notes": "Business logic service; hits Prisma DB"
-    },
-    {
       "path": "src/lib/services/product-profile-service.ts",
       "type": "service",
       "area": "shared",
@@ -24196,12 +23860,6 @@
       "type": "service",
       "area": "publishing",
       "exports": [
-        "markDownloaded",
-        "submitExternalPost",
-        "confirmPublished",
-        "failPublish",
-        "listPendingPublish",
-        "tryTransitionRoundToLive",
         "ACTIVE_PUBLISH_STATUSES",
         "PublishAccountConflictError",
         "PublishRegistrationInputError",
@@ -24233,8 +23891,8 @@
         "PublishRegistrationDecision",
         "PublishRegistrationStore"
       ],
-      "lineCount": 445,
-      "sizeBytes": 15692,
+      "lineCount": 290,
+      "sizeBytes": 11119,
       "notes": "Business logic service; hits Prisma DB; area=publishing"
     },
     {
@@ -24733,7 +24391,6 @@
         "@/lib/config/showcase-allowlist",
         "@/lib/services/showcase-library",
         "@/lib/video-generation/bgm-attribution",
-        "@/lib/services/content-post-render-state",
         "@/lib/video-generation/creative-recipe",
         "@/lib/schemas/unified-input",
         "@/lib/media/ephemeral-url",
@@ -24749,8 +24406,8 @@
         "isCancelledOrderJobs",
         "deriveMakingProcess"
       ],
-      "lineCount": 973,
-      "sizeBytes": 37042,
+      "lineCount": 945,
+      "sizeBytes": 35849,
       "notes": "Business logic service; hits Prisma DB"
     },
     {
@@ -25223,8 +24880,8 @@
         "UPLOAD_STALLED_MESSAGE",
         "uploadBlobWithProgress"
       ],
-      "lineCount": 260,
-      "sizeBytes": 8781,
+      "lineCount": 194,
+      "sizeBytes": 6856,
       "notes": "Utility / helper module; area=blob-storage"
     },
     {
@@ -25356,35 +25013,16 @@
       "type": "schema",
       "area": "shared",
       "exports": [
-        "createDeliveryOrderSchema",
-        "createRoundSchema",
-        "generateAnglesSchema",
-        "qaDecisionSchema",
-        "submitPostSchema",
-        "businessMetricsImportSchema",
-        "metricsRowSchema",
-        "registerRawAssetSchema",
-        "preprocessRawAssetSchema",
-        "generateAdEditPlansSchema",
-        "renderAdEditPlanSchema",
-        "createAdminSchema",
         "updateBriefSchema"
       ],
       "imports": [
         "zod"
       ],
       "importantSymbols": [
-        "createDeliveryOrderSchema",
-        "createRoundSchema",
-        "generateAnglesSchema",
-        "qaDecisionSchema",
-        "submitPostSchema",
-        "businessMetricsImportSchema",
-        "metricsRowSchema",
-        "registerRawAssetSchema"
+        "updateBriefSchema"
       ],
-      "lineCount": 124,
-      "sizeBytes": 4431,
+      "lineCount": 19,
+      "sizeBytes": 451,
       "notes": "Schema / validation"
     },
     {
@@ -27887,22 +27525,6 @@
       "notes": "Documentation"
     },
     {
-      "path": "tests/a4-cancel-cas-and-copy.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/db",
-        "../src/lib/services/product-image-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 88,
-      "sizeBytes": 3168,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/ad-law-terms.test.ts",
       "type": "test",
       "area": "tests",
@@ -27997,8 +27619,8 @@
         "../src/lib/api-auth"
       ],
       "importantSymbols": [],
-      "lineCount": 59,
-      "sizeBytes": 2727,
+      "lineCount": 55,
+      "sizeBytes": 2334,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -28096,8 +27718,8 @@
         "../src/lib/auth-role-policy"
       ],
       "importantSymbols": [],
-      "lineCount": 31,
-      "sizeBytes": 1099,
+      "lineCount": 27,
+      "sizeBytes": 1278,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -28199,8 +27821,8 @@
         "GET",
         "POST"
       ],
-      "lineCount": 234,
-      "sizeBytes": 12848,
+      "lineCount": 230,
+      "sizeBytes": 12579,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -28912,22 +28534,6 @@
       "notes": "Unit / integration test; calls Seedance video generator; area=tests"
     },
     {
-      "path": "tests/c2-pricing-rules.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:path",
-        "node:test"
-      ],
-      "importantSymbols": [],
-      "lineCount": 42,
-      "sizeBytes": 1939,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/c4-capability-probe.test.ts",
       "type": "test",
       "area": "tests",
@@ -28942,8 +28548,8 @@
         "../src/lib/services/capability-status-service"
       ],
       "importantSymbols": [],
-      "lineCount": 443,
-      "sizeBytes": 20880,
+      "lineCount": 500,
+      "sizeBytes": 23693,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -28960,8 +28566,8 @@
         "../src/lib/exchange/state-vocab"
       ],
       "importantSymbols": [],
-      "lineCount": 454,
-      "sizeBytes": 22858,
+      "lineCount": 455,
+      "sizeBytes": 23234,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -28989,8 +28595,8 @@
       "importantSymbols": [
         "GET"
       ],
-      "lineCount": 262,
-      "sizeBytes": 14277,
+      "lineCount": 263,
+      "sizeBytes": 14442,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -29199,70 +28805,6 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
-      "path": "tests/content-post-image-job.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:test",
-        "next/server",
-        "../src/lib/video-generation/providers/submission-error",
-        "../src/lib/providers/shuyu-catalog",
-        "../src/lib/providers/shuyu",
-        "../src/lib/providers/provider-billing-error",
-        "../src/lib/services/content-post-render-service",
-        "../src/lib/services/content-post-image-job-service",
-        "../src/lib/services/content-post-render-state",
-        "../src/lib/services/exchange-readings",
-        "../src/lib/services/unified-library-service",
-        "../src/app/api/cron/poll-videos/route",
-        "./helpers/content-post-image-fake-db"
-      ],
-      "importantSymbols": [],
-      "lineCount": 865,
-      "sizeBytes": 40676,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/content-post-render-lock.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/db",
-        "../src/lib/services/content-post-render-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 282,
-      "sizeBytes": 10712,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/content-post-render.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [
-        "discardContentPost"
-      ],
-      "imports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:path",
-        "node:test",
-        "../src/lib/services/content-post-render-service"
-      ],
-      "importantSymbols": [
-        "discardContentPost"
-      ],
-      "lineCount": 66,
-      "sizeBytes": 2225,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/content-report-contract.test.ts",
       "type": "test",
       "area": "tests",
@@ -29346,7 +28888,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 168,
-      "sizeBytes": 9926,
+      "sizeBytes": 9920,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -29363,6 +28905,22 @@
       "importantSymbols": [],
       "lineCount": 45,
       "sizeBytes": 1914,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/cron-poll-videos.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "../src/app/api/cron/poll-videos/route"
+      ],
+      "importantSymbols": [],
+      "lineCount": 98,
+      "sizeBytes": 3714,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -29480,8 +29038,8 @@
         "../src/lib/contracts/customer-api"
       ],
       "importantSymbols": [],
-      "lineCount": 80,
-      "sizeBytes": 3019,
+      "lineCount": 81,
+      "sizeBytes": 3118,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -29493,12 +29051,11 @@
         "node:assert/strict",
         "node:fs/promises",
         "node:path",
-        "node:test",
-        "@/lib/qa/customer-route-state-rehearsal"
+        "node:test"
       ],
       "importantSymbols": [],
-      "lineCount": 140,
-      "sizeBytes": 5347,
+      "lineCount": 107,
+      "sizeBytes": 4955,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -29782,12 +29339,11 @@
       "imports": [
         "node:assert/strict",
         "node:test",
-        "../src/lib/experiments/run-key",
-        "../src/lib/services/exchange-readings"
+        "../src/lib/experiments/run-key"
       ],
       "importantSymbols": [],
-      "lineCount": 125,
-      "sizeBytes": 6095,
+      "lineCount": 31,
+      "sizeBytes": 1476,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -30171,29 +29727,6 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
-      "path": "tests/helpers/content-post-image-fake-db.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [
-        "Row",
-        "FakeHook",
-        "matchValue",
-        "matches",
-        "ContentPostImageFakeDb"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "Row",
-        "FakeHook",
-        "ContentPostImageFakeDb",
-        "matchValue",
-        "matches"
-      ],
-      "lineCount": 379,
-      "sizeBytes": 13446,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/helpers/director-plan-fixture.ts",
       "type": "test",
       "area": "tests",
@@ -30335,8 +29868,8 @@
         ")) return false;\n      if (t.startsWith("
       ],
       "importantSymbols": [],
-      "lineCount": 170,
-      "sizeBytes": 5754,
+      "lineCount": 163,
+      "sizeBytes": 5569,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -30389,9 +29922,7 @@
       "path": "tests/library-post-row.test.ts",
       "type": "test",
       "area": "tests",
-      "exports": [
-        "cancelProductImageJob"
-      ],
+      "exports": [],
       "imports": [
         "node:assert/strict",
         "node:fs",
@@ -30399,11 +29930,9 @@
         "node:test",
         "../src/lib/services/unified-library-service"
       ],
-      "importantSymbols": [
-        "cancelProductImageJob"
-      ],
-      "lineCount": 97,
-      "sizeBytes": 4227,
+      "importantSymbols": [],
+      "lineCount": 79,
+      "sizeBytes": 3201,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -30419,22 +29948,6 @@
       "importantSymbols": [],
       "lineCount": 18,
       "sizeBytes": 789,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/logo-fidelity-gate.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "sharp",
-        "../src/lib/services/logo-fidelity-gate"
-      ],
-      "importantSymbols": [],
-      "lineCount": 241,
-      "sizeBytes": 9284,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -30605,8 +30118,8 @@
         "../src/lib/media/ffmpeg-bin"
       ],
       "importantSymbols": [],
-      "lineCount": 301,
-      "sizeBytes": 14475,
+      "lineCount": 299,
+      "sizeBytes": 14331,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -30768,6 +30281,22 @@
       ],
       "lineCount": 196,
       "sizeBytes": 11423,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/openai-image-and-media-signatures.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/upload/media-file-validation",
+        "../src/lib/providers/openai-image"
+      ],
+      "importantSymbols": [],
+      "lineCount": 43,
+      "sizeBytes": 1639,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -31187,57 +30716,6 @@
       "notes": "Unit / integration test; NextAuth session check; area=tests"
     },
     {
-      "path": "tests/product-image-recovery.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "node:fs/promises",
-        "@prisma/client",
-        "../src/app/api/cron/poll-videos/route",
-        "../src/lib/db",
-        "../src/lib/services/product-image-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 567,
-      "sizeBytes": 23023,
-      "notes": "Unit / integration test; hits Prisma DB; area=tests"
-    },
-    {
-      "path": "tests/product-image-studio.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/product-image-service",
-        "../src/lib/upload/media-file-validation",
-        "../src/lib/providers/openai-image"
-      ],
-      "importantSymbols": [],
-      "lineCount": 116,
-      "sizeBytes": 4570,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/product-image-ui-contract.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test"
-      ],
-      "importantSymbols": [],
-      "lineCount": 32,
-      "sizeBytes": 1748,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/product-own-logo-prompts.test.ts",
       "type": "test",
       "area": "tests",
@@ -31354,13 +30832,14 @@
       "exports": [],
       "imports": [
         "node:assert/strict",
-        "node:fs/promises",
         "node:test",
-        "../src/lib/providers/provider-billing-error"
+        "../src/lib/providers/provider-billing-error",
+        "../src/lib/providers/shuyu",
+        "../src/lib/video-generation/providers/submission-error"
       ],
       "importantSymbols": [],
-      "lineCount": 20,
-      "sizeBytes": 1274,
+      "lineCount": 37,
+      "sizeBytes": 2337,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -31715,7 +31194,9 @@
       "path": "tests/retired-api-lines.test.ts",
       "type": "test",
       "area": "tests",
-      "exports": [],
+      "exports": [
+        "toContentPostLibraryRow"
+      ],
       "imports": [
         "node:assert/strict",
         "node:fs",
@@ -31725,9 +31206,11 @@
         "../src/lib/services/capability-status-service",
         "../src/lib/services/ops-alert-service"
       ],
-      "importantSymbols": [],
-      "lineCount": 318,
-      "sizeBytes": 15069,
+      "importantSymbols": [
+        "toContentPostLibraryRow"
+      ],
+      "lineCount": 331,
+      "sizeBytes": 15850,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -31805,8 +31288,8 @@
         "../src/components/leads/lead-milestone"
       ],
       "importantSymbols": [],
-      "lineCount": 327,
-      "sizeBytes": 19406,
+      "lineCount": 329,
+      "sizeBytes": 19512,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -32183,6 +31666,21 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
+      "path": "tests/shuyu-image-plan-aspect.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/providers/shuyu-catalog"
+      ],
+      "importantSymbols": [],
+      "lineCount": 44,
+      "sizeBytes": 1936,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
       "path": "tests/shuyu-image-plan-resolution.test.ts",
       "type": "test",
       "area": "tests",
@@ -32195,6 +31693,21 @@
       "importantSymbols": [],
       "lineCount": 84,
       "sizeBytes": 2967,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/shuyu-image-provider.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/providers/shuyu-image-provider"
+      ],
+      "importantSymbols": [],
+      "lineCount": 258,
+      "sizeBytes": 8354,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -32256,24 +31769,6 @@
       "lineCount": 218,
       "sizeBytes": 10941,
       "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/shuyu-product-image-service.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "@prisma/client",
-        "../src/lib/providers/shuyu-image-provider",
-        "../src/lib/db",
-        "../src/lib/services/product-image-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 952,
-      "sizeBytes": 38381,
-      "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
       "path": "tests/shuyu-reference-limit.test.ts",
@@ -32454,8 +31949,8 @@
         "../src/lib/video-generation/storyboard-service"
       ],
       "importantSymbols": [],
-      "lineCount": 788,
-      "sizeBytes": 49442,
+      "lineCount": 722,
+      "sizeBytes": 45016,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -33421,11 +32916,12 @@
         "../src/app/api/upload/blob/ticket/route",
         "../src/lib/services/quota-service",
         "../src/lib/services/media-asset-service",
-        "../src/lib/upload/direct-upload-ticket"
+        "../src/lib/upload/direct-upload-ticket",
+        "../src/lib/contracts/upload-blob"
       ],
       "importantSymbols": [],
-      "lineCount": 304,
-      "sizeBytes": 13027,
+      "lineCount": 307,
+      "sizeBytes": 13373,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -33436,13 +32932,11 @@
       "imports": [
         "node:assert/strict",
         "node:test",
-        "../src/app/api/upload/blob/route",
-        "../src/lib/db",
-        "../src/lib/services/product-image-service"
+        "../src/app/api/upload/blob/route"
       ],
       "importantSymbols": [],
-      "lineCount": 130,
-      "sizeBytes": 5932,
+      "lineCount": 97,
+      "sizeBytes": 4427,
       "notes": "Unit / integration test; area=tests"
     },
     {

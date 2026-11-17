@@ -1,17 +1,16 @@
 /**
  * 真机压测（2026-11，抖音矩阵上线前「轮 2」）：10 个品类 × 2 个钩子角度 × A/B 两组 = 40 条（20 对），走商家在创作页点出来的
- * 同一条生产路径（单条故事板 → 确认 → 出片 → 合成 → 帧质检；15 秒、9:16、中文口播），分早 / 午 / 晚三波投，看管线够不够稳，
- * 顺带回答两个问题：帧质检这道闸值不值得留；出方案不调 OpenAI 行不行。纯逻辑：scripts/lib/soak-run.ts（单测 tests/soak-run.test.ts）。
+ * 同一条生产路径（单条故事板 → 确认 → 出片 → 合成；15 秒、9:16、中文口播），分早 / 午 / 晚三波投，看管线够不够稳，
+ * 顺带回答一个问题：出方案不调 OpenAI 行不行（原来的另一问「帧质检这道闸值不值得留」已有结论：2026-11-16 整套删了）。纯逻辑：scripts/lib/soak-run.ts（单测 tests/soak-run.test.ts）。
  *
  * 怎么走的生产路径：
  *   - 写操作（传商品图、出故事板、确认、生成视频、取消）用测试账号登录后调线上的接口，和浏览器发的请求一样。
  *     派发的业务逻辑在 /api/video-generation/dispatch 这个路由里（幂等登记、额度、建单、选线路），没有可在本机调用的
  *     service 入口，本机进程也解不出登录会话；走接口还能测到线上函数的超时与请求体上限，本机调 service 测不到。
- *   - 之后的出帧、轮询、合成、质检、清扫都由线上的定时任务推进。脚本只读库观察（.env.local 的生产库，只 SELECT），
+ *   - 之后的出帧、轮询、合成、清扫都由线上的定时任务推进。脚本只读库观察（.env.local 的生产库，只 SELECT），
  *     不调对账、不替定时任务干活。所以这里的端到端时长是「商家点完就关页面」的口径，比一直开着页面略慢。
  *   - 幂等键带 exp-2611- 前缀，库里一眼认得出是压测数据。但平台读数目前只按批次（BatchJob）的键排除实验数据，
- *     单条任务没有批次：这一轮的成败会进创始人日报与线路健康读数，看那些数字时要知道有压测在跑。
- *   - 帧质检照线上的设置开着跑，脚本不关、不绕。
+ *     单条任务没有批次：这一轮的成败会进测试账号自己的成片 / 失败读数，看那些数字时要知道有压测在跑。
  *
  * A/B 两组（同一件商品、同一个角度、同一批商品图，一对的两条在同一波、走同一条线路）：
  *   - A 组「调 OpenAI 出方案」：现状。建故事板与生成视频都调线上接口。线上从 11-09 起缺省是「精简出方案」
@@ -30,15 +29,15 @@
  *         PLANNING_FULL_LLM=on，它就是模型写的、会拼进给视频模型的提示词，B 组盖不掉；
  *       - 所以 B 组「生成视频」那一下的用时仍含模型调用，不代表砍掉 OpenAI 之后的耗时；
  *       - B 组第 0 帧是本机代码、本机网络提交的（A 组是线上函数），故事板出图走哪家也按本机的环境变量判。
- *     这个开关在本机进程里还会关掉帧质检、内容审核、故事板自动评审的看图——但这三样本来就不在本机跑（质检与审核在线上，
+ *     这个开关在本机进程里还会关掉内容审核、故事板自动评审的看图——但这两样本来就不在本机跑（审核在线上，
  *     故事板是人工确认不走自动评审），所以对 A 组、对线上其它步骤都没有影响。
  *
  * 子命令（在仓库根目录跑，产物落 tmp/experiments-2026-11/soak/<run-key>/，tmp 不进仓库）：
  *   run     先按实时套餐单价估算点数并打印（两组分开列）；带 --confirm-spend --max-points <上限> 才真提交，超过上限直接拒绝。
  *           每一步落盘，随时 Ctrl-C；重跑从断点续上，已有故事板号 / 任务号的只续查、绝不重提。
  *   cancel  取消所有在途条目（走线上的取消接口：故事板取消会改写幂等键，已派发的按条返还额度）。
- *   report  汇总成功率、端到端 P50 / P90、提交确认未知、故事板帧失败率、帧质检分布，对照放行线逐项给结论；另出两节
- *           「帧质检去留依据」「出方案对照」，并生成 A/B 盲评页 blind-review.html（左右随机、不显示组别，沿用评测集的盲评页）。
+ *   report  汇总成功率、端到端 P50 / P90、提交确认未知、故事板帧失败率，对照放行线逐项给结论；另出一节
+ *           「出方案对照」，并生成 A/B 盲评页 blind-review.html（左右随机、不显示组别，沿用评测集的盲评页）。
  *   tally   读盲评页导出的票（--votes <JSON>），揭盲算 B 组的胜 / 平 / 负；票存进运行目录，之后的 report 会带上。
  *
  * 镜头卡是怎么写的（11-10 到 11-16 线上有过「看图写镜头卡」开关 STORYBOARD_SHOT_CARDS_VISION，缺省关；
@@ -134,7 +133,7 @@ const OUTPUT_ROOT = join(REPO, "tmp/experiments-2026-11/soak");
 /// 传过的商品图记在这里（按线上地址 + 账号 + 原图地址），冒烟与全量共用，不重复传
 const ASSET_CACHE_FILE = join(OUTPUT_ROOT, "uploaded-assets.json");
 const SESSION_COOKIE = /^(__Secure-)?next-auth\.session-token(\.\d+)?$/u;
-/// 等线上推进时多久读一次库。10 秒一次：帧质检进行中的状态只留几十秒，读得勤才抄得到它的认领时刻
+/// 等线上推进时多久读一次库
 const POLL_MS = 10_000;
 const SCHEDULER_MS = 5_000;
 /// 线上建故事板的函数最长跑 120 秒（先设计镜头卡再提交第 0 帧）；派发要重出方案，给足 5 分钟
@@ -483,12 +482,6 @@ async function ensureAssets(session: ProdSession, cases: readonly GoldenSetCase[
 // 观察：只读库，把事实抄进记录
 // ---------------------------------------------------------------------------
 
-/** frameQaDetail.blockCount：这一段累计被质检拦了几次（坏数据按 0，与线上读法一致）。 */
-function frameQaBlockCount(detail: unknown): number {
-  const raw = detail && typeof detail === "object" ? (detail as { blockCount?: unknown }).blockCount : null;
-  return typeof raw === "number" && Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 0;
-}
-
 async function refreshAttempt(db: Db, attempt: SoakAttempt): Promise<void> {
   if (!attempt.storyboard.runId) return;
   const run = await db.storyboardRun.findUnique({
@@ -519,9 +512,6 @@ async function refreshAttempt(db: Db, attempt: SoakAttempt): Promise<void> {
               submissionState: true,
               submissionErrorClass: true,
               videoRouteSnapshot: true,
-              frameQaStatus: true,
-              frameQaCheckedAt: true,
-              frameQaDetail: true,
               retryCount: true,
               submitAttempts: true,
               submittedAt: true,
@@ -560,21 +550,12 @@ async function refreshAttempt(db: Db, attempt: SoakAttempt): Promise<void> {
   video.finalVideoUrl = brief.finalVideo?.stitchedVideoUrl ?? brief.finalVideoUrl;
   video.finishedAt = iso(brief.finalVideo?.finishedAt);
   video.error = brief.finalVideo?.ffmpegError ?? brief.errorMessage;
-  const previous = new Map(video.jobs.map((job) => [job.id, job]));
   video.jobs = brief.videoJobs.map((job) => ({
     id: job.id,
     status: job.status,
     submissionState: job.submissionState,
     submissionErrorClass: job.submissionErrorClass,
     route: job.videoRouteSnapshot,
-    frameQaStatus: job.frameQaStatus,
-    frameQaBlockCount: frameQaBlockCount(job.frameQaDetail),
-    frameQaCheckedAt: iso(job.frameQaCheckedAt),
-    /// 质检进行中时库里这一列是认领时刻，结论一写就被覆盖：撞上了就抄下来，之后一直留着
-    frameQaClaimedAt:
-      job.frameQaStatus === "CHECKING" && job.frameQaCheckedAt
-        ? job.frameQaCheckedAt.toISOString()
-        : (previous.get(job.id)?.frameQaClaimedAt ?? null),
     retryCount: job.retryCount,
     submitAttempts: job.submitAttempts,
     submittedAt: iso(job.submittedAt),
@@ -1081,7 +1062,6 @@ async function commandCancel(flags: Flags): Promise<void> {
 
 /**
  * 人工评分：沿用 qa-first-pass 的口径（首次成片且两位评分人的商品分、人物分都 ≥ 1），分母是全部已投且没取消的条目。
- * 另把「两位都评了」的条目按合格 / 不合格分开，给帧质检对照用（只看分数，不看是不是首次成片）。
  */
 function firstPassFromCsv(runKey: string, records: readonly SoakRecord[], csvPath: string): SoakFirstPassInput {
   const rows = parseQaCsv(readFileSync(csvPath, "utf8"));
@@ -1090,22 +1070,13 @@ function firstPassFromCsv(runKey: string, records: readonly SoakRecord[], csvPat
     .filter(({ attempt }) => attempt.storyboard.requestedAt !== null && deriveSoakOutcome(attempt)?.kind !== "cancelled")
     .map(({ record, attempt }) => {
       const job = attempt.video.jobs.filter((entry) => !entry.superseded).at(-1);
-      return {
-        itemId: record.id,
-        job: job
-          ? { videoJobId: job.id, retryCount: job.retryCount, submitAttempts: job.submitAttempts, status: job.status }
-          : { videoJobId: `no-job:${record.id}`, retryCount: 0, submitAttempts: 0, status: null },
-      };
+      return job
+        ? { videoJobId: job.id, retryCount: job.retryCount, submitAttempts: job.submitAttempts, status: job.status }
+        : { videoJobId: `no-job:${record.id}`, retryCount: 0, submitAttempts: 0, status: null };
     });
-  const result = computeFirstPass(runKey, rows, subjects.map((subject) => subject.job));
+  const result = computeFirstPass(runKey, rows, subjects);
   if (result.unknownVideoIds.length > 0) console.log(`[soak] 评分表里有 ${result.unknownVideoIds.length} 个视频号不属于这一轮：${result.unknownVideoIds.join(", ")}`);
-  const itemOf = new Map(subjects.map((subject) => [subject.job.videoJobId, subject.itemId]));
-  const scores: SoakFirstPassInput["scores"] = {};
-  for (const verdict of result.verdicts) {
-    const itemId = itemOf.get(verdict.videoJobId);
-    if (itemId && verdict.raters.length >= 2) scores[itemId] = verdict.scoresOk ? "ok" : "bad";
-  }
-  return { firstPass: result.firstPass, total: result.totalVideos, rated: result.ratedVideos - result.singleRaterVideos, scores };
+  return { firstPass: result.firstPass, total: result.totalVideos, rated: result.ratedVideos - result.singleRaterVideos };
 }
 
 const blindKeyPath = (context: RunContext) => join(context.runDir, "blind-key.json");

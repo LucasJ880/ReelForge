@@ -803,7 +803,7 @@ test("系统提示词：关键规矩都在，英文，长度有数", () => {
     "up to 5 positive statements",
     "Never write the brand name in a visual field.",
     "hands only / from behind / cropped below the chin / face visible",
-    "openingFrame NEVER shows a face",
+    "openingFrame NEVER shows any part of a face",
     "3.5 characters per second comfortable, 4.5 the limit",
     "2.5-3 words per second",
     "music (required for fmcg)",

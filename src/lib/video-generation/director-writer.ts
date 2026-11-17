@@ -347,7 +347,7 @@ Prove ONE core selling point as action -> visible result (not "absorbs well": a 
 - A shot with a person says where the face is from its first frame: hands only / from behind / cropped below the chin / face visible.
 - "face visible" is for the emotional payoff: 1-3 shots, an expression, an off-camera eyeline, a product close-up between two of them.
 - Describe a recurring person once in throughout (age, hair, clothes), named the same way each time. Supporting people: hands and sleeves only.
-- openingFrame NEVER shows a face: hands only, from behind, or cropped below the nose.
+- openingFrame NEVER shows any part of a face: hands only, from behind, or cropped below the chin.
 - Children: fully dressed, at home, an adult's hands nearby. No celebrities or real people.
 - Adults wear plain everyday or work clothes with shoulders, midriff and legs covered; say so in throughout whenever an adult's body is in frame.
 
@@ -481,7 +481,7 @@ export const DIRECTOR_WRITER_BLOCKING_WARNINGS: ReadonlyArray<{ rule: string; pa
   {
     rule: "face-in-opening-frame",
     pattern: /可能出现清晰正脸/u,
-    hint: "openingFrame shows hands only, a person from behind, or cropped below the nose; leave out the words face, portrait and any look at the camera",
+    hint: "openingFrame shows hands only, a person from behind, or cropped below the chin; leave out the words face, portrait and any look at the camera",
   },
 ];
 

@@ -5,7 +5,6 @@ import test from "node:test";
 import {
   STATE_VOCAB,
   batchState,
-  batchStatusWords,
   libraryRowState,
   stateTone,
   stateWord,
@@ -86,27 +85,14 @@ test("数据库枚举 → 词位：暂停不是生成中、取消不是失败、
 test("platform-copy 的状态词全部来自词典；批量表与生产带同一个词", () => {
   for (const locale of ["zh-CN", "en-US"] as const) {
     const copy = getPlatformCopy(locale);
-    assert.deepEqual(copy.batches.statuses, batchStatusWords(locale));
-    assert.deepEqual(copy.shell.batchStates, batchStatusWords(locale));
-    assert.equal(copy.batches.monitor.jobStatuses.SUCCEEDED, stateWord("item", "done", locale));
     assert.equal(copy.library.statuses.paused, stateWord("item", "paused", locale));
   }
-  const zh = getPlatformCopy("zh-CN");
-  const en = getPlatformCopy("en-US");
-  assert.equal(zh.shell.tape, "实时生产带");
-  assert.equal(en.shell.tape, "Live production tape");
-  assert.equal(zh.batches.columns.progress, "成片");
-  assert.equal(zh.wall.report, "生产回报");
 });
 
 test("视频侧文案里没有「已成交 / 成交带 / 近 N 天成交」", () => {
   const sources = [
     "src/i18n/platform-copy.ts",
-    "src/components/templates/template-library-copy.ts",
-    "src/components/exchange/exchange-tape.tsx",
     "src/components/platform/platform-shell.tsx",
-    "src/app/(wall)/wall/page.tsx",
-    "src/app/(platform)/app/batches/page.tsx",
   ].map((file) => readFileSync(file, "utf8"));
   for (const source of sources) {
     assert.doesNotMatch(source, /"[^"\n]*成交[^"\n]*"/, "成交 只留给询盘");
@@ -127,7 +113,6 @@ test("不是状态的标签（样例 / 草案 / 攒样本 / 样片待补）用�
   const checks: Array<[string, RegExp]> = [
     ["src/app/(public)/privacy/page.tsx", /<MonoTag[^>]*>\{copy\.draftStatus\}<\/MonoTag>/],
     ["src/app/(public)/terms/page.tsx", /<MonoTag[^>]*>\{copy\.draftStatus\}<\/MonoTag>/],
-    ["src/components/templates/template-shot-timeline.tsx", /<MonoTag>\{copy\.pending\}<\/MonoTag>/],
   ];
   for (const [file, pattern] of checks) {
     const source = readFileSync(file, "utf8");

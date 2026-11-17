@@ -48,51 +48,6 @@ test("单条与批量的后期快照：混入了配乐才返回署名", () => {
   assert.equal(bgmAttributionFor(snapshot("wholesome", Number.NaN)), null);
 });
 
-test("批量成片：从 VideoJob.templateSnapshot 取回的批次后期能直接算出署名", async () => {
-  /// 交付面胶水：bgmAttributionFor(readBatchPostProductionFromSnapshot(job.templateSnapshot))
-  const { buildBatchVideoRows, readBatchPostProductionFromSnapshot } =
-    await import("../src/lib/services/batch-service");
-  const template = {
-    id: "tpl_1",
-    slug: "commerce-value-proof",
-    version: 3,
-    name: "Value Proof",
-    nameZh: "价值感证明",
-    category: "电商带货",
-    promptSkeleton: "skeleton {IMAGE_REFS} {PRODUCT_NAME}",
-    negativePrompt: "neg",
-    lockedParams: { duration: 15, aspectRatio: "9:16", resolution: "1080p", cameraStyle: "stable", stability: "high", humanInteraction: "none" },
-    imagesPerVideo: { min: 1, max: 2 },
-  };
-  const rowsWith = (volume: number) =>
-    buildBatchVideoRows({
-      batchId: "batch_bgm",
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      template: template as any,
-      images: [{ id: "a1", url: "https://example.test/a.jpg" }],
-      requestedCount: 1,
-      productName: null,
-      provider: "SEEDANCE_I2V",
-      postProduction: {
-        audio: {
-          voiceover: { enabled: false, voiceId: "warm-confident", language: "en-US", script: "" },
-          bgm: { trackId: "wholesome", volume },
-        },
-        captions: { enabled: false, style: "plain", language: "en-US", position: "bottom", exportSrt: false },
-      },
-    });
-  const [mixed] = rowsWith(0.18);
-  assert.equal(
-    bgmAttributionFor(readBatchPostProductionFromSnapshot(mixed!.templateSnapshot)),
-    WHOLESOME,
-  );
-  const [muted] = rowsWith(0);
-  assert.equal(
-    bgmAttributionFor(readBatchPostProductionFromSnapshot(muted!.templateSnapshot)),
-    null,
-  );
-});
-
 test("读不懂的快照一律不猜", () => {
   for (const value of [null, undefined, "wholesome", 1, [], {}, { audio: null }, { audio: { bgm: [] } }]) {
     assert.equal(bgmAttributionFor(value), null);

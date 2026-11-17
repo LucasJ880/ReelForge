@@ -31,18 +31,11 @@ import { signoffActive } from "@/lib/video-generation/brand-signoff";
 import { randomUUID } from "node:crypto";
 import { classifyInput } from "@/lib/video-generation/input-classifier";
 import { classifyAsset } from "@/lib/video-generation/asset-classifier";
-import { buildCreativeBrief, heuristicBrief } from "@/lib/video-generation/creative-strategist";
+import { heuristicBrief } from "@/lib/video-generation/creative-strategist";
 import { directorCaptionScript, directorVideoPrompt, directorVoiceLanguage } from "@/lib/video-generation/director-line";
 import type { DirectorJob } from "@/lib/video-generation/director-plan";
 import { heuristicBible } from "@/lib/video-generation/consistency-bible";
-import {
-  getConsistencyLocks,
-  resolveStyleTemplate,
-} from "@/lib/video-generation/style-templates";
-import {
-  analyzeVisualReferences,
-  type VisualReferenceAnalysis,
-} from "@/lib/video-generation/visual-reference-analysis";
+import type { ConsistencyLock } from "@/lib/video-generation/style-templates";
 import { buildBrandPackagingPlan } from "@/lib/video-generation/brand-packaging";
 import { buildClipPlacementPlan } from "@/lib/video-generation/clip-placement-planner";
 import { planUnifiedSegments } from "@/lib/video-generation/segment-planner-adapter";
@@ -56,7 +49,6 @@ import {
   logPlanningDegradations,
 } from "@/lib/video-generation/planning-degradation";
 import {
-  effectiveAssetRole,
   type UnifiedVideoGenerationRequest,
   type VideoGenerationPlan,
   type UploadedAsset,
@@ -121,18 +113,13 @@ export function normalizePostProductionSettings(
 export async function buildPlan(
   request: UnifiedVideoGenerationRequest,
   options: {
-    /// 建故事板时已经看过图的盘点（StoryboardRun.visualReference）：给了就不再重新看图。
-    /// 不给 = 照旧现看；出方案预览（/plan，那时还没有故事板）不传。
-    visualRefs?: VisualReferenceAnalysis;
-    /// 导演线路：这轮故事板带着一份镜头脚本。方案不再调模型（脚本已经把片子写完了），整条片是一个 AI 段，
-    /// 段提示词就是脚本拼出来的出片提示词；口播稿取脚本里的台词（字幕烧的就是它）。
-    director?: { job: DirectorJob };
-  } = {},
+    /// 这轮故事板带着的镜头脚本（导演线路是唯一的出片方式，2026-11-17）。方案不调模型——脚本已经把片子写完了：
+    /// 整条片是一个 AI 段，段提示词就是脚本拼出来的出片提示词；口播稿取脚本里的台词（字幕烧的就是它）。
+    director: { job: DirectorJob };
+  },
 ): Promise<VideoGenerationPlan> {
-  const director = options.director ?? null;
-  const postProduction = director
-    ? withDirectorVoiceover(normalizePostProductionSettings(request), director.job, request.rawPrompt)
-    : normalizePostProductionSettings(request);
+  const director = options.director;
+  const postProduction = withDirectorVoiceover(normalizePostProductionSettings(request), director.job, request.rawPrompt);
   /// 1. Ensure assets are classified. UI 大概率已经跑过 /api/video-generation/classify-asset；
   /// 但兜底再跑一次，保证 inferredRole 一定有合理值。
   const classifiedAssets = ensureClassified(request.attachments ?? []);
@@ -140,24 +127,14 @@ export async function buildPlan(
   const classification = classifyInput({ ...request, attachments: classifiedAssets });
   const degradations = createPlanningDegradationLog();
 
-  /// 2. Creative brief（可能调 LLM）与 5.45 参考图视觉分析：
-  /// 视觉分析让 GPT 真正「看」参考图，提取真实门店 / 产品实拍细节，让文字锚（bible / prompt）和图片锚描述同一个真实场景。
-  /// 两步互不依赖，并行跑（1028 闭环轮 E2E #7：出方案要 40–60 秒，串行时看图白等创意简报）；两者失败都自带兜底，不会拖垮对方。
-  const briefArgs = {
+  /// 2. 简报按商家原话抽（只用来给订单起标题、过质量把关），不调模型、不看图——片子怎么拍脚本已经写完了
+  const creativeBrief = heuristicBrief({
     request: { ...request, attachments: classifiedAssets },
     classification,
     classifiedAssets,
     onDegraded: degradations.record,
-  };
-  /// 导演线路不调模型：简报按商家原话抽（只用来给订单起标题、过质量把关），不看图——片子怎么拍脚本已经写完了
-  const [creativeBrief, visualRefs] = await Promise.all([
-    director ? Promise.resolve(heuristicBrief(briefArgs)) : buildCreativeBrief(briefArgs),
-    options.visualRefs
-      ? Promise.resolve(options.visualRefs)
-      : director
-        ? Promise.resolve(null)
-        : analyzeVisualReferences(classifiedAssets, request.rawPrompt, degradations.record),
-  ]);
+  });
+  const visualRefs = null;
 
   /// 3. Brand packaging
   const brandPackagingPlan = buildBrandPackagingPlan({
@@ -182,25 +159,12 @@ export async function buildPlan(
     targetDurationSec: request.selectedDuration,
     clipPlacement: clipPlacementPlan,
     brandPackaging: brandPackagingPlan,
-    singleAiSegment: Boolean(director),
+    singleAiSegment: true,
   });
 
-  /// 5.4 风格模版（skill 模式）：后端固化的风格底盘 + 可叠加一致性锁
-  const styleTemplate = resolveStyleTemplate(request.styleTemplateId, request.rawPrompt);
-  const autoLockIds = styleTemplate
-    ? [
-        "lock_character_identity",
-        "lock_scene_geometry",
-        "lock_lighting",
-        /// 看生效角色：用户把推断成商品图的素材改标成 person（主播参考图）后，不再自动挂产品形状锁。
-        ...(classifiedAssets.some((asset) => effectiveAssetRole(asset) === "product_image") ? ["lock_product_shape"] : []),
-        ...(styleTemplate.scaffold.dialogueStyle ? ["lock_lipsync"] : []),
-      ]
-    : [];
-  const consistencyLocks = getConsistencyLocks([
-    ...autoLockIds,
-    ...(request.consistencyLockIds ?? []),
-  ]);
+  /// 5.4 老的风格模版与一致性锁 2026-11-17 下线：风格由风格卡交给导演写手（director-line-policy.ts），已经写进脚本里
+  const styleTemplate = null;
+  const consistencyLocks: ConsistencyLock[] = [];
 
   /// 5.5 Consistency bible（跨镜头一致性锚：角色/场景/产品/光线弧，一次生成逐段复用）。确定性，不调模型。
   const aiSlotCount = segmentSlots.filter((s) => s.source === "ai").length;
@@ -228,14 +192,12 @@ export async function buildPlan(
     visualRefs,
     voiceover: postProduction.audio.voiceover,
   });
-  if (director) {
-    /// 导演线路：AI 段的提示词整段换成脚本拼出来的那一份（全程用正面描述，不带负面提示词）
-    const videoPrompt = directorVideoPrompt(director.job);
-    for (const segment of segments) {
-      if (segment.type !== "ai_generated_clip") continue;
-      segment.prompt = videoPrompt;
-      segment.negativePrompt = "";
-    }
+  /// AI 段的提示词整段换成脚本拼出来的那一份（全程用正面描述，不带负面提示词）
+  const videoPrompt = directorVideoPrompt(director.job);
+  for (const segment of segments) {
+    if (segment.type !== "ai_generated_clip") continue;
+    segment.prompt = videoPrompt;
+    segment.negativePrompt = "";
   }
 
   /// 7. Assembly plan
@@ -316,6 +278,7 @@ function withDirectorVoiceover(base: PostProductionPlan, job: DirectorJob, rawPr
     audio: {
       /// 配乐随片子一起出（脚本里写了 music）：曲库的曲子不再混进去，不然两段音乐叠在一起
       bgm: { trackId: "none", volume: 0 },
+      nativeMusic: true,
       voiceover: { ...base.audio.voiceover, enabled: true, language, script, drive: "native" },
     },
     captions: { ...base.captions, language },

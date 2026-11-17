@@ -18,9 +18,6 @@ import { BUNDLED_CJK_FONT_CANDIDATES } from "../src/lib/media/media-fonts";
 import { BGM_TRACKS } from "../src/lib/video-generation/audio-post-production";
 import { renderBrandEndCard } from "../src/lib/video-generation/brand-end-card-renderer";
 import * as pollVideosRoute from "../src/app/api/cron/poll-videos/route";
-import * as processBatchesRoute from "../src/app/api/cron/process-batches/route";
-import * as stitchDispatchRoute from "../src/app/api/cron/stitch-dispatch/route";
-import { STITCH_DISPATCH_MAX_DURATION_SEC } from "../src/lib/services/stitch-dispatch-service";
 import { __test__ as binTest } from "../src/lib/media/ffmpeg-bin";
 
 const ROOT = process.cwd();
@@ -162,7 +159,6 @@ test("[media-runtime] tracing：二进制 / 字体 / BGM 只进 5 个函数，�
   assert.deepEqual(Object.keys(mediaRuntimeTracingIncludes).sort(), [
     "/api/brand-packaging",
     "/api/cron/poll-videos",
-    "/api/cron/process-batches",
     "/api/cron/stitch-dispatch",
     "/api/health/media",
   ]);
@@ -172,7 +168,6 @@ test("[media-runtime] tracing：二进制 / 字体 / BGM 只进 5 个函数，�
   const binary = "./node_modules/ffmpeg-static/ffmpeg";
   /// cron 两个函数只带二进制，不背字体与配乐（帧质检删除后先原样保留，见 next.config.ts 的说明）
   assert.deepEqual(mediaRuntimeTracingIncludes["/api/cron/poll-videos"], [binary]);
-  assert.deepEqual(mediaRuntimeTracingIncludes["/api/cron/process-batches"], [binary]);
   /// 2026-11-10 曲库扩到 8 首：最早那一首按文件名列，其余在 public/audio/bgm 下用一条通配（只这一个目录，不是整包通配）
   const bgmPaths = BGM_TRACKS.flatMap((track) => (track.path ? [track.path] : []));
   assert.equal(bgmPaths.length, 8);
@@ -190,14 +185,6 @@ test("[media-runtime] tracing：二进制 / 字体 / BGM 只进 5 个函数，�
   }
   /// BGM 文件真实存在于仓库（被 gitignore 的话线上必 404）
   for (const bgmPath of bgmPaths) assert.ok(existsSync(path.join(ROOT, bgmPath)), bgmPath);
-});
-
-test("[media-runtime] 4.3 两个 cron 设 maxDuration=300（C3：stitch-dispatch 合成函数同样 300，且与时间预算常量一致）", () => {
-  assert.equal(pollVideosRoute.maxDuration, 300);
-  assert.equal(processBatchesRoute.maxDuration, 300);
-  assert.equal(stitchDispatchRoute.maxDuration, 300);
-  assert.equal(stitchDispatchRoute.maxDuration, STITCH_DISPATCH_MAX_DURATION_SEC);
-  assert.equal(stitchDispatchRoute.runtime, "nodejs");
 });
 
 test("[media-runtime] 4.3 poll-videos 照常跑轮询与清扫（看图预算上下文随故事板 AI 审帧一起删了）；响应不再带已删的帧质检字段", async (t: TestContext) => {
@@ -237,7 +224,7 @@ test("[media-runtime] 4.3 poll-videos 照常跑轮询与清扫（看图预算上
     assert.equal(gone in body, false, gone);
   }
   assert.equal(body.degraded, false);
-  for (const route of ["poll-videos", "process-batches"]) {
+  for (const route of ["poll-videos"]) {
     assert.doesNotMatch(code(`src/app/api/cron/${route}/route.ts`), /vision-budget-context|runWithVisionBudget/, route);
   }
 });

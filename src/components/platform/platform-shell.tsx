@@ -10,9 +10,7 @@ import {
   CircleHelp,
   Clapperboard,
   Film,
-  Layers3,
   LogOut,
-  NotebookText,
   Package,
   Palette,
   Plus,
@@ -48,15 +46,13 @@ import { getPlatformCopy } from "@/i18n/platform-copy";
 
 const ICONS = {
   create: Clapperboard,
-  batches: Layers3,
   library: Film,
   products: Package,
   brands: Palette,
-  templates: NotebookText,
   guide: BookOpen,
 } satisfies Record<PlatformNavId, typeof Clapperboard>;
 
-/** 导轨徽标：批量 = 进行中批次（青）；成品库 = 需要处理（玫红，与成品库「需要处理」区同一批）。询盘入口 2026-10-28 下线。 */
+/** 导轨徽标：成品库 = 需要处理（玫红，与成品库「需要处理」区同一批）。询盘入口 2026-10-28 下线。 */
 type NavBadge = { count: number; tone: "live" | "fault" | "winner"; label: string };
 
 const BADGE_TONE: Record<NavBadge["tone"], string> = {
@@ -67,7 +63,6 @@ const BADGE_TONE: Record<NavBadge["tone"], string> = {
 
 function navBadges(pulse: ExchangePulse, locale: Locale): Partial<Record<PlatformNavId, NavBadge>> {
   return {
-    batches: { count: pulse.activeBatches, tone: "live", label: readingName("activeBatches", locale) },
     library: { count: pulse.needsAttention, tone: "fault", label: readingName("needsAttention", locale) },
   };
 }
@@ -81,10 +76,10 @@ function emailInitial(email: string): string {
   return local ? local.slice(0, 1).toUpperCase() : "A";
 }
 
-/// 侧栏分组（学 LibTV）：顺序与 PLATFORM_PRIMARY_NAV 一致，快捷键 1–7 不变。
+/// 侧栏分组（学 LibTV）：顺序与 PLATFORM_PRIMARY_NAV 一致。
 const NAV_GROUPS: ReadonlyArray<{ id: "make" | "assets" | "help"; items: readonly PlatformNavId[] }> = [
-  { id: "make", items: ["create", "batches"] },
-  { id: "assets", items: ["library", "products", "brands", "templates"] },
+  { id: "make", items: ["create"] },
+  { id: "assets", items: ["library", "products", "brands"] },
   { id: "help", items: ["guide"] },
 ];
 

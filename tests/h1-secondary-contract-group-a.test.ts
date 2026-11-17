@@ -55,13 +55,6 @@ const contracts: RouteMethodContract[] = [
   },
   {
     method: "POST",
-    route: "/api/video-generation/plan",
-    file: "src/app/api/video-generation/plan/route.ts",
-    boundary: "generation-session",
-    successMarker: /NextResponse\.json\(\{ ok: true, plan \}\)/,
-  },
-  {
-    method: "POST",
     route: "/api/video-generation/classify-asset",
     file: "src/app/api/video-generation/classify-asset/route.ts",
     boundary: "generation-session",
@@ -137,11 +130,12 @@ function routeSource(file: string): string {
   return readFileSync(path.join(process.cwd(), file), "utf8");
 }
 
-test("H1 group A STATIC: all 12 route methods lock a success shape and handler boundary", () => {
+test("H1 group A STATIC: all 11 route methods lock a success shape and handler boundary", () => {
   /// 2026-10-28 me/usage、billing/checkout、personal/agent-chat、ad-plans render、raw-assets preprocess 随删：24 → 19
   /// 2026-11-16 没人调的旧 brief 接口（ad-plan / scenes / script / render / qa）随删：19 → 14
   /// 2026-11-16 产品图工作台的接口（GET / POST /api/product-images）随删：14 → 12
-  assert.equal(contracts.length, 12);
+  /// 2026-11-17 出方案预览接口（POST /api/video-generation/plan）随老线路删除：12 → 11
+  assert.equal(contracts.length, 11);
   assert.equal(
     new Set(contracts.map(({ method, route }) => `${method} ${route}`)).size,
     contracts.length,

@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import test, { type TestContext } from "node:test";
 import { db } from "../src/lib/db";
 import { getPlatformCopy } from "../src/i18n/platform-copy";
@@ -192,9 +191,6 @@ test("详情页：白名单为空时样片账号的订单一律 404（不再按�
 });
 
 test("接线：批次详情只读展示也要命中白名单；样片标注写明不计入读数", async () => {
-  const page = await readFile("src/app/(platform)/app/batches/[id]/page.tsx", "utf8");
-  assert.match(page, /const showcase = await resolveShowcaseFor\(session\.user\.id\);/);
-  assert.match(page, /if \(!isShowcaseBatchAllowed\(batch\.videoJobs, showcase\.allow\)\) notFound\(\);/);
   assert.match(getPlatformCopy("zh-CN").library.showcaseBadge, /^样片$/);
   assert.match(getPlatformCopy("zh-CN").library.showcaseHint, /不计入任何读数/);
   assert.match(getPlatformCopy("en-US").library.showcaseHint, /not counted in any reading/);

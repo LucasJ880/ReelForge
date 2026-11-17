@@ -28,6 +28,8 @@ import { BgmPicker } from "@/components/video-generation/bgm-picker";
 export interface RestitchDefaults {
   captions: CaptionSettings;
   bgm: { trackId: BgmTrackId; volume: number };
+  /** 这条片自带出片模型原生配的音乐（导演线路）：不摆曲库，再加一首会和它叠在一起 */
+  nativeMusic?: boolean;
   /** 这条成片现在的片尾落款；没设过 = null */
   signoff?: { enabled: boolean; brandName: string; cta?: string | null; logo?: boolean } | null;
 }
@@ -224,40 +226,53 @@ export function RestitchForm({
         </label>
       </div>
 
-      <div className="block text-meta font-medium text-muted-foreground">
-        <label htmlFor="restitch-bgm-track" className="flex items-center gap-2">
-          <Music2 className="size-4" aria-hidden />
-          {english ? "Background music" : "背景音乐"}
+      {defaults.nativeMusic ? (
+        <p className="flex items-start gap-2 text-meta text-muted-foreground" data-testid="restitch-native-music">
+          <Music2 className="mt-0.5 size-4 shrink-0 text-tertiary" aria-hidden />
+          <span className="text-pretty">
+            {english
+              ? "This video's music was scored with the footage, so there is no track to pick here."
+              : "这条片的配乐是随画面一起配好的，这里不用另选。"}
+          </span>
+        </p>
+      ) : (
+        <>
+        <div className="block text-meta font-medium text-muted-foreground">
+          <label htmlFor="restitch-bgm-track" className="flex items-center gap-2">
+            <Music2 className="size-4" aria-hidden />
+            {english ? "Background music" : "背景音乐"}
+          </label>
+          <BgmPicker
+            id="restitch-bgm-track"
+            value={bgmTrackId}
+            disabled={submitting}
+            english={english}
+            selectClassName={SELECT_CLASS}
+            onChange={(next) => {
+              setBgmTrackId(next);
+              /// 原来没配乐的成片音量存的是 0：选了曲子却停在 0% 等于没加。给一个听得见又不抢口播的起始音量
+              if (next !== "none" && bgmVolume === 0) setBgmVolume(DEFAULT_BGM_VOLUME);
+            }}
+          />
+        </div>
+        <label className="block text-meta font-medium text-muted-foreground">
+          <span className="flex justify-between">
+            <span>{english ? "Music volume" : "音乐音量"}</span>
+            <span className="font-mono tabular-nums">{Math.round(bgmVolume * 100)}%</span>
+          </span>
+          <input
+            type="range"
+            min="0"
+            max="0.35"
+            step="0.01"
+            value={bgmVolume}
+            disabled={submitting || bgmTrackId === "none"}
+            className="mt-2 w-full accent-primary disabled:opacity-50"
+            onChange={(event) => setBgmVolume(Number(event.target.value))}
+          />
         </label>
-        <BgmPicker
-          id="restitch-bgm-track"
-          value={bgmTrackId}
-          disabled={submitting}
-          english={english}
-          selectClassName={SELECT_CLASS}
-          onChange={(next) => {
-            setBgmTrackId(next);
-            /// 原来没配乐的成片音量存的是 0：选了曲子却停在 0% 等于没加。给一个听得见又不抢口播的起始音量
-            if (next !== "none" && bgmVolume === 0) setBgmVolume(DEFAULT_BGM_VOLUME);
-          }}
-        />
-      </div>
-      <label className="block text-meta font-medium text-muted-foreground">
-        <span className="flex justify-between">
-          <span>{english ? "Music volume" : "音乐音量"}</span>
-          <span className="font-mono tabular-nums">{Math.round(bgmVolume * 100)}%</span>
-        </span>
-        <input
-          type="range"
-          min="0"
-          max="0.35"
-          step="0.01"
-          value={bgmVolume}
-          disabled={submitting || bgmTrackId === "none"}
-          className="mt-2 w-full accent-primary disabled:opacity-50"
-          onChange={(event) => setBgmVolume(Number(event.target.value))}
-        />
-      </label>
+        </>
+      )}
 
       {/* 片尾落款：最后两秒在画面上压品牌名 + 行动指引；每条片子单独勾，默认不带 */}
       <div className="flex min-w-0 flex-col gap-3 border-t border-border pt-3" data-testid="restitch-signoff">

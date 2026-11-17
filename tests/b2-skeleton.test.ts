@@ -3,7 +3,6 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import { workspaceNavTitle } from "../src/components/exchange/workspace-page";
-import { summarizeRecipeGuards } from "../src/components/templates/recipe-summary";
 import {
   CUSTOMER_ROUTE_FALLBACK_AREAS,
   CUSTOMER_ROUTE_FALLBACKS,
@@ -70,8 +69,6 @@ test("B2.1 一级区页面都用 WorkspacePage 开场，口号进副标题", () 
   const pages: Array<[string, string]> = [
     ["src/app/(platform)/app/brands/page.tsx", "brands"],
     ["src/app/(platform)/app/library/page.tsx", "library"],
-    ["src/app/(platform)/app/batches/page.tsx", "batches"],
-    ["src/app/(platform)/app/templates/page.tsx", "templates"],
     ["src/app/(platform)/app/leads/page.tsx", "leads"],
   ];
   for (const [file, nav] of pages) {
@@ -106,19 +103,12 @@ test("B2.1 每个行情头都显式写出主行动与统计口径（新建批次
   }
   assert.deepEqual(offenders, []);
   const zh = getPlatformCopy("zh-CN");
-  assert.ok(zh.batches.newBoard.scope.length > 0);
-  assert.match(zh.batches.monitor.scope, /\{n\}/);
   assert.ok(zh.library.scope.length > 0);
 });
 
 /* ── B2.2 选中态与空态 ─────────────────────────────────────────────── */
 
 test("B2.2 选中态统一 FilterChip / Segmented（aria-pressed + 青线），从不借实心主钮", () => {
-  const chip = read("src/components/ui/segmented.tsx");
-  assert.match(chip, /aria-pressed=\{pressed\}/);
-  assert.match(chip, /border-\(--accent-line\) bg-active text-accent/);
-  const grid = read("src/components/templates/template-library-grid.tsx");
-  assert.match(grid, /<FilterChip key=\{item\} pressed=\{category === item\}/);
   // 全仓库：不许用 variant="default" 表达选中
   const offenders = walk("src").filter((file) =>
     /variant=\{[^}]*(?:===|active|selected|pressed|current)[^}]*\?\s*"default"/.test(read(file)),
@@ -131,16 +121,13 @@ test("B2.2 统一 EmptyState：按钮描边、无角标、无虚线；批量 / �
   assert.match(empty, /variant="outline"/);
   assert.doesNotMatch(empty, /x-frame|border-dashed|variant="default"/);
   for (const file of [
-    "src/app/(platform)/app/batches/page.tsx",
     "src/app/(platform)/app/library/page.tsx",
-    "src/app/(platform)/app/templates/page.tsx",
   ]) {
     const source = read(file);
     assert.match(source, /<EmptyState\s+data-route-state="empty"/, file);
     assert.doesNotMatch(source, /x-panel x-frame px-6 py-12/, file);
   }
 });
-
 
 /* ── B2.4 品牌 ─────────────────────────────────────────────────────── */
 
@@ -182,22 +169,7 @@ test("B2.1 成片详情：行情头 + 状态记号，成片在制作过程之前
   assert.match(page, /copy\.musicCredit/);
 });
 
-
 /* ── B2.5 配方弹窗 ─────────────────────────────────────────────────── */
-
-test("B2.5 配方弹窗给人话摘要，不再展示提示词原文与 Negative Prompt", () => {
-  const dialog = stripComments(read("src/components/templates/template-recipe-dialog.tsx"));
-  assert.doesNotMatch(dialog, /Negative Prompt|NEGATIVE PROMPT|<pre\b|\{IMAGE_REFS\}|\{PRODUCT_NAME\}/);
-  assert.match(dialog, /summarizeRecipeGuards\(negativePrompt, locale\)/);
-  assert.match(dialog, /parseTemplateShots\(promptSkeleton\)/);
-  const summary = summarizeRecipeGuards(
-    "product morphing, invented features, wrong color, burned-in text, watermarks, split screen, crossfade, ghosting",
-    "zh-CN",
-  );
-  assert.equal(summary.ruleCount, 8);
-  assert.deepEqual(summary.groups.map((group) => group.id), ["product", "claims", "text", "layout", "transitions"]);
-  assert.equal(summarizeRecipeGuards("", "en-US").groups.length, 0);
-});
 
 /* ── B2.6 登录与法务 ───────────────────────────────────────────────── */
 
@@ -264,34 +236,6 @@ test("B2.7 404：双语、在品牌大厅里、回首页；工作区里的 404 �
 
 /* ── B2.9 批次详情 ─────────────────────────────────────────────────── */
 
-test("B2.9 批次详情：样片批次只读——不轮询、不出重试 / 取消", () => {
-  const page = read("src/app/(platform)/app/batches/[id]/page.tsx");
-  assert.match(page, /batch = await getBatchStatus\(id, showcaseUserId\);\s*readOnly = true;/);
-  assert.match(page, /readOnly=\{readOnly\}/);
-  const monitor = read("src/components/batch/batch-monitor.tsx");
-  assert.match(monitor, /if \(readOnly \|\| TERMINAL_BATCH\.has\(batch\.status\)\) return;/);
-  assert.match(monitor, /!readOnly && \(retryableFailedJobs\.length > 0/);
-  assert.match(monitor, /\{readOnly \? \(\s*<span className="hidden w-\[72px\] sm:block" aria-hidden \/>/);
-  assert.match(monitor, /!readOnly && detailJob\.status === "FAILED" && detailJob\.error\?\.retryable/);
-  assert.match(monitor, /readOnly \? monitorCopy\.readOnlyScope : monitorCopy\.scope/);
-});
-
-test("B2.9 批次详情：页面切到后台就停轮询，回到前台先补拉一次", () => {
-  const monitor = read("src/components/batch/batch-monitor.tsx");
-  assert.match(monitor, /document\.addEventListener\("visibilitychange", onVisibilityChange\)/);
-  assert.match(monitor, /document\.removeEventListener\("visibilitychange", onVisibilityChange\)/);
-  assert.match(monitor, /if \(document\.visibilityState === "hidden"\) \{\s*stop\(\);/);
-  assert.match(monitor, /tick\(\);\s*start\(\);/);
-});
-
-test("B2.9 批次详情：窄屏两行卡片，不再 680px 最小宽度横向滑；不露 Image 2 与原始帧状态", () => {
-  const monitor = read("src/components/batch/batch-monitor.tsx");
-  assert.match(monitor, /grid w-full grid-cols-\[auto_auto_minmax\(0,1fr\)\][^"]*sm:flex sm:h-14 sm:min-w-\[680px\]/);
-  assert.doesNotMatch(monitor, /"absolute left-0 top-0 flex h-14 w-full min-w-\[680px\]/);
-  assert.match(monitor, /sm:contents/);
-  assert.doesNotMatch(monitor, /Image 2|\?\? "QUEUED"\}/);
-});
-
 /* ── 路由边界 ──────────────────────────────────────────────────────── */
 
 test("品牌、询盘有自己的加载 / 错误边界，壳层不再被冲掉", () => {
@@ -315,11 +259,8 @@ test("骨架按行情头结构画（无眉题短条、读数格数与页面一�
   assert.match(loading, /CUSTOMER_ROUTE_WALL_CELLS\[route\]/);
   // 第一根骨架就是大标题，不再先画一条眉题短条
   assert.match(loading, /data-skeleton="quote-header">\s*<div className="max-w-4xl space-y-3">\s*<Skeleton className="h-11/);
-  assert.equal(CUSTOMER_ROUTE_WALL_CELLS.batches, 5);
-  assert.equal(CUSTOMER_ROUTE_WALL_CELLS.batchDetail, 6);
   /// 2026-11-10：品牌、模板库页头不再放读数，骨架同步不画（否则加载完读数块消失，页面往上跳）
   assert.equal(CUSTOMER_ROUTE_WALL_CELLS.brands, 0);
-  assert.equal(CUSTOMER_ROUTE_WALL_CELLS.templates, 0);
   assert.match(loading, /\{cells > 0 \? \(/);
   const error = read("src/components/platform/customer-route-error.tsx");
   assert.match(error, /<TickGlyph tone="fault" \/>/);

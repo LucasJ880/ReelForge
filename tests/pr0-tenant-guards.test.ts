@@ -90,7 +90,6 @@ test("自填品牌名：命中受保护客户时与全局包同一权限，普�
 
 test("自填品牌名：plan 与 dispatch 两个入口都在构建计划之前检查", () => {
   for (const file of [
-    "src/app/api/video-generation/plan/route.ts",
     "src/app/api/video-generation/dispatch/route.ts",
   ]) {
     const source = read(file);

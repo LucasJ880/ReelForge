@@ -21,7 +21,6 @@ import {
   createVideoProviderByRouteSnapshot,
   RetiredVideoRouteError,
 } from "../src/lib/video-generation/providers";
-import { batchCreateRequestSchema } from "../src/lib/contracts/batch-request";
 import { SegmentRedoRejectedError } from "../src/lib/video-generation/segment-redo";
 import {
   createVideoRouteSnapshot,
@@ -198,15 +197,6 @@ test("新请求点名直连线路：客户按 FORBIDDEN、内部按 INVALID_ROUT
         routeId,
       );
     }
-  }
-});
-
-test("批量建单的请求体：videoRouteId 只收 buddy，点名直连线路在参数校验就被拒（400，不是 500）", () => {
-  const base = { templateId: "tpl-1", templateVersion: 1, assetIds: ["asset-1"], requestedCount: 1 };
-  assert.equal(batchCreateRequestSchema.safeParse(base).success, true);
-  assert.equal(batchCreateRequestSchema.safeParse({ ...base, videoRouteId: "buddy" }).success, true);
-  for (const routeId of ["byteplus_international", "volcengine_cn_legacy", "runway", "mock"]) {
-    assert.equal(batchCreateRequestSchema.safeParse({ ...base, videoRouteId: routeId }).success, false, routeId);
   }
 });
 

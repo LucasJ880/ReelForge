@@ -111,7 +111,7 @@ test("壳层：脉搏带回最近做好的成片，有视频在途时标签页�
 test("提交故事板那一分钟也能取消：点了记下来，提交一返回就让服务端真取消", async () => {
   const studio = await readFile("src/components/video-generation/streamlined-video-studio.tsx", "utf8");
   assert.match(studio, /data-testid="cancel-storyboard-create"/);
-  assert.match(studio, /busy === "storyboard" && !planningShots && !cancellingStoryboardCreate \?/);
+  assert.match(studio, /busy === "storyboard" && !cancellingStoryboardCreate \?/);
   assert.match(
     studio,
     /if \(cancelStoryboardCreateRef\.current\) \{[\s\S]{0,200}if \(await cancelStoryboardOnServer\(payload\.run\)\) \{\s*markStoryboardRunDismissed\(payload\.run\.id\);\s*invalidatePlan\(\);/,

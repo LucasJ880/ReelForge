@@ -65,16 +65,14 @@ test("customer routing is Shuyu-only outside mock mode, whatever VIDEO_PROVIDER 
 });
 
 test("dispatch refuses on any runtime readiness failure: there is no other route to stand in", async () => {
-  const [dispatch, batch, selection] = await Promise.all([
+  const [dispatch, selection] = await Promise.all([
     readFile("src/app/api/video-generation/dispatch/route.ts", "utf8"),
-    readFile("src/lib/services/batch-service.ts", "utf8"),
     readFile("src/lib/video-generation/video-route-selection.ts", "utf8"),
   ]);
-  for (const source of [dispatch, batch, selection]) {
+  for (const source of [dispatch, selection]) {
     assert.doesNotMatch(source, /canVideoRouteOverrideDefaultRuntimeFailure|overrideMayIgnoreGlobalRouteFailure|selectedRouteOverridesDefaultFailure/);
   }
   assert.match(dispatch, /const runtimeReadiness = videoGenerationRuntimeReadiness\(\);\s*if \(!runtimeReadiness\.ok\) \{/);
-  assert.match(batch, /const runtimeReadiness = videoGenerationRuntimeReadiness\(\);\s*if \(!runtimeReadiness\.ok\) \{/);
 });
 
 test("internal staff get the same single route: no override defaults to buddy, retired and unknown ids are INVALID_ROUTE", () => {

@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { HOOK_ANGLES, applyHookAngle, detectHookAngle, stripHookAngle } from "@/lib/create/hook-angles";
-import { SOAK_HOOK_ANGLES } from "../scripts/lib/soak-run";
 
 /**
  * 换个开头（2026-11-10）：在商家描述末尾补一句「开头怎么拍」。守住：只动自己加的那一句、
@@ -41,15 +40,6 @@ test("商家自己写的内容一个字不动（包括中间的换行）", () =>
   const withAngle = applyHookAngle(story, "contrast", "zh");
   assert.ok(withAngle.startsWith(story));
   assert.equal(stripHookAngle(withAngle), story);
-});
-
-test("痛点开场 / 结果前置两句与真机压测用的一字不差（那 16 条成片就是带着它们出的）", () => {
-  for (const soak of SOAK_HOOK_ANGLES) {
-    const angle = HOOK_ANGLES.find((item) => item.id === soak.id);
-    assert.ok(angle, `${soak.id} 在产品里也有`);
-    assert.equal(angle.zh.direction, soak.direction);
-    assert.equal(angle.zh.label, soak.label);
-  }
 });
 
 test("创作页：描述写了才出现「换个开头」；点了改描述并让旧方案作废；故事板出来后不再出现", async () => {

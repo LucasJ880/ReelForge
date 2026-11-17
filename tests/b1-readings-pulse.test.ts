@@ -45,15 +45,9 @@ function installPulseStubs(t: TestContext, options: { ackedAt?: Date | null; tri
     if ("owner" in select) return { planId: "starter", owner: { subscriptionTier: options.trial ? "trial" : "free" } };
     return { id: "ws-1", failuresAckedAt: options.ackedAt ?? null };
   });
-  stub(t, calls, "batchJob", "groupBy", () => [
-    { status: "RUNNING", _count: { _all: 1 } },
-    { status: "EXPANDING", _count: { _all: 1 } },
-    { status: "PAUSED", _count: { _all: 2 } },
-  ]);
-  stub(t, calls, "videoJob", "groupBy", () => [
-    { status: "RUNNING", _count: { _all: 3 } },
-    { status: "QUEUED", _count: { _all: 4 } },
-  ]);
+  /// 批量生产 2026-11-17 下线：脉搏不再查批次与批量任务，这几个桩只是为了证明没人调
+  stub(t, calls, "batchJob", "groupBy", () => []);
+  stub(t, calls, "videoJob", "groupBy", () => []);
   stub(t, calls, "videoBrief", "count", (args) => {
     const where = JSON.stringify((args as { where: unknown }).where);
     if (where.includes('"RUNNING","batchJobId":null')) return 1; // 单条生成中
@@ -80,26 +74,23 @@ function installPulseStubs(t: TestContext, options: { ackedAt?: Date | null; tri
   return calls;
 }
 
-test("脉搏：生成中只数供应商侧在跑的视频；进行中批次不含暂停；排队与暂停各自单列", async (t) => {
+test("脉搏：生成中只数供应商侧在跑的视频；排队单列；不再查批次", async (t) => {
   const calls = installPulseStubs(t);
   const pulse = await loadPulse("user-1", { now: NOW });
-  assert.equal(pulse.generating, 3 + 1, "批量 RUNNING 任务 + 单条真在生成的 brief");
-  assert.equal(pulse.queued, 4 + 2);
-  assert.equal(pulse.activeBatches, 2, "EXPANDING + RUNNING，PAUSED 不算");
-  assert.equal(pulse.pausedBatches, 2);
+  assert.equal(pulse.generating, 1, "单条真在生成的 brief");
+  assert.equal(pulse.queued, 2);
+  assert.equal("activeBatches" in pulse || "pausedBatches" in pulse || "tape" in pulse, false, "批次读数与生产带随批量生产下线");
   assert.equal("awaitingImages" in pulse, false, "「待出图」读数 2026-11-16 随图文出图删除");
   assert.equal(calls["contentPost.count"], undefined, "脉搏不再数图文帖");
-  assert.equal(pulse.needsAttention, 7 + 5);
+  assert.equal(pulse.needsAttention, 5, "只数单条失败");
   assert.equal(pulse.newLeads, 6);
-  assert.deepEqual(pulse.tape.map((entry) => entry.name), ["开箱"]);
 
   // 只用 count / groupBy，不扫成品库（成品库 findMany 一次都没有）
   assert.equal(calls["deliveryOrder.findMany"], undefined);
   assert.equal(calls["videoJob.findMany"], undefined);
-  // 批量任务只按 RUNNING / QUEUED 分组：PAUSED 任务不会混进「生成中」
-  const jobGroup = calls["videoJob.groupBy"]![0] as { where: { status: { in: string[] }; batchJob: unknown } };
-  assert.deepEqual(jobGroup.where.status.in, ["RUNNING", "QUEUED"]);
-  assert.deepEqual(jobGroup.where.batchJob, { userId: "user-1" });
+  for (const call of ["batchJob.groupBy", "videoJob.groupBy", "batchJob.findMany", "videoJob.count"]) {
+    assert.equal(calls[call], undefined, `${call} 不该再被调用`);
+  }
   // 询盘徽标按工作区数未归档的新询盘
   assert.deepEqual((calls["lead.count"]![0] as { where: unknown }).where, { workspaceId: "ws-1", archivedAt: null, status: "NEW" });
 });
@@ -108,14 +99,10 @@ test("需要处理：近 7 天、在「看过了」之后——徽标从 ack 那
   const ackedAt = new Date(NOW.getTime() - 2 * DAY);
   const calls = installPulseStubs(t, { ackedAt });
   await loadPulse("user-1", { now: NOW });
-  const batchFailure = (calls["videoJob.count"]![0] as { where: { status: string; updatedAt?: unknown; OR: unknown } }).where;
-  assert.equal(batchFailure.status, "FAILED");
-  /// 按「失败那一刻」（finishedAt）起算，旧数据没有 finishedAt 才退回 updatedAt（runtime LENS-4）
-  assert.equal(batchFailure.updatedAt, undefined, "不再按会被无关写入刷新的 updatedAt 计时");
-  assert.deepEqual(batchFailure.OR, [
-    { finishedAt: { gte: ackedAt } },
-    { finishedAt: null, updatedAt: { gte: ackedAt } },
-  ]);
+  /// 单条失败按「失败那一刻」起算：ack 之后的才算（where 里带着 ack 时间，不是固定的 7 天前）
+  const failureWheres = (calls["videoBrief.count"] ?? []).map((args) => JSON.stringify((args as { where: unknown }).where));
+  assert.ok(failureWheres.some((where) => where.includes(JSON.stringify(ackedAt).slice(1, -1))), "失败计数从 ack 那一刻起算");
+  assert.equal(calls["videoJob.count"], undefined, "不再数批量失败");
 
   assert.equal(needsAttentionSince(NOW, null).getTime(), NOW.getTime() - NEEDS_ATTENTION_WINDOW_DAYS * DAY);
   const longAgo = new Date(NOW.getTime() - 30 * DAY);
@@ -145,7 +132,6 @@ test("注册表：同名必同值——每种语言里名字唯一，零不上�
   assert.equal(readingStat("generating", 2, "zh-CN").tone, "live");
   assert.equal(readingStat("needsAttention", 1, "zh-CN").tone, "fault");
   assert.equal("awaitingImages" in READINGS, false);
-  assert.equal(readingStat("batchCompletion", "53%", "zh-CN", { params: { n: 12 } }).caption, "已成片 ÷ 下单条数（近 12 批）");
   // 视频侧读数名不出现「成交」
   for (const id of Object.keys(READINGS) as ReadingId[]) assert.doesNotMatch(READINGS[id].name["zh-CN"], /成交/);
 });
@@ -159,24 +145,6 @@ test("各页读数都从注册表与 exchange-readings 取，不再各算各的"
   const create = readFileSync("src/app/(platform)/app/create/page.tsx", "utf8");
   assert.match(create, /loadVideoQuota\(userId\)/);
   assert.doesNotMatch(create, /monthlyVideoLimit/);
-
-  const newBatch = readFileSync("src/app/(platform)/app/batches/new/page.tsx", "utf8");
-  assert.match(newBatch, /quotaStat\(quota\.used, quota\.limit, locale\)/);
-  assert.doesNotMatch(newBatch, /monthlyVideoLimit|filled30d \}/);
-
-  const batches = readFileSync("src/app/(platform)/app/batches/page.tsx", "utf8");
-  // 读数不挂在 production 非空上（有批次时零照样写零）；2026-11-10 起一个批次都没有时不摆读数
-  assert.match(batches, /readingStat\("activeBatches", production\?\.activeBatches \?\? 0, locale\)/);
-  assert.doesNotMatch(batches, /new Set\(\["EXPANDING", "RUNNING", "PAUSED"\]\)/, "进行中批次不含暂停");
-
-  const wall = readFileSync("src/app/(wall)/wall/page.tsx", "utf8");
-  for (const id of ["generating", "filled24h", "filled7d", "failed7d", "successRate7d"]) {
-    assert.match(wall, new RegExp(`readingName\\("${id}", locale\\)`));
-  }
-  const templates = readFileSync("src/app/(platform)/app/templates/page.tsx", "utf8");
-  /// 2026-11-10：模板库页头不再摆读数（条数在筛选条上，成片数在成品库）；更不许在这里另算一套
-  assert.match(templates, /readings=\{\[\]\}/);
-  assert.doesNotMatch(templates, /completedCount: true/, "近 30 天成片不按批次创建时间另算");
 
   const shell = readFileSync("src/components/platform/platform-shell.tsx", "utf8");
   assert.match(shell, /readingName\("monthlyQuota", locale\)/);
@@ -200,18 +168,14 @@ test("壳层是 30 秒自刷新的客户端小岛；提交 / 取消 / 派发后�
   assert.match(shell, /library: \{ count: pulse\.needsAttention, tone: "fault"/);
   /// 询盘入口 2026-10-28 下线：新询盘徽标随导航撤掉（脉搏里的 newLeads 仍在，放回导航时接回）
   assert.doesNotMatch(shell, /leads: \{ count: pulse\.newLeads/);
-  assert.match(shell, /batches: \{ count: pulse\.activeBatches, tone: "live"/);
+  assert.doesNotMatch(shell, /activeBatches|batches:/);
   for (const file of [
-    "src/components/batch/batch-create-wizard.tsx",
-    "src/components/batch/batch-monitor.tsx",
     "src/components/video-generation/streamlined-video-studio.tsx",
   ]) {
     const source = readFileSync(file, "utf8");
     assert.match(source, /import \{ requestPulseRefresh \} from "@\/lib\/exchange\/pulse";/, file);
     assert.match(source, /requestPulseRefresh\(\);/, file);
   }
-  const wizard = readFileSync("src/components/batch/batch-create-wizard.tsx", "utf8");
-  assert.match(wizard, /setQueuedGroups\(\[\]\);\s*requestPulseRefresh\(\);\s*if \(createdBatchIds\.length === 1\)/);
 });
 
 test("脉搏与「看过了」接口：会话鉴权、只读写本人", () => {

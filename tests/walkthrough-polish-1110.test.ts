@@ -15,7 +15,7 @@ test("老用户打开创作页，首屏就不渲染「第一次使用」提示�
 });
 
 test("弹窗与抽屉的关闭按钮：读屏文字跟界面语言走，不写死英文", () => {
-  for (const file of ["src/components/ui/dialog.tsx", "src/components/ui/sheet.tsx"]) {
+  for (const file of ["src/components/ui/dialog.tsx"]) {
     const source = readFileSync(file, "utf8");
     assert.doesNotMatch(source, /<span className="sr-only">Close<\/span>/, file);
     assert.match(source, /<span className="sr-only">\{t\("common\.close"\)\}<\/span>/, file);

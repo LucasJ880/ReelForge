@@ -9,7 +9,6 @@ import {
 } from "../src/lib/providers/shuyu";
 import { diagnoseDrift } from "../src/lib/services/capability-probe-service";
 import { ShuyuVideoProvider } from "../src/lib/video-generation/providers/shuyu-video-provider";
-import { BATCH_STYLE_TEMPLATE_SEEDS } from "../src/lib/video-generation/batch-style-templates";
 
 /**
  * round 1025 · A1b 2.3：参考图上限三处统一 + 按套餐截断。
@@ -60,16 +59,6 @@ test("2.3 审计与能力探测共用同一个参考图下限", () => {
   const field = tooFew.drifts.find((d) => d.field === "input_images_max");
   assert.ok(field, "低于下限必须报出");
   assert.equal(field.expected, `>= ${SHUYU_MIN_REFERENCE_IMAGES}`);
-});
-
-test("2.3 模板每条实拍图上限不超过审计下限：任何审计通过的套餐都收得下全部实拍图", () => {
-  assert.ok(BATCH_STYLE_TEMPLATE_SEEDS.length > 0);
-  for (const seed of BATCH_STYLE_TEMPLATE_SEEDS) {
-    assert.ok(
-      seed.imagesPerVideo.max <= SHUYU_MIN_REFERENCE_IMAGES,
-      `${seed.slug} 每条最多 ${seed.imagesPerVideo.max} 张实拍图，超过套餐下限 ${SHUYU_MIN_REFERENCE_IMAGES}`,
-    );
-  }
 });
 
 test("2.3 套餐截断上限：取套餐上限与合作方硬顶的较小值", () => {

@@ -26,12 +26,12 @@ function readMigrationNames(): string {
 
 export const legacyPlatformRedirects = [
   { source: "/design", destination: "/app/create", permanent: true },
-  { source: "/batch-create", destination: "/app/batches/new", permanent: true },
-  { source: "/batches/:id", destination: "/app/batches/:id", permanent: true },
+  { source: "/batch-create", destination: "/app/create", permanent: true },
+  { source: "/batches/:id", destination: "/app/library", permanent: true },
   { source: "/personal", destination: "/app/create", permanent: true },
   { source: "/personal/agent", destination: "/app/create", permanent: true },
   { source: "/personal/create-video", destination: "/app/create", permanent: true },
-  { source: "/personal/templates", destination: "/app/templates", permanent: true },
+  { source: "/personal/templates", destination: "/app/create", permanent: true },
   { source: "/personal/videos", destination: "/app/library", permanent: true },
   { source: "/personal/videos/:id", destination: "/app/library/:id", permanent: true },
   { source: "/personal/billing", destination: "/app/create", permanent: true },
@@ -75,7 +75,6 @@ const MEDIA_RENDER_FILES = [FFMPEG_STATIC_BINARY, ...CJK_FONT_FILES, ...BGM_FILE
 
 export const mediaRuntimeTracingIncludes: Record<string, string[]> = {
   "/api/cron/poll-videos": [FFMPEG_STATIC_BINARY],
-  "/api/cron/process-batches": [FFMPEG_STATIC_BINARY],
   "/api/brand-packaging": MEDIA_RENDER_FILES,
   "/api/health/media": MEDIA_RENDER_FILES,
   "/api/cron/stitch-dispatch": MEDIA_RENDER_FILES,
@@ -143,6 +142,12 @@ const nextConfig: NextConfig = {
       { source: "/app/wins", destination: "/app/library", permanent: false },
       { source: "/app/racing", destination: "/app/library", permanent: false },
       { source: "/app/create/images", destination: "/app/create", permanent: false },
+      // 2026-11-17 删除的批量生产、模板库与行情大屏：旧书签落到创作页 / 成品库（以前做的批量成片仍在成品库里）
+      { source: "/app/batches", destination: "/app/library", permanent: false },
+      { source: "/app/batches/new", destination: "/app/create", permanent: false },
+      { source: "/app/batches/:id", destination: "/app/library", permanent: false },
+      { source: "/app/templates", destination: "/app/create", permanent: false },
+      { source: "/wall", destination: "/app/library", permanent: false },
       // 公开旧页 /persona、/showcase 2026-10-28 删除
       { source: "/persona", destination: "/app", permanent: false },
       { source: "/showcase", destination: "/", permanent: false },

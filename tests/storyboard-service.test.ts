@@ -700,17 +700,6 @@ function createHarness(t: TestContext, records: ReturnType<typeof mediaRecord>[]
   };
 }
 
-test("P02-D(s)：主播参考图落 personAssetIds 列（保留顺序）；inputAssetIds / inputImageUrls 只放商家实拍", async (t) => {
-  const h = createHarness(t, [mediaRecord("prod-1"), mediaRecord("person-1"), mediaRecord("person-2")]);
-  const view = await createStoryboardRun({ ...CREATE_INPUT, personAssetIds: ["person-2", "person-1", "person-2"] });
-  assert.equal(view.status, "GENERATING");
-  assert.equal(h.creates.length, 1);
-  const data = h.creates[0];
-  assert.deepEqual(data.personAssetIds, ["person-2", "person-1"], "去重但不排序");
-  assert.deepEqual(data.inputAssetIds, ["prod-1"]);
-  assert.deepEqual(data.inputImageUrls, ["https://assets.example.test/prod-1.jpg"], "主播图 URL 不混进实拍列");
-});
-
 test("P02-D(s)：主播参考图校验——同图不能兼任商品图、最多 4 张、必须是图片、必须归本人", async (t) => {
   createHarness(t, [mediaRecord("prod-1"), mediaRecord("person-1"), mediaRecord("clip-1", "video/mp4")]);
   const rejects = async (personAssetIds: string[], code: string, status = 400) => {

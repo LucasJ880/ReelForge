@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test, { type TestContext } from "node:test";
 import { VideoBriefStatus, VideoJobStatus } from "@prisma/client";
 import { db } from "../src/lib/db";
-import { batchFailureWhere, orderFailureWhere } from "../src/lib/services/exchange-readings";
+import { orderFailureWhere } from "../src/lib/services/exchange-readings";
 import { syncBriefStatus } from "../src/lib/services/video-service";
 
 /**
@@ -67,34 +67,11 @@ function matches(row: Row, where: Row): boolean {
     return matchField(row[key], cond);
   });
 }
-
-const DAY = 24 * 60 * 60 * 1000;
 const NOW = new Date("2026-10-27T12:00:00.000Z");
 const at = (hoursAgo: number) => new Date(NOW.getTime() - hoursAgo * 60 * 60 * 1000);
 /// 用户 6 小时前点了「看过了」
 const ACKED_AT = at(6);
 const since = { gte: ACKED_AT };
-
-test("runtime LENS-4：批量失败按 finishedAt 计时——看过之后的返还打标不让它重新冒出来", () => {
-  const where = batchFailureWhere("user-1", since) as Row;
-  const failedThenStamped = {
-    status: VideoJobStatus.FAILED,
-    finishedAt: at(8),
-    /// 清扫器的按条返还在看过之后才打标，刷新了 updatedAt
-    updatedAt: at(1),
-  };
-  assert.equal(matches(failedThenStamped, where), false, "已确认的失败不再计入徽标");
-
-  const retriedAndFailedAgain = { status: VideoJobStatus.FAILED, finishedAt: at(2), updatedAt: at(2) };
-  assert.equal(matches(retriedAndFailedAgain, where), true, "看过之后的新失败照常计入");
-
-  const legacyNoFinishedAt = { status: VideoJobStatus.FAILED, finishedAt: null, updatedAt: at(2) };
-  assert.equal(matches(legacyNoFinishedAt, where), true, "旧数据没有 finishedAt 才退回 updatedAt");
-
-  /// 7 天窗口同理：8 天前失败、昨天才被打标的行不算近 7 天失败
-  const week = batchFailureWhere("user-1", { gte: new Date(NOW.getTime() - 7 * DAY) }) as Row;
-  assert.equal(matches({ status: VideoJobStatus.FAILED, finishedAt: at(8 * 24), updatedAt: at(24) }, week), false);
-});
 
 function failedBrief(overrides: Row = {}): Row {
   return {

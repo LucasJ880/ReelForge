@@ -70,7 +70,9 @@ export function mergeRestitchPatch(
   return {
     audio: {
       voiceover: base.audio.voiceover,
-      bgm: patch.bgm ?? base.audio.bgm,
+      /// 自带原生配乐的片（导演线路）不混曲库：补丁里带了曲子也不收
+      bgm: base.audio.nativeMusic ? { trackId: "none", volume: 0 } : patch.bgm ?? base.audio.bgm,
+      ...(base.audio.nativeMusic ? { nativeMusic: true } : {}),
     },
     captions: patch.captions ?? base.captions,
     /// 落款：补丁里给了就用补丁的（关掉 = enabled:false 也照存），没给沿用旧的；旧快照没有就不带这个键

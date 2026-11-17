@@ -1,13 +1,10 @@
 import {
-  Prisma,
   PrismaClient,
   AdminRole,
-  StyleTemplateStatus,
 } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { BATCH_STYLE_TEMPLATE_SEEDS } from "../src/lib/video-generation/batch-style-templates";
 
 const prisma = new PrismaClient();
 
@@ -157,36 +154,6 @@ async function seedDemoPersonalUser() {
   console.log(`✅ 已创建 Demo 个人账号：${demo.email}`);
 }
 
-async function seedStyleTemplates() {
-  let created = 0;
-  for (const template of BATCH_STYLE_TEMPLATE_SEEDS) {
-    created += await prisma.$transaction(async (tx) => {
-      const existing = await tx.styleTemplate.findUnique({
-        where: { slug_version: { slug: template.slug, version: template.version } },
-        select: { id: true },
-      });
-      if (existing) return 0;
-      await tx.styleTemplate.updateMany({
-        where: { slug: template.slug, status: StyleTemplateStatus.ACTIVE },
-        data: { status: StyleTemplateStatus.ARCHIVED },
-      });
-      await tx.styleTemplate.create({
-        data: {
-          ...template,
-          lockedParams: template.lockedParams as unknown as Prisma.InputJsonValue,
-          imagesPerVideo: template.imagesPerVideo as unknown as Prisma.InputJsonValue,
-          status: StyleTemplateStatus.ACTIVE,
-          activatedAt: new Date(),
-        },
-      });
-      return 1;
-    });
-  }
-  console.log(
-    `✅ 批量风格模板：新增 ${created}，总定义 ${BATCH_STYLE_TEMPLATE_SEEDS.length}`,
-  );
-}
-
 async function seedGlobalBrandPackages() {
   const platformOwner =
     (await prisma.adminUser.findFirst({
@@ -266,7 +233,6 @@ async function main() {
   await seedPlanEntitlements();
   await seedAdmin();
   await seedDemoPersonalUser();
-  await seedStyleTemplates();
   await seedGlobalBrandPackages();
 }
 

@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  BatchJobStatus,
   FinalVideoStatus,
   ProviderSubmissionState,
   VideoBriefStatus,
@@ -16,7 +15,6 @@ import {
   toCustomerBriefRenderSummary,
   type BriefRenderSummary,
 } from "../src/lib/services/video-service";
-import { toCustomerBatchStatus } from "../src/lib/services/batch-service";
 import { quotaErrorResponse } from "../src/lib/api-quota";
 import {
   toCustomerVideoDispatchJob,
@@ -221,179 +219,6 @@ test("Phase 2 contract: customer brief serializer strips every provider and ffmp
   }
   assert.match(json, /PROVIDER_ERROR/);
   assert.match(json, /生成失败，请重试/);
-});
-
-test("Phase 2 contract: customer batch serializer strips raw submission diagnostics", () => {
-  const batchSensitive = {
-    userId: "LEAK_BATCH_USER",
-    imageIds: ["LEAK_BATCH_IMAGE_ID"],
-    imageUrls: ["https://LEAK_BATCH_IMAGE_URL.invalid"],
-    idempotencyKey: "LEAK_BATCH_IDEMPOTENCY",
-    requestHash: "LEAK_BATCH_HASH",
-    quotaConsumedAt: new Date(),
-    breakerPausedAt: new Date(),
-    dispatchQuarantineDecision: "LEAK_BATCH_QUARANTINE_DECISION",
-    dispatchQuarantineAt: new Date(),
-    dispatchQuarantineBy: "LEAK_BATCH_QUARANTINE_ACTOR",
-    secretRelation: "LEAK_BATCH_RELATION",
-  };
-  const jobSensitive = {
-    videoBriefId: "LEAK_JOB_BRIEF",
-    batchJobId: "LEAK_JOB_BATCH",
-    batchItemKey: "LEAK_JOB_ITEM_KEY",
-    templateSnapshot: { secret: "LEAK_JOB_TEMPLATE_SNAPSHOT" },
-    promptText: "LEAK_JOB_PROMPT",
-    negativePrompt: "LEAK_JOB_NEGATIVE_PROMPT",
-    seed: 8675309,
-    submitAttempts: 99,
-    logicalJobKey: "LEAK_JOB_LOGICAL_KEY",
-    providerRequestKey: "LEAK_JOB_PROVIDER_REQUEST_KEY",
-    providerUnitPriceUsd: "LEAK_JOB_PRICE",
-    availableAt: "LEAK_JOB_AVAILABLE_AT",
-    leaseOwner: "LEAK_JOB_LEASE_OWNER",
-    leaseExpiresAt: "LEAK_JOB_LEASE_EXPIRES",
-    heartbeatAt: "LEAK_JOB_HEARTBEAT",
-    provider: "LEAK_JOB_PROVIDER",
-    externalJobId: "LEAK_JOB_EXTERNAL_ID",
-    dispatchQuarantineDecision: "LEAK_JOB_QUARANTINE_DECISION",
-    dispatchQuarantineAt: "LEAK_JOB_QUARANTINE_AT",
-    dispatchQuarantineBy: "LEAK_JOB_QUARANTINE_BY",
-    lastCheckedAt: "LEAK_JOB_LAST_CHECKED",
-    lastProviderStatus: "LEAK_JOB_PROVIDER_STATUS",
-    timeoutAt: "LEAK_JOB_TIMEOUT",
-    pollErrors: 99,
-    finalVideoId: "LEAK_JOB_FINAL_VIDEO",
-    updatedAt: "LEAK_JOB_UPDATED_AT",
-    secretRelation: "LEAK_JOB_RELATION",
-  };
-  const rawBatch = {
-    id: "batch-1",
-    templateId: "template-1",
-    templateVersion: 1,
-    productName: null,
-    requestedCount: 1,
-    status: BatchJobStatus.FAILED,
-    queuedCount: 0,
-    pausedCount: 0,
-    runningCount: 0,
-    completedCount: 0,
-    failedCount: 1,
-    cancelledCount: 0,
-    statusReason: "provider breaker internal diagnostic secret",
-    ...batchSensitive,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    finishedAt: null,
-    template: {
-      id: "template-1",
-      version: 1,
-      name: "Template",
-      nameZh: "模板",
-      category: "UGC",
-      coverImage: null,
-    },
-    videoJobs: [
-      {
-        id: "job-1",
-        batchIndex: 0,
-        status: VideoJobStatus.FAILED,
-        assignedAssets: [],
-        outputVideoUrl: null,
-        outputThumbUrl: null,
-        lastProgress: null,
-        errorMessage: "private upstream host and token",
-        userSafeError: "视频生成失败，请稍后重试。",
-        submissionState: ProviderSubmissionState.ACK_UNKNOWN,
-        submissionErrorClass: "status_lookup_ack_unknown secret",
-        ...jobSensitive,
-        retryCount: 0,
-        storyboardRun: {
-          id: "storyboard-1",
-          status: "APPROVED",
-          approvalPolicy: "AUTO",
-          userId: "LEAK_STORYBOARD_USER",
-          dispatchReservationKey: "LEAK_STORYBOARD_RESERVATION",
-          frames: [
-            {
-              id: "frame-1",
-              ordinal: 0,
-              status: "SUCCEEDED",
-              outputUrl: "https://cdn.example.com/frame-1.png",
-              outputAsset: null,
-              prompt: "LEAK_FRAME_PROMPT",
-              providerRequestKey: "LEAK_FRAME_REQUEST_KEY",
-              externalTaskId: "LEAK_FRAME_EXTERNAL_TASK",
-            },
-          ],
-        },
-        createdAt: new Date(),
-        submittedAt: new Date(),
-        finishedAt: new Date(),
-      },
-    ],
-  };
-
-  const customer = toCustomerBatchStatus(
-    rawBatch as unknown as Parameters<typeof toCustomerBatchStatus>[0],
-  );
-  const json = JSON.stringify(customer);
-  assert.doesNotMatch(json, /private upstream|token|status_lookup|breaker internal/);
-  for (const value of [
-    ...Object.values(batchSensitive),
-    ...Object.values(jobSensitive),
-  ]) {
-    if (typeof value === "string" && value.startsWith("LEAK_")) {
-      assert.doesNotMatch(json, new RegExp(value));
-    }
-  }
-  assert.deepEqual(Object.keys(customer).sort(), [
-    "cancelledCount",
-    "completedCount",
-    "createdAt",
-    "failedCount",
-    "finishedAt",
-    "id",
-    "pausedCount",
-    "productName",
-    "queuedCount",
-    "requestedCount",
-    "runningCount",
-    "status",
-    "statusReason",
-    "template",
-    "templateId",
-    "templateVersion",
-    "updatedAt",
-    "videoJobs",
-  ]);
-  assert.deepEqual(Object.keys(customer.videoJobs[0]).sort(), [
-    "assignedAssets",
-    "batchIndex",
-    "createdAt",
-    "error",
-    "finishedAt",
-    "id",
-    "lastProgress",
-    "outputThumbUrl",
-    "outputVideoUrl",
-    "retryCount",
-    "status",
-    "storyboard",
-    "submittedAt",
-    "userSafeError",
-  ]);
-  assert.deepEqual(Object.keys(customer.videoJobs[0].storyboard!).sort(), [
-    "approvalPolicy",
-    "frames",
-    "id",
-    "status",
-  ]);
-  assert.deepEqual(
-    Object.keys(customer.videoJobs[0].storyboard!.frames[0]).sort(),
-    ["id", "imageUrl", "ordinal", "status"],
-  );
-  assert.match(json, /SUBMISSION_ACK_UNKNOWN/);
-  assert.match(json, /contact_support/);
 });
 
 test("Phase 2 contract: initial and replay dispatch DTOs exhaustively allowlist VideoJob fields", () => {

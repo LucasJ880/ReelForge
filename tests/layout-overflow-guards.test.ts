@@ -5,21 +5,6 @@ import test from "node:test";
 
 const ROOT = process.cwd();
 
-test("RF-011 template filters wrap and cards preserve a stretched information grid", async () => {
-  const source = await readFile(
-    path.join(ROOT, "src/components/templates/template-library-grid.tsx"),
-    "utf8",
-  );
-  assert.doesNotMatch(source, /overflow-x-auto/);
-  assert.match(source, /data-template-filters/);
-  assert.match(source, /flex flex-wrap gap-2/);
-  assert.doesNotMatch(source, /grid[^\n]+items-start/);
-  assert.match(source, /data-template-card/);
-  assert.match(source, /className="min-w-0 h-full"/);
-  assert.match(source, /group flex h-full/);
-  assert.match(source, /mt-auto/);
-});
-
 test("auth gate: video half only from lg up, form column bounded, no wall that can overflow", async () => {
   const source = await readFile(
     path.join(ROOT, "src/app/(auth)/layout.tsx"),

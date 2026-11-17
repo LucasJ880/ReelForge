@@ -1,15 +1,11 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
-import test, { type TestContext } from "node:test";
-import { db } from "../src/lib/db";
+import test, { } from "node:test";
 import { getPublicPageCopy } from "../src/i18n/public-copy";
-import { getPlatformCopy } from "../src/i18n/platform-copy";
 import { getGrowthCopy } from "../src/i18n/growth-copy";
 import { VIDEO_ROUTE_REGISTRY } from "../src/lib/video-generation/video-route-registry";
 import { READINGS } from "../src/lib/exchange/readings-registry";
-import { loadNeedsAttention, loadPulse } from "../src/lib/services/exchange-readings";
 import { templateDisplayName, toBatchLibraryRow } from "../src/lib/services/unified-library-service";
-import { batchMonitorReadings } from "../src/components/batch/batch-monitor-readings";
 import { leadMilestone } from "../src/components/leads/lead-milestone";
 
 /**
@@ -17,21 +13,6 @@ import { leadMilestone } from "../src/components/leads/lead-milestone";
  */
 
 const read = (file: string) => readFileSync(file, "utf8");
-
-type Calls = Record<string, unknown[]>;
-
-/** 把 db.<model>.<method> 换成桩，记录每次的入参；测试结束还原。 */
-function stub(t: TestContext, calls: Calls, model: string, method: string, impl: (args: unknown) => unknown) {
-  const target = (db as unknown as Record<string, Record<string, unknown>>)[model];
-  const original = target[method];
-  target[method] = async (args: unknown) => {
-    (calls[`${model}.${method}`] ??= []).push(args);
-    return impl(args);
-  };
-  t.after(() => {
-    target[method] = original;
-  });
-}
 
 /* ── LENS-2 隐私政策：处理方名单与真实接入的供应商一致 ─────────────────── */
 
@@ -124,105 +105,7 @@ test("LENS-4 成品库批量行：英文界面用英文模板名，中文界面�
   assert.equal(templateDisplayName(TEMPLATE, "zh-CN"), "价值感证明");
 });
 
-test("LENS-4 需要处理列表：英文界面的标题用英文模板名", async (t) => {
-  const calls: Calls = {};
-  stub(t, calls, "workspace", "findUnique", () => ({ failuresAckedAt: null }));
-  stub(t, calls, "videoJob", "findMany", () => [{
-    id: "job-9",
-    batchIndex: 7,
-    status: "FAILED",
-    submissionState: null,
-    submissionErrorClass: null,
-    errorMessage: "provider exploded",
-    userSafeError: null,
-    updatedAt: new Date("2026-10-24T10:00:00.000Z"),
-    batchJob: { id: "batch-9", productName: "Roller blind", template: TEMPLATE },
-  }]);
-  stub(t, calls, "videoBrief", "findMany", () => []);
-  stub(t, calls, "videoJob", "count", () => 1);
-  stub(t, calls, "videoBrief", "count", () => 0);
-  stub(t, calls, "videoBrief", "findFirst", () => null);
-  const en = await loadNeedsAttention("user-1", { locale: "en-US" });
-  assert.equal(en.items[0]!.title, "Roller blind #8 · Value Proof");
-  const zh = await loadNeedsAttention("user-1");
-  assert.equal(zh.items[0]!.title, "Roller blind #8 · 价值感证明");
-});
-
-test("LENS-4 生产带：没有产品名时退回的模板名按界面语言取", async (t) => {
-  const calls: Calls = {};
-  stub(t, calls, "workspace", "findUnique", (args) => {
-    const select = (args as { select?: Record<string, unknown> }).select ?? {};
-    if ("owner" in select) return { planId: "starter", owner: { subscriptionTier: "free" } };
-    return { id: "ws-1", failuresAckedAt: null };
-  });
-  stub(t, calls, "batchJob", "groupBy", () => []);
-  stub(t, calls, "videoJob", "groupBy", () => []);
-  stub(t, calls, "videoBrief", "count", () => 0);
-  stub(t, calls, "videoJob", "count", () => 0);
-  stub(t, calls, "contentPost", "count", () => 0);
-  stub(t, calls, "lead", "count", () => 0);
-  stub(t, calls, "userUsagePeriod", "findMany", () => []);
-  stub(t, calls, "batchJob", "findMany", () => [{
-    id: "batch-abcde",
-    productName: null,
-    status: "RUNNING",
-    requestedCount: 3,
-    completedCount: 1,
-    failedCount: 0,
-    updatedAt: new Date("2026-10-24T08:00:00.000Z"),
-    template: TEMPLATE,
-  }]);
-  assert.equal((await loadPulse("user-1", { locale: "en-US" })).tape[0]!.name, "Value Proof");
-  assert.equal((await loadPulse("user-1")).tape[0]!.name, "价值感证明");
-});
-
-test("LENS-4 页面把界面语言传进成品库、需要处理、大屏与脉搏", () => {
-  const library = read("src/app/(platform)/app/library/page.tsx");
-  assert.match(library, /loadUnifiedLibrary\(userId, \{ locale \}\)/);
-  assert.match(library, /loadNeedsAttention\(userId, \{ locale \}\)/);
-  assert.match(read("src/app/(wall)/wall/page.tsx"), /loadExchangeReadings\(userId, \{ mediaLimit: 6, recentLimit: 16, locale \}\)/);
-  assert.match(read("src/app/(platform)/app/layout.tsx"), /loadPulse\(userId, \{ locale \}\)/);
-  assert.match(read("src/app/api/exchange/pulse/route.ts"), /loadPulse\(guard\.session\.user\.id, \{ locale: await getServerLocale\(\) \}\)/);
-  /// 服务层拼标题不再直接读 nameZh，一律走 templateDisplayName
-  for (const file of ["src/lib/services/exchange-readings.ts", "src/lib/services/unified-library-service.ts"]) {
-    assert.doesNotMatch(read(file), /(?:batch|batchJob)\.template\.nameZh/, file);
-  }
-});
-
 /* ── LENS-5 批次详情读数墙：取消的条数有去处 ─────────────────────────── */
-
-test("LENS-5 批次读数墙：已取消单独一格，各格加起来等于总数", () => {
-  const cancelledBatch = {
-    requestedCount: 4,
-    completedCount: 1,
-    runningCount: 0,
-    queuedCount: 0,
-    pausedCount: 0,
-    failedCount: 0,
-    cancelledCount: 3,
-  };
-  for (const locale of ["zh-CN", "en-US"] as const) {
-    const readings = batchMonitorReadings(cancelledBatch, {
-      copy: getPlatformCopy(locale).batches.monitor,
-      locale,
-      progress: 100,
-      live: false,
-    });
-    const cancelledLabel = locale === "zh-CN" ? "已取消" : "Cancelled";
-    const cancelled = readings.find((stat) => stat.label === cancelledLabel);
-    assert.ok(cancelled, `${locale} 缺「已取消」格`);
-    assert.equal(cancelled.value, 3);
-    assert.equal(cancelled.tone, undefined, "取消不是故障：中性色");
-    /// 总数之外、进度之前的格子就是每一条的去处
-    const items = readings.slice(1, -1).map((stat) => Number(stat.value));
-    assert.equal(items.reduce((sum, value) => sum + value, 0), cancelledBatch.requestedCount);
-    assert.equal(new Set(readings.map((stat) => stat.label)).size, readings.length, "key=label 必须唯一");
-  }
-  const monitor = read("src/components/batch/batch-monitor.tsx");
-  assert.match(monitor, /readings=\{batchMonitorReadings\(batch, \{/);
-  /// 2026-10-28 读数改成自动换行的一排小数据卡：7 格也不会留空格
-  assert.match(read("src/components/exchange/quote-header.tsx"), /<dl aria-label=\{readingsLabel\} className="flex flex-wrap gap-2">/);
-});
 
 /* ── LENS-8 询盘时间列：里程碑不和当前状态打架 ─────────────────────── */
 
@@ -278,36 +161,7 @@ test("LENS-3 创作台：主按钮不写积分，提示按本月额度写，不�
   assert.equal(READINGS.monthlyQuota.formula["en-US"], "Used (incl. in progress) ÷ plan limit · UTC month · failures and cancels refunded");
 });
 
-test("LENS-3 新建批次：客户看「计入额度」，供应商积分只在内部角色下出现", () => {
-  const wizard = read("src/components/batch/batch-create-wizard.tsx");
-  assert.match(wizard, /showProviderPoints = false,/);
-  assert.match(wizard, /showPlanPoints=\{showProviderPoints\}/);
-  /// 渲染区里每一处积分文案都在 showProviderPoints 判断之后（属性注释里的举例不算）
-  const render = wizard.slice(wizard.indexOf("<VideoRouteSelector"));
-  const pointsCopy = [...render.matchAll(/本批预计消耗|预计积分|Estimated points|Estimated provider charge/g)];
-  assert.ok(pointsCopy.length >= 4);
-  for (const match of pointsCopy) {
-    const before = render.slice(Math.max(0, (match.index ?? 0) - 900), match.index);
-    assert.match(before, /!showProviderPoints/, `「${match[0]}」必须在内部角色判断之后`);
-  }
-  assert.match(wizard, /提交时预占 \$\{totalVideoCount\} 条/);
-  assert.match(wizard, /本批 \$\{totalVideoCount\} 条提交时预占本月额度，失败与取消自动返还——最终只为交付的成片计数。/);
-  assert.match(read("src/app/(platform)/app/batches/new/page.tsx"), /showProviderPoints=\{isInternalRole\(session\.user\.role\)\}/);
-  const selector = read("src/components/video-generation/video-route-selector.tsx");
-  assert.match(selector, /showPlanPoints = true,/);
-  assert.match(selector, /\{showPlanPoints \? ` · \$\{plan\.unitSalePoints\.toLocaleString\(\)\} \$\{unitLabel\}` : ""\}/);
-  assert.match(selector, /const shuyuDescription = selectedPlan && showPlanPoints/);
-});
-
 /* ── LENS-9 暂停横幅不露工程词 ──────────────────────────────────────── */
-
-test("LENS-9 暂停横幅：不说熔断 / circuit breaker，只说拥堵与自动续跑", () => {
-  const zh = getPlatformCopy("zh-CN").batches.monitor.paused;
-  const en = getPlatformCopy("en-US").batches.monitor.paused;
-  assert.equal(zh, "生成服务暂时拥堵，剩余 {count} 条已安全暂停，恢复后会自动续跑。");
-  assert.equal(en, "Generation is temporarily congested. {count} items are safely paused and will resume automatically.");
-  assert.match(read("tests/b2-copy-hygiene.test.ts"), /\/熔断\|circuit breaker\/i,/);
-});
 
 /* ── LENS-10 首页一页一枚实心主钮 ───────────────────────────────────── */
 

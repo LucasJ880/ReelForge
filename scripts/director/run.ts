@@ -19,6 +19,7 @@
  * 例：
  *   npm run director -- draft tmp/director/blanket-auto-01 --from tmp/director/blanket-auto-01/brief.json
  *   npm run director -- draft tmp/director/blanket-auto-01 --from tmp/director/blanket-auto-01/brief.json --confirm-spend
+ *   npm run director -- draft tmp/director/<任务名> --from brief.json --style tpl_emotion_story   （风格卡：和线上「创意模板」同一张表）
  *   npm run director -- check tmp/director/zebra-blind-01
  *   npm run director -- frames tmp/director/zebra-blind-01 --confirm-spend
  *   npm run director -- select tmp/director/zebra-blind-01 --frame opening --variant 2
@@ -34,6 +35,7 @@
  * 提交确认未知的用同一个幂等键重投。绝不碰数据库（DATABASE_URL 换成连不上的地址）。
  */
 import { execFileSync } from "node:child_process";
+import { DIRECTOR_STYLES, directorStyle } from "@/lib/video-generation/director-line-policy";
 import { createHash } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, extname, isAbsolute, join, relative, resolve } from "node:path";
@@ -823,7 +825,7 @@ async function commandPost(workspace: Workspace, flags: Flags): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// draft：让「导演写手」起一份脚本（线上对齐第 1 步；线上流程还没接它，这条命令是给人试写手用的）
+// draft：让「导演写手」起一份脚本（线上创作台用的是同一个写手；这条命令给人在这边起稿、试风格用）
 // ---------------------------------------------------------------------------
 
 async function commandDraft(jobDir: string | null, flags: Flags): Promise<void> {
@@ -836,8 +838,19 @@ async function commandDraft(jobDir: string | null, flags: Flags): Promise<void> 
   if (!briefFile) fail(`找不到 ${from}（按仓库根目录和任务目录都找过）`);
   let input: DirectorWriterInput;
   try {
-    input = JSON.parse(readFileSync(briefFile, "utf8")) as DirectorWriterInput;
+    const raw = JSON.parse(readFileSync(briefFile, "utf8")) as DirectorWriterInput & { style?: string };
+    /// 风格卡（和线上「创意模板」同一张表，director-line-policy.ts）：brief.json 里写 "style": "tpl_emotion_story"，
+    /// 或命令行 --style <id>。它定片种，并把那一套拍法要求交给写手；不写 = 自动匹配。
+    const styleId = flag(flags, "style") ?? raw.style ?? null;
+    const style = directorStyle(styleId);
+    if (styleId && !style) {
+      fail(`没有 ${styleId} 这种风格。可选：${DIRECTOR_STYLES.map((entry) => `${entry.id}（${entry.zh}）`).join("、")}`);
+    }
+    const { style: _style, ...rest } = raw;
+    void _style;
+    input = style ? { ...rest, genre: rest.genre ?? style.genre, styleBrief: rest.styleBrief ?? style.brief } : rest;
     directorWriterInputSchema.parse(input);
+    if (style) console.log(`[director] 风格：${style.zh}（${style.id}）`);
   } catch (error) {
     fail(`${relative(REPO, briefFile)} 不合格：\n${errorText(error)}`);
   }

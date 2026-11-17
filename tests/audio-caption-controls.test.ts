@@ -6,7 +6,6 @@ import {
   TIMED_CAPTION_STYLE_OPTIONS,
   captionStyleOptions,
   captionStyleSelectValue,
-  generateVoiceoverScript,
 } from "../src/components/video-generation/audio-caption-controls";
 import { BGM_ATTRIBUTIONS } from "../src/lib/video-generation/bgm-attribution";
 
@@ -19,22 +18,27 @@ const studio = readFileSync(
   "utf8",
 );
 
-test("voiceover starts with a generated, editable script", () => {
-  assert.match(source, /生成口播稿/);
+test("声音设置只剩一个可不填的输入框：台词由 AI 导演写，商家想自己定就写在这里", () => {
+  assert.match(source, /data-testid="director-script-input"/);
   assert.match(source, /<textarea/);
-  assert.match(source, /voiceover/);
+  assert.match(source, /想让 AI 照着念的口播稿（可不填）/);
+  /// 老线路的「原生口播」开关、声音风格、按模板 / AI 起口播稿、曲库都不在了
+  assert.doesNotMatch(source, /VOICE_OPTIONS|<BgmPicker|generateVoiceoverScript|onRegenerate|RefreshCw|voiceoverToggleLocked/);
+  assert.doesNotMatch(studio, /\/api\/video-generation\/voiceover-draft|generateVoiceoverScript|autoVoiceoverScript|PlanPreviewCard|\/api\/video-generation\/plan/);
   assert.match(studio, /audio:\s*\{\s*voiceover:/);
   assert.match(studio, /captions:/);
+  /// 没写自己的稿子就不带「开着口播」：服务端按镜头脚本定口播与字幕
+  assert.match(studio, /enabled: script\.length > 0,/);
 });
 
 test("BGM disclosure includes license attribution", () => {
   /// 1025 A6 7.6：署名行改由 bgm-attribution 单一来源提供（交付面复用同一行），
   /// 选了曲目就在选曲处给出要贴进帖子文案的完整署名。
-  assert.match(source, /bgmAttributionForTrack\(value\.bgmTrackId\)/);
-  assert.match(source, /CC BY 4\.0/);
+  /// 2026-11-17：创作页不再摆曲库（配乐随片子出）；曲库只在成品详情「只重新合成」里给以前没有原生配乐的片用
   assert.match(source, /<details/);
-  /// 2026-11-10：曲目不再手写在这个组件里，由 BgmPicker 从曲库目录列出；需要署名的那一首在目录里写明作者
-  assert.match(source, /<BgmPicker/);
+  const restitch = readFileSync("src/components/library/restitch-form.tsx", "utf8");
+  assert.match(restitch, /<BgmPicker/);
+  assert.match(restitch, /data-testid="restitch-native-music"/);
   const catalog = readFileSync("src/lib/video-generation/bgm-catalog.ts", "utf8");
   assert.match(catalog, /Kevin MacLeod/);
   assert.match(catalog, /Wholesome/);
@@ -86,77 +90,8 @@ test("字幕样式分档由 wordTimestampsAvailable 控制：默认仍只列两�
 
 test("P04-B：口播 / 字幕语言按口播稿检测，不再拿界面 locale 代替", () => {
   assert.match(studio, /import \{ detectScriptLanguage \} from "@\/lib\/video-generation\/detect-script-language";/);
-  /// 2026-10-29：出故事板前 AI 刚写好的稿会作为 voiceoverScriptOverride 传进来（state 还没刷新），语言看的是同一份稿
-  assert.match(studio, /const script = voiceoverScriptOverride \?\? voiceoverScript;/);
+  assert.match(studio, /const script = voiceoverScript\.trim\(\);/);
   assert.match(studio, /voiceover:\s*\{[\s\S]*?language:\s*detectScriptLanguage\(script, locale\)/);
   assert.match(studio, /captions:\s*\{[\s\S]*?language:\s*detectScriptLanguage\(script, locale\)/);
 });
 
-test("automatic scripts are deterministic, localized, and duration-bounded", () => {
-  const input = {
-    prompt:
-      "展示一款轻巧保温杯如何解决通勤途中漏水的问题，并清楚演示单手开盖。",
-    cta: "立即了解",
-    durationSec: 15 as const,
-    language: "zh-CN",
-    templateId: "commerce-demo-first-reveal",
-  };
-  const first = generateVoiceoverScript(input);
-  const second = generateVoiceoverScript(input);
-  assert.equal(first, second);
-  assert.match(first, /保温杯/);
-  assert.match(first, /立即了解/);
-  assert.ok(Array.from(first).length <= 15 * 4);
-
-  const english = generateVoiceoverScript({
-    prompt: "Show how a compact travel bottle prevents leaks on a morning commute.",
-    cta: "Learn more",
-    durationSec: 15,
-    language: "en-US",
-    templateId: "commerce-ugc-testimonial",
-  });
-  assert.match(english, /travel bottle/i);
-  assert.match(english, /Learn more/);
-  assert.ok(english.split(/\s+/u).length <= 34);
-});
-
-test("1025：口播初稿不念规格与镜头调度，只在句读处截断", () => {
-  const zh = generateVoiceoverScript({
-    prompt:
-      "15 秒 9:16 真实 UGC 演示：一只金毛在公园奔跑，主人在手机上实时看到项圈摄像头拍下的第一视角画面。产品是米白色 Aivora 宠物项圈摄像头，镜头特写展示扣带和镜头模组，最后主人微笑点开回放。温暖自然光。",
-    durationSec: 15,
-    language: "zh-CN",
-    templateId: null,
-    cta: null,
-  });
-  assert.doesNotMatch(zh, /15 秒|9:16|UGC|特写|自然光/);
-  assert.match(zh, /一只金毛在公园奔跑/);
-  // 每个分句要么完整出现、要么不出现：不在半句处截断
-  assert.doesNotMatch(zh, /主人在手机上实时。/);
-  assert.ok(Array.from(zh).length <= 15 * 4);
-
-  const specOnly = generateVoiceoverScript({ prompt: "30 秒 16:9 横屏，特写，暖光", durationSec: 30, language: "zh-CN", templateId: null, cta: null });
-  assert.match(specOnly, /这款产品让日常使用更简单/);
-
-  const en = generateVoiceoverScript({
-    prompt: "15s vertical UGC demo. A golden retriever runs through the park, the owner watches the collar camera live on her phone. Close-up of the buckle. Warm natural lighting.",
-    durationSec: 15,
-    language: "en-US",
-    templateId: null,
-    cta: null,
-  });
-  assert.doesNotMatch(en, /15s|vertical|UGC|Close-up|lighting/i);
-  assert.match(en, /golden retriever/);
-});
-
-test("1025：「15 秒 9:16：」开头的提示词不会把画幅切出一个「16」进口播", () => {
-  const zh = generateVoiceoverScript({
-    prompt: "15 秒 9:16：橘猫趴在米白色智能宠物垫上打盹，阳光照在客厅木地板上。",
-    durationSec: 15,
-    language: "zh-CN",
-    templateId: null,
-    cta: null,
-  });
-  assert.doesNotMatch(zh, /16|9/);
-  assert.match(zh, /橘猫趴在米白色智能宠物垫上打盹/);
-});

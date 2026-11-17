@@ -1,5 +1,4 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { Progress } from "@/components/ui/progress";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
 import { cn } from "@/lib/utils";
@@ -56,13 +55,6 @@ export async function CustomerRouteLoading({
           </div>
         ) : null}
       </header>
-      {(route === "batches" || route === "batchDetail") && (
-        <Progress
-          value={0}
-          aria-label={copy.batchProgress}
-          className="max-w-3xl"
-        />
-      )}
       <div className="x-panel min-w-0 space-y-4 p-5" aria-hidden="true">
         <Skeleton className="h-4 w-1/4 motion-reduce:animate-none" />
         {Array.from({ length: 3 }, (_, index) => (

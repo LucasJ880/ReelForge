@@ -15,11 +15,6 @@
  * 每张卡加「首态 / 地点 / 谁说话」，字段按重要性排——出帧画的是首态那一刻，视频从这一帧开始演；
  * Kling 2500 字截断时先丢声音与构图，动作和尾态最后才丢。建故事板时把口播稿一起给 LLM，按台词顺序排镜头（台词原文不进卡）。
  */
-import { chatJsonByTier, isLLMAvailable, isLLMForcedMock } from "@/lib/ai";
-import {
-  planningDegradation,
-  type RecordPlanningDegradation,
-} from "@/lib/video-generation/planning-degradation";
 import {
   SHOT_CARD_NEW_LOCATION_PREFIX,
   SHOT_CARD_VOICE_PHRASES,
@@ -58,7 +53,6 @@ const FIELD_MAX_CHARS = 160;
 export const SHOT_CARD_MAX_CHARS = 640;
 /// 建故事板是用户在等的请求：2026-10-28 同题实测 gpt-5.6-sol 15–31s（偶发超 25s），gpt-5.6-terra 约 14s、质量接近，
 /// 所以走 fast 档（terra 首选）；超时即退回模板节奏，不拖住出帧。
-const DESIGN_TIMEOUT_MS = 40_000;
 
 export function storyboardShotCardsEnabled(env: Record<string, string | undefined> = process.env): boolean {
   return env.STORYBOARD_SHOT_CARDS?.trim().toLowerCase() !== "off";
@@ -127,18 +121,6 @@ export function normalizeShotCards(raw: unknown, count: number): StoryboardShotC
 }
 
 /** normalizeShotCards 整体作废时的原因（记进降级记录）。 */
-function rejectedShotCardsReason(raw: unknown, count: number): string {
-  const list = shotCardList(raw);
-  if (!list) return `LLM 输出里没有镜头卡数组（要 ${count} 张）`;
-  if (list.length < count) return `LLM 只给了 ${list.length} 张镜头卡（要 ${count} 张）`;
-  return `LLM 给的镜头卡有缺镜头 / 机位 / 动作的（要 ${count} 张都齐），整套作废`;
-}
-
-/**
- * 一张卡 → 一行英文（模型读）。按重要性排：首态 → 动作 → 尾态 → 谁说话 → 景别 / 机位 / 构图 / 光色 / 声音，
- * 预算不够时从尾巴截，动作和尾态最后才丢。空字段不写；`newLocation` 时以 `New location:` 开头。
- * 齐了就是 Kelin 核对镜头的六项：主体与表演、空间 / 调度、构图、摄影机、光色、声音 / 剪辑。
- */
 export function formatShotCard(card: StoryboardShotCard, options: { newLocation?: boolean } = {}): string {
   const parts = [
     options.newLocation && card.location && `${SHOT_CARD_NEW_LOCATION_PREFIX}${card.location}`,
@@ -173,130 +155,4 @@ export function readShotCardFromFramePrompt(prompt: string | null | undefined): 
   const line = prompt.split("\n").find((candidate) => candidate.startsWith(SHOT_CARD_LINE_PREFIX));
   const body = line?.slice(SHOT_CARD_LINE_PREFIX.length).trim();
   return body ? body : null;
-}
-
-export const SHOT_CARD_SYSTEM_PROMPT = `You are the director and director of photography of a live-action commercial for a small business.
-You turn the merchant's own description into concrete storyboard shot cards that an image model and a video model can execute without guessing.
-The image model draws each card's startState as that shot's keyframe; the video model starts from the keyframe and plays the action.
-
-Write exactly one card per beat, in order. Every card describes ONE continuous camera shot with ONE main change:
-- startState: the instant the shot begins — where each person stands and faces, which hand holds what, where the product sits. The moment before the action, never its result.
-- action: one physical action with a direction and a magnitude (who moves what, with which hand, how far, how fast).
-- endState: what the frame shows when the shot ends.
-- location: a short name for the place (2-4 words). Reuse the identical name for every shot in the same place; a new name means a hard cut to a new place.
-- voice: "on_camera" when the presenter's face is visible and they say the voice-over to camera, "voice_over" when the narration plays from off screen, "none" when nobody speaks.
-- lens: focal length + shot size, e.g. "24mm wide establishing shot", "85mm close-up", "100mm macro".
-- camera: where the camera is and how high (e.g. "12cm above the floor, slightly tilted up"), plus at most ONE slow move with a size ("20cm push-in", "slow 15° pan left", "locked off").
-- composition: what sits in the foreground, midground and background, and where the product is in frame.
-- light: the key light's direction and quality and the overall color, e.g. "soft window light from camera left, warm morning tones". Keep it identical for shots in the same place.
-- sound: diegetic sync sound only (room tone, footsteps, the product's own sounds). Never music, never narration.
-
-Rules:
-- Stay faithful to the merchant's description: same place, same people, same product, same claims. Never add prices, offers, on-screen text, logos, UI or captions.
-- Continuity: each startState agrees with the previous shot's endState (same people, same props in the same hands and places) unless the cut moves to a new location or a later moment; then startState says what changed.
-- Change location only when the merchant's description does. Keep one light direction and one wardrobe across all cards unless the merchant clearly describes a change.
-- The product must look exactly like the merchant's photos: never invent sides, buttons, labels or text that the photos do not show; keep its real scale next to hands and furniture. It can be picked up, turned, worn or used, but it only does what the merchant says it does: no opening, folding, lighting up or transforming that the merchant does not describe.
-- Choose the shot size that keeps the evidence of the action in frame (both hands and the product for a handover, the opening of the product when something comes out of it); never push in so far that the action leaves the frame.
-- Write what the camera can see: gaze, pauses, hand positions, reactions. Never name feelings, and no marketing adjectives such as "stunning", "amazing", "premium".
-- Vary shot sizes across cards (wide → medium → close-up) so the cut reads like an edited commercial, and make the last card a clean closing hero shot: the whole product clearly visible, its own printed logo or label facing the camera if it has one.
-- When a voice-over script is given, order the shots so each one shows what the narration says while it plays. Never put its words on screen or into the cards.
-- English only. startState, action and endState at most 15 words each; every other field at most 20 words.
-
-Return JSON only: {"shots":[{"startState":"","action":"","endState":"","location":"","voice":"","lens":"","camera":"","composition":"","light":"","sound":""}]}`;
-
-export interface DesignShotCardsInput {
-  story: string;
-  beats: readonly string[];
-  durationSec: number;
-  aspectRatio: string;
-  productImageCount: number;
-  personImageCount: number;
-  /// 已定的口播稿（创作台出故事板时带上）：只用来按台词顺序排镜头、标谁说话，原文不进卡。
-  voiceoverScript?: string | null;
-}
-
-export interface DesignShotCardsDeps {
-  enabled?: boolean;
-  llmAvailable?: () => boolean;
-  chat?: typeof chatJsonByTier;
-  timeoutMs?: number;
-  /// 调了 LLM 却没用上（失败 / 超时 / 输出不合格）时记一条；不传 = 只打日志
-  onDegraded?: RecordPlanningDegradation;
-}
-
-export function buildShotCardUserPrompt(input: DesignShotCardsInput): string {
-  const span = input.durationSec / Math.max(1, input.beats.length);
-  const beats = input.beats
-    .map((beat, index) => {
-      const label = beat.replace(/^\s*\d+\s*[–-]\s*\d+\s*s\s*·\s*/u, "").trim();
-      return `${index + 1}. ${Math.round(index * span)}-${Math.round((index + 1) * span)}s · ${label}`;
-    })
-    .join("\n");
-  const script = input.voiceoverScript?.replace(/\s+/gu, " ").trim() ?? "";
-  return [
-    `Video: ${input.durationSec}s, aspect ratio ${input.aspectRatio}, ${input.beats.length} shots.`,
-    `Merchant's description (may be in any language; keep its facts): ${input.story.replace(/\s+/gu, " ").trim().slice(0, 1800)}`,
-    input.productImageCount > 0
-      ? `The merchant uploaded ${input.productImageCount} real photo(s) of the product; the product must match them.`
-      : "No product photos were uploaded; describe the product only as the merchant does.",
-    input.personImageCount > 0
-      ? "A presenter photo was uploaded: the on-camera person is that presenter in every shot that shows a person."
-      : "No presenter photo: only show people if the description implies them; hands are fine.",
-    script
-      ? `Voice-over script (one voice, spoken across the whole video in this order; never rewrite it): ${script.slice(0, 2000)}`
-      : 'No voice-over script: set every "voice" to "none".',
-    "Beats:",
-    beats,
-  ].join("\n");
-}
-
-/**
- * 建故事板时设计镜头卡。任何失败都返回 null（调用方退回旧的模板节奏，不影响出帧）；调了 LLM 的失败同时交给 deps.onDegraded。
- *
- * 只读文字（商家原话 + 节拍 + 口播稿）。2026-11-10 试过让这次调用带上商品图（STORYBOARD_SHOT_CARDS_VISION）：
- * 评测集 10/10 合格、中位 16.3 秒，但真机盲评与纯文字卡打平，线上一直关着，2026-11-16 连同开关一起删了。
- */
-export async function designStoryboardShotCards(
-  input: DesignShotCardsInput,
-  deps: DesignShotCardsDeps = {},
-): Promise<StoryboardShotCard[] | null> {
-  const enabled = deps.enabled ?? storyboardShotCardsEnabled();
-  if (!enabled || input.beats.length === 0 || !input.story.trim()) return null;
-  const available = deps.llmAvailable ?? (() => isLLMAvailable() && !isLLMForcedMock());
-  if (!available()) return null;
-  const chat = deps.chat ?? chatJsonByTier;
-  const timeoutMs = deps.timeoutMs ?? DESIGN_TIMEOUT_MS;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    const result = await Promise.race([
-      chat<unknown>({
-        tier: "fast",
-        stage: "storyboard_shot_cards",
-        system: SHOT_CARD_SYSTEM_PROMPT,
-        user: buildShotCardUserPrompt(input),
-        temperature: 0.4,
-        maxTokens: 2500,
-      }),
-      new Promise<null>((resolve) => {
-        timer = setTimeout(() => resolve(null), timeoutMs);
-      }),
-    ]);
-    if (!result) {
-      console.warn("[shot-cards] design timed out; falling back to template beats");
-      deps.onDegraded?.(planningDegradation("shot_cards", `镜头卡设计超时（${timeoutMs / 1000} 秒没返回）`));
-      return null;
-    }
-    const cards = normalizeShotCards(result.data, input.beats.length);
-    if (!cards) {
-      console.warn("[shot-cards] LLM output rejected; falling back to template beats");
-      deps.onDegraded?.(planningDegradation("shot_cards", rejectedShotCardsReason(result.data, input.beats.length)));
-    }
-    return cards;
-  } catch (error) {
-    console.warn("[shot-cards] design failed; falling back to template beats:", (error as Error).message);
-    deps.onDegraded?.(planningDegradation("shot_cards", error));
-    return null;
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
 }

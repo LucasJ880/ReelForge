@@ -12,7 +12,6 @@ test("RF-005 config：Vercel Pro 每分钟覆盖 batch、poll+sweep、stitch dis
     crons?: Array<{ path: string; schedule: string }>;
   };
   assert.deepEqual(config.crons, [
-    { path: "/api/cron/process-batches", schedule: "* * * * *" },
     { path: "/api/cron/poll-videos", schedule: "* * * * *" },
     { path: "/api/cron/stitch-dispatch", schedule: "* * * * *" },
     /// round 1025 · 2.6：能力探测此前从未被调度（生产 9 行、最近一次在 30–90 天前），
@@ -37,7 +36,6 @@ test("RF-005 config：Vercel Pro 每分钟覆盖 batch、poll+sweep、stitch dis
 
 test("RF-005 config：GitHub 三个 workflow 仅保留手动入口，stitch 有并发去重组", async () => {
   for (const file of [
-    "process-batches.yml",
     "poll-videos.yml",
     "stitch-videos.yml",
   ]) {

@@ -14,7 +14,7 @@ import type { Locale } from "@/i18n/config";
 export type ReadingTone = "neutral" | "live" | "filled" | "winner" | "fault" | "ai";
 
 /** 数据源：pulse = loadPulse（壳层同源）；readings = loadExchangeReadings；usage = UserUsagePeriod；其余是页面自有的 DB 计数。 */
-export type ReadingSource = "pulse" | "readings" | "usage" | "templates" | "batches";
+export type ReadingSource = "pulse" | "readings" | "usage";
 
 type Bilingual = { readonly "zh-CN": string; readonly "en-US": string };
 
@@ -39,22 +39,16 @@ function def(zh: string, en: string, formulaZh: string, formulaEn: string, sourc
 export const READINGS = {
   generating: def("生成中", "Generating", "供应商正在生成的视频条数", "Videos the provider is rendering now", "pulse", "live"),
   queued: def("排队中", "Queued", "已下单、还没开始生成的视频", "Ordered videos not started yet", "pulse", "neutral"),
-  activeBatches: def("进行中批次", "Active batches", "拆单中与生成中，不含已暂停", "Expanding or generating; paused excluded", "pulse", "live"),
-  pausedBatches: def("已暂停批次", "Paused batches", "等待恢复的批次", "Batches waiting to resume", "pulse", "neutral"),
   needsAttention: def("需要处理", "Needs attention", "近 7 天未重试成功、还没看过的失败视频", "Unreviewed failures from the last 7 days", "pulse", "fault"),
-  filled24h: def("近 24 小时成片", "Ready · last 24 h", "单条 + 批量视频，不含图文帖", "Single + batch videos; posts excluded", "readings", "filled"),
-  filled7d: def("近 7 天成片", "Ready · last 7 days", "单条 + 批量视频，不含图文帖", "Single + batch videos; posts excluded", "readings", "filled"),
-  filled30d: def("近 30 天成片", "Ready · last 30 days", "单条 + 批量视频，不含图文帖", "Single + batch videos; posts excluded", "readings", "filled"),
-  failed7d: def("近 7 天失败", "Failed · last 7 days", "单条 + 批量视频，取消不算失败", "Single + batch videos; cancels excluded", "readings", "fault"),
+  filled24h: def("近 24 小时成片", "Ready · last 24 h", "已成片的视频，不含图文帖", "Ready videos; posts excluded", "readings", "filled"),
+  filled7d: def("近 7 天成片", "Ready · last 7 days", "已成片的视频，不含图文帖", "Ready videos; posts excluded", "readings", "filled"),
+  filled30d: def("近 30 天成片", "Ready · last 30 days", "已成片的视频，不含图文帖", "Ready videos; posts excluded", "readings", "filled"),
+  failed7d: def("近 7 天失败", "Failed · last 7 days", "失败的视频，取消不算失败", "Failed videos; cancels excluded", "readings", "fault"),
   successRate7d: def("近 7 天成片率", "Success rate · 7 days", "成片 ÷（成片 + 失败）", "Ready ÷ (ready + failed)", "readings", "neutral"),
   finished: def("成品", "Finished", "全部已成片视频 + 已出图的图文帖", "All ready videos + posts with images", "readings", "filled"),
   /// 2026-11-10：成品库第三格之前恒为「—」、说明还写着已停用的品牌封装；换成真实读数
   publishRegistered: def("已登记发布", "Publish logged", "在抖音发布包里登记过发布的成片（撤销的不算）", "Videos with a publish logged in the Douyin kit (withdrawn ones excluded)", "readings", "filled"),
   monthlyQuota: def("本月额度", "This month", "已用（含生成中）÷ 套餐上限 · UTC 自然月 · 失败与取消返还", "Used (incl. in progress) ÷ plan limit · UTC month · failures and cancels refunded", "usage", "neutral"),
-  templates: def("风格模板", "Style templates", "每个模板锁定镜头、节奏与提示词", "Each locks shots, pacing and prompts", "templates", "neutral"),
-  verifiedSamples: def("已验收样片", "Verified samples", "逐条真机验收通过的模板样片", "Template samples that passed per-render QA", "templates", "neutral"),
-  templateBatches30d: def("近 30 天套用批次", "Batches · last 30 days", "你近 30 天按模板建的批次", "Batches you built from templates in 30 days", "batches", "neutral"),
-  batchCompletion: def("完成率", "Completion", "已成片 ÷ 下单条数（近 {n} 批）", "Ready ÷ ordered (latest {n} batches)", "batches", "neutral"),
 } as const satisfies Record<string, ReadingDefinition>;
 
 export type ReadingId = keyof typeof READINGS;

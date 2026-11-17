@@ -6,7 +6,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { NextRequest } from "next/server";
 import { CapabilityBoard, orderCapabilities } from "../src/components/capabilities/capability-board";
 import { CapabilityIndicator } from "../src/components/capabilities/capability-indicator";
-import { AudioCaptionControls } from "../src/components/video-generation/audio-caption-controls";
 import { CUSTOMER_ROUTE_FALLBACKS, CUSTOMER_ROUTE_WALL_CELLS } from "../src/components/platform/customer-route-state";
 import {
   CAPABILITY_KEYS,
@@ -98,67 +97,6 @@ test("创作页：服务端读好能力状态传给创作台；实拍图库线�
 
 /* ── 口播稿起草 ────────────────────────────────────────────────────── */
 
-test("口播稿：写作暂停时按钮写明「按模板」，并提示这份稿是模板起的", () => {
-  const props = {
-    value: {
-      voiceoverEnabled: true,
-      voiceId: "warm-confident",
-      voiceoverScript: "先看实际效果。",
-      captionsEnabled: true,
-      captionStyle: "word_by_word" as const,
-      captionPosition: "bottom" as const,
-      exportSrt: true,
-      bgmTrackId: "none" as const,
-      bgmVolume: 0.2,
-    },
-    onChange: () => {},
-    onRegenerate: () => {},
-  };
-  const paused = renderToStaticMarkup(React.createElement(AudioCaptionControls, { ...props, english: false, draftFromTemplate: true }));
-  assert.match(paused, /按模板生成口播稿/);
-  assert.match(paused, /data-testid="voiceover-template-notice"/);
-  assert.match(paused, /AI 写作暂停：这份口播稿按模板起稿/);
-  const pausedEn = renderToStaticMarkup(
-    React.createElement(AudioCaptionControls, {
-      ...props,
-      value: { ...props.value, voiceoverScript: "Start with the real result." },
-      english: true,
-      draftFromTemplate: true,
-    }),
-  );
-  assert.match(pausedEn, /Draft script from template/);
-  assert.doesNotMatch(pausedEn, /[㐀-鿿]/);
-  const normal = renderToStaticMarkup(React.createElement(AudioCaptionControls, { ...props, english: false }));
-  assert.match(normal, /生成口播稿/);
-  assert.doesNotMatch(normal, /按模板|voiceover-template-notice/);
-  /// 2026-11-09：这一次真调了 AI 却没写成 → 写明现在是模板稿（以前静默退回，商家以为是 AI 写的）
-  assert.doesNotMatch(normal, /voiceover-fallback-notice/);
-  const fellBack = renderToStaticMarkup(React.createElement(AudioCaptionControls, { ...props, english: false, draftFellBack: true }));
-  assert.match(fellBack, /data-testid="voiceover-fallback-notice"/);
-  assert.match(fellBack, /这次 AI 没写成口播稿，现在这份是按模板起的/);
-  assert.match(fellBack, /生成口播稿/, "按钮仍是「生成口播稿」：可以再点一次重试");
-  const fellBackEn = renderToStaticMarkup(
-    React.createElement(AudioCaptionControls, {
-      ...props,
-      value: { ...props.value, voiceoverScript: "Start with the real result." },
-      english: true,
-      draftFellBack: true,
-    }),
-  );
-  assert.match(fellBackEn, /AI couldn(&#x27;|')t write the script this time/);
-  assert.doesNotMatch(fellBackEn, /[㐀-鿿]/);
-  /// AI 写作整体暂停时只说暂停那一条，不叠两条提示
-  const both = renderToStaticMarkup(
-    React.createElement(AudioCaptionControls, { ...props, english: false, draftFromTemplate: true, draftFellBack: true }),
-  );
-  assert.match(both, /voiceover-template-notice/);
-  assert.doesNotMatch(both, /voiceover-fallback-notice/);
-
-  const studio = read("src/components/video-generation/streamlined-video-studio.tsx");
-  assert.match(studio, /featureGate\(capabilities, "narrationDraft"\)\.status === "blocked"/);
-  assert.match(studio, /draftFromTemplate=\{narrationFromTemplate\}/);
-});
-
 /* ── 创作页的能力说明 ──────────────────────────────────────────────── */
 
 test("创作页：写作暂停时写明镜头按模板规划；成片画面质检已删，不再有「质检暂停」这句说明", () => {
@@ -166,7 +104,6 @@ test("创作页：写作暂停时写明镜头按模板规划；成片画面质�
   assert.match(studio, /featureGate\(capabilities, "scriptWriting"\)\.status === "blocked"/);
   assert.doesNotMatch(studio, /frameQa|quickHintNoQa|quickHintTemplateShotsNoQa|画面质检暂停|frame checks are paused/);
   /// 2026-10-28 晚：生成方式并进模板芯片——说明挂在芯片上，能力暂停时卡下再明写一行
-  assert.match(studio, /hint=\{quickModeHint\}/);
   assert.match(studio, /const quickModeHint = shotsFromTemplate \? copy\.quickHintTemplateShots : copy\.quickHint;/);
   assert.match(studio, /const capabilityDegraded = shotsFromTemplate;/);
   assert.match(studio, /data-testid="create-capability-notice">\{quickModeHint\}/);

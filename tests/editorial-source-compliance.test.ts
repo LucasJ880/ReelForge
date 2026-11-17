@@ -22,7 +22,6 @@ const FOUNDATION_FILES = [
   "src/components/ui/dropdown-menu.tsx",
   "src/components/ui/input.tsx",
   "src/components/ui/progress.tsx",
-  "src/components/ui/sheet.tsx",
   "src/components/ui/sonner.tsx",
   "src/components/ui/textarea.tsx",
 ];

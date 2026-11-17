@@ -161,11 +161,10 @@ test("voiceoverScript（2026-10-29）：trim 后传给 service，只作镜头卡
 });
 
 test("统一创作路由（/plan、/dispatch）的 userAssignedRole=person 受同一个开关控制（静态接线）", async () => {
-  const [plan, dispatch] = await Promise.all([
-    readFile(new URL("../src/app/api/video-generation/plan/route.ts", import.meta.url), "utf8"),
+  const [ dispatch] = await Promise.all([
     readFile(new URL("../src/app/api/video-generation/dispatch/route.ts", import.meta.url), "utf8"),
   ]);
-  for (const source of [plan, dispatch]) {
+  for (const source of [ dispatch]) {
     assert.match(source, /hasPersonTaggedAttachment\(/);
     assert.match(source, /canSubmitStoryboardPersonRefs\(/);
     // plan 路由走依赖注入（dependencies.personRefsMode()），dispatch 直接调模块函数

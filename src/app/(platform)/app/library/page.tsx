@@ -1,8 +1,9 @@
+import { libraryHeadline } from "@/lib/library/display-title";
 import Link from "next/link";
 import Image from "next/image";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { ArrowRight, Layers3, Music, Plus } from "lucide-react";
+import { ArrowRight, Music, Plus } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { loadUnifiedLibrary, type UnifiedLibraryRow } from "@/lib/services/unified-library-service";
 import {
@@ -40,12 +41,19 @@ import { contactEmail } from "@/lib/config/contact";
 export const dynamic = "force-dynamic";
 
 /// 只给视频行用。图文帖没有详情页（「本周内容」2026-11-16 删了），它的卡片直接打开配图。
+/// 以前做的批量成片也没有详情页了（批量生产 2026-11-17 下线）：卡片直接打开成片文件，照常能看、能下载。
 function detailHref(row: UnifiedLibraryRow): string {
-  return row.source === "batch" ? `/app/batches/${row.batchId}` : `/app/library/${row.id}`;
+  if (row.source !== "batch") return `/app/library/${row.id}`;
+  return row.brandedVideoUrl ?? row.videoUrl ?? "/app/library";
+}
+
+/// 批量成片的卡片打开的是成片文件：开新标签页，不把成品库顶掉
+function detailLinkProps(row: UnifiedLibraryRow): { target?: "_blank"; rel?: string } {
+  return row.source === "batch" && (row.brandedVideoUrl ?? row.videoUrl) ? { target: "_blank", rel: "noreferrer" } : {};
 }
 
 /** 英文界面的失败原因按 code 取译文（服务端 classify 给的是中文客户文案）。 */
-function failureReason(item: NeedsAttentionItem, english: boolean, failures: PlatformCopy["batches"]["monitor"]["failures"]): string {
+function failureReason(item: NeedsAttentionItem, english: boolean, failures: PlatformCopy["generationFailures"]): string {
   if (!english) return item.reason;
   switch (item.code) {
     case "SUBMISSION_ACK_UNKNOWN":
@@ -121,10 +129,12 @@ export default async function PlatformLibraryPage({
 
   /* 持仓读数墙：这页在整条生产线里的位置，名字与口径来自读数注册表，与壳层同源；能去的格子整格可点。 */
   const workflow: QuoteStat[] = [
-    { label: `01 · ${readingName("generating", locale)}`, caption: readingFormula("generating", locale), value: production.generating, tone: production.generating > 0 ? "live" : "neutral", href: "/app/batches" },
-    { label: `02 · ${readingName("finished", locale)}`, caption: readingFormula("finished", locale), value: finished, tone: finished > 0 ? "filled" : "neutral" },
-    /// 第三格：之前恒为「—」、说明写着已停用的品牌封装。现在是真实读数：登记过发布的成片条数
-    { label: `03 · ${readingName("publishRegistered", locale)}`, caption: readingFormula("publishRegistered", locale), value: publishRegistered, tone: publishRegistered > 0 ? "filled" : "neutral" },
+    { label: readingName("generating", locale), caption: readingFormula("generating", locale), value: production.generating, tone: production.generating > 0 ? "live" : "neutral" },
+    { label: readingName("finished", locale), caption: readingFormula("finished", locale), value: finished, tone: finished > 0 ? "filled" : "neutral" },
+    /// 登记过发布的成片条数：一条都没登记时不占一格（零不能让人接着做什么）
+    ...(publishRegistered > 0
+      ? [{ label: readingName("publishRegistered", locale), caption: readingFormula("publishRegistered", locale), value: publishRegistered, tone: "filled" as const }]
+      : []),
   ];
 
   return (
@@ -132,11 +142,6 @@ export default async function PlatformLibraryPage({
       nav="library"
       locale={locale}
       subtitle={copy.subtitle}
-      secondaryActions={
-        <Button render={<Link href="/app/batches/new" />} variant="outline">
-          <Layers3 aria-hidden />{copy.batch}
-        </Button>
-      }
       primaryAction={
         <Button render={<Link href="/app/create" />}>
           <Plus aria-hidden />{copy.create}
@@ -186,7 +191,7 @@ export default async function PlatformLibraryPage({
         <EmptyState
           data-route-state="empty"
           body={query ? copy.noResults.replace("{query}", query) : copy.empty}
-          action={{ label: copy.browse, href: "/app/templates", icon: <ArrowRight aria-hidden /> }}
+          action={{ label: copy.create, href: "/app/create", icon: <ArrowRight aria-hidden /> }}
         />
       ) : (
         <>
@@ -209,8 +214,8 @@ export default async function PlatformLibraryPage({
                   >
                     <StatusTick entity="item" state="failed" locale={locale} />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-body font-medium">{item.title}</p>
-                      <p className="text-meta text-muted-foreground">{failureReason(item, english, allCopy.batches.monitor.failures)}</p>
+                      <p className="truncate text-body font-medium" title={item.title}>{libraryHeadline(item.title)}</p>
+                      <p className="text-meta text-muted-foreground">{failureReason(item, english, allCopy.generationFailures)}</p>
                       <p className="font-mono text-data tabular-nums text-tertiary">
                         {copy.sourceLabels[item.kind]} · <LocalTime iso={item.at.toISOString()} locale={locale} variant="relative" />
                         {item.action === "contact_support" && !supportEmail ? <> · {copy.supportHint} {item.rowId}</> : null}
@@ -231,17 +236,10 @@ export default async function PlatformLibraryPage({
                         <Button render={<Link href={item.retryHref} />} variant="outline" size="sm">
                           {copy.regenerate}
                         </Button>
-                      ) : (
-                        <Button render={<Link href={item.href} />} variant="outline" size="sm">
-                          {copy.retryInBatch}
-                        </Button>
-                      )}
-                      {/* 批量失败的主按钮已链到批次详情；单条与「联系支持」类再给一个详情入口 */}
-                      {item.kind === "order" || item.action === "contact_support" ? (
-                        <Button render={<Link href={item.href} />} variant="ghost" size="sm">
-                          {copy.viewDetail}<ArrowRight aria-hidden />
-                        </Button>
                       ) : null}
+                      <Button render={<Link href={item.href} />} variant="ghost" size="sm">
+                        {copy.viewDetail}<ArrowRight aria-hidden />
+                      </Button>
                     </div>
                   </li>
                 ))}
@@ -271,7 +269,7 @@ export default async function PlatformLibraryPage({
                     >
                       <span className="x-live" aria-hidden />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-body font-medium">{row.title}</p>
+                        <p className="truncate text-body font-medium" title={row.title}>{libraryHeadline(row.title)}</p>
                         <p className="font-mono text-data tabular-nums text-muted-foreground">
                           {copy.sourceLabels[row.source]} · {copy.statuses[row.status]} ·{" "}
                           {row.elapsedMinutes !== null && row.elapsedMinutes > 0
@@ -310,7 +308,7 @@ export default async function PlatformLibraryPage({
                     >
                       <StatusTick entity="item" state={libraryRowState(row.status)} locale={locale} className="w-20 shrink-0" />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-body font-medium">{row.title}</p>
+                        <p className="truncate text-body font-medium" title={row.title}>{libraryHeadline(row.title)}</p>
                         <p className="font-mono text-data tabular-nums text-muted-foreground">
                           {copy.sourceLabels[row.source]} · <LocalTime iso={row.updatedAt.toISOString()} locale={locale} variant="relative" />
                         </p>
@@ -337,7 +335,7 @@ export default async function PlatformLibraryPage({
                         data-highlighted={isHighlighted(row.id)}
                         className="group min-w-0 overflow-hidden rounded-(--radius-lg) border border-border bg-card transition-colors hover:border-accent-line"
                       >
-                        <Link href={href} className="block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+                        <Link href={href} {...detailLinkProps(row)} className="block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
                           <div className={cn("relative overflow-hidden bg-sunken", row.aspectRatio === "16:9" ? "aspect-video" : "aspect-[9/16]")}>
                             {row.videoUrl ? (
                               <HoverPreviewVideo
@@ -361,7 +359,8 @@ export default async function PlatformLibraryPage({
                           </div>
                         </Link>
                         <div className="space-y-2 p-3">
-                          <h3 className="min-w-0 truncate text-body font-medium">{row.title}</h3>
+                          {/* 卡片标题只放第一小句（商品名 / 这条片讲什么），整段描述留在悬停提示里 */}
+                          <h3 className="min-w-0 truncate text-body font-medium" title={row.title}>{libraryHeadline(row.title)}</h3>
                           <p className="flex items-center justify-between gap-2 font-mono text-data tabular-nums text-muted-foreground">
                             {row.status === "failed" ? (
                               <StatusTick entity="item" state="failed" locale={locale} />
@@ -396,7 +395,7 @@ export default async function PlatformLibraryPage({
                                 }}
                               />
                             ) : null}
-                            <Button render={<Link href={href} />} variant="ghost" size="sm" className="ml-auto">
+                            <Button render={<Link href={href} {...detailLinkProps(row)} />} variant="ghost" size="sm" className="ml-auto">
                               {copy.view}<ArrowRight aria-hidden />
                             </Button>
                           </div>

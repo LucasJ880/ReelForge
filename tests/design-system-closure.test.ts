@@ -93,10 +93,9 @@ test("客户面不用 ✨ 图标：主行动用说清动作的图标（研究禁
 
 test("状态记号是一套自绘 SVG，不用字体回退的 ▲●◐▼‖× 字符", () => {
   const tick = readFileSync("src/components/exchange/status-tick.tsx", "utf8");
-  const tape = readFileSync("src/components/exchange/exchange-tape.tsx", "utf8");
   assert.match(tick, /export function TickGlyph/);
   assert.match(tick, /<svg viewBox="0 0 12 12"/);
-  for (const source of [tick, tape, readFileSync("src/components/platform/platform-shell.tsx", "utf8")]) {
+  for (const source of [tick, readFileSync("src/components/platform/platform-shell.tsx", "utf8")]) {
     assert.doesNotMatch(source, /glyph:\s*"[▲●◐▼‖×]"/);
   }
 });

@@ -24,15 +24,17 @@ import {
   writeDirectorScriptForStoryboard,
 } from "../src/lib/video-generation/director-line";
 import {
+  DIRECTOR_LINE_BLOCKER_MESSAGE,
   DIRECTOR_LINE_TEMPLATE_ID,
+  DIRECTOR_STYLES,
   directorLineApplies,
-  directorLineEnabled,
+  directorLineBlocker,
+  directorStyle,
 } from "../src/lib/video-generation/director-line-policy";
 import { buildVideoPrompt, cornerLogoFilter, parseDirectorJob } from "../src/lib/video-generation/director-plan";
 import { buildPlan } from "../src/lib/video-generation/generation-supervisor";
 import { mapPlanToDirectorPlan } from "../src/lib/video-generation/plan-to-director";
 import { parseDirectorPlan } from "../src/lib/schemas/director-plan";
-import { getStyleTemplate } from "../src/lib/video-generation/style-templates";
 import { readStoredVisualReference } from "../src/lib/video-generation/visual-reference-analysis";
 import { planningDegradationNotice } from "../src/lib/video-generation/planning-degradation-notice";
 import { PLANNING_FALLBACK_BY_STAGE } from "../src/lib/video-generation/planning-degradation";
@@ -42,6 +44,7 @@ import type { TestContext } from "node:test";
 import { db } from "../src/lib/db";
 import {
   __test__ as storyboardTest,
+  StoryboardRequestError,
   createStoryboardRun,
   expectedStoryboardFrameCount,
 } from "../src/lib/video-generation/storyboard-service";
@@ -135,37 +138,51 @@ function stored(durationSec: 15 | 30 = 15) {
 // 什么时候走导演线路
 // ---------------------------------------------------------------------------
 
-test("总开关缺省开，DIRECTOR_LINE=off 才关", () => {
-  assert.equal(directorLineEnabled({}), true);
-  assert.equal(directorLineEnabled({ DIRECTOR_LINE: "on" }), true);
-  assert.equal(directorLineEnabled({ DIRECTOR_LINE: "off" }), false);
-  assert.equal(directorLineEnabled({ DIRECTOR_LINE: " OFF " }), false);
-});
-
-test("走导演线路：有实拍图的 15 / 30 秒单条片，模板是自动匹配或电商快销", () => {
-  const base = { enabled: true, durationSec: 15, productImageCount: 2, styleTemplateId: null };
+test("导演线路做得了的：有实拍图的 15 / 30 秒片，风格是自动匹配或风格卡里的一种", () => {
+  const base = { durationSec: 15, productImageCount: 2, styleTemplateId: null };
+  assert.equal(directorLineBlocker(base), null);
   assert.equal(directorLineApplies(base), true);
   assert.equal(directorLineApplies({ ...base, durationSec: 30 }), true);
-  assert.equal(directorLineApplies({ ...base, styleTemplateId: DIRECTOR_LINE_TEMPLATE_ID }), true);
   assert.equal(directorLineApplies({ ...base, styleTemplateId: "" }), true);
-  /// 不走的：开关关着、60 秒、没有实拍图、带了主播参考图、选了别的模板、批量的故事板
-  assert.equal(directorLineApplies({ ...base, enabled: false }), false);
-  assert.equal(directorLineApplies({ ...base, durationSec: 60 }), false);
-  assert.equal(directorLineApplies({ ...base, productImageCount: 0 }), false);
-  assert.equal(directorLineApplies({ ...base, personImageCount: 1 }), false);
-  assert.equal(directorLineApplies({ ...base, styleTemplateId: "commerce-food-sizzle" }), false);
-  assert.equal(directorLineApplies({ ...base, purpose: "batch-video-storyboard" }), false);
+  for (const style of DIRECTOR_STYLES) {
+    assert.equal(directorLineBlocker({ ...base, styleTemplateId: style.id }), null, style.id);
+  }
 });
 
-test("模板库里有「电商快销」，id 和导演线路认的是同一个", () => {
-  const template = getStyleTemplate(DIRECTOR_LINE_TEMPLATE_ID);
-  assert.ok(template, "STYLE_TEMPLATES 里要有电商快销");
-  assert.equal(template.name, "电商快销");
-  assert.match(template.scaffold.shotPattern, /0-2s hook/);
-  /// 创作页的模板下拉里也有它
-  const studio = readFileSync("src/components/video-generation/streamlined-video-studio.tsx", "utf8");
-  assert.match(studio, /value: DIRECTOR_LINE_TEMPLATE_ID, label: copy\.templateFmcg/);
-  assert.match(studio, /templateFmcg: "电商快销"/);
+test("做不了的当场说清原因（没有退路）：没有实拍图、别的时长、带主播参考图、下线的老模板", () => {
+  const base = { durationSec: 15, productImageCount: 2, styleTemplateId: null };
+  assert.equal(directorLineBlocker({ ...base, productImageCount: 0 }), "no_product_photo");
+  assert.equal(directorLineBlocker({ ...base, durationSec: 60 }), "duration");
+  assert.equal(directorLineBlocker({ ...base, durationSec: 10 }), "duration");
+  assert.equal(directorLineBlocker({ ...base, personImageCount: 1 }), "person_reference");
+  assert.equal(directorLineBlocker({ ...base, styleTemplateId: "commerce-food-sizzle" }), "template");
+  /// 没图排在最前：商家先看到「请上传商品图」，不是一句时长不对
+  assert.equal(directorLineBlocker({ durationSec: 60, productImageCount: 0 }), "no_product_photo");
+  for (const message of Object.values(DIRECTOR_LINE_BLOCKER_MESSAGE)) {
+    assert.match(message, /[\u4e00-\u9fff]/u);
+    assert.doesNotMatch(message, /DIRECTOR|blocker|undefined/u);
+  }
+});
+
+test("风格卡：六种，id 不重复，都有中英文名和一句话说明；拍法要求是英文、不写商品事实、够写手用", () => {
+  assert.equal(DIRECTOR_STYLES.length, 6);
+  assert.equal(new Set(DIRECTOR_STYLES.map((style) => style.id)).size, DIRECTOR_STYLES.length);
+  assert.equal(DIRECTOR_STYLES[0]!.id, DIRECTOR_LINE_TEMPLATE_ID);
+  for (const style of DIRECTOR_STYLES) {
+    assert.match(style.id, /^tpl_[a-z_]+$/u);
+    assert.ok(style.zh.length >= 2 && style.zh.length <= 6, `${style.id} 中文名要短：下拉里放得下`);
+    assert.ok(style.en.length > 0 && style.hintZh.length > 0 && style.hintEn.length > 0);
+    assert.doesNotMatch(style.brief, /[\u4e00-\u9fff]/u, `${style.id} 的拍法要求全程英文`);
+    assert.ok(style.brief.length >= 200 && style.brief.length <= 900, `${style.id} brief 长度 ${style.brief.length}`);
+    assert.ok(["fmcg", "lifestyle"].includes(style.genre));
+    assert.equal(directorStyle(style.id), style);
+  }
+  assert.equal(directorStyle(null), null);
+  assert.equal(directorStyle("auto"), null);
+  /// 客户点名要的那种：情绪种草要有正脸表情镜头
+  assert.match(directorStyle("tpl_emotion_story")!.brief, /face visible/u);
+  /// 质感特写不露脸、是慢节奏片种
+  assert.equal(directorStyle("tpl_texture_closeup")!.genre, "lifestyle");
 });
 
 // ---------------------------------------------------------------------------
@@ -264,11 +281,11 @@ test("导演线路的配乐随片子出：曲库不再混进去，创作页也�
   assert.equal(plan.postProduction?.audio.voiceover.enabled, true);
   const controls = readFileSync("src/components/video-generation/audio-caption-controls.tsx", "utf8");
   assert.match(controls, /data-testid="director-script-input"/);
-  assert.match(controls, /value=\{ownScript \? value\.voiceoverScript : ""\}/, "模板自动起的口播稿不显示、不交给 AI");
-  assert.match(controls, /\{directorMode \? null : \(\s+<section className="space-y-3">\s+<div className="flex items-start gap-2">\s+<Music2/);
+  assert.doesNotMatch(controls, /BgmPicker|Music2|VOICE_OPTIONS|生成口播稿/, "创作页不摆曲库、声音风格和「生成口播稿」");
   const studio = readFileSync("src/components/video-generation/streamlined-video-studio.tsx", "utf8");
-  assert.match(studio, /directorMode=\{directorMode\}\s+ownScript=\{ownVoiceoverScript\}/);
-  assert.match(studio, /\? \(ownVoiceoverScript \? voiceoverScript\.trim\(\) : ""\)/);
+  /// 只有商家自己写的口播稿才交给 AI 照着排；没写就是空，AI 按商品自己写台词
+  assert.match(studio, /const narration = voiceoverScript\.trim\(\);/);
+  assert.match(studio, /voiceoverScript: initialVoiceoverScript\.trim\(\),/);
   assert.match(studio, /index === 2 \? copy\.directorStepScript : index === 3 \? copy\.directorStepApprove : step/);
 });
 
@@ -319,21 +336,19 @@ for (const duration of [15, 30] as const) {
   });
 }
 
-test("不带脚本出方案：30 秒照旧是两段 15 秒（老线路不变）", async () => {
-  const plan = await buildPlan(request(30));
-  assert.equal(plan.segments.filter((segment) => segment.type === "ai_generated_clip").length, 2);
-  assert.equal(plan.postProduction?.audio.voiceover.enabled, false);
-});
-
 test("接线：故事板、派发、合成三处都读脚本", () => {
   const storyboard = readFileSync("src/lib/video-generation/storyboard-service.ts", "utf8");
-  assert.match(storyboard, /directorLineApplies\(\{/);
+  assert.match(storyboard, /directorLineBlocker\(\{/);
   assert.match(storyboard, /visualReference: written\.stored/);
-  assert.match(storyboard, /degradations\.record\(planningDegradation\("director_script", written\.cause\)\)/);
+  /// 写不成就明说、可以再点一次：不退回老的分帧故事板
+  assert.match(storyboard, /"DIRECTOR_SCRIPT_FAILED",\s*503/);
+  assert.doesNotMatch(storyboard, /designStoryboardShotCards|renderStoryInEnglish/);
   assert.match(storyboard, /export function expectedStoryboardFrameCount/);
   assert.doesNotMatch(storyboard, /refs\.length !== storyboardFrameCountForDuration/, "判出齐要用 expectedStoryboardFrameCount");
   const dispatch = readFileSync("src/app/api/video-generation/dispatch/route.ts", "utf8");
   assert.match(dispatch, /director: \{ job: directorScript\.job \}/);
+  /// 没有镜头脚本的故事板（下线前的老版本）不再出片
+  assert.match(dispatch, /if \(!directorScript\) \{\s*return dispatchErrorResponse\(422/);
   assert.match(dispatch, /directorLine: packDirectorScript\(directorScript\)/);
   const videoService = readFileSync("src/lib/services/video-service.ts", "utf8");
   assert.match(videoService, /directorVideoReferenceUrls\(directorLine\.job, openingFrameUrl\)/);
@@ -355,7 +370,7 @@ const WRITE_INPUT = {
   jobId: "sb-test",
 };
 
-test("写手调用抛错 / 交回来的不是脚本 → ok: false 带原因，绝不抛（调用方退回老的故事板）", async () => {
+test("写手调用抛错 / 交回来的不是脚本 → ok: false 带原因，绝不抛（调用方据此告诉商家再点一次）", async () => {
   const failing = await writeDirectorScriptForStoryboard(WRITE_INPUT, {
     complete: async () => {
       throw new Error("model gpt-5.6-sol is overloaded");
@@ -530,17 +545,8 @@ test("建故事板（导演线路）：只建一张开场帧，帧带着自己�
   assert.equal(expectedStoryboardFrameCount({ durationSec: 15 }), 4);
 });
 
-test("建故事板：写手没写成 → 退回老的分帧故事板，run 上记一条 director_script 降级；选了别的模板根本不叫写手", async (t) => {
-  const savedEnv = { DIRECTOR_LINE: process.env.DIRECTOR_LINE, STORYBOARD_SHOT_CARDS: process.env.STORYBOARD_SHOT_CARDS };
-  delete process.env.DIRECTOR_LINE;
-  process.env.STORYBOARD_SHOT_CARDS = "off";
-  t.after(() => {
-    for (const [key, value] of Object.entries(savedEnv)) {
-      if (value === undefined) delete process.env[key];
-      else process.env[key] = value;
-    }
-    storyboardTest.__setRuntimeDependenciesForTests(null);
-  });
+test("建故事板：写手没写成 → 明说、不建 run、不退回老的分帧故事板；下线的老模板根本不叫写手", async (t) => {
+  t.after(() => storyboardTest.__setRuntimeDependenciesForTests(null));
   let writerCalls = 0;
   storyboardTest.__setRuntimeDependenciesForTests({
     writeDirectorScript: async () => {
@@ -549,16 +555,21 @@ test("建故事板：写手没写成 → 退回老的分帧故事板，run 上�
     },
   });
   const created = captureRunCreate(t);
-  await assert.rejects(createStoryboardRun({ ...RUN_INPUT, idempotencyKey: "director-fallback" }), /stop after create/);
+  await assert.rejects(
+    createStoryboardRun({ ...RUN_INPUT, idempotencyKey: "director-fallback" }),
+    (error: unknown) =>
+      error instanceof StoryboardRequestError
+      && error.code === "DIRECTOR_SCRIPT_FAILED"
+      && error.status === 503
+      && /再点一次/.test(error.message)
+      && !/overloaded|model_unavailable/.test(error.message),
+  );
   assert.equal(writerCalls, 1);
-  const degradations = created[0]!.planningDegradations as Array<{ stage: string; fallback: string; reason: string }>;
-  assert.ok(degradations.some((entry) => entry.stage === "director_script" && entry.fallback === "shot_card_storyboard" && /overloaded/.test(entry.reason)));
-  assert.equal(Object.hasOwn(created[0]!, "visualReference"), false);
-  assert.equal((created[0]!.frames as { create: unknown[] }).create.length, 5, "30 秒的老故事板是 5 帧");
+  assert.equal(created.length, 0, "没写成就不建 run：不出帧、不花点数");
 
   await assert.rejects(
     createStoryboardRun({ ...RUN_INPUT, idempotencyKey: "other-template", styleTemplateId: "commerce-food-sizzle" }),
-    /stop after create/,
+    (error: unknown) => error instanceof StoryboardRequestError && error.code === "VALIDATION_FAILED" && /模板已经下线/.test(error.message),
   );
-  assert.equal(writerCalls, 1, "别的模板走老线路，不叫写手");
+  assert.equal(writerCalls, 1, "下线的老模板当场拒绝，不叫写手");
 });

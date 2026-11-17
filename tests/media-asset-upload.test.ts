@@ -74,10 +74,9 @@ test("media asset persistence hashes bytes and inspects image dimensions", async
 });
 
 test("active creation upload consumers use the server-issued asset ID", async () => {
-  const [xhr, uploadAssets, batchWizard, singleStudio] = await Promise.all([
+  const [xhr, uploadAssets, singleStudio] = await Promise.all([
     readFile("src/lib/upload/blob-xhr.ts", "utf8"),
     readFile("src/components/personal/upload-assets.ts", "utf8"),
-    readFile("src/components/batch/batch-create-wizard.tsx", "utf8"),
     readFile("src/components/video-generation/streamlined-video-studio.tsx", "utf8"),
   ]);
 
@@ -90,10 +89,6 @@ test("active creation upload consumers use the server-issued asset ID", async ()
   assert.match(uploadAssets, /assetId: asset\.id/);
   assert.match(uploadAssets, /id: asset\.id/);
   assert.match(uploadAssets, /url: asset\.url/);
-
-  assert.match(batchWizard, /assetId: data\.assetId/);
-  assert.match(batchWizard, /assetIds: uploaded\.map/);
-  assert.doesNotMatch(batchWizard, /images: uploaded\.map/);
 
   assert.match(singleStudio, /toOwnedCreationRequest/);
 });

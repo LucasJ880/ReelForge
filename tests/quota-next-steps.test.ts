@@ -113,25 +113,22 @@ test("入口组件：申请陪跑试点链到首页试点表单；有邮箱才�
 
 test("接线：邮箱只在服务端页面取、以 props 传下去；额度用完的每一处客户端界面都挂上入口", async () => {
   const read = (file: string) => readFile(file, "utf8");
-  const [createPage, batchPage, libraryDetail, studio, monitor, actions] = await Promise.all([
+  const [createPage, libraryDetail, studio, actions] = await Promise.all([
     read("src/app/(platform)/app/create/page.tsx"),
-    read("src/app/(platform)/app/batches/[id]/page.tsx"),
     read("src/app/(platform)/app/library/[id]/page.tsx"),
     read("src/components/video-generation/streamlined-video-studio.tsx"),
-    read("src/components/batch/batch-monitor.tsx"),
     read("src/components/library/video-actions.tsx"),
   ]);
-  for (const page of [createPage, batchPage, libraryDetail]) {
+  for (const page of [createPage, libraryDetail]) {
     assert.match(page, /import \{ contactEmail \} from "@\/lib\/config\/contact";/);
     assert.match(page, /contactEmail=\{contactEmail\(\)\}/);
   }
-  for (const client of [studio, monitor, actions]) {
+  for (const client of [studio, actions]) {
     assert.match(client, /^"use client";/);
     assert.doesNotMatch(client, /@\/lib\/config\/contact/, "客户端组件不自己读联系邮箱");
     assert.match(client, /<QuotaNextSteps locale=\{[^}]+\} contactEmail=\{contactEmail\}/);
   }
   assert.match(studio, /setQuotaError\(payload\.code === "QUOTA_EXCEEDED" \? message : null\);/);
   assert.match(studio, /readings\.quotaUsed >= readings\.quotaLimit/, "额度已用完时提交前就给下一步");
-  assert.match(monitor, /errorAction === "view_usage"/);
   assert.match(actions, /body\?\.code === "QUOTA_EXCEEDED"/);
 });

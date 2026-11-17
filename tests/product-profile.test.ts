@@ -180,7 +180,7 @@ test("导航：商品在资产组里、成品库和品牌之间；页面标题�
   assert.deepEqual(ids.slice(ids.indexOf("library"), ids.indexOf("library") + 3), ["library", "products", "brands"]);
   assert.equal(PLATFORM_PRIMARY_NAV.find((item) => item.id === "products")?.href, "/app/products");
   const shell = readFileSync("src/components/platform/platform-shell.tsx", "utf8");
-  assert.match(shell, /\{ id: "assets", items: \["library", "products", "brands", "templates"\] \}/);
+  assert.match(shell, /\{ id: "assets", items: \["library", "products", "brands"\] \}/);
   assert.match(shell, /products: Package,/);
   const page = readFileSync("src/app/(platform)/app/products/page.tsx", "utf8");
   assert.match(page, /nav="products"/);

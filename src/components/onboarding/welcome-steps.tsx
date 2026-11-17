@@ -10,7 +10,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Field, FormAlert, NativeSelect } from "@/components/leads/form-fields";
 import { MonoTag } from "@/components/exchange/mono-tag";
 import { StatusTick } from "@/components/exchange/status-tick";
-import { WallVideo } from "@/components/exchange/wall-controls";
 import { uploadFilesToAssets } from "@/components/personal/upload-assets";
 import type { Locale } from "@/i18n/config";
 import { getOnboardingCopy } from "@/i18n/onboarding-copy";
@@ -405,32 +404,24 @@ function VideoStep({
           </Button>
         </div>
       ) : null}
-      {state.templates.length > 0 ? (
-        <ul className="x-wall grid-cols-1 sm:grid-cols-3">
-          {state.templates.map((template, index) => (
-            <li key={template.slug} className="flex min-w-0 flex-col">
-              <div className="relative aspect-video overflow-hidden bg-sunken">
-                <WallVideo src={template.video} poster={template.poster ?? undefined} label={template.name} />
-                <span className="absolute left-1.5 top-1.5 rounded-(--radius-sm) bg-sunken/85">
-                  <MonoTag className="border-0">{t.sampleTag}</MonoTag>
-                </span>
-              </div>
-              <div className="flex min-w-0 flex-1 items-center justify-between gap-2 px-3 py-2.5">
-                <span className="min-w-0 truncate text-meta">{template.name}</span>
-                <Button
-                  render={<Link href={createHref(template.slug)} />}
-                  variant={isPrimaryAction(index) ? "default" : "outline"}
-                  size="sm"
-                >
-                  {t.useTemplate}
-                </Button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-meta text-muted-foreground">{t.noTemplates}</p>
-      )}
+      <ul className="divide-y divide-border rounded-(--radius-lg) border border-border" data-testid="welcome-styles">
+        {state.templates.map((template, index) => (
+          <li key={template.slug} className="flex min-w-0 items-center justify-between gap-3 px-3 py-2.5">
+            <div className="min-w-0">
+              <p className="text-body">{template.name}</p>
+              <p className="text-meta text-muted-foreground">{template.hint}</p>
+            </div>
+            <Button
+              render={<Link href={createHref(template.slug)} />}
+              variant={isPrimaryAction(index) ? "default" : "outline"}
+              size="sm"
+              className="shrink-0"
+            >
+              {t.useTemplate}
+            </Button>
+          </li>
+        ))}
+      </ul>
       <Button render={<Link href="/app/create" />} variant="ghost">
         {t.openCreate}
         <ArrowRight aria-hidden />

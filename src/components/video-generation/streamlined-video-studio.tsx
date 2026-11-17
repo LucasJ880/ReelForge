@@ -13,9 +13,7 @@ import {
   Film,
   GalleryHorizontalEnd,
   ImagePlus,
-  ListChecks,
   Loader2,
-  Paperclip,
   PenLine,
   Settings2,
   X,
@@ -26,18 +24,15 @@ import { QUOTE_TONE_CLASS } from "@/components/exchange/quote-header";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { requestPulseRefresh } from "@/lib/exchange/pulse";
 import { formatRate, quotaStat, readingStat } from "@/lib/exchange/readings-registry";
-import { SectionHead } from "@/components/exchange/section-head";
 import { uploadFilesToAssets } from "@/components/personal/upload-assets";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import {
   AudioCaptionControls,
-  generateVoiceoverScript,
   type AudioCaptionControlValue,
 } from "@/components/video-generation/audio-caption-controls";
 import { FirstRunOnboardingDialog } from "@/components/video-generation/first-run-onboarding-dialog";
-import { PlanPreviewCard } from "@/components/video-generation/plan-preview-card";
 import { QuotaNextSteps } from "@/components/quota/quota-next-steps";
 import { quotaNextStepsCopy } from "@/lib/quota-next-steps";
 import {
@@ -59,16 +54,10 @@ import type { WorkspaceBrandPackageView } from "@/lib/services/workspace-brand-p
 import { BRAND_END_CARD_ENTRY_ENABLED } from "@/lib/brand/brand-end-card-policy";
 import { HOOK_ANGLES, applyHookAngle, detectHookAngle, stripHookAngle } from "@/lib/create/hook-angles";
 import { applyProductSize, detectProductSize, PRODUCT_SIZE_MAX, stripProductSize } from "@/lib/create/product-size";
-import { BGM_CATALOG } from "@/lib/video-generation/bgm-catalog";
 import { SIGNOFF_BRAND_MAX, SIGNOFF_CTA_MAX } from "@/lib/video-generation/brand-signoff";
-import { DIRECTOR_LINE_TEMPLATE_ID, directorLineApplies } from "@/lib/video-generation/director-line-policy";
+import { DIRECTOR_STYLES, directorLineBlocker, directorStyle } from "@/lib/video-generation/director-line-policy";
 import { decideStoryboardResume } from "@/lib/create/storyboard-resume";
 import { loadVoiceoverDraft, saveVoiceoverDraft } from "@/lib/video-generation/voiceover-draft-storage";
-import { awaitVoiceoverDraft } from "@/lib/video-generation/voiceover-draft-wait";
-import {
-  COMMERCE_TEMPLATE_RECIPES,
-  COMMERCE_TEMPLATE_SLUGS,
-} from "@/lib/video-generation/commerce-template-catalog";
 import { detectScriptLanguage } from "@/lib/video-generation/detect-script-language";
 import { toOwnedCreationRequest } from "@/types/video-generation";
 import type {
@@ -76,7 +65,6 @@ import type {
   BrandEndingMode,
   OwnedUnifiedVideoGenerationRequest,
   UploadedAsset,
-  VideoGenerationPlan,
 } from "@/types/video-generation";
 
 const MAX_PRODUCT_IMAGES = 9;
@@ -86,25 +74,11 @@ const ONBOARDING_STORAGE_KEY = "aivora.create-onboarding.v1";
 const STORYBOARD_ATTEMPT_STORAGE_KEY = "aivora.storyboard-attempt.v1";
 const DISPATCH_ATTEMPT_STORAGE_KEY = "aivora.dispatch-attempt.v1";
 const DISMISSED_STORYBOARDS_STORAGE_KEY = "aivora.dismissed-storyboards.v1";
-const DURATIONS = [15, 30, 60] as const;
-/// 出故事板前最多等 AI 口播稿这么久（服务端起稿自己 20 秒就放弃，这里多留一点网络余量）
-const VOICEOVER_AUTO_DRAFT_WAIT_MS = 25_000;
+/// 导演线路只做 15 / 30 秒，都是整条一次生成（60 秒 2026-11-17 下线）
+const DURATIONS = [15, 30] as const;
 const ASPECT_RATIOS: AspectRatio[] = ["9:16", "16:9", "1:1"];
-const LEGACY_QUALITY_TEMPLATE_IDS = [
-  "tpl_event_watch_party",
-  "tpl_viral_result_first",
-  "tpl_viral_pain_solution",
-  "tpl_ugc_review",
-  "tpl_viral_sensory_texture",
-] as const;
-const QUALITY_TEMPLATE_IDS = [
-  DIRECTOR_LINE_TEMPLATE_ID,
-  ...COMMERCE_TEMPLATE_SLUGS,
-  ...LEGACY_QUALITY_TEMPLATE_IDS,
-] as const;
 
 type CreationMode = "quick" | "advanced";
-type ReferenceMode = "all" | "product_only";
 type BusyState = "preview" | "storyboard" | "dispatch" | null;
 
 interface StoredAttempt {
@@ -167,9 +141,6 @@ const ZH_COPY = {
   signoffLogo: "在品牌名上方带上 Logo",
   signoffLogoHint: "用你默认品牌包里的 Logo，垫白底，和文字一起淡入。",
   summarySignoff: "落款",
-  summaryBgm: "配乐",
-  audioHint: "口播由成片直接说出，口播稿可随时修改；字幕在成片完成后按实际时长生成。",
-  summaryVoiceover: "口播",
   summaryDirectorAudio: "AI 配音配乐",
   summaryCornerLogo: "右上角 Logo",
   directorStepScript: "AI 写镜头脚本",
@@ -180,23 +151,17 @@ const ZH_COPY = {
   stepAsset: "选择产品素材（可选）",
   stepAssetHint: "最多 9 张。真实产品建议上传正面、侧面和细节图；不上传则使用纯文字生成。",
   productCount: "{count} / 9 张",
-  productRequired: "暂未上传产品图，将使用纯文字生成。",
+  productRequired: "先上传至少一张商品实拍图：片子里的商品照着它拍。",
+  needsProductPhoto: "还差一步：先上传至少一张商品实拍图，片子里的商品是照着它拍的。",
   removeProduct: "移除产品图",
-  optionalReferences: "参考图与成片视频（可选）",
-  optionalReferencesHint: "参考图用于补充风格；上传的视频可作为真实片段用于成片。",
-  removeReference: "移除参考素材",
   unsupportedFile: "请选择受支持的图片或视频文件。",
   tooManyProducts: "产品图最多 9 张，多出的文件未上传。",
-  tooManyReferences: "本次创作最多使用 20 个素材，多出的文件未上传。",
   uploaded: "已添加 {count} 个素材",
   uploadFailed: "素材上传未完成，请检查文件后重试。",
   quickHint: "系统自动完成镜头与质量检查",
   /// C4：能力暂停时这句说明要诚实——写作暂停 = 镜头按模板规划
   quickHintTemplateShots: "镜头先按模板规划，系统照常做质量检查",
   route: "生成线路",
-  referenceMode: "参考方式",
-  referenceAll: "全能参考",
-  referenceProduct: "仅产品图",
   aspect: "画幅",
   duration: "时长",
   vertical: "9:16 竖屏",
@@ -204,12 +169,6 @@ const ZH_COPY = {
   square: "1:1 方形",
   template: "创意模板",
   templateAuto: "自动匹配（推荐）",
-  templateFmcg: "电商快销",
-  templateEvent: "赛事观看",
-  templateResult: "成果前置",
-  templatePain: "痛点解决",
-  templateUgc: "UGC 测评",
-  templateSensory: "光影质感",
   brandPackageStep: "结尾联系方式帧（可选）",
   brandPackageHint: "每条视频单独选择。关闭输出干净视频；开启后在片尾追加一帧品牌联系方式（logo 印在产品上，画面不再盖角标水印）。",
   cleanVideo: "只生成干净视频",
@@ -217,7 +176,7 @@ const ZH_COPY = {
   noBrandPackages: "当前工作区还没有可用品牌包；可先保持纯视频输出。",
   setUpBrandPackage: "去建品牌包",
   promptLabel: "描述你想生成的视频",
-  promptPlaceholder: "例：把这只保温杯拍成通勤广告——清晨地铁站拿出来喝一口，到了办公室放在桌上，热气还在。",
+  promptPlaceholder: "例：婴儿纱布口水巾，三条一包。宝宝吃辅食总漏一身，戴上它，米糊落在口水巾上，衣服干干净净。",
   promptRequired: "请填写视频提示词。",
   promptPresets: ["真实 UGC 演示", "产品质感展示", "痛点到效果"],
   presetPrompts: [
@@ -226,13 +185,8 @@ const ZH_COPY = {
     "痛点到效果：前 3 秒呈现一个真实具体的问题，随后用产品完成一次清晰使用动作，结尾展示可信结果，不夸大产品功能。",
   ],
   charCount: "{count} / 4000",
-  previewPlan: "核对生成方案",
-  previewing: "正在准备方案…",
-  planningShots: "正在规划镜头…",
-  writingVoiceover: "正在写口播稿…",
   /// 「生成 AI 故事板」一个按钮背后是三段等待：写明现在在哪一段、哪一段最久
   stagesLabel: "生成故事板的进度",
-  stages: ["写口播稿", "排镜头（约 40–60 秒）", "出故事板画面"],
   directorStages: ["写镜头脚本（约 1–3 分钟）", "出开场画面"],
   recentTitle: "接着拍这些商品",
   recentHint: "点一下带回商品图和上次的描述，改一改再拍。",
@@ -260,15 +214,10 @@ const ZH_COPY = {
   cancelRoundHint: "生成服务出问题时，可以随时取消这一轮，素材和描述会保留。",
   finishingEditableHint: "画面已经定了。口播稿、字幕、配乐、片尾落款和出片线路，在点「生成视频」之前都还能在「更多设置」里改。",
   quotaHint: "提交时预占 1 条额度，失败与取消自动返还：本月已用 {used} / {limit} 条。",
-  previewFailed: "暂时无法准备生成方案，请稍后重试。",
   dispatchFailed: "暂时无法提交视频，请稍后重试。",
-  qualityBlocked: "视频描述还需要更多细节。请按生成方案中的提示修改后再提交。",
-  planHeading: "生成方案已准备",
   /// 2026-10-28 晚：创作页改成对话框优先（上线审核 §4）
   heroTitle: "今天想拍什么？",
   attachProduct: "商品图",
-  attachReference: "参考",
-  referenceTag: "参考",
   helpWrite: "帮我写",
   helpPolish: "帮我润色",
   helpWriting: "正在写…",
@@ -279,9 +228,6 @@ const ZH_COPY = {
   tryThese: "试试这些",
   hookAngles: "换个开头",
   moreSettings: "更多设置",
-  referenceModeHint: "全能参考：商品图和参考素材一起用；仅产品图：参考素材不参与生成。",
-  rowPlan: "生成方案",
-  previewPlanHint: "想先看 AI 打算怎么拍、能不能过，可以先核对方案；不核对也会在出故事板时一并生成。",
 } as const;
 
 type StudioCopy = {
@@ -328,9 +274,6 @@ const EN_COPY: StudioCopy = {
   signoffLogo: "Show the logo above the brand name",
   signoffLogoHint: "Uses the logo from your default brand package on a white plate; it fades in with the text.",
   summarySignoff: "Sign-off",
-  summaryBgm: "Music",
-  audioHint: "The video speaks your editable script; captions are timed to the finished video.",
-  summaryVoiceover: "Voiceover",
   summaryDirectorAudio: "AI voice and music",
   summaryCornerLogo: "Corner logo",
   directorStepScript: "AI writes the shot script",
@@ -341,22 +284,16 @@ const EN_COPY: StudioCopy = {
   stepAsset: "Choose product assets (optional)",
   stepAssetHint: "Add up to 9 clear product images, or leave this empty for text-to-video generation.",
   productCount: "{count} / 9 images",
-  productRequired: "No product image added. This will use text-to-video generation.",
+  productRequired: "Upload at least one real product photo first: the product in the video is filmed from it.",
+  needsProductPhoto: "One more step: upload at least one real product photo. The product in the video is filmed from it.",
   removeProduct: "Remove product image",
-  optionalReferences: "Reference images and final-footage clips (optional)",
-  optionalReferencesHint: "Images guide style. Uploaded videos can be used as real footage in the final edit.",
-  removeReference: "Remove reference asset",
   unsupportedFile: "Choose a supported image or video file.",
   tooManyProducts: "You can use up to 9 product images. Extra files were not uploaded.",
-  tooManyReferences: "A creation can use up to 20 assets. Extra files were not uploaded.",
   uploaded: "Added {count} assets",
   uploadFailed: "The upload did not finish. Check the files and try again.",
   quickHint: "Automatic shot planning and quality checks",
   quickHintTemplateShots: "Shots are planned from templates for now; quality checks still run",
   route: "Generation route",
-  referenceMode: "Reference mode",
-  referenceAll: "Use all references",
-  referenceProduct: "Product only",
   aspect: "Format",
   duration: "Length",
   vertical: "9:16 vertical",
@@ -364,12 +301,6 @@ const EN_COPY: StudioCopy = {
   square: "1:1 square",
   template: "Creative template",
   templateAuto: "Auto match (recommended)",
-  templateFmcg: "Fast e-commerce ad",
-  templateEvent: "Watch party",
-  templateResult: "Result first",
-  templatePain: "Pain to proof",
-  templateUgc: "UGC review",
-  templateSensory: "Material and light",
   brandPackageStep: "Contact end frame (optional)",
   brandPackageHint: "Choose per video. Off produces a clean video; on appends one brand contact frame at the end (no corner watermark — the logo lives on the product).",
   cleanVideo: "Clean video only",
@@ -377,7 +308,7 @@ const EN_COPY: StudioCopy = {
   noBrandPackages: "This workspace has no active brand package yet. You can continue with a clean video.",
   setUpBrandPackage: "Set up a brand kit",
   promptLabel: "Describe the video you want to generate",
-  promptPlaceholder: "Example: Turn this tumbler into a commute ad. A sip on the morning subway, then it sits on the office desk, still steaming.",
+  promptPlaceholder: "Example: Muslin baby bibs, three in a pack. Feeding time always ends up on the shirt; with the bib on, the puree lands on the bib and the shirt stays clean.",
   promptRequired: "Write a video prompt.",
   promptPresets: ["Real UGC demo", "Material showcase", "Pain to result"],
   presetPrompts: [
@@ -386,12 +317,7 @@ const EN_COPY: StudioCopy = {
     "Show one real problem in the first three seconds, solve it with one clear product action, and end on a believable result without exaggerating any feature.",
   ],
   charCount: "{count} / 4000",
-  previewPlan: "Review generation plan",
-  previewing: "Preparing the plan…",
-  planningShots: "Planning shots…",
-  writingVoiceover: "Writing the voiceover…",
   stagesLabel: "Storyboard progress",
-  stages: ["Write the voiceover", "Plan the shots (about 40–60s)", "Draw the storyboard frames"],
   directorStages: ["Write the shot script (about 1–3 min)", "Draw the opening frame"],
   recentTitle: "Pick up one of these products",
   recentHint: "One click brings back its photos and your last brief — tweak it and shoot again.",
@@ -419,14 +345,9 @@ const EN_COPY: StudioCopy = {
   cancelRoundHint: "If generation is having trouble, cancel this round anytime — your uploads and direction are kept.",
   finishingEditableHint: "The shots are set. You can still change the script, captions, music, sign-off and video route under More settings until you generate the video.",
   quotaHint: "Reserves 1 video at submission, refunded automatically on failure or cancel: {used} / {limit} used this month.",
-  previewFailed: "The generation plan is temporarily unavailable. Try again shortly.",
   dispatchFailed: "The video could not be submitted right now. Try again shortly.",
-  qualityBlocked: "The brief needs more detail. Update it using the generation-plan guidance, then submit again.",
-  planHeading: "Generation plan ready",
   heroTitle: "What will you create today?",
   attachProduct: "Product photos",
-  attachReference: "Reference",
-  referenceTag: "Ref",
   helpWrite: "Write it for me",
   helpPolish: "Polish my words",
   helpWriting: "Writing…",
@@ -437,9 +358,6 @@ const EN_COPY: StudioCopy = {
   tryThese: "Try these",
   hookAngles: "Change the opening",
   moreSettings: "More settings",
-  referenceModeHint: "Use all references: product photos and references work together. Product only: references are left out.",
-  rowPlan: "Generation plan",
-  previewPlanHint: "Want to see how the AI plans to shoot it first? Review the plan, or skip it: it's built with the storyboard anyway.",
 };
 
 /**
@@ -474,7 +392,6 @@ export function StreamlinedVideoStudio({
   readings = null,
   contactEmail = null,
   recentSources = [],
-  directorLine = false,
   resumeRequested = false,
 }: {
   /**
@@ -482,8 +399,6 @@ export function StreamlinedVideoStudio({
    * 不带这个参数时，失败的旧故事板不再自动把素材和描述填回表单，只给一条提示让用户自己选。
    */
   resumeRequested?: boolean;
-  /** 导演线路的总开关（服务端页面读好传进来）：开着且这条片适用时，由 AI 写镜头脚本、只出一张开场帧、整条一次生成。 */
-  directorLine?: boolean;
   /** 最近拍过的商品（服务端按属主读好）：空白创作页上点一下就带回那一单的商品图和描述。 */
   /// 「接着拍」那一行：存好的商品（/app/create?product=…）和最近拍过的一单（?retry=…），去处由页面给
   recentSources?: ReadonlyArray<{ id: string; href: string; title: string; thumbnailUrl: string; imageCount: number }>;
@@ -519,17 +434,13 @@ export function StreamlinedVideoStudio({
   const { locale } = useTranslation();
   const english = locale === "en-US";
   const copy = english ? EN_COPY : ZH_COPY;
-  /// C4 · 能力闸门：口播稿起草与镜头规划要写作。
-  const narrationFromTemplate = featureGate(capabilities, "narrationDraft").status === "blocked";
+  /// C4 · 能力闸门：镜头脚本要 AI 写作。
   const shotsFromTemplate = featureGate(capabilities, "scriptWriting").status === "blocked";
   const quickModeHint = shotsFromTemplate ? copy.quickHintTemplateShots : copy.quickHint;
   const initialProductAssets = initialAssets
     .filter((asset) => asset.type === "IMAGE")
     .slice(0, MAX_PRODUCT_IMAGES)
     .map((asset) => ({ ...asset, userAssignedRole: "product_image" as const }));
-  const initialReferenceAssets = initialAssets
-    .filter((asset) => !initialProductAssets.some((product) => product.id === asset.id))
-    .slice(0, MAX_ATTACHMENTS - initialProductAssets.length);
   const seededStyleTemplateId = isQualityTemplateId(initialStyleTemplateId)
     ? initialStyleTemplateId
     : "auto";
@@ -539,16 +450,15 @@ export function StreamlinedVideoStudio({
   const [showGuide, setShowGuide] = useState(!returningUser);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [productAssets, setProductAssets] = useState<UploadedAsset[]>(initialProductAssets);
-  const [referenceAssets, setReferenceAssets] = useState<UploadedAsset[]>(initialReferenceAssets);
   const [uploadingTarget, setUploadingTarget] = useState<"product" | "reference" | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [creationMode, setCreationMode] = useState<CreationMode>("quick");
-  const [referenceMode, setReferenceMode] = useState<ReferenceMode>("all");
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>(
     initialAspectRatio ?? "9:16",
   );
-  const [selectedDuration, setSelectedDuration] = useState<15 | 30 | 60>(
-    initialDurationSec ?? 15,
+  const [selectedDuration, setSelectedDuration] = useState<15 | 30>(
+    /// 以前做的 60 秒片「再做一条」带回来时落到 30 秒
+    initialDurationSec === 60 ? 30 : initialDurationSec ?? 15,
   );
   const [styleTemplateId, setStyleTemplateId] = useState(seededStyleTemplateId);
   /// 默认出干净视频。1028 闭环轮曾改成默认选中品牌包，保温杯片尾因此冒出窗帘厂尾卡，当天撤回；
@@ -557,15 +467,8 @@ export function StreamlinedVideoStudio({
   const [rawPrompt, setRawPrompt] = useState(initialPrompt);
   const [audioCaptionSettings, setAudioCaptionSettings] =
     useState<AudioCaptionControlValue>(() => ({
-      voiceoverEnabled: true,
-      voiceId: "warm-confident",
-      voiceoverScript: initialVoiceoverScript.trim() || generateVoiceoverScript({
-        prompt: initialPrompt,
-        cta: null,
-        durationSec: initialDurationSec ?? 15,
-        language: locale,
-        templateId: seededStyleTemplateId === "auto" ? null : seededStyleTemplateId,
-      }),
+      /// 只放商家自己写的口播稿；空着 = AI 按描述给每个镜头写一句
+      voiceoverScript: initialVoiceoverScript.trim(),
       captionsEnabled: true,
       captionStyle: "word_by_word",
       captionPosition: "bottom",
@@ -573,8 +476,6 @@ export function StreamlinedVideoStudio({
       bgmTrackId: "none",
       bgmVolume: 0.2,
     }));
-  const [plan, setPlan] = useState<VideoGenerationPlan | null>(null);
-  const [planRequestKey, setPlanRequestKey] = useState<string | null>(null);
   /// 片尾落款：默认不带。预填只取商家自己工作区的品牌包（默认的那个优先），不取全局包——
   /// 10-28 的「保温杯配窗帘厂 logo」就是别人的品牌被默认带上了。
   const ownBrandForSignoff = useMemo(() => {
@@ -595,10 +496,6 @@ export function StreamlinedVideoStudio({
   const [cancellingRound, setCancellingRound] = useState(false);
   const [editConfirmOpen, setEditConfirmOpen] = useState(false);
   const [busy, setBusy] = useState<BusyState>(null);
-  /// 「生成 AI 故事板」里先出方案（40–60 秒）再建故事板：前半段主按钮写「正在规划镜头…」，别让人以为帧已经在画
-  const [planningShots, setPlanningShots] = useState(false);
-  /// 出方案期间也要能退出（每一轮都可取消）：只是不再等这次结果——出方案没有副作用、不占额度
-  const planAbortRef = useRef<AbortController | null>(null);
   /// 「生成故事板」的提交要十几秒到一分钟、服务端已经开始出第一帧，中途断不掉：商家点了取消就记下来，
   /// 提交一返回立刻让服务端真取消这一轮（铁律 #7：每一轮任务都能取消）。
   const cancelStoryboardCreateRef = useRef(false);
@@ -614,9 +511,6 @@ export function StreamlinedVideoStudio({
   const [dragOver, setDragOver] = useState(false);
   const storyboardAttemptRef = useRef<StoredAttempt | null>(null);
   const dispatchAttemptRef = useRef<StoredAttempt | null>(null);
-  const voiceoverEditedRef = useRef(initialVoiceoverScript.trim().length > 0);
-  /// 同一件事的可渲染版本：导演线路下只显示、只交给 AI 商家自己写 / 改过的口播稿（模板自动起的那份不算）
-  const [ownVoiceoverScript, setOwnVoiceoverScript] = useState(initialVoiceoverScript.trim().length > 0);
   /// 用户一旦改动任何创作输入，挂载时的静默恢复就必须放弃，避免覆盖新意图。
   const interactedRef = useRef(false);
   /// 表单现在是不是已经有用户的内容（描述变了、有商品图 / 参考图、正在上传）。恢复请求要先跟供应商对账，
@@ -651,7 +545,6 @@ export function StreamlinedVideoStudio({
     formDirtyRef.current =
       rawPrompt.trim() !== initialPrompt.trim()
       || productAssets.length !== initialProductAssets.length
-      || referenceAssets.length !== initialReferenceAssets.length
       || uploadingTarget !== null;
     storyboardOnPageRef.current = storyboard !== null;
   });
@@ -663,14 +556,13 @@ export function StreamlinedVideoStudio({
     setResumeOffer(null);
     setStoryboard(run);
     setRawPrompt(context.prompt);
-    /// 故事板恢复了，口播稿也要回来：商家改过 / AI 写过的稿子不能悄悄退回模板稿
+    /// 故事板恢复了，商家自己写的口播稿也要回来
     const voiceoverDraft = loadVoiceoverDraft(sessionStorage, context.prompt);
     if (voiceoverDraft !== null) {
-      voiceoverEditedRef.current = true;
       setAudioCaptionSettings((current) => ({ ...current, voiceoverScript: voiceoverDraft }));
     }
     if ((DURATIONS as readonly number[]).includes(context.durationSec)) {
-      setSelectedDuration(context.durationSec as 15 | 30 | 60);
+      setSelectedDuration(context.durationSec as 15 | 30);
     }
     if (ASPECT_RATIOS.includes(context.aspectRatio as AspectRatio)) {
       setSelectedAspectRatio(context.aspectRatio as AspectRatio);
@@ -777,29 +669,15 @@ export function StreamlinedVideoStudio({
   const activeStyleTemplateId = creationMode === "advanced"
     ? styleTemplateId
     : seededStyleTemplateId;
-  /// 这条片走不走导演线路（和服务端同一条判断）：有实拍图的 15 / 30 秒片，模板是「自动匹配」或「电商快销」
-  const directorMode = directorLineApplies({
-    enabled: directorLine,
+  /// 导演线路是唯一的出片方式（和服务端同一条判断）：要有商品实拍图、15 / 30 秒、风格在风格卡里。
+  /// 现在做不了的原因（没传图等）用来把按钮说明白；界面一律按导演线路摆。
+  const directorBlocker = directorLineBlocker({
     durationSec: selectedDuration,
     productImageCount: productAssets.length,
     styleTemplateId: activeStyleTemplateId === "auto" ? null : activeStyleTemplateId,
   });
-  const autoVoiceoverScript = useMemo(() => generateVoiceoverScript({
-    prompt: rawPrompt,
-    cta: selectedBrandPackage?.cta ?? null,
-    durationSec: selectedDuration,
-    language: locale,
-    templateId: activeStyleTemplateId === "auto" ? null : activeStyleTemplateId,
-  }), [
-    activeStyleTemplateId,
-    locale,
-    rawPrompt,
-    selectedBrandPackage?.cta,
-    selectedDuration,
-  ]);
+  const selectedStyle = directorStyle(activeStyleTemplateId === "auto" ? null : activeStyleTemplateId);
   const {
-    voiceoverEnabled,
-    voiceId,
     voiceoverScript,
     captionsEnabled,
     captionStyle,
@@ -850,9 +728,8 @@ export function StreamlinedVideoStudio({
     ];
   }, [selectedBrandPackage]);
   const activeAttachments = useMemo(() => {
-    const creativeAssets = referenceMode === "all"
-      ? [...productAssets, ...referenceAssets]
-      : productAssets;
+    /// 导演线路只照着商品实拍图拍：创作素材就是这几张图（参考素材入口 2026-11-17 随老线路删除）
+    const creativeAssets = productAssets;
     const boundedCreativeAssets = creativeAssets.slice(
       0,
       Math.max(0, MAX_ATTACHMENTS - brandPackageAssets.length),
@@ -862,7 +739,7 @@ export function StreamlinedVideoStudio({
       ...boundedCreativeAssets,
       ...brandPackageAssets.filter((asset) => !seen.has(asset.assetId ?? asset.id)),
     ];
-  }, [brandPackageAssets, productAssets, referenceAssets, referenceMode]);
+  }, [brandPackageAssets, productAssets]);
   /// 重做单帧时可改选的参考图：只给创作台里的产品图（故事板的商家实拍就是这几张）。
   const storyboardReferenceOptions = useMemo<StoryboardReferenceOption[]>(
     () => productAssets.map((asset) => ({
@@ -873,24 +750,13 @@ export function StreamlinedVideoStudio({
     [productAssets],
   );
 
+  /// 商家自己写的口播稿跟描述一起存进 sessionStorage，刷新后随故事板一起恢复
   useEffect(() => {
-    if (voiceoverEditedRef.current) return;
-    setAudioCaptionSettings((current) => (
-      current.voiceoverScript === autoVoiceoverScript
-        ? current
-        : { ...current, voiceoverScript: autoVoiceoverScript }
-    ));
-  }, [autoVoiceoverScript]);
-
-  /// 改过 / AI 写过的口播稿跟描述一起存进 sessionStorage，刷新后随故事板一起恢复
-  useEffect(() => {
-    if (voiceoverEditedRef.current) saveVoiceoverDraft(sessionStorage, rawPrompt, voiceoverScript);
+    saveVoiceoverDraft(sessionStorage, rawPrompt, voiceoverScript.trim() ? voiceoverScript : null);
   }, [rawPrompt, voiceoverScript]);
 
   const invalidatePlan = useCallback(() => {
     interactedRef.current = true;
-    setPlan(null);
-    setPlanRequestKey(null);
     setStoryboard(null);
     storyboardAttemptRef.current = null;
     dispatchAttemptRef.current = null;
@@ -958,92 +824,13 @@ export function StreamlinedVideoStudio({
     );
   }
 
-  /// 故事板出来之后改口播稿 / 声音 / 字幕 / 配乐：这些不改画面，派发那一刻才取值。
-  /// 只让本页的方案预览失效（派发时服务端照常重新出方案把关），故事板和已经出好的帧留着。
-  const invalidatePlanKeepingStoryboard = useCallback(() => {
+  /// 字幕设置不改画面，派发那一刻才取值：故事板出来之后照样能改。
+  /// 自己写的口播稿是给 AI 排镜头用的：故事板出来之前改它，下一次生成就按新稿子来。
+  const updateAudioCaptionSettings = useCallback((next: AudioCaptionControlValue) => {
     interactedRef.current = true;
-    setPlan(null);
-    setPlanRequestKey(null);
+    setAudioCaptionSettings(next);
     setError(null);
   }, []);
-  const hasStoryboard = storyboard !== null;
-
-  const updateAudioCaptionSettings = useCallback((
-    next: AudioCaptionControlValue,
-  ) => {
-    setAudioCaptionSettings((current) => {
-      if (next.voiceoverScript !== current.voiceoverScript) {
-        voiceoverEditedRef.current = true;
-        setOwnVoiceoverScript(true);
-      }
-      return next;
-    });
-    if (hasStoryboard) invalidatePlanKeepingStoryboard();
-    else invalidatePlan();
-  }, [hasStoryboard, invalidatePlan, invalidatePlanKeepingStoryboard]);
-
-  /// 2026-10-28：「生成口播稿」由 AI 按商家原话写（/api/video-generation/voiceover-draft）；
-  /// AI 不可用、超时或超长时退回本地模板稿（与之前同一份）。AI 稿视同用户确认过的稿，描述再改也不被模板覆盖。
-  const [voiceoverDrafting, setVoiceoverDrafting] = useState(false);
-  /// 这次真调了 AI 却没写成（接口回 degraded）：口播稿下面写明「现在是模板稿」，写成一次或换稿后清掉
-  const [voiceoverDraftFellBack, setVoiceoverDraftFellBack] = useState(false);
-  /// 正在写的那一份 AI 口播稿（离开输入框 / 「生成口播稿」/ 出故事板前自动，三处共用）：同一时间只有一份，
-  /// 出故事板时有就等它，不再并发写第二份。
-  const voiceoverDraftRef = useRef<Promise<string | null> | null>(null);
-  const draftVoiceoverWithAi = useCallback((signal?: AbortSignal): Promise<string | null> => {
-    if (voiceoverDraftRef.current) return voiceoverDraftRef.current;
-    const run = (async () => {
-      setVoiceoverDrafting(true);
-      try {
-        const response = await fetch("/api/video-generation/voiceover-draft", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            prompt: rawPrompt,
-            durationSec: selectedDuration,
-            language: locale,
-            cta: selectedBrandPackage?.cta ?? null,
-          }),
-          signal,
-        });
-        const payload = await response.json().catch(() => null) as
-          | { ok?: boolean; script?: string | null; degraded?: boolean }
-          | null;
-        if (!response.ok || !payload?.script) {
-          setVoiceoverDraftFellBack(Boolean(response.ok && payload?.degraded));
-          return null;
-        }
-        const script = payload.script;
-        setVoiceoverDraftFellBack(false);
-        voiceoverEditedRef.current = true;
-        setAudioCaptionSettings((current) => ({ ...current, voiceoverScript: script }));
-        return script;
-      } catch {
-        return null;
-      } finally {
-        setVoiceoverDrafting(false);
-        voiceoverDraftRef.current = null;
-      }
-    })();
-    voiceoverDraftRef.current = run;
-    return run;
-  }, [locale, rawPrompt, selectedBrandPackage?.cta, selectedDuration]);
-  const regenerateVoiceoverScript = useCallback(async () => {
-    const applyTemplate = () => {
-      voiceoverEditedRef.current = false;
-      saveVoiceoverDraft(sessionStorage, rawPrompt, null);
-      setAudioCaptionSettings((current) => ({ ...current, voiceoverScript: autoVoiceoverScript }));
-    };
-    const invalidate = hasStoryboard ? invalidatePlanKeepingStoryboard : invalidatePlan;
-    if (!rawPrompt.trim() || narrationFromTemplate) {
-      applyTemplate();
-      invalidate();
-      return;
-    }
-    const script = await draftVoiceoverWithAi();
-    if (!script) applyTemplate();
-    invalidate();
-  }, [autoVoiceoverScript, draftVoiceoverWithAi, hasStoryboard, invalidatePlan, invalidatePlanKeepingStoryboard, narrationFromTemplate, rawPrompt]);
 
   useEffect(() => {
     if (!storyboard || storyboard.status !== "GENERATING") return;
@@ -1131,7 +918,7 @@ export function StreamlinedVideoStudio({
     interactedRef.current = true;
     const remaining = Math.min(
       MAX_PRODUCT_IMAGES - productAssets.length,
-      MAX_ATTACHMENTS - productAssets.length - referenceAssets.length,
+      MAX_ATTACHMENTS - productAssets.length,
     );
     if (remaining <= 0) return;
     const supported = files.filter((file) => isSupportedImage(file));
@@ -1161,70 +948,15 @@ export function StreamlinedVideoStudio({
     }
   }
 
-  async function uploadReferenceAssets(files: File[]) {
-    if (busy !== null || uploadingTarget !== null || storyboard) return;
-    interactedRef.current = true;
-    const reservedProductSlot = productAssets.length === 0 ? 1 : 0;
-    const remaining = MAX_ATTACHMENTS
-      - productAssets.length
-      - referenceAssets.length
-      - reservedProductSlot;
-    if (remaining <= 0) return;
-    const supported = files.filter((file) => isSupportedReference(file));
-    const accepted = supported.slice(0, remaining);
-    if (accepted.length !== files.length) {
-      const message = supported.length > remaining ? copy.tooManyReferences : copy.unsupportedFile;
-      setUploadError(message);
-      toast.error(message);
-    }
-    if (accepted.length === 0) return;
-    setUploadingTarget("reference");
-    try {
-      const images = accepted.filter((file) => isSupportedImage(file));
-      const videos = accepted.filter((file) => file.type.startsWith("video/"));
-      const [uploadedImages, uploadedVideos] = await Promise.all([
-        images.length > 0
-          ? uploadFilesToAssets(images, {
-              forceRole: "reference_image",
-              skipAiClassification: true,
-            })
-          : Promise.resolve([]),
-        videos.length > 0
-          ? uploadFilesToAssets(videos, {
-              forceRole: "product_demo_clip",
-              skipAiClassification: true,
-            })
-          : Promise.resolve([]),
-      ]);
-      const uploaded = [...uploadedImages, ...uploadedVideos];
-      setReferenceAssets((current) => [...current, ...uploaded].slice(0, MAX_ATTACHMENTS - productAssets.length));
-      invalidatePlan();
-      setUploadError(null);
-      toast.success(copy.uploaded.replace("{count}", String(uploaded.length)));
-    } catch (uploadFailure) {
-      const message = safeUploadError(uploadFailure, copy.uploadFailed);
-      setUploadError(message);
-      toast.error(message);
-    } finally {
-      setUploadingTarget(null);
-    }
-  }
-
   function removeProductAsset(assetId: string) {
     if (busy !== null || storyboard) return;
     setProductAssets((current) => current.filter((asset) => asset.id !== assetId));
     invalidatePlan();
   }
 
-  function removeReferenceAsset(assetId: string) {
-    if (busy !== null || storyboard) return;
-    setReferenceAssets((current) => current.filter((asset) => asset.id !== assetId));
-    invalidatePlan();
-  }
-
-  /// voiceoverScriptOverride：出故事板前刚由 AI 写好的口播稿——同一次点击里 state 还没刷新，直接用它
-  function buildRequest(voiceoverScriptOverride?: string | null): OwnedUnifiedVideoGenerationRequest {
-    const script = voiceoverScriptOverride ?? voiceoverScript;
+  function buildRequest(): OwnedUnifiedVideoGenerationRequest {
+    /// 台词由 AI 导演写进镜头脚本，服务端出片时按脚本定口播与字幕；这里只带商家自己写的那份（有才带）
+    const script = voiceoverScript.trim();
     const selectedBrandEndingMode: BrandEndingMode = selectedBrandPackage?.endCardAsset?.mimeType.startsWith("video/")
       ? "uploaded_clip"
       : selectedBrandPackage
@@ -1250,11 +982,11 @@ export function StreamlinedVideoStudio({
       styleTemplateId: activeStyleTemplateId === "auto" ? null : activeStyleTemplateId,
       audio: {
         voiceover: {
-          enabled: voiceoverEnabled,
-          voiceId,
+          enabled: script.length > 0,
+          voiceId: "warm-confident",
           /// P04-B：口播 / 字幕语言看稿子本身（含汉字 → zh-CN），不再拿界面 locale 代替
           language: detectScriptLanguage(script, locale),
-          script: script.trim(),
+          script,
         },
         bgm: {
           trackId: bgmTrackId,
@@ -1286,70 +1018,8 @@ export function StreamlinedVideoStudio({
 
   function validateBeforeRequest(): string | null {
     if (!rawPrompt.trim()) return copy.promptRequired;
-    /// 导演线路的台词由 AI 写进镜头脚本，不要求先有口播稿
-    if (!directorMode && voiceoverEnabled && !voiceoverScript.trim()) {
-      return english
-        ? "Add a voiceover script or turn native voiceover off."
-        : "请填写口播稿，或关闭原生口播。";
-    }
     if (signoffEnabled && !signoffBrand.trim()) return copy.signoffRequired;
     return null;
-  }
-
-  async function fetchPlan(
-    request: OwnedUnifiedVideoGenerationRequest,
-    signal?: AbortSignal,
-  ): Promise<VideoGenerationPlan> {
-    const response = await fetch("/api/video-generation/plan", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(request),
-      signal,
-    });
-    const payload = await response.json().catch(() => null) as
-      | { ok: true; plan: VideoGenerationPlan }
-      | { ok: false; error?: string }
-      | null;
-    if (!response.ok || !payload?.ok) throw new Error(copy.previewFailed);
-    return payload.plan;
-  }
-
-  async function handlePreview() {
-    const validationError = validateBeforeRequest();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-    const request = buildRequest();
-    const requestKey = JSON.stringify(request);
-    setError(null);
-    setBusy("preview");
-    const controller = new AbortController();
-    planAbortRef.current = controller;
-    try {
-      const nextPlan = await fetchPlan(request, controller.signal);
-      setPlan(nextPlan);
-      setPlanRequestKey(requestKey);
-      if (!nextPlan.qualityReview.canDispatch) {
-        setError(copy.qualityBlocked);
-      }
-      requestAnimationFrame(() => {
-        document.getElementById("streamlined-plan-preview")?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      });
-    } catch {
-      if (controller.signal.aborted) toast.success(copy.planningCancelled);
-      else setError(copy.previewFailed);
-    } finally {
-      planAbortRef.current = null;
-      setBusy(null);
-    }
-  }
-
-  function cancelPlanning() {
-    planAbortRef.current?.abort();
   }
 
   function cancelStoryboardCreate() {
@@ -1363,57 +1033,12 @@ export function StreamlinedVideoStudio({
       setError(validationError);
       return;
     }
-    let request = buildRequest();
-    let requestKey = JSON.stringify(request);
+    const request = buildRequest();
     setError(null);
     setBusy("storyboard");
     cancelStoryboardCreateRef.current = false;
     setCancellingStoryboardCreate(false);
     try {
-      let activePlan = plan;
-      /// 导演线路：镜头脚本在建故事板那一步由 AI 一次写完，这里不再先等一遍「出方案」和口播稿起草（各几十秒，产出用不上）
-      if (!directorMode && (!activePlan || planRequestKey !== requestKey)) {
-        const controller = new AbortController();
-        planAbortRef.current = controller;
-        setPlanningShots(true);
-        try {
-          /// 口播稿还停在模板（没手改、AI 也没写过）或正有一份在写：出方案前先等 AI 按商家原话写的稿。
-          /// 预填的描述（重新生成 / 帮我写 / 试试这些 / 贴链接）从不触发「离开输入框就起稿」，之前成片口播是模板套话；
-          /// 写不出、超时或取消就照旧用模板稿（2026-10-29 灰度真机）。
-          if (
-            voiceoverEnabled
-            && !narrationFromTemplate
-            && rawPrompt.trim().length >= 12
-            && (voiceoverDraftRef.current !== null || !voiceoverEditedRef.current)
-          ) {
-            const drafted = await awaitVoiceoverDraft(
-              draftVoiceoverWithAi(controller.signal),
-              controller.signal,
-              VOICEOVER_AUTO_DRAFT_WAIT_MS,
-            );
-            if (drafted) {
-              request = buildRequest(drafted);
-              requestKey = JSON.stringify(request);
-            }
-          }
-          activePlan = await fetchPlan(request, controller.signal);
-        } catch (reason) {
-          if (controller.signal.aborted) {
-            toast.success(copy.planningCancelled);
-            return;
-          }
-          throw reason;
-        } finally {
-          planAbortRef.current = null;
-          setPlanningShots(false);
-        }
-        setPlan(activePlan);
-        setPlanRequestKey(requestKey);
-      }
-      if (!directorMode && activePlan && !activePlan.qualityReview.canDispatch) {
-        setError(copy.qualityBlocked);
-        return;
-      }
       const storyboardBody = {
         prompt: request.rawPrompt,
         durationSec: request.selectedDuration,
@@ -1430,11 +1055,8 @@ export function StreamlinedVideoStudio({
         storyboardAttemptRef.current = { fingerprint, key: crypto.randomUUID() };
       }
       persistStoredAttempt(STORYBOARD_ATTEMPT_STORAGE_KEY, storyboardAttemptRef.current);
-      /// 口播稿只给镜头卡排镜头用，不算进提交指纹：改了口播稿再点，照旧回放同一份故事板，不重出一套付费帧。
-      /// 导演线路：只有商家自己写过 / 改过的口播稿才交给 AI 照着排；模板自动生成的稿子不带（AI 会按商品自己写台词）
-      const narration = directorMode
-        ? (ownVoiceoverScript ? voiceoverScript.trim() : "")
-        : request.audio?.voiceover?.enabled ? request.audio.voiceover.script.trim() : "";
+      /// 商家自己写的口播稿交给 AI 照着排镜头；不算进提交指纹：改了稿子再点，照旧回放同一份故事板，不重出一张付费帧
+      const narration = voiceoverScript.trim();
       const response = await fetch("/api/video-generation/storyboards", {
         method: "POST",
         headers: {
@@ -1575,20 +1197,6 @@ export function StreamlinedVideoStudio({
     setError(null);
     setBusy("dispatch");
     try {
-      /// 派发时服务端会重新出方案并做质量把关（拦下时回 QUALITY_BLOCKED，有专门提示），这里不再先等一遍 40–60 秒的方案——
-      /// 刷新后恢复的故事板没有本页方案，以前得先「核对规格」再生成（1028 闭环轮 E2E #6）。
-      /// 本页已有的当期方案若已判定不能生成，照旧直接拦下。
-      if (plan && planRequestKey === JSON.stringify(request) && !plan.qualityReview.canDispatch) {
-        setError(copy.qualityBlocked);
-        requestAnimationFrame(() => {
-          document.getElementById("streamlined-plan-preview")?.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-          });
-        });
-        return;
-      }
-
       const dispatchBody = {
         request,
         storyboardRunId: storyboard.id,
@@ -1641,6 +1249,7 @@ export function StreamlinedVideoStudio({
 
   const canReview =
     rawPrompt.trim().length > 0
+    && directorBlocker === null
     && busy === null
     && uploadingTarget === null
     && !draftingPrompt;
@@ -1649,23 +1258,11 @@ export function StreamlinedVideoStudio({
   /// 不改画面的设置（口播稿、声音、字幕、配乐、片尾落款、出片线路）派发那一刻才取值：
   /// 故事板出来之后照样能改，不用为了改一句口播丢掉整套故事板重来。只在提交途中锁住。
   const finishingLocked = busy !== null;
-  const currentRequestKey = rawPrompt.trim()
-    ? JSON.stringify(buildRequest())
-    : null;
-  const planIsCurrent = Boolean(
-    plan && currentRequestKey && planRequestKey === currentRequestKey,
-  );
-  /// 本页当期方案已判定不能生成（要改描述或素材）；没有方案不算——方案在「生成 AI 故事板」里一并出，派发时服务端再把关。
-  const planBlocksDispatch = Boolean(planIsCurrent && plan && !plan.qualityReview.canDispatch);
   /// 有故事板（含刷新后恢复的）就只按故事板走，不再要求本页先有方案（1028 闭环轮 E2E #6）。
   const canGenerate = Boolean(
-    canReview
-      && !planBlocksDispatch
-      && storyboard?.status === "APPROVED",
+    canReview && storyboard?.status === "APPROVED",
   );
-  /// 快速、高级两种模式都一键出故事板：不再单独「核对规格」（首用五步里本来就没有这一步，学 LibTV 一键出分镜）；
-  /// 高级模式的「核对生成方案」留作可选预览。
-  const needsStoryboard = !storyboard && !planBlocksDispatch;
+  const needsStoryboard = !storyboard;
   const storyboardGenerating = storyboard?.status === "GENERATING";
   const storyboardNeedsApproval = storyboard?.status === "AWAITING_APPROVAL";
   const primaryIsBusy = busy === "dispatch" || busy === "storyboard";
@@ -1675,9 +1272,7 @@ export function StreamlinedVideoStudio({
     ? 4
     : storyboard
       ? (storyboardGenerating ? 2 : 3)
-      : planIsCurrent
-        ? 2
-        : rawPrompt.trim()
+      : rawPrompt.trim()
           ? 1
           : 0;
   /// 光只给正在发生的事：故事板逐帧生成或正在提交时，当前一步才带扫描光。
@@ -1686,16 +1281,16 @@ export function StreamlinedVideoStudio({
   const creatingStoryboardLabel = cancellingStoryboardCreate ? copy.cancellingStoryboardCreate : copy.creatingStoryboard;
   const activeHookAngle = detectHookAngle(rawPrompt);
   const productSize = detectProductSize(rawPrompt);
-  /// 出故事板的三段等待里现在在第几段（0 写口播稿 / 1 排镜头 / 2 出画面）；没在出故事板 → null
-  const storyboardStage = busy !== "storyboard" ? null : directorMode ? 0 : planningShots ? (voiceoverDrafting ? 0 : 1) : 2;
-  const storyboardStages = directorMode ? copy.directorStages : copy.stages;
+  /// 正在出故事板（AI 写镜头脚本 → 出开场画面）时为 0；没在出 → null
+  const storyboardStage = busy !== "storyboard" ? null : 0;
+  const storyboardStages = copy.directorStages;
   /// 空白状态（没写描述、没传图、没带回任何东西）才摆「接着拍这些商品」，开始写了就让开
   const showRecentSources =
-    recentSources.length > 0 && !storyboard && busy === null && !rawPrompt.trim() && productAssets.length === 0 && referenceAssets.length === 0;
+    recentSources.length > 0 && !storyboard && busy === null && !rawPrompt.trim() && productAssets.length === 0;
   const primaryLabel = busy === "dispatch"
     ? copy.generating
     : busy === "storyboard"
-      ? (planningShots ? (voiceoverDrafting ? copy.writingVoiceover : copy.planningShots) : creatingStoryboardLabel)
+      ? creatingStoryboardLabel
       : needsStoryboard
         ? copy.createStoryboard
         : storyboardGenerating
@@ -1719,10 +1314,7 @@ export function StreamlinedVideoStudio({
         .replace("{limit}", String(readings.quotaLimit))
     : copy.readyHint;
   const attachDisabled = busy !== null || configurationLocked || uploadingTarget !== null || draftingPrompt;
-  const productSlotsFull = productAssets.length >= MAX_PRODUCT_IMAGES
-    || productAssets.length + referenceAssets.length >= MAX_ATTACHMENTS;
-  const referenceSlotsFull = productAssets.length + referenceAssets.length
-    >= MAX_ATTACHMENTS - (productAssets.length === 0 ? 1 : 0);
+  const productSlotsFull = productAssets.length >= MAX_PRODUCT_IMAGES;
 
   /// 「帮我写 / 帮我润色」（2026-10-28 晚，上线审核 §3，回应 CEO「没有自动生成提示词，商家嫌写字麻烦」）：
   /// AI 看商品图（和已写的字）用商家的语言写两三句「拍什么」，商家直接改。只写文本、不扣额度；任何失败都保留原字。
@@ -1761,15 +1353,14 @@ export function StreamlinedVideoStudio({
     }
   }
 
-  /// 拖到整张提示卡上也能传：有图先当商品图（满了转参考），只有视频就进参考
+  /// 拖到整张提示卡上也能传：只收商品实拍图
   function dropFiles(files: File[]) {
-    if (files.length === 0) return;
     const images = files.filter((file) => isSupportedImage(file));
-    if (images.length > 0 && !productSlotsFull) {
-      void uploadProductImages(images);
+    if (images.length === 0) {
+      if (files.length > 0) toast.error(copy.unsupportedFile);
       return;
     }
-    void uploadReferenceAssets(files);
+    if (!productSlotsFull) void uploadProductImages(images);
   }
 
   const loadedFromStudio = initialProductAssets.filter((initial) =>
@@ -1793,26 +1384,13 @@ export function StreamlinedVideoStudio({
   /// 从模板库带进来的老模板不在配方表里，单独补一项，下拉显示才与实际一致。
   const templateOptions = [
     { value: "auto", label: copy.templateAuto },
-    /// 电商快销：AI 导演按快销广告的节奏写镜头脚本（走导演线路，见 director-line-policy）
-    { value: DIRECTOR_LINE_TEMPLATE_ID, label: copy.templateFmcg },
-    ...COMMERCE_TEMPLATE_RECIPES.map((recipe) => ({
-      value: recipe.slug,
-      label: english ? recipe.name : recipe.nameZh,
-    })),
-    ...(activeStyleTemplateId !== "auto"
-      && activeStyleTemplateId !== DIRECTOR_LINE_TEMPLATE_ID
-      && !COMMERCE_TEMPLATE_RECIPES.some((recipe) => recipe.slug === activeStyleTemplateId)
-      ? [{ value: activeStyleTemplateId, label: legacyTemplateLabel(activeStyleTemplateId, copy) }]
-      : []),
+    /// 风格卡（director-line-policy 的 DIRECTOR_STYLES）：「自动匹配」由 AI 导演按商品定拍法，其余每种是一套拍法要求
+    ...DIRECTOR_STYLES.map((style) => ({ value: style.id, label: english ? style.en : style.zh })),
   ];
   /// 写作能力暂停时，在卡下明说镜头怎么规划（C4 · 诚实说明）
   const capabilityDegraded = shotsFromTemplate;
-  /// 选了配乐就在「更多设置」的摘要里写出是哪一首：收起来也看得见这条片会带音乐
-  const bgmTrack = bgmTrackId === "none" ? null : BGM_CATALOG.find((track) => track.id === bgmTrackId) ?? null;
-  /// 导演线路的配音配乐随片子出，摘要里不再写「口播 开 / 关」和曲库
-  const moreSummary = directorMode
-    ? `${copy.summaryDirectorAudio} · ${copy.summaryCaptions} ${captionsEnabled ? copy.on : copy.off}${cornerLogo && signoffLogoUrl ? ` · ${copy.summaryCornerLogo}` : ""}${signoffEnabled ? ` · ${copy.summarySignoff} ${copy.on}` : ""}`
-    : `${copy.summaryVoiceover} ${voiceoverEnabled ? copy.on : copy.off} · ${copy.summaryCaptions} ${captionsEnabled ? copy.on : copy.off}${bgmTrack ? ` · ${copy.summaryBgm} ${bgmTrack[english ? "en" : "zh"]}` : ""}${signoffEnabled ? ` · ${copy.summarySignoff} ${copy.on}` : ""}`;
+  /// 配音配乐随片子出，摘要里只写字幕、角标和落款
+  const moreSummary = `${copy.summaryDirectorAudio} · ${copy.summaryCaptions} ${captionsEnabled ? copy.on : copy.off}${cornerLogo && signoffLogoUrl ? ` · ${copy.summaryCornerLogo}` : ""}${signoffEnabled ? ` · ${copy.summarySignoff} ${copy.on}` : ""}`;
 
   /// 错误与额度提醒：没有故事板时贴在提示卡下面，有故事板时进底部操作条——同一份元素只渲染一处
   const statusNotices = (
@@ -1857,15 +1435,8 @@ export function StreamlinedVideoStudio({
       data-testid="streamlined-generate-bar"
       className="flex flex-wrap items-center justify-end gap-2"
     >
-      {/* 出方案要 40–60 秒，期间页面锁住：给一个出口（素材与描述原样保留） */}
-      {busy === "preview" || planningShots ? (
-        <Button type="button" variant="ghost" size="sm" onClick={cancelPlanning} data-testid="cancel-planning">
-          <X aria-hidden />
-          {copy.cancelPlanning}
-        </Button>
-      ) : null}
       {/* 提交故事板还要十几秒到一分钟：这段也给出口（点了之后等提交返回再真取消） */}
-      {busy === "storyboard" && !planningShots && !cancellingStoryboardCreate ? (
+      {busy === "storyboard" && !cancellingStoryboardCreate ? (
         <Button type="button" variant="ghost" size="sm" onClick={cancelStoryboardCreate} data-testid="cancel-storyboard-create">
           <X aria-hidden />
           {copy.cancelPlanning}
@@ -1903,9 +1474,7 @@ export function StreamlinedVideoStudio({
   );
 
   /// 导演线路的第 3、4 步说的是「AI 写镜头脚本」「确认画面和脚本」，不是逐帧出故事板
-  const workflowSteps = directorMode || storyboard?.director
-    ? copy.guideSteps.map((step, index) => (index === 2 ? copy.directorStepScript : index === 3 ? copy.directorStepApprove : step))
-    : copy.guideSteps;
+  const workflowSteps = copy.guideSteps.map((step, index) => (index === 2 ? copy.directorStepScript : index === 3 ? copy.directorStepApprove : step));
   /// 五步流程（与首用提示同一个来源）：一页只有一套步骤，当前一步只有一个
   const workflowRail = (
     <ol
@@ -2055,23 +1624,6 @@ export function StreamlinedVideoStudio({
               onRemove={removeProductAsset}
               disabled={locked}
             />
-            <AttachButton
-              label={copy.attachReference}
-              hint={copy.optionalReferencesHint}
-              accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm"
-              icon={Paperclip}
-              uploading={uploadingTarget === "reference"}
-              disabled={attachDisabled || referenceSlotsFull}
-              onFiles={(files) => void uploadReferenceAssets(files)}
-            />
-            <AssetThumbs
-              assets={referenceAssets}
-              imageLabel={copy.optionalReferences}
-              removeLabel={copy.removeReference}
-              referenceTag={copy.referenceTag}
-              onRemove={removeReferenceAsset}
-              disabled={locked}
-            />
             <span className="ml-auto self-end font-mono text-data tabular-nums text-tertiary">
               {copy.productCount.replace("{count}", String(productAssets.length))}
             </span>
@@ -2086,12 +1638,6 @@ export function StreamlinedVideoStudio({
             onChange={(event) => {
               setRawPrompt(event.target.value);
               invalidatePlan();
-            }}
-            onBlur={() => {
-              /// 写完描述离开输入框：口播稿还没被手动改过，就请 AI 按描述起一版（学 LibTV：AI 先写，人来改）
-              if (!voiceoverEditedRef.current && voiceoverEnabled && rawPrompt.trim().length >= 12 && !voiceoverDrafting) {
-                void regenerateVoiceoverScript();
-              }
             }}
             placeholder={copy.promptPlaceholder}
             className="mt-3 max-h-80 min-h-28 resize-none border-0 bg-transparent px-1 py-1 text-body leading-relaxed shadow-none focus-visible:outline-none disabled:bg-transparent"
@@ -2144,7 +1690,7 @@ export function StreamlinedVideoStudio({
             ))}
           </ol>
         ) : null}
-        {storyboardStage !== null && directorMode ? (
+        {storyboardStage !== null ? (
           <p className="text-center text-meta text-muted-foreground" data-testid="director-stage-hint">{copy.directorStagesHint}</p>
         ) : null}
         {/* 上一轮没走完的故事板：表单已经有内容、或那一轮早就失败了，就不自动带回来，只在这里问一句（2026-11-17） */}
@@ -2190,6 +1736,10 @@ export function StreamlinedVideoStudio({
             </div>
           </div>
         ) : null}
+        {/* 写了描述却没传图：按钮点不了，在这里说清差哪一步 */}
+        {directorBlocker === "no_product_photo" && rawPrompt.trim().length > 0 && !storyboard ? (
+          <p role="status" className="text-center text-meta text-gold" data-testid="needs-product-photo">{copy.needsProductPhoto}</p>
+        ) : null}
         {uploadError ? <p role="alert" className="text-meta text-danger">{uploadError}</p> : null}
         {loadedFromStudio.length > 0 ? (
           loadedProductName ? (
@@ -2230,7 +1780,7 @@ export function StreamlinedVideoStudio({
             disabled={locked}
             options={DURATIONS.map((duration) => ({ value: String(duration), label: `${duration}s` }))}
             onChange={(value) => {
-              setSelectedDuration(Number(value) as 15 | 30 | 60);
+              setSelectedDuration(Number(value) as 15 | 30);
               invalidatePlan();
             }}
           />
@@ -2249,7 +1799,7 @@ export function StreamlinedVideoStudio({
             showLabel
             value={activeStyleTemplateId}
             disabled={locked}
-            hint={quickModeHint}
+            hint={selectedStyle ? (english ? selectedStyle.hintEn : selectedStyle.hintZh) : quickModeHint}
             options={templateOptions}
             onChange={(value) => {
               setCreationMode("advanced");
@@ -2400,40 +1950,17 @@ export function StreamlinedVideoStudio({
               english={english}
             />
           </TicketRow>
-          <TicketRow label={copy.referenceMode}>
-            <p className="text-meta text-muted-foreground">{copy.referenceModeHint}</p>
-            <Segmented
-              label={copy.referenceMode}
-              value={referenceMode}
-              disabled={locked}
-              onChange={(value) => {
-                setReferenceMode(value as ReferenceMode);
-                invalidatePlan();
-              }}
-              options={[
-                { value: "all", label: copy.referenceAll },
-                { value: "product_only", label: copy.referenceProduct },
-              ]}
-            />
-          </TicketRow>
           {/* 口播 / 字幕 / 配乐：默认开口播与逐词字幕，口播稿 AI 先写、人来改 */}
           <TicketRow label={copy.rowAudio}>
-            <p className="text-meta text-muted-foreground" data-testid={directorMode ? "director-voice-hint" : undefined}>
-              {directorMode ? copy.directorVoiceHint : copy.audioHint}
+            <p className="text-meta text-muted-foreground" data-testid="director-voice-hint">
+              {copy.directorVoiceHint}
             </p>
             <AudioCaptionControls
               value={audioCaptionSettings}
               english={english}
               disabled={finishingLocked}
-              voiceoverToggleLocked={configurationLocked}
               durationSec={selectedDuration}
               onChange={updateAudioCaptionSettings}
-              onRegenerate={() => void regenerateVoiceoverScript()}
-              regenerating={voiceoverDrafting}
-              draftFromTemplate={narrationFromTemplate}
-              draftFellBack={voiceoverDraftFellBack}
-              directorMode={directorMode}
-              ownScript={ownVoiceoverScript}
             />
           </TicketRow>
           {/* 右上角 Logo（2026-11-17）：全程挂一个透明的图形角标，和导演线路的交付样式一样。每条单独勾、默认不带；
@@ -2573,23 +2100,6 @@ export function StreamlinedVideoStudio({
               ) : null}
             </TicketRow>
           ) : null}
-          {/* 想先看 AI 怎么拍的人：可选的「核对生成方案」（不核对也会在出故事板时一并出方案） */}
-          {!storyboard ? (
-            <TicketRow label={copy.rowPlan}>
-              <p className="text-meta text-muted-foreground">{copy.previewPlanHint}</p>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="w-fit"
-                disabled={!canReview}
-                onClick={() => void handlePreview()}
-              >
-                {busy === "preview" ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden /> : <ListChecks aria-hidden />}
-                {busy === "preview" ? copy.previewing : copy.previewPlan}
-              </Button>
-            </TicketRow>
-          ) : null}
         </div>
 
         {capabilityDegraded ? (
@@ -2606,17 +2116,6 @@ export function StreamlinedVideoStudio({
         )}
         {workflowRail}
       </section>
-
-      {plan ? (
-        <section
-          id="streamlined-plan-preview"
-          className="scroll-mt-24 space-y-3"
-          aria-label={copy.planHeading}
-        >
-          <SectionHead title={copy.planHeading} />
-          <PlanPreviewCard plan={plan} />
-        </section>
-      ) : null}
 
       {storyboard ? (
         <div id="single-video-storyboard" className="scroll-mt-24 space-y-3">
@@ -2769,49 +2268,6 @@ function OptionButton({
         <span className="mt-0.5 block text-meta text-muted-foreground">{description}</span>
       </span>
     </button>
-  );
-}
-
-/** 参考方式这类档位：所有选项一眼看全，一次点击；选中态与 OptionButton 同一套语言。 */
-function Segmented({
-  label,
-  value,
-  options,
-  disabled,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: Array<{ value: string; label: string }>;
-  disabled: boolean;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div role="group" aria-label={label} className="flex flex-wrap gap-1.5">
-      {options.map((option) => {
-        const active = option.value === value;
-        return (
-          <button
-            key={option.value}
-            type="button"
-            aria-pressed={active}
-            disabled={disabled}
-            /// 与原生下拉一致：只有真正换档才触发（重复点当前档不会作废已核对的方案）。
-            onClick={() => {
-              if (!active) onChange(option.value);
-            }}
-            className={cn(
-              "inline-flex h-10 items-center rounded-(--radius-md) border px-3 text-meta font-medium tabular-nums transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none sm:h-8",
-              active
-                ? "border-(--accent-line) text-accent"
-                : "border-border text-muted-foreground hover:border-border-strong hover:text-foreground",
-            )}
-          >
-            {option.label}
-          </button>
-        );
-      })}
-    </div>
   );
 }
 
@@ -2977,37 +2433,12 @@ function AssetThumbs({
   );
 }
 
-/** 从模板库带进来的老模板（不在配方表里）在模板芯片上的名字。 */
-function legacyTemplateLabel(templateId: string, copy: StudioCopy): string {
-  switch (templateId) {
-    case "tpl_event_watch_party":
-      return copy.templateEvent;
-    case "tpl_viral_result_first":
-      return copy.templateResult;
-    case "tpl_viral_pain_solution":
-      return copy.templatePain;
-    case "tpl_ugc_review":
-      return copy.templateUgc;
-    case "tpl_viral_sensory_texture":
-      return copy.templateSensory;
-    default:
-      return templateId;
-  }
-}
-
 function isSupportedImage(file: File): boolean {
   return file.type === "image/png" || file.type === "image/jpeg" || file.type === "image/webp";
 }
 
-function isSupportedReference(file: File): boolean {
-  return isSupportedImage(file)
-    || file.type === "video/mp4"
-    || file.type === "video/quicktime"
-    || file.type === "video/webm";
-}
-
-function isQualityTemplateId(value: string | undefined): value is typeof QUALITY_TEMPLATE_IDS[number] {
-  return typeof value === "string" && (QUALITY_TEMPLATE_IDS as readonly string[]).includes(value);
+function isQualityTemplateId(value: string | undefined): value is string {
+  return directorStyle(value) !== null;
 }
 
 function aspectRatioLabel(ratio: AspectRatio, copy: StudioCopy): string {

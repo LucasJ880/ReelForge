@@ -13,7 +13,6 @@ import test from "node:test";
 import { heuristicBible } from "../src/lib/video-generation/consistency-bible";
 import { buildVideoSegments } from "../src/lib/video-generation/prompt-intelligence";
 import { planUnifiedSegments } from "../src/lib/video-generation/segment-planner-adapter";
-import { getStyleTemplate } from "../src/lib/video-generation/style-templates";
 import { presenterReferenceAssets } from "../src/lib/video-generation/storyboard-person-refs";
 import type {
   CreativeBrief,
@@ -74,7 +73,7 @@ const presenter = image({
 const PRESENTER_CHARACTER_PREFIX =
   /^CHARACTER \(must match the presenter reference photo — same face, hair, skin tone and build; keep 100% identical in every cut\): /m;
 
-async function aiPrompts(assets: UploadedAsset[], styleTemplateId?: string): Promise<string[]> {
+async function aiPrompts(assets: UploadedAsset[]): Promise<string[]> {
   const slots = planUnifiedSegments({ targetDurationSec: 15, clipPlacement: null, brandPackaging: null });
   const segments = await buildVideoSegments({
     creativeBrief: brief,
@@ -82,7 +81,7 @@ async function aiPrompts(assets: UploadedAsset[], styleTemplateId?: string): Pro
     classifiedAssets: assets,
     classification,
     aspectRatio: "9:16",
-    styleTemplate: styleTemplateId ? getStyleTemplate(styleTemplateId) : null,
+    styleTemplate: null,
   });
   const prompts = segments.filter((segment) => segment.type === "ai_generated_clip").map((s) => s.prompt!);
   assert.ok(prompts.length > 0);
@@ -135,15 +134,3 @@ test("开关 off 时，即便素材标了 person，bible 与段提示词都不�
   }
 });
 
-test("纯产品模版 + 主播图：主播优先，不写 NO on-camera person 与主播锁自相矛盾；没有主播图时仍是纯产品", async () => {
-  const template = getStyleTemplate("tpl_perfume_macro");
-  assert.ok(template && !template.scaffold.characterHint && template.scaffold.dialogueStyle == null, "fixture 必须是纯产品模版");
-  for (const prompt of await aiPrompts([presenter, image({ id: "prod" })], "tpl_perfume_macro")) {
-    assert.doesNotMatch(prompt, /NO on-camera person/);
-    assert.match(prompt, PRESENTER_CHARACTER_PREFIX);
-  }
-  for (const prompt of await aiPrompts([image({ id: "prod" })], "tpl_perfume_macro")) {
-    assert.match(prompt, /^NO on-camera person: the product is the only hero of every shot\.$/m);
-    assert.doesNotMatch(prompt, /^CHARACTER \(/m);
-  }
-});

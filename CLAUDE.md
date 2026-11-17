@@ -6,8 +6,8 @@
 
 ## 1. 找代码：先查索引，别扫 repo
 
-约 500 个 src 文件、近 70 个 API route、30+ 个 npm scripts（2026-11-17 瘦身之后的实数：src 下 491 个文件 / 488 个 .ts·tsx，
-`src/app/api` 下 69 个 `route.ts`，package.json 32 个 scripts；瘦身前是 608 / 109 / 71）。全 repo grep 是本项目最大的 token 漏斗。
+约 420 个 src 文件、60 个 API route、29 个 npm scripts（2026-11-17 锁定导演线路之后的实数：src 下 422 个文件 / 419 个 .ts·tsx，
+`src/app/api` 下 60 个 `route.ts`，package.json 29 个 scripts；11-16 瘦身前是 608 / 109 / 71）。全 repo grep 是本项目最大的 token 漏斗。
 
 ```bash
 npm run context:find -- "关键词1 关键词2"   # 0.3s，给 top 10 文件 + 阅读顺序
@@ -22,11 +22,11 @@ npm run context:find -- "关键词1 关键词2"   # 0.3s，给 top 10 文件 + �
 | 位置 | 内容 |
 |---|---|
 | `src/app/(platform)/` | 客户自助面 —— 新定位的主战场 |
-| `src/app/page.tsx` · `(public)/` · `(auth)/` · `(wall)/` | 公开首页「展厅」/ 法务页（/persona、/showcase 2026-10-28 已删）/ 登录注册 / 行情大屏 `/wall` |
+| `src/app/page.tsx` · `(public)/` · `(auth)/` | 公开首页「展厅」/ 法务页（/persona、/showcase 2026-10-28 已删）/ 登录注册（行情大屏 `/wall` 2026-11-17 随批量生产删除） |
 | `src/app/l/[slug]` · `src/app/t/[code]` | 商家询盘页（匿名可访问）/ 追踪链接跳转（`route.ts`） |
 | `src/app/api/` | 路由只做鉴权 + 参数校验，业务委托 `src/lib/services/` |
-| `src/lib/services/` | 业务层（近 50 个 service），Provider 层封装外部 API |
-| `src/lib/contracts/` | 对外契约（`customer-api` / `batch-api` / …），M0 的 `/api/videos` 在这层定 |
+| `src/lib/services/` | 业务层（40 多个 service），Provider 层封装外部 API |
+| `src/lib/contracts/` | 对外契约（`customer-api` / `videos-api` / …） |
 
 ## 3. 常用命令
 
@@ -64,7 +64,6 @@ npm run context:find -- "..."
 
 | 开关（Vercel 环境变量） | 缺省 | 作用 |
 |---|---|---|
-| `DIRECTOR_LINE=off` | 开 | 关掉线上的导演线路：有实拍图的 15 / 30 秒单条片退回老的四 / 五帧故事板 + 分段出片。缺省开着（11-17 起）：建故事板时由导演写手写一份镜头脚本、只出一张开场帧，出片时整条一次生成。写手没写成会自己退回老线路并记一条降级（`director_script`） |
 | `CAPTION_SPEECH_ALIGN=on` | 关 | 合成时把 AI 段人声交给 OpenAI `whisper-1` 识别，字幕跟着人声走。要求这把 `OPENAI_API_KEY` 有 whisper-1 权限（11-10 实查没有，需在 OpenAI 项目里开通）；识别不到就照旧按字数摊，不影响出片 |
 | `OPS_ALERT_WEBHOOK_URL` | 未配 | 运维告警的群机器人地址；没配只进日志（`[ops-alert]`） |
 | `PROGRESS_SEGMENT_EXPECTED_MIN` | 10 | 进度条估算用的出片典型分钟数（实测中位数） |
@@ -83,17 +82,17 @@ npm run context:find -- "..."
 | 接着拍这些商品（空白创作页那一行：存好的商品在前，不够四格用最近拍过、还没存的补） | `loadCreateShortcutsOrNone`（`product-profile-service.ts`）、`listRecentCreateSources`（`create-retry-prefill-service.ts`） |
 | 商品尺寸（描述末尾补一行「商品实际大小：…」） | `src/lib/create/product-size.ts` |
 | 品牌页的片尾落款预览（与合成同一套版式） | `src/components/brand/signoff-preview.tsx` |
-| 配乐曲库（8 首；7 首由 Runway 生成配乐接口一次性生成、随仓库带，出片不调接口） | 目录 `src/lib/video-generation/bgm-catalog.ts`，文件 `public/audio/bgm/`，选曲组件 `bgm-picker.tsx`；加曲子：放文件 + 目录加一行 |
+| 配乐曲库（8 首；7 首由 Runway 生成配乐接口一次性生成、随仓库带，出片不调接口。11-17 起只在成片详情「只重新合成」里给以前没有原生配乐的片用：导演线路的配乐随片子出，创作页不摆曲库） | 目录 `src/lib/video-generation/bgm-catalog.ts`，文件 `public/audio/bgm/`，选曲组件 `bgm-picker.tsx`；加曲子：放文件 + 目录加一行 |
 | 字幕跟着人声走（按语音识别对齐） | `alignCuesToSpeech`（`src/lib/video-generation/audio-post-production.ts`）、`src/lib/providers/openai-transcription.ts`；日志搜 `[captions]` |
 | 上传卡住超时（直传存储一直没进展时中止并明说「上传卡住了」；存储客户端自己会不报错地重试十几分钟） | `src/lib/upload/stall-watchdog.ts`，接在 `uploadBlobWithProgress`（`blob-xhr.ts`）的直传那一步；日志搜 `[upload] direct upload stalled` |
 | 导演线路（Claude 写镜头脚本 → GPT Image 2 出故事板（11-17 起缺省走 Shuyu，`frames --provider openai` 可直连 OpenAI）→ Shuyu Seedance 2.5 · 720P 出片；不走创作台、不碰库） | skill `aivora-director`；`npm run director -- check\|frames\|select\|video\|review\|post\|status tmp/director/<任务名>`（`post` = 本地烧字幕 / 角标 Logo / 落款 / 切条，复用线上合成器，不花点数）；纯逻辑 `src/lib/video-generation/director-plan.ts`（scripts 下那份只是转出）；让模型写镜头脚本的「导演写手」在 `director-writer.ts`，`npm run director -- draft` 可试 |
-| 线上的导演线路（创作台出的片和上一行用同一套规则、同一个提示词拼法：一份镜头脚本 → 一张开场帧 → 15 / 30 秒整条一次生成；字幕按每句台词的时间烧） | 判断与开关 `director-line-policy.ts`（客户端也用），写脚本 / 存脚本 / 参考图顺序 / 字幕时间 `director-line.ts`；脚本存在 `StoryboardRun.visualReference`（JSON，没加列），派发时抄进 `brief.directorPlan.directorLine`；接线在 `storyboard-service.ts`（`createStoryboardRun`、`expectedStoryboardFrameCount`）、`dispatch/route.ts`、`video-service.ts` 的 `dispatchVideoForBrief`、`stitch-composer.ts`；日志搜 `[director-line]` |
-| 「电商快销」模板（片种定成快销）与「自动匹配」（片种由导演写手按商品定） | `DIRECTOR_LINE_TEMPLATE_ID`（`director-line-policy.ts`）、`style-templates.ts` 里的 `tpl_ecommerce_fmcg`；别的模板仍走老线路 |
+| 线上的导演线路（**11-17 起创作台唯一的出片方式**，和上一行用同一套规则、同一个提示词拼法：一份镜头脚本 → 一张开场帧 → 15 / 30 秒整条一次生成；字幕按每句台词的时间烧。要有商品实拍图；写手没写成就明说、让商家再点一次，不退回别的线路） | 判断（做不了的原因）与风格卡 `director-line-policy.ts`（客户端也用），写脚本 / 存脚本 / 参考图顺序 / 字幕时间 `director-line.ts`；脚本存在 `StoryboardRun.visualReference`（JSON，没加列），派发时抄进 `brief.directorPlan.directorLine`；接线在 `storyboard-service.ts`（`createStoryboardRun`、`expectedStoryboardFrameCount`）、`dispatch/route.ts`（没有脚本的旧故事板回 422）、`generation-supervisor.ts`（`buildPlan` 必须带脚本，不调模型）、`video-service.ts` 的 `dispatchVideoForBrief`、`stitch-composer.ts`；日志搜 `[director-line]` |
+| 风格卡（创作页「创意模板」：电商快销、情绪种草、痛点解决、质感特写、开箱上手、探厂探店；「自动匹配」= 由导演写手按商品定。每种 = 片种 + 一段交给写手的拍法要求，可以自己定开场；线上、新人向导、命令行 `draft --style` 用同一张表） | `DIRECTOR_STYLES`（`director-line-policy.ts`）；加一种风格在这里加一行，再回 skill `aivora-director` 的「风格卡」表补一行 |
 | 右上角 Logo（创作页可选；透明的白色图形角标，全程挂着；图取自己默认品牌包的 Logo） | 快照里的 `cornerLogo` 开关；`stitch-composer.ts` 的 `resolveCornerLogoUrl`、`stitch-service.ts` 的 `overlayCornerLogo`；版式 `cornerLogoGeometry` / `cornerLogoFilter`（`director-plan.ts`，透明底 PNG 按透明度取形状，白底线稿按深浅） |
 | 只重新合成（换字幕 / BGM / 落款，不扣额度） | `src/lib/video-generation/restitch-patch.ts`、`stitch-service` 的 `prepareRestitch` / `commitRestitch` |
 
 供应商现状（2026-11-17）：生产只留 Shuyu（出图、出片）、OpenAI（写镜头脚本、出方案这类文字与看图的调用；开关打开时另做字幕的语音识别）两把付费密钥。
-出图统一走 Shuyu 的 GPT Image 2（11-17 用户定：能统一用 Shuyu 就用 Shuyu）：老的四帧故事板取同分辨率最便宜的一档，导演线路的开场帧（线上和命令行）点名高质量档（`quality: "high"`，2K 约 48 点一张）。
+出图统一走 Shuyu 的 GPT Image 2（11-17 用户定：能统一用 Shuyu 就用 Shuyu）：导演线路的开场帧（线上和命令行）点名高质量档（`quality: "high"`，2K 约 48 点一张）。
 **Runway 出片 11-16 由 CEO 决定彻底下线，出片与出图的代码当天已全部删除**（适配器、「高质量」选项、Shuyu 失败改交、灰度账号故事板出图、全员切换）。
 只留读旧记录用的部分：`video-route-registry.ts` 里的 `runway` 线路定义（`enabled: false`，建不出新快照、供应商调用一律拒绝），
 以及故事板帧旧 planId `runway:` 的守卫（`storyboard-service.ts`，不交给 Shuyu，提示重新生成这一帧）。
@@ -101,6 +100,11 @@ npm run context:find -- "..."
 Shuyu 现在没有备用线路，明确失败就是失败（可重试、可免费取消）。
 抠图、商品链接抓取、实拍图库与配音这几条线路的代码 11-17 已删（瘦身第 2 批）。
 关着不用的那几样 11-17 也删了（瘦身第 4 批）：BytePlus / 火山直连出片（线路定义留在 `video-route-registry.ts` 里标成停用，只为读旧记录；
+**11-17 锁定出片能力（甲方与 CEO 认可了导演线路的出品之后）**：创作台只走导演线路，围绕出品稳定与质量；别的都删了——
+批量生产与模板库（页面、接口、定时任务、服务，旧网址由 `next.config.ts` 转走；以前做的批量成片仍在成品库，卡片直接打开成片文件）、
+行情大屏、出方案预览与 AI 起口播稿两个接口、老的分帧故事板与镜头卡、原话英译、看图盘点、创意简报的模型调用、老的 34 个模板与一致性锁、
+60 秒与纯文字创作、主播参考图、老的评测与压测脚本。`prompt-intelligence.ts`、`consistency-bible.ts`、`storyboard-beats.ts` 这几份还在：
+它们拼的是方案 / 分段记录的形状（派发、合成、成品库都在读），段提示词已整段换成脚本拼出来的那一份；要删得连方案格式一起重写，并重新真机验证。
 旧值 `VIDEO_PROVIDER=byteplus` 按 shuyu 处理并提醒删掉）、内容审核、出方案的完整模型链路（`PLANNING_FULL_LLM`）、故事板 AI 审帧（`STORYBOARD_AI_REVIEW`）。
 
 ## 5. 交付门
@@ -122,8 +126,8 @@ Shuyu 现在没有备用线路，明确失败就是失败（可重试、可免�
 - 字体：Archivo（标题与读数）+ Noto Sans SC（中文）/ Martian Mono（代码、时间、计数）。
 - 页面开场用 `WorkspacePage` / `QuoteHeader`（`src/components/exchange/`），创作页例外（对话框优先）。
   读数只放能让人接着做点什么的真实数字（零就写零，不放示例数字）；没有就传空数组，不硬凑。口径写进 `scope`，悬停可见，不单占一行。
-  副标题一句话说清这页干什么，内部口径与规则解释不进页面正文。状态用 `StatusTick`（符号 + 颜色成对），批次进度用 `FillBar`。
-- 壳层是 240px 分组侧栏（顶部「新建视频」就是创作页入口，下面是批量 / 资产（成品库、商品、品牌、模板库）/ 帮助，不再重复列「创作」）+ 细顶栏（搜索、帮助、头像），移动端底部 tab 条；行情条、生产带、状态栏已退役，`/wall` 行情大屏仍在。
+  副标题一句话说清这页干什么，内部口径与规则解释不进页面正文。状态用 `StatusTick`（符号 + 颜色成对）。
+- 壳层是 240px 分组侧栏（顶部「新建视频」就是创作页入口，下面是资产（成品库、商品、品牌）/ 帮助，不再重复列「创作」）+ 细顶栏（搜索、帮助、头像），移动端底部 tab 条；行情条、生产带、状态栏已退役，`/wall` 行情大屏 2026-11-17 删除。
   壳层数字来自同一个脉搏（`/api/exchange/pulse`），读数口径只从读数注册表取；状态词只从 `state-vocab` 取，「成交」只留给询盘。
 - 眉题/kicker 一律禁止；页面标题自己承重。
 - 要用户再点一次确认的事用 `ConfirmDialog`（`src/components/ui/confirm-dialog.tsx`），按钮写动作本身；`window.confirm` / `alert` 禁用（有门禁测试）。工作区正文 14px。

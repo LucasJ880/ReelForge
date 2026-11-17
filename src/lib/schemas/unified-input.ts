@@ -393,6 +393,8 @@ export const postProductionPlanSchema = z.object({
   audio: z.object({
     voiceover: voiceoverSettingsSchema,
     bgm: bgmSettingsSchema,
+    /// 导演线路的片自带模型原生配的音乐：后期不混曲库
+    nativeMusic: z.boolean().optional(),
   }),
   captions: captionSettingsSchema,
   /// 片尾落款：可选；旧快照 / 没勾的成片没有这个键

@@ -166,13 +166,14 @@ test("成品库页面：生产线上只放真在生成的行；排队与暂停�
   assert.match(making, /data-beam="row"/);
 });
 
-test("需要处理：列出失败（原因 + 重试 / 联系支持，批量链批次详情），「看过了」清零，与徽标同一个查询", () => {
+test("需要处理：列出失败（原因 + 重试 / 联系支持），「看过了」清零，与徽标同一个查询", () => {
   const page = readFileSync("src/app/(platform)/app/library/page.tsx", "utf8");
   assert.match(page, /loadNeedsAttention\(userId, \{ locale \}\)/);
   assert.match(page, /count=\{attention\.total\}/);
   assert.match(page, /<FailuresAckButton/);
   assert.match(page, /failureReason\(item, english/);
-  assert.match(page, /copy\.retryInBatch/);
+  /// 批量生产 2026-11-17 下线：失败只有单条的，不再有「去批次重试」
+  assert.doesNotMatch(page, /retryInBatch|\/app\/batches/);
   assert.match(page, /copy\.contactSupport/);
   const button = readFileSync("src/components/library/failures-ack-button.tsx", "utf8");
   assert.match(button, /fetch\("\/api\/exchange\/failures-ack", \{ method: "POST" \}\)/);
@@ -182,10 +183,10 @@ test("需要处理：列出失败（原因 + 重试 / 联系支持，批量链�
   const pulseCount = readings.slice(readings.indexOf("async function countNeedsAttention"), readings.indexOf("export type ProductionCounts"));
   const listing = readings.slice(readings.indexOf("export async function loadNeedsAttention"), readings.indexOf("export async function acknowledgeFailures"));
   for (const block of [pulseCount, listing]) {
-    assert.match(block, /batchFailureWhere\(userId, /);
     assert.match(block, /orderFailureWhere\(userId, /);
+    assert.doesNotMatch(block, /batchJob/);
   }
-  assert.match(listing, /href: `\/app\/batches\/\$\{job\.batchJob\.id\}`/);
+  assert.match(listing, /href: `\/app\/library\/\$\{order\.id\}`/);
   assert.match(listing, /retryHref: `\/app\/create\?retry=\$\{encodeURIComponent\(order\.id\)\}`/);
 });
 

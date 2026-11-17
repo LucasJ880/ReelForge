@@ -4,12 +4,13 @@ import { legacyPlatformRedirects } from "../next.config";
 
 const expected = new Map([
   ["/design", "/app/create"],
-  ["/batch-create", "/app/batches/new"],
-  ["/batches/:id", "/app/batches/:id"],
+  ["/batch-create", "/app/create"],
+  /// 批量生产与模板库 2026-11-17 下线：旧批次链接落成品库（做好的批量成片仍在那里），模板库落创作页
+  ["/batches/:id", "/app/library"],
   ["/personal", "/app/create"],
   ["/personal/agent", "/app/create"],
   ["/personal/create-video", "/app/create"],
-  ["/personal/templates", "/app/templates"],
+  ["/personal/templates", "/app/create"],
   ["/personal/videos", "/app/library"],
   ["/personal/videos/:id", "/app/library/:id"],
   ["/personal/billing", "/app/create"],
@@ -38,7 +39,7 @@ test("Phase1 动态详情 ID 原样透传", () => {
   assert.deepEqual(
     legacyPlatformRedirects.filter((redirect) => redirect.source.includes(":id")),
     [
-      { source: "/batches/:id", destination: "/app/batches/:id", permanent: true },
+      { source: "/batches/:id", destination: "/app/library", permanent: true },
       { source: "/personal/videos/:id", destination: "/app/library/:id", permanent: true },
       { source: "/business/products/:id", destination: "/app/library/:id", permanent: true },
     ],

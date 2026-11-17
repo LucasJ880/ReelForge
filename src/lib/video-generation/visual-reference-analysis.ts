@@ -14,12 +14,6 @@
  * 分析失败时交给 onDegraded（2026-10-29），方案上记一条「没看图」。
  */
 
-import { analyzeImages, isLLMAvailable, isLLMForcedMock } from "@/lib/ai";
-import {
-  planningDegradation,
-  type RecordPlanningDegradation,
-} from "@/lib/video-generation/planning-degradation";
-import { effectiveAssetRole, type UploadedAsset } from "@/types/video-generation";
 
 export interface VisualReferenceAnalysis {
   /// 参考图是否包含一个真实场所（店铺/门头/室内实景）
@@ -46,31 +40,6 @@ export interface VisualReferenceAnalysis {
 }
 
 /// 视觉盘点的字段说明
-export const VISUAL_REFERENCE_JSON_SPEC = `{
-  "isRealLocation": true/false — true if the photos show a real place (storefront, shop interior, restaurant, venue...),
-  "locationDescription": "if isRealLocation: one dense English paragraph (50-90 words) describing the place exactly as photographed: storefront facade (materials, colors, sign), interior layout, furniture with materials and colors, flooring, lighting fixtures, decor. Be faithful — never invent items not visible. null if not a location",
-  "signageText": "the exact readable text on the storefront sign or logo, verbatim (e.g. 'Meow Club'), null if none",
-  "signageKind": "where that brand text physically lives: 'storefront' if it is on an exterior sign, facade or window decal; 'product_print' if it is printed, stitched, embossed or engraved on the product itself (fabric, rail, packaging, label); null if there is no readable brand text",
-  "keyFeatures": ["3-6 distinctive photographable features of the place or product, each 2-6 words, e.g. 'natural wood cat climbing tree'"],
-  "productDescription": "if any photo shows a product for sale: its exact color/material/shape/details in 25-50 words, else null",
-  "viewsCovered": ["one short entry PER PHOTO describing the view it covers, in photo order, e.g. 'storefront exterior at night', 'interior: cat cabin wall and seating corner'"]
-}`;
-
-const SYSTEM_PROMPT = `You are a location scout and product analyst for an AI video production. You will see reference photos uploaded by a client. Extract a precise visual inventory so that a video generator can faithfully reproduce what is in the photos.
-
-Return strict JSON:
-${VISUAL_REFERENCE_JSON_SPEC}
-
-RULES:
-- Describe only what is actually visible in the photos.
-- Ignore any social-media watermarks or usernames overlaid on the photos — they are not part of the location.
-- signageText must be verbatim, keep original language and capitalization.
-- viewsCovered must have exactly one entry per photo, in the same order as the photos.`;
-
-/**
- * 模型返回的视觉盘点 → VisualReferenceAnalysis（只收认得的字段，其余丢弃）。
- * 也给从 StoryboardRun.visualReference 读回用（旧故事板上存着的盘点）。
- */
 export function normalizeVisualReference(data: Record<string, unknown>, photoCount: number): VisualReferenceAnalysis {
   const str = (v: unknown): string | null =>
     typeof v === "string" && v.trim().length > 0 ? v.trim() : null;
@@ -104,36 +73,4 @@ export function readStoredVisualReference(value: unknown): VisualReferenceAnalys
   if (photoCount === 0) return null;
   const analysis = normalizeVisualReference(record, photoCount);
   return analysis.productDescription || analysis.locationDescription ? analysis : null;
-}
-
-export async function analyzeVisualReferences(
-  assets: UploadedAsset[],
-  briefHint: string,
-  onDegraded?: RecordPlanningDegradation,
-): Promise<VisualReferenceAnalysis | null> {
-  /// GPT-4o 一次最多看 8 张（低清模式）；Seedance Omni-Reference 同样吃得下 8 张。
-  /// 主播参考图（person）不是场所 / 产品实拍，不进视觉盘点（P02-A）；logo 照旧参与——
-  /// SYSTEM_PROMPT 还要从它上面读 signageText，logo 是否进盘点不在本轮范围。
-  const images = assets
-    .filter((a) => a.type === "IMAGE" && effectiveAssetRole(a) !== "person")
-    .slice(0, 8);
-  if (images.length === 0) return null;
-  if (isLLMForcedMock() || !isLLMAvailable()) return null;
-
-  try {
-    const { data } = await analyzeImages(
-      images.map((a) => a.url),
-      SYSTEM_PROMPT,
-      `The client's request: "${briefHint.slice(0, 400)}"\nAnalyze the ${images.length} reference photo(s) and return the JSON now.`,
-    );
-
-    return normalizeVisualReference(data, images.length);
-  } catch (err) {
-    console.warn(
-      "[visual-reference-analysis] vision failed; continuing without:",
-      (err as Error).message,
-    );
-    onDegraded?.(planningDegradation("visual_reference", err));
-    return null;
-  }
 }

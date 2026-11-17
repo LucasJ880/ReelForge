@@ -23,20 +23,17 @@ function functionBody(source: string, name: string): string {
 test("一键出故事板：没有单独的「核对规格」一步，主按钮直接「生成 AI 故事板」", async () => {
   const studio = await readFile(STUDIO, "utf8");
   assert.doesNotMatch(studio, /quickNeedsReview|reviewSpecs/);
-  assert.match(studio, /const needsStoryboard = !storyboard && !planBlocksDispatch;/);
-  /// 方案在建故事板之前一并出，期间主按钮写「正在规划镜头…」
+  /// 2026-11-17：出方案预览那一步随老线路删了——点一下直接建故事板（AI 导演在那一步写好镜头脚本）
+  assert.match(studio, /const needsStoryboard = !storyboard;/);
   const createStoryboard = functionBody(studio, "handleCreateStoryboard");
-  assert.match(createStoryboard, /setPlanningShots\(true\)/);
-  assert.match(createStoryboard, /fetchPlan\(request, controller\.signal\)/);
-  assert.match(studio, /planningShots: "正在规划镜头…",/);
+  assert.match(createStoryboard, /fetch\("\/api\/video-generation\/storyboards", \{/);
+  assert.doesNotMatch(createStoryboard, /fetchPlan|\/api\/video-generation\/plan|voiceover-draft/);
 });
 
 test("刷新恢复的故事板：确认后就能生成，派发前不再等本页方案（服务端会重出并把关）", async () => {
   const studio = await readFile(STUDIO, "utf8");
   const generate = functionBody(studio, "handleGenerate");
   assert.doesNotMatch(generate, /fetchPlan\(/);
-  assert.match(generate, /plan && planRequestKey === JSON\.stringify\(request\) && !plan\.qualityReview\.canDispatch/);
-  assert.match(studio, /const canGenerate = Boolean\(\s*canReview\s*&& !planBlocksDispatch\s*&& storyboard\?\.status === "APPROVED",\s*\);/);
   /// 恢复请求扛得住一次重编译 / 冷启动：五次退避，约 15 秒
   assert.match(studio, /const RESUME_BACKOFF_MS = \[0, 800, 2_000, 4_000, 8_000\];/);
   const dispatchRoute = await readFile("src/app/api/video-generation/dispatch/route.ts", "utf8");
@@ -44,18 +41,3 @@ test("刷新恢复的故事板：确认后就能生成，派发前不再等本�
   assert.match(dispatchRoute, /if \(!plan\.qualityReview\.canDispatch\)/);
 });
 
-test("出方案期间可以取消：请求带 AbortSignal，取消后提示素材与描述都在，不报错", async () => {
-  const studio = await readFile(STUDIO, "utf8");
-  assert.match(studio, /async function fetchPlan\(\s*request: OwnedUnifiedVideoGenerationRequest,\s*signal\?: AbortSignal,/);
-  assert.match(studio, /data-testid="cancel-planning"/);
-  assert.match(studio, /busy === "preview" \|\| planningShots \?/);
-  assert.match(studio, /planningCancelled: "已取消，素材和描述都保留着。",/);
-  const preview = functionBody(studio, "handlePreview");
-  assert.match(preview, /if \(controller\.signal\.aborted\) toast\.success\(copy\.planningCancelled\);/);
-});
-
-test("出方案提速：创意简报与看图分析并行（两者都自带兜底，互不拖垮）", async () => {
-  const supervisor = await readFile("src/lib/video-generation/generation-supervisor.ts", "utf8");
-  assert.match(supervisor, /const \[creativeBrief, visualRefs\] = await Promise\.all\(\[/);
-  assert.equal((supervisor.match(/analyzeVisualReferences\(/g) ?? []).length, 1);
-});

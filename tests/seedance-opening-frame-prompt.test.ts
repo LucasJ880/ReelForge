@@ -1,40 +1,15 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { formatShotCard, formatShotCardSequence, normalizeShotCards } from "../src/lib/video-generation/shot-cards";
 import {
   SEEDANCE_OPENING_FRAME_MARKER,
   groundSegmentPromptForSeedanceOpeningFrame,
   groundSegmentPromptInStoryboard,
-  shuyuOpeningFramePromptEnabled,
 } from "../src/lib/video-generation/storyboard-beats";
 import {
   STORYBOARD_STORY_CONTEXT_PREFIX,
   readStoryContextFromFramePrompt,
 } from "../src/lib/video-generation/storyboard-frame-inputs";
-import { renderStoryInEnglish, storyEnglishEnabled, storyNeedsEnglish } from "../src/lib/video-generation/story-english";
-import {
-  CHARACTER_SHEET_ASPECT_RATIO,
-  buildCharacterSheetPrompt,
-  storyHasRecurringSubject,
-} from "../src/lib/video-generation/character-sheet";
-
-test("人物设定图（GPT 人物版）：有人或动物反复出镜才出；提示词全英文、从开场帧取人、不画商品与文字", () => {
-  assert.equal(storyHasRecurringSubject(["Action: her right hand twists the lid shut.", null]), true);
-  assert.equal(storyHasRecurringSubject(["Action: the golden retriever runs toward camera."]), true);
-  assert.equal(storyHasRecurringSubject(["Action: a hand tears open the bag.", "Action: beans pour into the grinder."]), false);
-  /// 镜头卡常用身份词 + 中性代词写人（10-29 首版漏判了耳机 / 背包 / 咖啡三条）
-  assert.equal(storyHasRecurringSubject(["Starts on: Passenger grips the pole with right hand."]), true);
-  assert.equal(storyHasRecurringSubject(["Action: Hiker unclips the black buckle."]), true);
-  assert.equal(storyHasRecurringSubject(["Action: The barista raises the open bag 15cm to their nose."]), true);
-  const prompt = buildCharacterSheetPrompt({ productPhotoCount: 3 });
-  assert.match(prompt, /image 1, the opening storyboard frame/u);
-  assert.match(prompt, /Images 2-4 show the product: leave the product out of the sheet entirely\./u);
-  assert.match(prompt, /full-body front view, full-body three-quarter view, full-body side view, and a head-and-shoulders close-up/u);
-  assert.match(prompt, /AVOID: text, labels/u);
-  assert.doesNotMatch(prompt, /[㐀-鿿]/u);
-  assert.equal(CHARACTER_SHEET_ASPECT_RATIO, "16:9");
-});
 
 test("首帧版给 Kling（开场帧排第 1 张、2500 字）：序号整体后移、商品限制跟着改；不带负面也装得下，卡和故事都保住保底", () => {
   const out = groundSegmentPromptForSeedanceOpeningFrame(TEMPLATE, {
@@ -91,54 +66,6 @@ const CJK = /[㐀-鿿]/u;
 const STORY_ZH = "极简钢壳野战表，黑色表盘、棕色皮表带。想拍清晨露营，男生在帐篷外拉起袖子看时间，表盘在逆光里反光，然后他背上包出发。";
 const STORY_EN =
   "A minimalist steel field watch with a black dial and a brown leather strap. Early-morning camping: a man outside his tent pulls up his sleeve to check the time, the dial catches the backlight, then he shoulders his backpack and sets off.";
-
-test("英文化：中文原话才去翻；已是英文原样用；译文按 JSON 收、还是中文就拒收；失败 / 超时 / 不可用一律 null", async () => {
-  assert.equal(storyNeedsEnglish(STORY_ZH), true);
-  assert.equal(storyNeedsEnglish(STORY_EN), false);
-
-  let calls = 0;
-  const chat = (async (options: { stage?: string; tier: string; maxTokens?: number }) => {
-    calls += 1;
-    assert.equal(options.stage, "story_english");
-    assert.equal(options.tier, "fast");
-    assert.ok((options.maxTokens ?? 0) >= 4000, "推理模型要给思考留余量");
-    return { data: { english: `  ${STORY_EN}\n` }, modelUsed: "stub", tokenUsage: null };
-  }) as never;
-  assert.equal(await renderStoryInEnglish(`  ${STORY_EN}  `, { chat, llmAvailable: () => true }), STORY_EN);
-  assert.equal(calls, 0, "英文原话不调模型");
-  assert.equal(await renderStoryInEnglish(STORY_ZH, { chat, llmAvailable: () => true }), STORY_EN);
-  assert.equal(calls, 1);
-
-  const stillChinese = (async () => ({ data: { english: STORY_ZH }, modelUsed: "stub", tokenUsage: null })) as never;
-  assert.equal(await renderStoryInEnglish(STORY_ZH, { chat: stillChinese, llmAvailable: () => true }), null);
-  /// 商品上印的中文品牌名逐字保留：零星中文可以
-  const keepsBrand = (async () => ({ data: { english: "A jar of 老干妈 chili sauce on a wooden table." }, modelUsed: "stub", tokenUsage: null })) as never;
-  assert.equal(await renderStoryInEnglish("桌上一瓶老干妈辣酱", { chat: keepsBrand, llmAvailable: () => true }), "A jar of 老干妈 chili sauce on a wooden table.");
-
-  const broken = (async () => {
-    throw new Error("OpenAI 返回了空响应");
-  }) as never;
-  assert.equal(await renderStoryInEnglish(STORY_ZH, { chat: broken, llmAvailable: () => true }), null);
-  assert.equal(await renderStoryInEnglish(STORY_ZH, { chat, llmAvailable: () => false }), null);
-  const slow = (() => new Promise(() => {})) as never;
-  assert.equal(await renderStoryInEnglish(STORY_ZH, { chat: slow, llmAvailable: () => true, timeoutMs: 5 }), null);
-});
-
-test("一键退回开关：STORYBOARD_STORY_ENGLISH=off 不翻、SHUYU_OPENING_FRAME_PROMPT=off 回逐帧版；缺省都开", async () => {
-  assert.equal(storyEnglishEnabled({}), true);
-  assert.equal(storyEnglishEnabled({ STORYBOARD_STORY_ENGLISH: " OFF " }), false);
-  assert.equal(shuyuOpeningFramePromptEnabled({}), true);
-  assert.equal(shuyuOpeningFramePromptEnabled({ SHUYU_OPENING_FRAME_PROMPT: "off" }), false);
-  let calls = 0;
-  const chat = (async () => {
-    calls += 1;
-    return { data: { english: STORY_EN }, modelUsed: "stub", tokenUsage: null };
-  }) as never;
-  assert.equal(await renderStoryInEnglish(STORY_ZH, { enabled: false, chat, llmAvailable: () => true }), null);
-  assert.equal(calls, 0, "关着就不调模型");
-  const service = await readFile("src/lib/services/video-service.ts", "utf8");
-  assert.match(service, /&& plan\?\.segmentPlan\.length === 1\s*&& shuyuOpeningFramePromptEnabled\(\);/u);
-});
 
 test("帧提示词读回英文故事：有 STORY CONTEXT 行取正文，没有就 null（旧 run 退回原话）", () => {
   const prompt = ["Create ONE photorealistic commercial storyboard keyframe…", `${STORYBOARD_STORY_CONTEXT_PREFIX}${STORY_EN}`, "FORMAT: 9:16."].join("\n");

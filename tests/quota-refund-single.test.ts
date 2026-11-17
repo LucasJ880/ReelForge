@@ -649,13 +649,3 @@ test("1.4 dispatch route: the catch branch tries zero-job compensation before th
   );
 });
 
-test("D1 batch retry routes pass the session for the re-charge and map quota errors", async () => {
-  for (const file of [
-    "src/app/api/batches/[id]/retry/route.ts",
-    "src/app/api/batches/[id]/jobs/[jobId]/retry/route.ts",
-  ]) {
-    const route = await readFile(file, "utf8");
-    assert.match(route, /session: guard\.session/, file);
-    assert.match(route, /quotaErrorResponse\(error\)/, file);
-  }
-});

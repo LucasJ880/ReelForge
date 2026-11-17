@@ -11,12 +11,10 @@ test("Phase1 unified journey：一级区只有一套 /app 路径", () => {
     /// 2026-10-28 瘦身（学 LibTV）：「询盘」A 级下线，路由保留可直达。
     /// 「本周内容」「战绩」「投放赛马」三页 2026-11-16 彻底删除（旧网址由 next.config 转走）。
     { label: "创作", href: "/app/create" },
-    { label: "批量生产", href: "/app/batches" },
     { label: "成品库", href: "/app/library" },
     /// 2026-11-10 商品档案（用户确认：放在资产组，成品库和品牌之间）
     { label: "商品", href: "/app/products" },
     { label: "品牌", href: "/app/brands" },
-    { label: "模板库", href: "/app/templates" },
     /// 2026-10-28 客户使用指南（学 LibTV「学院」）
     { label: "使用指南", href: "/app/guide" },
   ]);
@@ -29,33 +27,11 @@ test("Phase1 unified journey：一级区只有一套 /app 路径", () => {
 test("Phase1 unified journey：各一级区页面与批次/成品详情均存在", async () => {
   for (const file of [
     "src/app/(platform)/app/create/page.tsx",
-    "src/app/(platform)/app/batches/new/page.tsx",
-    "src/app/(platform)/app/batches/page.tsx",
-    "src/app/(platform)/app/batches/[id]/page.tsx",
     "src/app/(platform)/app/library/page.tsx",
     "src/app/(platform)/app/library/[id]/page.tsx",
     "src/app/(platform)/app/brands/page.tsx",
-    "src/app/(platform)/app/templates/page.tsx",
     "src/app/(platform)/app/leads/page.tsx",
   ]) await access(file);
-});
-
-test("Phase1 unified journey：批量创建完成后进入统一批次详情", async () => {
-  const page = await readFile("src/app/(platform)/app/batches/new/page.tsx", "utf8");
-  const wizard = await readFile("src/components/batch/batch-create-wizard.tsx", "utf8");
-  assert.match(page, /batchDetailsBasePath="\/app\/batches"/);
-  // 单批仍进入统一批次详情；混合队列多批时回批次列表
-  assert.match(wizard, /router\.push\(`\$\{batchDetailsBasePath\}\/\$\{createdBatchIds\[0\]\}`\)/);
-  assert.match(wizard, /router\.push\(batchDetailsBasePath\)/);
-});
-
-test("Phase2 模板库选择可透传到批量向导并预选精确版本 ID", async () => {
-  const templates = await readFile("src/app/(platform)/app/templates/page.tsx", "utf8");
-  const page = await readFile("src/app/(platform)/app/batches/new/page.tsx", "utf8");
-  const wizard = await readFile("src/components/batch/batch-create-wizard.tsx", "utf8");
-  assert.match(templates, /\/app\/batches\/new\?template=/);
-  assert.match(page, /initialTemplateId=\{initialTemplateId\}/);
-  assert.match(wizard, /template\.slug === initialTemplateId \|\| template\.id === initialTemplateId/);
 });
 
 test("Phase1 unified journey：创作使用 account-neutral platform 请求并回统一成品库", async () => {

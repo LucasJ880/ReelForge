@@ -57,6 +57,8 @@ export interface DirectorWriterInput {
   brandName?: string;
   /// 商家要的行动指引（有的话）
   cta?: string;
+  /// 商家选的风格（风格卡的拍法要求，英文）：钩子、节奏、光、人怎么出镜、声音的语气。不给 = 由写手按商品定
+  styleBrief?: string;
 }
 
 /** 模型填的场景卡，加上它定的商品类型与片种（各带一句理由）：给审片的人和界面看。 */
@@ -164,6 +166,7 @@ export const directorWriterInputSchema = z.object({
   genre: z.enum(DIRECTOR_GENRES).optional(),
   brandName: optionalText(60),
   cta: optionalText(60),
+  styleBrief: optionalText(900),
 });
 
 /// 内部用的输入：时长放宽成数字，好让单测拿 10 秒的示例草稿走同一条路（对外的输入仍然只收 15 / 30）
@@ -301,7 +304,7 @@ Study each photo first: structure, material, colour, print, logos. The brief is 
 
 1 SCENARIO FIRST
 Film who uses the product at which moment, not the product sitting there. Fill the card: who (user and buyer), where (it is used most), moment (the worst one without it), trouble (the visible consequence), after (same moment with the product: what visibly differs), emotion (whose expression ends the film).
-- Hook (shot 1) = the trouble moment as one physical action, never someone talking to camera.
+- Hook (shot 1) = the trouble moment as one physical action, never someone talking to camera. If the brief's Style names a different opening, shot 1 is that opening instead (still one physical action, never talking to camera), and the trouble moment moves to shot 2 or is told by contrast.
 - The product works inside the scene; pure display only in the last shot. One scenario per film.
 
 2 PRODUCT TYPE: hook | proof | never
@@ -419,6 +422,9 @@ function briefMessage(brief: WriterBrief, maxVideoPhotos: number): string {
     `Aspect ratio: ${ORIENTATION_LABEL[brief.aspectRatio]}`,
     brief.genre ? `Genre: ${brief.genre} (set by the merchant: keep it and say so in genreReason)` : "Genre: not set. Choose fmcg or lifestyle and say why in genreReason.",
     `Spoken lines: ${LANGUAGE_LABEL[brief.voiceLanguage]}`,
+    brief.styleBrief
+      ? `Style (picked by the merchant; shape the hook, pacing, light, how people appear and the tone of voice and music around it. Where the style says how to open, open that way. On everything else the rules above still win where they conflict):\n${brief.styleBrief}`
+      : null,
     "",
     `PHOTOS: ${photos.length} attached, in this order`,
     ...photos.map((photo, index) => `image ${index + 1} = photo-${index + 1}${photo.note ? ` (merchant's note: ${photo.note})` : ""}`),

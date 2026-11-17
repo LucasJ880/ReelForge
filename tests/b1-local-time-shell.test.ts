@@ -33,7 +33,6 @@ test("date：今天写「今天」，非今天写月日；relative：刚刚 / N 
 
 test("服务端渲染的日期都走 LocalTime（服务端只传 ISO），生产带非今天带日期", () => {
   const files = [
-    "src/app/(platform)/app/batches/page.tsx",
     "src/app/(platform)/app/library/page.tsx",
     "src/components/library/making-process-timeline.tsx",
   ];
@@ -42,8 +41,6 @@ test("服务端渲染的日期都走 LocalTime（服务端只传 ISO），生产
     assert.doesNotMatch(source, /toLocaleDateString|toLocaleString\(|new Intl\.DateTimeFormat/, `${file} 不得在服务端格式化时间`);
     assert.match(source, /<LocalTime[\s\S]*?iso=\{[^}]*toISOString\(\)\}/, file);
   }
-  const tape = readFileSync("src/components/exchange/exchange-tape.tsx", "utf8");
-  assert.match(tape, /<LocalTime iso=\{item\.at\} locale=\{locale\} variant="datetime"/);
   const localTime = readFileSync("src/components/exchange/local-time.tsx", "utf8");
   assert.match(localTime, /useSyncExternalStore\(\s*subscribe,[\s\S]*?\(\) => null,\s*\)/, "服务端快照为占位，避免水合不一致");
 });

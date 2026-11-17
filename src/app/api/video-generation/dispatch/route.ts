@@ -60,7 +60,6 @@ import {
 import type { UnifiedVideoGenerationRequest } from "@/types/video-generation";
 import {
   readStoryboardDirectorScriptForUser,
-  readStoryboardVisualReferenceForUser,
   getApprovedStoryboardVideoReferences,
   StoryboardRequestError,
 } from "@/lib/video-generation/storyboard-service";
@@ -301,15 +300,16 @@ export async function POST(req: NextRequest) {
   let directorScript: Awaited<ReturnType<typeof readStoryboardDirectorScriptForUser>> = null;
   try {
     directorScript = await readStoryboardDirectorScriptForUser(session.user.id, body?.storyboardRunId);
-    /// 出方案并成一次（11-09）：建故事板时已经看过商品图，盘点存在 run 上（只读本人的 run）。
-    /// 读得到就不再重新看图；读不到（旧故事板、没有商品图）照旧现看。
-    const storedVisualRefs = directorScript
-      ? null
-      : await readStoryboardVisualReferenceForUser(session.user.id, body?.storyboardRunId);
-    plan = await buildPlan(request, {
-      ...(storedVisualRefs ? { visualRefs: storedVisualRefs } : {}),
-      ...(directorScript ? { director: { job: directorScript.job } } : {}),
-    });
+    /// 导演线路是唯一的出片方式（2026-11-17 锁定）：没有镜头脚本的故事板是下线前的老版本，不再按老线路出片
+    if (!directorScript) {
+      return dispatchErrorResponse(422, {
+        code: "VALIDATION_FAILED",
+        message: "这一轮故事板是旧版本做的，不能再用来出片。请回创作页重新生成一轮（商品图和描述都还在）。",
+        retryable: false,
+        action: "fix_request",
+      });
+    }
+    plan = await buildPlan(request, { director: { job: directorScript.job } });
   } catch (err) {
     /// 客户可见 error 走友好文案；详细 message 仅写日志 / dev 调试
     console.error("[/api/video-generation/dispatch] buildPlan failed", err);

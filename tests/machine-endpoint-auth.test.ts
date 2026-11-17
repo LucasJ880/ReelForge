@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { NextRequest } from "next/server";
-import { GET as processBatches } from "../src/app/api/cron/process-batches/route";
 import { GET as pollVideos } from "../src/app/api/cron/poll-videos/route";
 import { GET as stitchVideos } from "../src/app/api/cron/stitch-videos/route";
 import { GET as stitchDispatch } from "../src/app/api/cron/stitch-dispatch/route";
@@ -12,7 +11,6 @@ import { POST as completeStitch } from "../src/app/api/internal/stitch/complete/
 type Handler = (request: NextRequest) => Promise<Response>;
 
 const endpoints: Array<{ name: string; path: string; method: "GET" | "POST"; handler: Handler }> = [
-  { name: "process batches", path: "/api/cron/process-batches", method: "GET", handler: processBatches },
   { name: "poll videos", path: "/api/cron/poll-videos", method: "GET", handler: pollVideos },
   { name: "stitch videos", path: "/api/cron/stitch-videos", method: "GET", handler: stitchVideos },
   { name: "stitch dispatch", path: "/api/cron/stitch-dispatch", method: "GET", handler: stitchDispatch },

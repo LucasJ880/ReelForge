@@ -1,14 +1,7 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
-  batchStyleTemplateDto,
-  batchStyleTemplatesResponseSchema,
-  batchStyleTemplatesSuccessSchema,
-} from "../src/lib/contracts/batch-style-templates";
-import {
   customerApiError,
-  customerApiErrorSchema,
 } from "../src/lib/contracts/customer-api";
 import {
   healthHttpStatus,
@@ -96,83 +89,6 @@ test("H1 upload contract: success and auth/failure envelopes are closed", () => 
   );
 });
 
-test("H1 template contract: DTO allowlist is stable and strips persistence fields", () => {
-  const template = batchStyleTemplateDto(
-    {
-      id: "template_1",
-      slug: "ugc-proof",
-      version: 3,
-      name: "UGC Proof",
-      nameZh: "UGC 真实证明",
-      category: "UGC",
-      coverImage: "/template-previews/ugc-proof.jpg",
-      promptSkeleton: "Use {IMAGE_REFS} as truth.",
-      negativePrompt: "product morphing",
-      lockedParams: {
-        duration: 15,
-        aspectRatio: "9:16",
-        resolution: "1080p",
-        cameraStyle: "controlled handheld camera",
-        stability: "balanced",
-        humanInteraction: "controlled",
-      },
-      imagesPerVideo: { min: 2, max: 4 },
-      // Compile-time input is intentionally structural; persistence fields are
-      // supplied at runtime here to prove they cannot cross the DTO allowlist.
-      status: "ACTIVE",
-      createdAt: "secret-persistence-shape",
-    } as Parameters<typeof batchStyleTemplateDto>[0],
-    "/template-previews/ugc-proof.jpg",
-  );
-
-  assert.equal("status" in template, false);
-  assert.equal("createdAt" in template, false);
-  const success = batchStyleTemplatesSuccessSchema.parse({
-    ok: true,
-    templates: [template],
-  });
-  assert.deepEqual(batchStyleTemplatesResponseSchema.parse(success), success);
-  assert.deepEqual(
-    batchStyleTemplatesResponseSchema.parse(AUTH_REQUIRED),
-    AUTH_REQUIRED,
-  );
-  assert.equal(
-    batchStyleTemplatesResponseSchema.safeParse(
-      customerApiError({
-        code: "SERVICE_UNAVAILABLE",
-        message: "风格模板暂时无法加载，请稍后重试。",
-        retryable: true,
-        action: "retry",
-      }),
-    ).success,
-    true,
-  );
-
-  const legacy = batchStyleTemplateDto(
-    {
-      id: "acceptance_fixture",
-      slug: "final-acceptance-single-image",
-      version: 1,
-      name: "Final acceptance",
-      nameZh: "最终验收",
-      category: "自动化验收",
-      coverImage: "https://assets.example.test/fixture.svg",
-      promptSkeleton: "Use {IMAGE_REFS} as truth.",
-      negativePrompt: "morphing",
-      lockedParams: {
-        duration: 5,
-        aspectRatio: "9:16",
-        resolution: "720p",
-        cameraStyle: "deterministic fixture camera",
-      },
-      imagesPerVideo: { min: 1, max: 1 },
-    },
-    null,
-  );
-  assert.equal(legacy.lockedParams.stability, "balanced");
-  assert.equal(legacy.lockedParams.humanInteraction, "controlled");
-});
-
 test("H1 health contract: healthy and degraded snapshots expose only bounded diagnostics", () => {
   const healthy = healthResponseSchema.parse({
     ok: true,
@@ -248,30 +164,3 @@ test("H1 health contract: healthy and degraded snapshots expose only bounded dia
   );
 });
 
-test("H1 endpoint wiring: all three routes use the shared schemas and safe envelopes", async () => {
-  const [upload, templates, health] = await Promise.all([
-    readFile("src/app/api/upload/blob/route.ts", "utf8"),
-    readFile("src/app/api/batch-style-templates/route.ts", "utf8"),
-    readFile("src/app/api/health/route.ts", "utf8"),
-  ]);
-
-  assert.match(upload, /requireAuth\(\)/);
-  assert.match(upload, /uploadBlobSuccess\(/);
-  assert.match(upload, /customerApiError\(/);
-  assert.match(upload, /createOwnedMediaAsset/);
-  assert.doesNotMatch(upload, /reviewMediaOrThrow/);
-  assert.doesNotMatch(upload, /throw err\b/);
-
-  assert.match(templates, /requireAuth\(\)/);
-  assert.match(templates, /batchStyleTemplatesSuccessSchema\.parse\(/);
-  assert.match(templates, /code: "SERVICE_UNAVAILABLE"/);
-  assert.match(templates, /\{ status: 503 \}/);
-
-  assert.match(health, /healthResponseSchema\.parse\(/);
-  assert.match(health, /unavailableHealthResponse\(\)/);
-  assert.match(health, /export const HEAD = GET/);
-  assert.doesNotMatch(health, /error:\s*\(err as Error\)\.message/);
-
-  // Shared guard's 401 is part of both protected endpoint unions.
-  assert.equal(customerApiErrorSchema.safeParse(AUTH_REQUIRED).success, true);
-});

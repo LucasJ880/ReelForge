@@ -23,9 +23,7 @@ const FORBIDDEN_HARDCODED = [
 
 const BUSINESS_PAGE_FILES = [
   "src/app/(platform)/app/create/page.tsx",
-  "src/app/(platform)/app/batches/page.tsx",
   "src/app/(platform)/app/library/page.tsx",
-  "src/app/(platform)/app/templates/page.tsx",
 ];
 
 function stripComments(src: string): string {

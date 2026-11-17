@@ -15,7 +15,7 @@ import { requireAuth } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { applyClientBrandPackaging } from "@/lib/video-generation/brand-packaging-service";
 import { postProductionPlanSchema } from "@/lib/schemas/unified-input";
-import { readBatchPostProductionFromSnapshot } from "@/lib/services/batch-service";
+import { readBatchPostProductionFromSnapshot } from "@/lib/library/batch-post-production";
 import type { PostProductionPlan } from "@/types/video-generation";
 import {
   findWorkspaceBrandPackageForUser,

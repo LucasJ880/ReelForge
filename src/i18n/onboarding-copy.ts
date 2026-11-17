@@ -88,10 +88,8 @@ interface OnboardingCopy {
     };
     video: StepCopy & {
       quota: string;
-      sampleTag: string;
       useTemplate: string;
       openCreate: string;
-      noTemplates: string;
       started: string;
       done: string;
       library: string;
@@ -172,7 +170,7 @@ const ZH: OnboardingCopy = {
     failed: "没保存成功，请稍后再试。",
     business: {
       title: "你的生意",
-      body: "店名、行业和城市会用来推荐适合你的模板。",
+      body: "店名、行业和城市会用在你的询盘页和片尾落款上。",
       businessName: "店名 / 公司名",
       website: "网站或主页（选填）",
       websitePlaceholder: "例如：sunnyshutter.ca",
@@ -210,12 +208,10 @@ const ZH: OnboardingCopy = {
     },
     video: {
       title: "第一条视频",
-      body: "选一个有真机样片的风格，上传你的作品照片；先出 AI 故事板逐帧确认，再生成竖版成片，不满意随时取消。",
+      body: "选一种风格，上传商品实拍图；AI 先写好镜头脚本、出一张开场画面给你确认，再一次生成整条竖版成片，不满意随时取消。",
       quota: "本月视频额度 {used} / {limit}",
-      sampleTag: "样例",
       useTemplate: "用这个风格",
       openCreate: "直接去创作",
-      noTemplates: "模板库暂时取不到推荐，可以直接去创作页从头开始。",
       started: "已经在生成第一条视频",
       done: "第一条成片已就绪",
       library: "去成品库看看",
@@ -306,7 +302,7 @@ const EN: OnboardingCopy = {
     failed: "Couldn't save. Please try again.",
     business: {
       title: "Your business",
-      body: "Your name, trade and city shape the templates we recommend.",
+      body: "Your name, trade and city go on your inquiry page and brand sign-off.",
       businessName: "Business name",
       website: "Website or profile (optional)",
       websitePlaceholder: "e.g. sunnyshutter.ca",
@@ -344,12 +340,10 @@ const EN: OnboardingCopy = {
     },
     video: {
       title: "First video",
-      body: "Pick a style with a verified sample render and upload photos of your work; approve an AI storyboard frame by frame, then render the vertical video. Cancel any time.",
+      body: "Pick a style and upload real photos of your product. The AI writes the shot script and one opening frame for you to approve, then renders the whole vertical video in one go. Cancel any time.",
       quota: "Videos this month {used} / {limit}",
-      sampleTag: "Sample",
       useTemplate: "Use this style",
       openCreate: "Go to the studio",
-      noTemplates: "Recommendations aren't available right now — start from scratch in the studio.",
       started: "Your first video is generating",
       done: "Your first video is ready",
       library: "Open the library",

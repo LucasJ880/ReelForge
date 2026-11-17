@@ -61,9 +61,6 @@ test("提示文字：说清几个字、说完要几秒、这条片建议多少",
 });
 
 test("全站一把尺：AI 起稿、模板稿、界面提示都从 voiceover-budget 取数", () => {
-  const writer = readFileSync("src/lib/video-generation/voiceover-writer.ts", "utf8");
-  assert.match(writer, /import \{ voiceoverBudget \} from "\.\/voiceover-budget";/);
-  assert.doesNotMatch(writer, /durationSec \* 4|durationSec \* 2\.2/);
   const controls = readFileSync("src/components/video-generation/audio-caption-controls.tsx", "utf8");
   assert.doesNotMatch(controls, /durationSec \* 4|durationSec \* 2\.2/);
   assert.doesNotMatch(controls, /\{value\.voiceoverScript\.length\} \/ 2000/, "不再给商家看接口上限");
@@ -76,22 +73,20 @@ test("全站一把尺：AI 起稿、模板稿、界面提示都从 voiceover-bud
 test("故事板出来之后：不改画面的设置照样能改，改了不丢故事板", () => {
   const studio = readFileSync("src/components/video-generation/streamlined-video-studio.tsx", "utf8");
   assert.match(studio, /const finishingLocked = busy !== null;/);
-  /// 口播稿 / 字幕 / 配乐：只在提交途中锁；口播开关（决定有没有人对镜头说话）跟着画面锁
-  assert.match(studio, /disabled=\{finishingLocked\}\s+voiceoverToggleLocked=\{configurationLocked\}\s+durationSec=\{selectedDuration\}/);
-  /// 有故事板时改这些设置只让方案预览失效，不调会清掉故事板的 invalidatePlan
-  assert.match(studio, /if \(hasStoryboard\) invalidatePlanKeepingStoryboard\(\);\s+else invalidatePlan\(\);/);
+  /// 自己写的口播稿 / 字幕设置：只在提交途中锁
+  assert.match(studio, /disabled=\{finishingLocked\}\s+durationSec=\{selectedDuration\}\s+onChange=\{updateAudioCaptionSettings\}/);
+  /// 改这些设置不清故事板（不调会清掉故事板的 invalidatePlan）
   const soft = studio.slice(
-    studio.indexOf("const invalidatePlanKeepingStoryboard = useCallback"),
-    studio.indexOf("const hasStoryboard = storyboard !== null;"),
+    studio.indexOf("const updateAudioCaptionSettings = useCallback"),
+    studio.indexOf("useEffect(() => {\n    if (!storyboard || storyboard.status !== \"GENERATING\") return;"),
   );
-  assert.ok(soft.length > 0);
-  assert.doesNotMatch(soft, /setStoryboard\(null\)|storyboardAttemptRef\.current = null/);
+  assert.ok(soft.length > 0 && soft.length < 600);
+  assert.doesNotMatch(soft, /invalidatePlan|setStoryboard\(null\)|storyboardAttemptRef\.current = null/);
   /// 片尾落款四个控件都跟着解锁
   const signoff = studio.slice(studio.indexOf('data-testid="streamlined-signoff"'), studio.indexOf("BRAND_END_CARD_ENTRY_ENABLED ? ("));
   assert.equal((signoff.match(/disabled=\{finishingLocked\}/g) ?? []).length, 4);
   assert.doesNotMatch(signoff, /disabled=\{locked\}/);
   /// 改画面的那几项仍然锁着
   assert.match(studio, /value=\{String\(selectedDuration\)\}\s+disabled=\{locked\}/);
-  assert.match(studio, /value=\{referenceMode\}\s+disabled=\{locked\}/);
   assert.match(studio, /data-testid="finishing-editable-hint"/);
 });

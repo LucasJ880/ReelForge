@@ -29,7 +29,7 @@ import {
   type DirectorWriterInput,
   type DirectorWriterScenario,
 } from "@/lib/video-generation/director-writer";
-import { DIRECTOR_LINE_TEMPLATE_ID, type DirectorScriptView } from "@/lib/video-generation/director-line-policy";
+import { directorStyle, type DirectorScriptView } from "@/lib/video-generation/director-line-policy";
 
 export const DIRECTOR_SCRIPT_KIND = "director_script";
 
@@ -248,13 +248,15 @@ export async function writeDirectorScriptForStoryboard(
   const description = narration
     ? `${input.description.trim()}\n\n商家已经写好的口播稿（台词照这份排进各个镜头，可以断句、不要改意思）：${narration}`
     : input.description.trim();
+  const style = directorStyle(input.styleTemplateId);
   const writerInput: DirectorWriterInput = {
     description: description.slice(0, 4_000),
     photos: input.photos.slice(0, DIRECTOR_LINE_MAX_PHOTOS),
     durationSec: input.durationSec === 30 ? 30 : 15,
     aspectRatio: input.aspectRatio,
     voiceLanguage: directorVoiceLanguage(input.description),
-    ...(input.styleTemplateId === DIRECTOR_LINE_TEMPLATE_ID ? { genre: "fmcg" as const } : {}),
+    /// 选了风格：片种和拍法要求都照风格卡；「自动匹配」两样都不给，由写手按商品定
+    ...(style ? { genre: style.genre, styleBrief: style.brief } : {}),
   };
   const complete: DirectorWriterCompleter = async (args) => {
     const room = remaining();

@@ -38,7 +38,6 @@ import {
 } from "@/lib/video-generation/storyboard-beats";
 import {
   SHOT_CARD_LINE_PREFIX,
-  designStoryboardShotCards,
   formatShotCardSequence,
   readShotCardFromFramePrompt,
   type StoryboardShotCard,
@@ -60,7 +59,6 @@ import {
   storyboardUserDirectionLine,
   truncateStoryText,
 } from "@/lib/video-generation/storyboard-frame-inputs";
-import { renderStoryInEnglish } from "@/lib/video-generation/story-english";
 import {
   readStoredVisualReference,
   type VisualReferenceAnalysis,
@@ -76,13 +74,12 @@ import {
   type StoredDirectorScript,
 } from "@/lib/video-generation/director-line";
 import {
-  directorLineApplies,
-  directorLineEnabled,
+  DIRECTOR_LINE_BLOCKER_MESSAGE,
+  directorLineBlocker,
   type DirectorScriptView,
 } from "@/lib/video-generation/director-line-policy";
 import { createOpenAiDirectorCompleter } from "@/lib/video-generation/director-writer-openai";
 import {
-  createPlanningDegradationLog,
   logPlanningDegradations,
   mergePlanningDegradation,
   planningDegradation,
@@ -594,7 +591,7 @@ export async function createStoryboardRun(
   if (!input.prompt.trim()) {
     throw new StoryboardRequestError("请描述视频故事。", "VALIDATION_FAILED");
   }
-  if (![5, 10, 15, 30, 60].includes(input.durationSec)) {
+  if (![15, 30].includes(input.durationSec)) {
     throw new StoryboardRequestError("视频时长不受支持。", "VALIDATION_FAILED");
   }
   const assetIds = [...new Set(input.sourceAssetIds ?? [])];
@@ -653,26 +650,21 @@ export async function createStoryboardRun(
       "VALIDATION_FAILED",
     );
   }
-  // 只给「真正新建」计数：同一幂等键的回放（刷新后重提）不占名额。
-  if (input.userInitiated) await bumpStoryboardRateLimit("create", input.userId);
-
-  const id = randomUUID();
-  /// 镜头卡只给单条故事板：批量视频的提示词沿用模板自己的时间线，帧按卡构图会和它打架。
-  const isBatchRun = (input.purpose ?? "").startsWith("batch-");
-  /// 镜头卡调了 LLM 却没用上（失败 / 超时 / 输出不合格）时记在 run 上，与方案的 planningDegradations 同一形状。
-  const degradations = createPlanningDegradationLog();
-
-  /// 导演线路（2026-11-17）：有实拍图的 15 / 30 秒单条片，由导演写手写一份镜头脚本，只出一张开场帧，
-  /// 出片时整条一次生成——和 Claude 这边 `npm run director` 是同一套规则。写不成就退回下面老的故事板，并记一条降级。
-  const directorCandidate = directorLineApplies({
-    enabled: directorLineEnabled(),
-    purpose: input.purpose ?? null,
+  /// 导演线路做不了的请求（没传商品图、别的时长、下线的模板）当场说清楚——放在计数之前，一眼能拒的请求不占名额
+  const blocked = directorLineBlocker({
     durationSec: input.durationSec,
     productImageCount: assets.length,
     personImageCount: personAssetIds.length,
     styleTemplateId: input.styleTemplateId ?? null,
   });
-  if (directorCandidate) {
+  if (blocked) throw new StoryboardRequestError(DIRECTOR_LINE_BLOCKER_MESSAGE[blocked], "VALIDATION_FAILED");
+  // 只给「真正新建」计数：同一幂等键的回放（刷新后重提）不占名额。
+  if (input.userInitiated) await bumpStoryboardRateLimit("create", input.userId);
+
+  const id = randomUUID();
+  /// 导演线路是单条创作唯一的出片方式（2026-11-17 锁定）：由导演写手看商品图写一份镜头脚本，只出一张开场帧，
+  /// 出片时整条一次生成——和 Claude 这边 `npm run director` 是同一套规则。它做不了的请求当场说清楚，不再退回老的分帧故事板。
+  {
     const written = await runtime().writeDirectorScript({
       description: input.prompt,
       durationSec: input.durationSec,
@@ -743,90 +735,14 @@ export async function createStoryboardRun(
       if (openingFrame) await submitStoryboardFrame(openingFrame.id);
       return storyboardRunView((await findRun(directorRun.id, input.userId)) ?? directorRun);
     }
-    console.warn(`[director-line] storyboard ${id}: writer failed, falling back to the shot-card storyboard: ${written.cause}`);
-    degradations.record(planningDegradation("director_script", written.cause));
+    /// 写不成就明说、可以再点一次：不再退回老的分帧故事板（那条线路的出品不是我们认可的水平）
+    console.warn(`[director-line] storyboard ${id}: writer failed: ${written.cause}`);
+    throw new StoryboardRequestError(
+      "AI 这次没能写出镜头脚本，没有扣任何额度。请再点一次「生成 AI 故事板」；连续几次都不行，请稍后再试。",
+      "DIRECTOR_SCRIPT_FAILED",
+      503,
+    );
   }
-  /// 帧提示词全程英文（10-29）：原话译成英文写进 STORY CONTEXT，随帧落库，派发视频时读回；译不了就用原话。
-  /// 镜头卡仍读原话；sourcePrompt 存原话（界面回显、重建计划都用它）。两次 LLM 调用互不依赖，并行跑。
-  const shotCardInput = {
-    story: input.prompt,
-    beats: storyboardBeatsForDuration(input.durationSec),
-    durationSec: input.durationSec,
-    aspectRatio: input.aspectRatio,
-    productImageCount: assets.length,
-    personImageCount: personAssetIds.length,
-    voiceoverScript: input.voiceoverScript ?? null,
-  };
-  /// 镜头卡与原话英译各一次模型调用，并行跑。11-09 试过把它们和商品图的视觉盘点并成一次看图调用
-  ///（STORYBOARD_DIRECTION）：首次真机只用上三样里的一样、还更慢，一直缺省关，2026-11-16 删除。
-  const [shotCards, storyEnglish] = await Promise.all([
-    isBatchRun
-      ? Promise.resolve(null)
-      : designStoryboardShotCards(shotCardInput, { onDegraded: degradations.record }),
-    renderStoryInEnglish(input.prompt, { onDegraded: degradations.record }),
-  ]);
-  const promptStory = storyEnglish ?? input.prompt;
-  const planningDegradations = degradations.list();
-  logPlanningDegradations({ source: "storyboard", runId: id }, planningDegradations);
-  const plans = buildStoryboardFramePlans({
-    prompt: promptStory,
-    durationSec: input.durationSec,
-    aspectRatio: input.aspectRatio,
-    productImageCount: assets.length,
-    personImageCount: personAssetIds.length,
-    shotCards,
-  });
-  let run: StoryboardRunRecord;
-  try {
-    run = await db.storyboardRun.create({
-      data: {
-        id,
-        userId: input.userId,
-        idempotencyKey: input.idempotencyKey,
-        requestHash: hash,
-        approvalPolicy:
-          input.approvalPolicy === "AUTO"
-            ? StoryboardApprovalPolicy.AUTO
-            : StoryboardApprovalPolicy.MANUAL,
-        status: StoryboardRunStatus.GENERATING,
-        durationSec: input.durationSec,
-        aspectRatio: input.aspectRatio,
-        purpose: input.purpose ?? "single-video-storyboard",
-        sourcePrompt: input.prompt.trim(),
-        inputAssetIds: assetIds,
-        inputImageUrls: assets.map((asset) => asset.url),
-        personAssetIds,
-        planningDegradations: planningDegradations as unknown as Prisma.InputJsonValue,
-        frames: {
-          create: plans.map((plan) => ({
-            ordinal: plan.ordinal,
-            attempt: 1,
-            isCurrent: true,
-            beat: plan.beat,
-            prompt: plan.prompt,
-            providerRequestKey: frameRequestKey(id, plan.ordinal, 1),
-          })),
-        },
-      },
-      include: storyboardInclude,
-    });
-  } catch (error) {
-    if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") {
-      throw error;
-    }
-    const replay = await db.storyboardRun.findUnique({
-      where: { userId_idempotencyKey: { userId: input.userId, idempotencyKey: input.idempotencyKey } },
-      include: storyboardInclude,
-    });
-    if (!replay || replay.requestHash !== hash) {
-      throw new StoryboardRequestError("故事板提交冲突。", "IDEMPOTENCY_CONFLICT", 409);
-    }
-    return storyboardRunView(replay);
-  }
-
-  const first = run.frames[0];
-  if (first) await submitStoryboardFrame(first.id);
-  return storyboardRunView((await findRun(run.id, input.userId)) ?? run);
 }
 
 /**
@@ -1503,6 +1419,8 @@ function resumableStoryboardWhere(userId: string, now: Date = new Date()): Prism
     purpose: "single-video-storyboard",
     videoBriefId: null,
     videoJobId: null,
+    /// 只带回导演线路的那一轮（2026-11-17）：以前逐帧出的故事板已经不能用来出片，不再把人带回去
+    visualReference: { path: ["kind"], equals: "director_script" },
     status: {
       in: [
         StoryboardRunStatus.GENERATING,

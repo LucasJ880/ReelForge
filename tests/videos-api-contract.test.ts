@@ -142,16 +142,10 @@ test("三处 VideoJob 创建点都要落配方快照", () => {
   /// providerUnitPriceUsd 当初就是「列加了、没有写入点」，全代码库统计不出成本。
   /// 这条测试守住配方列不重蹈覆辙。
   const root = process.cwd();
-  const batch = readFileSync(
-    path.join(root, "src/lib/services/batch-service.ts"),
-    "utf8",
-  );
   const video = readFileSync(
     path.join(root, "src/lib/services/video-service.ts"),
     "utf8",
   );
-
-  assert.match(batch, /creativeRecipeSnapshot\(/);
   const briefWrites = video.match(/briefCreativeRecipe\(/g) ?? [];
   assert.equal(
     briefWrites.length,

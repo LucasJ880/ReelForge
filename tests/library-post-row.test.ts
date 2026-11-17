@@ -53,10 +53,12 @@ test("🔴 列表页：post 行不链视频详情（那里必 404），也不链
   assert.match(source, /<a href=\{row\.imageUrls\[0\]\} target="_blank" rel="noopener noreferrer"/);
   /// 没出完图的帖子不再列出来：能让它往下走的那一页没了，摆着只是一行点不动的字
   assert.match(source, /row\.source !== "post" \|\| row\.status === "ready"/);
+  /// 以前做的批量成片没有详情页了（批量生产 2026-11-17 下线）：卡片直接打开成片文件，不再链已删的批次页
+  assert.doesNotMatch(source, /\/app\/batches/);
+  assert.match(source, /return row\.brandedVideoUrl \?\? row\.videoUrl \?\? "\/app\/library";/);
   /// 视频分区绝不掺 post 行
   assert.match(source, /row\.status === "ready" && !isPost\(row\)/);
   /// 只给视频行算详情链接
-  assert.match(source, /row\.source === "batch" \? `\/app\/batches\/\$\{row\.batchId\}` : `\/app\/library\/\$\{row\.id\}`/);
 });
 
 test("🔴 详情页：post- 前缀的老链接 redirect 回成品库，不 404", () => {

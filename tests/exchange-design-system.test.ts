@@ -63,19 +63,6 @@ test("工作区壳层（2026-10-28 学 LibTV）：240px 分组侧栏 + 细顶栏
   assert.match(authLayout, /className="gate-theme/);
 });
 
-test("成交梯：五态齐全且 reduced-motion 有静态降级", async () => {
-  const [component, globals] = await Promise.all([
-    read("src/components/batch/batch-film-strip.tsx"),
-    read("src/app/globals.css"),
-  ]);
-  for (const state of ["completed", "generating", "queued", "failed", "cancelled"]) {
-    assert.match(component, new RegExp(`\\b${state}\\b`));
-  }
-  assert.match(component, /role="img"/);
-  assert.match(component, /data-cell-size/);
-  assert.match(globals, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.x-fill-cell\[data-state="generating"\][\s\S]*?animation:\s*none/);
-});
-
 test("工作区：导航计数与生产带都来自 owner-scoped 脉搏，顶栏结构保持精简", async () => {
   const [layout, shell, readings] = await Promise.all([
     read("src/app/(platform)/app/layout.tsx"),
@@ -86,8 +73,8 @@ test("工作区：导航计数与生产带都来自 owner-scoped 脉搏，顶栏
   assert.match(layout, /loadPulse\(userId, \{ locale \}\)/);
   assert.match(layout, /const userId = session\.user\.id/);
   assert.doesNotMatch(layout, /failedJobs|status:\s*\{\s*in:\s*\["EXPANDING", "RUNNING", "PAUSED"\]/);
-  // 生产带：本人最近的批次，不放示例数据
-  assert.match(readings, /db\.batchJob\.findMany\(\{\s*where:\s*\{\s*userId\s*\}/);
+  // 生产带与批次读数随批量生产 2026-11-17 下线：脉搏不再查批次
+  assert.doesNotMatch(readings, /db\.batchJob\./);
   // 工作区芯片只有一个工作区：不是按钮、不画假下拉箭头
   assert.doesNotMatch(shell, /ChevronsUpDown|shell\.platformShell\.switchWorkspace/);
   assert.match(shell, /data-testid="workspace-chip"/);
@@ -101,8 +88,6 @@ test("工作区：导航计数与生产带都来自 owner-scoped 脉搏，顶栏
 
 test("工作区数据展示：批次、任务、成品 ID 与时间字段使用 mono", async () => {
   const sources = await Promise.all([
-    read("src/app/(platform)/app/batches/page.tsx"),
-    read("src/components/batch/batch-monitor.tsx"),
     read("src/app/(platform)/app/library/page.tsx"),
     read("src/app/(platform)/app/library/[id]/page.tsx"),
   ]);
@@ -110,14 +95,9 @@ test("工作区数据展示：批次、任务、成品 ID 与时间字段使用 
 });
 
 test("工作区移动端：媒体网格与响应式表格均避免内容撑破 390px", async () => {
-  const [batches, ...mediaGrids] = await Promise.all([
-    read("src/app/(platform)/app/batches/page.tsx"),
+  const [ ...mediaGrids] = await Promise.all([
     read("src/app/(platform)/app/library/page.tsx"),
-    read("src/app/(platform)/app/templates/page.tsx"),
   ]);
-  assert.match(batches, /min-w-0/);
-  assert.match(batches, /className="block w-full table-fixed md:table"/);
-  assert.match(batches, /className="group block[\s\S]*?md:table-row/);
   for (const source of mediaGrids) {
     assert.match(source, /grid-cols-1/);
     assert.match(source, /min-w-0/);

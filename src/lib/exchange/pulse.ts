@@ -1,23 +1,10 @@
-import type { BatchJobStatusKey } from "@/lib/exchange/state-vocab";
-
 /**
- * 交易台脉搏（1025 · B1.1）：壳层的市场状态、导轨徽标、生产带与月度额度只看这一份。
+ * 交易台脉搏（1025 · B1.1）：壳层的市场状态、导轨徽标与月度额度只看这一份。
  * 服务端由 exchange-readings 的 loadPulse() 产出；壳层首屏用服务端值，之后在页面可见时
  * 每 30 秒拉一次 GET /api/exchange/pulse，提交 / 取消 / 派发成功后主动刷新。
  *
  * 纯类型 + 浏览器事件，不引服务端模块：'use client' 组件可以安全 import。
  */
-
-/** 生产带的一笔批次：来自本工作区真实批次，不放示例数据。 */
-export type TapeEntry = {
-  id: string;
-  name: string;
-  status: BatchJobStatusKey;
-  done: number;
-  total: number;
-  failed: number;
-  at: string;
-};
 
 /** 计量档：trial（D5 试用）/ starter（入门版）/ studio（专业版）。 */
 export type PulsePlan = "trial" | "starter" | "studio";
@@ -27,17 +14,12 @@ export type ExchangePulse = {
   generating: number;
   /** 已下单、还没开始生成的视频条数（不含暂停）。 */
   queued: number;
-  /** 进行中批次：拆单中 / 生成中，不含已暂停。 */
-  activeBatches: number;
-  /** 已暂停的批次。 */
-  pausedBatches: number;
   /** 需要处理：近 7 天、未重试成功、在「看过了」之后的失败视频。 */
   needsAttention: number;
   /** 未归档的新询盘（金色徽标）。 */
   newLeads: number;
   /** 本月（UTC 自然月）视频派发用量与生效上限。 */
   quota: { used: number; limit: number; plan: PulsePlan };
-  tape: TapeEntry[];
   /**
    * 最近 24 小时内做好的最新一条单条成片（id = 成品库行 id）；没有就是 null。
    * 壳层据此在成片做好时提示商家（useReadyAnnouncement），不计入任何读数。

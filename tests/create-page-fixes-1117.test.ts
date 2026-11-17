@@ -42,8 +42,8 @@ test("恢复上一轮故事板：已取消、说过不用了、或者页面上�
 test("创作页接线：恢复按请求回来那一刻的表单现状判断；提示条两个按钮；成品库入口带 resume=1", () => {
   const studio = readFileSync("src/components/video-generation/streamlined-video-studio.tsx", "utf8");
   assert.match(studio, /formTouched: interactedRef\.current \|\| formDirtyRef\.current/);
-  /// 表单现状：描述、商品图、参考图、正在上传，四样都算
-  assert.match(studio, /formDirtyRef\.current =\s+rawPrompt\.trim\(\) !== initialPrompt\.trim\(\)\s+\|\| productAssets\.length !== initialProductAssets\.length\s+\|\| referenceAssets\.length !== initialReferenceAssets\.length\s+\|\| uploadingTarget !== null;/);
+  /// 表单现状：描述、商品图、正在上传，三样都算
+  assert.match(studio, /formDirtyRef\.current =\s+rawPrompt\.trim\(\) !== initialPrompt\.trim\(\)\s+\|\| productAssets\.length !== initialProductAssets\.length\s+\|\| uploadingTarget !== null;/);
   assert.match(studio, /storyboardOnPage: storyboardOnPageRef\.current/);
   assert.match(studio, /if \(decision === "apply"\) applyResume\(payload\.resume\);\s+else if \(decision === "offer"\) setResumeOffer\(payload\.resume\);/);
   assert.match(studio, /data-testid="storyboard-resume-offer"/);

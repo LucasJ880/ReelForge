@@ -2,19 +2,13 @@ import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import type { Locale } from "@/i18n/config";
-import {
-  BUSINESS_INDUSTRIES,
-  FALLBACK_TEMPLATE_ORDER,
-  INDUSTRY_TEMPLATE_PREFERENCES,
-  type BusinessIndustry,
-} from "@/lib/onboarding/industries";
-import { listActiveStyleTemplates } from "@/lib/services/style-template-service";
+import { BUSINESS_INDUSTRIES } from "@/lib/onboarding/industries";
 import { listWorkspaceBrandPackagesForUser } from "@/lib/services/workspace-brand-package-service";
 import { loadRecentVideoRows } from "@/lib/services/unified-library-service";
 import { loadVideoQuota } from "@/lib/services/exchange-readings";
 import { parseLeadPageConfig } from "@/lib/services/lead-service";
 import { emailConfig, founderEmail, safeSubject, sendEmail } from "@/lib/services/notification-service";
-import { hasVerifiedTemplateVideo, verifiedTemplateSample, verifiedTemplateVideo } from "@/lib/video-generation/template-sample";
+import { DIRECTOR_STYLES } from "@/lib/video-generation/director-line-policy";
 
 /**
  * 自助注册后的上手向导（1025 整合轮 C1）：/app/welcome 四步——生意 → 品牌 → 第一条视频 → 询盘页。
@@ -62,8 +56,8 @@ export type StepStatus = "todo" | "started" | "done";
 export type OnboardingTemplate = {
   slug: string;
   name: string;
-  video: string;
-  poster: string | null;
+  /// 一句话：这种风格拍出来是什么感觉
+  hint: string;
 };
 
 export type OnboardingState = {
@@ -122,48 +116,26 @@ async function requireWorkspace(userId: string) {
 }
 
 /**
- * 第 3 步的推荐模板：按行业偏好、再按通用顺序，取前 3 个有真机样片的（样片即门面，没验收的不推）。
- * 模板名从模板库取；模板库取不到就不推荐（向导照常可走，直接去创作页）。
+ * 第 3 步给新人看的风格：就是创作页「创意模板」里的那几种（同一张表，director-line-policy.ts）。
+ * 老的按行业推荐、带样片的 34 个模板 2026-11-17 随模板库下线。
  */
-export async function recommendedTemplates(
-  industry: BusinessIndustry | null,
-  locale: Locale,
-): Promise<OnboardingTemplate[]> {
-  let templates: Awaited<ReturnType<typeof listActiveStyleTemplates>> = [];
-  try {
-    templates = await listActiveStyleTemplates();
-  } catch {
-    return [];
-  }
-  const bySlug = new Map(templates.map((template) => [template.slug, template]));
-  const order = [...(industry ? INDUSTRY_TEMPLATE_PREFERENCES[industry] : []), ...FALLBACK_TEMPLATE_ORDER];
-  const picked: OnboardingTemplate[] = [];
-  for (const slug of order) {
-    if (picked.length >= 3) break;
-    if (picked.some((item) => item.slug === slug)) continue;
-    const template = bySlug.get(slug);
-    if (!template || !hasVerifiedTemplateVideo(slug)) continue;
-    const video = verifiedTemplateVideo(slug, `/template-previews/${slug}.mp4`);
-    if (!video) continue;
-    picked.push({
-      slug,
-      name: locale === "en-US" ? template.name : template.nameZh,
-      video,
-      poster: verifiedTemplateSample(slug, template.coverImage),
-    });
-  }
-  return picked;
+export function onboardingStyles(locale: Locale): OnboardingTemplate[] {
+  return DIRECTOR_STYLES.map((style) => ({
+    slug: style.id,
+    name: locale === "en-US" ? style.en : style.zh,
+    hint: locale === "en-US" ? style.hintEn : style.hintZh,
+  }));
 }
 
 export async function loadOnboardingState(userId: string, locale: Locale): Promise<OnboardingState> {
   const workspace = await requireWorkspace(userId);
   const profile = parseBusinessProfile(workspace.businessProfile);
   const leadConfig = parseLeadPageConfig(workspace.leadPageConfig);
-  const [packages, recentVideos, quota, templates] = await Promise.all([
+  const templates = onboardingStyles(locale);
+  const [packages, recentVideos, quota] = await Promise.all([
     listWorkspaceBrandPackagesForUser(userId),
     loadRecentVideoRows(userId, { take: 5, locale }),
     loadVideoQuota(userId),
-    recommendedTemplates(profile.industry, locale),
   ]);
   const ownPackages = packages.filter((item) => item.scope === "workspace");
   const videoStatus: StepStatus = recentVideos.some((row) => row.status === "ready")

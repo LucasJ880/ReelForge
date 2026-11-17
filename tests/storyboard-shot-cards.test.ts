@@ -3,14 +3,10 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
   SHOT_CARD_LINE_PREFIX,
-  SHOT_CARD_SYSTEM_PROMPT,
-  buildShotCardUserPrompt,
-  designStoryboardShotCards,
   formatShotCard,
   formatShotCardSequence,
   normalizeShotCards,
   readShotCardFromFramePrompt,
-  storyboardShotCardsEnabled,
   type StoryboardShotCard,
 } from "../src/lib/video-generation/shot-cards";
 import {
@@ -27,10 +23,6 @@ import {
   buildRegeneratedStoryboardFramePrompt,
   buildStoryboardFramePlans,
 } from "../src/lib/video-generation/storyboard-service";
-import {
-  batchReferenceManifestLine,
-  withBatchReferenceManifest,
-} from "../src/lib/video-generation/batch-reference-manifest";
 
 /**
  * 2026-10-28 · 借鉴 LibTV 公开画布：镜头卡（焦段 / 机位与运镜幅度 / 前中后景 / 动作 / 结束状态 / 同步声）
@@ -69,42 +61,6 @@ test("format / read：一行英文（动作与尾态排在景别机位前）、�
   assert.equal(readShotCardFromFramePrompt(`line\n${SHOT_CARD_LINE_PREFIX}${text}\nmore`), text);
   assert.equal(readShotCardFromFramePrompt("no card here"), null);
   assert.equal(readShotCardFromFramePrompt(null), null);
-});
-
-test("design：关开关 / LLM 不可用 / 超时 / 抛错 / 输出不合格 → null；正常 → 卡，提示词带节奏时间窗与实拍张数", async () => {
-  const input = { story: "午后客厅太刺眼，拉一下斑马帘就柔和了。", beats: STORYBOARD_BEATS_SHORT, durationSec: 15, aspectRatio: "9:16", productImageCount: 2, personImageCount: 0 };
-  const ok = async () => ({ data: { shots: CARDS }, modelUsed: "m", tokenUsage: null, raw: "" });
-  assert.equal(await designStoryboardShotCards(input, { enabled: false, llmAvailable: () => true, chat: ok as never }), null);
-  assert.equal(await designStoryboardShotCards(input, { enabled: true, llmAvailable: () => false, chat: ok as never }), null);
-  assert.equal(
-    await designStoryboardShotCards(input, { enabled: true, llmAvailable: () => true, chat: (() => new Promise(() => undefined)) as never, timeoutMs: 10 }),
-    null,
-  );
-  assert.equal(
-    await designStoryboardShotCards(input, { enabled: true, llmAvailable: () => true, chat: (async () => { throw new Error("429"); }) as never }),
-    null,
-  );
-  assert.equal(
-    await designStoryboardShotCards(input, { enabled: true, llmAvailable: () => true, chat: (async () => ({ data: { shots: [] } })) as never }),
-    null,
-  );
-  let seen: { stage?: string; tier?: string; user?: string } = {};
-  const cards = await designStoryboardShotCards(input, {
-    enabled: true,
-    llmAvailable: () => true,
-    chat: (async (options: { stage?: string; tier?: string; user?: string }) => {
-      seen = options;
-      return ok();
-    }) as never,
-  });
-  assert.equal(cards?.length, 4);
-  assert.equal(seen.tier, "fast");
-  assert.equal(seen.stage, "storyboard_shot_cards");
-  assert.match(seen.user!, /2 real photo\(s\) of the product/);
-  assert.match(seen.user!, /^1\. 0-4s · immediate problem or desire hook$/m);
-  assert.match(buildShotCardUserPrompt({ ...input, personImageCount: 1 }), /presenter photo was uploaded/);
-  assert.equal(storyboardShotCardsEnabled({ STORYBOARD_SHOT_CARDS: "off" }), false);
-  assert.equal(storyboardShotCardsEnabled({}), true);
 });
 
 test("出帧：有卡时帧按卡构图并落一行 SHOT CARD；重做沿用同一张卡；无卡与旧输出逐字节一致", () => {
@@ -186,24 +142,6 @@ test("派发预算：超长故事 + 超长卡 + 长负面词，整段仍在 5000
   assert.equal((out.match(/· shot \d[^\n]*Camera: /g) ?? []).length, 4);
 });
 
-test("批量参考图说明：按真正发出去的张数编号，与模板 input_images[n] 同一记法；超预算原样返回；幂等", () => {
-  assert.equal(
-    batchReferenceManifestLine({ productPhotoCount: 2, frameCount: 4 }),
-    "REFERENCE IMAGES: input_images[1]-input_images[2] are real photos of the product — the only source of truth for its shape, proportions, colors, controls and printed marks; match it exactly. input_images[3]-input_images[6] are the approved storyboard keyframes in story order — follow their location, people, wardrobe, light and framing; where a keyframe and the product photos disagree about the product, the product photos win.",
-  );
-  assert.match(batchReferenceManifestLine({ productPhotoCount: 1, frameCount: 0 })!, /^REFERENCE IMAGES: input_images\[1\] is a real photo/);
-  assert.match(batchReferenceManifestLine({ productPhotoCount: 0, frameCount: 1 })!, /input_images\[1\] is the approved storyboard keyframe — follow .*framing\.$/);
-  assert.equal(batchReferenceManifestLine({ productPhotoCount: 0, frameCount: 0 }), null);
-
-  const prompt = "Opening line.\nUse input_images[1], input_images[2] as the product truth.";
-  const out = withBatchReferenceManifest(prompt, { productPhotoCount: 2, frameCount: 4 });
-  assert.equal(out.split("\n")[0], "Opening line.");
-  assert.match(out.split("\n")[1], /^REFERENCE IMAGES: /);
-  assert.equal(withBatchReferenceManifest(out, { productPhotoCount: 2, frameCount: 4 }), out);
-  const huge = `Opening.\n${"p".repeat(4300)}`;
-  assert.equal(withBatchReferenceManifest(huge, { productPhotoCount: 2, frameCount: 4, negativePrompt: "n".repeat(300) }), huge);
-});
-
 test("派发预算：连一张卡都放不下时整段退回旧格式（不留只加 LOOK / 不变量行、没有卡的半成品）", () => {
   const base = {
     aspectRatio: "9:16",
@@ -279,17 +217,6 @@ test("P0 format：首态 → 动作 → 尾态 → 谁说话 → 景别 / 机位
   assert.doesNotMatch(texts[3]!, /New location/);
   assert.match(texts[3]!, /Voice: no narration in this shot\./);
   assert.deepEqual(formatShotCardSequence([null, cards[1]]), [null, formatShotCard(cards[1])]);
-});
-
-test("P0 design：口播稿进镜头卡的用户提示词（按台词顺序排镜头）；没有口播稿就让 voice 全写 none；系统提示词要首态 / 地点 / 谁说话", () => {
-  const base = { story: "午后客厅太刺眼，拉一下斑马帘就柔和了。", beats: STORYBOARD_BEATS_SHORT, durationSec: 15, aspectRatio: "9:16", productImageCount: 2, personImageCount: 0 };
-  assert.match(
-    buildShotCardUserPrompt({ ...base, voiceoverScript: "  拉一下，\n客厅就柔和了。 " }),
-    /^Voice-over script \(one voice, spoken across the whole video in this order; never rewrite it\): 拉一下， 客厅就柔和了。$/m,
-  );
-  assert.match(buildShotCardUserPrompt(base), /^No voice-over script: set every "voice" to "none"\.$/m);
-  assert.match(SHOT_CARD_SYSTEM_PROMPT, /"startState":"","action":"","endState":"","location":"","voice":""/);
-  assert.match(SHOT_CARD_SYSTEM_PROMPT, /Never name feelings/);
 });
 
 test("P0 出帧：换地点那一帧换用「换地点版」连续性锁，前帧只管人、衣着与光线；提交时重排入参、重做都沿用", () => {

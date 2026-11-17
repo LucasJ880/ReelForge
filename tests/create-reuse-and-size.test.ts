@@ -145,18 +145,17 @@ test("尺寸行和「换个开头」互不打架：各换各的，另一行留�
   assert.equal(stripProductSize(stripHookAngle(rehooked)), base);
 });
 
-test("创作页接线：空白页才摆最近的商品；三段进度跟着真实状态走", () => {
+test("创作页接线：空白页才摆最近的商品；进度分段跟着真实状态走", () => {
   const studio = readFileSync("src/components/video-generation/streamlined-video-studio.tsx", "utf8");
   assert.match(studio, /recentSources\.length > 0 && !storyboard && busy === null && !rawPrompt\.trim\(\) && productAssets\.length === 0/);
   /// 2026-11-10 商品档案：这一行现在既有存好的商品也有最近拍过的一单，去处由页面给；拍过的一单仍走「再做一条」那条路
   assert.match(studio, /<Link\s+href=\{source\.href\}/);
   const createPage = readFileSync("src/app/(platform)/app/create/page.tsx", "utf8");
   assert.match(createPage, /`\/app\/create\?retry=\$\{encodeURIComponent\(shortcut\.id\)\}`/, "走「再做一条」同一条路");
-  /// 导演线路（11-17）只有两段：写镜头脚本 → 出开场画面；老线路仍是三段
-  assert.match(studio, /const storyboardStage = busy !== "storyboard" \? null : directorMode \? 0 : planningShots \? \(voiceoverDrafting \? 0 : 1\) : 2;/);
+  /// 导演线路（11-17 起唯一的出片方式）只有两段：写镜头脚本 → 出开场画面；老线路的三段随它一起删了
   assert.match(studio, /directorStages: \["写镜头脚本（约 1–3 分钟）", "出开场画面"\]/);
   assert.match(studio, /data-testid="storyboard-stages"/);
-  assert.match(studio, /stages: \["写口播稿", "排镜头（约 40–60 秒）", "出故事板画面"\]/);
+  assert.doesNotMatch(studio, /排镜头（约 40–60 秒）|写口播稿/);
   assert.match(studio, /setRawPrompt\(applyProductSize\(rawPrompt, event\.target\.value, english \? "en" : "zh"\)\);\s+invalidatePlan\(\);/);
   assert.doesNotMatch(studio, /import (?!type )[^;]*from "@\/lib\/services\//, "客户端组件不引服务端模块");
   const page = readFileSync("src/app/(platform)/app/create/page.tsx", "utf8");

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { __setMediaAssetRepositoryForTests } from "../src/lib/services/media-asset-service";
 import { readFile } from "node:fs/promises";
 import test, { type TestContext } from "node:test";
 
@@ -529,14 +530,27 @@ test("故事板创建：同键回放不计数，新建才计数；超限在建 r
   await rejectsWithCode(createStoryboardRun({ ...input, userInitiated: true }), "IDEMPOTENCY_CONFLICT");
   assert.equal(bumps.length, 0);
 
+  // 没带商品实拍图：导演线路做不了，当场拒绝——放在计数之前，一眼能拒的请求不占名额。
   existing = null;
-  await rejectsWithCode(createStoryboardRun({ ...input, userInitiated: true }), "RATE_LIMITED", 429);
+  await rejectsWithCode(createStoryboardRun({ ...input, userInitiated: true }), "VALIDATION_FAILED", 400);
+  assert.equal(bumps.length, 0);
+
+  // 带了商品图的新请求才计数；超限在写脚本、建 run 之前拒绝。
+  __setMediaAssetRepositoryForTests({
+    create: async () => { throw new Error("no uploads in this test"); },
+    findMany: async () => [{
+      id: "asset-1", userId: "owner-1", url: "https://abc.public.blob.vercel-storage.com/p.jpg", mimeType: "image/jpeg",
+      type: "IMAGE", width: 1080, height: 1920,
+    }] as never,
+  });
+  t.after(() => __setMediaAssetRepositoryForTests(null));
+  await rejectsWithCode(
+    createStoryboardRun({ ...input, sourceAssetIds: ["asset-1"], userInitiated: true }),
+    "RATE_LIMITED",
+    429,
+  );
   assert.equal(bumps.length, 1);
   assert.equal(creates, 0);
-
-  // 批量内部准备（不传 userInitiated）不计数：直接走到 create。
-  await assert.rejects(createStoryboardRun(input), /must not create past the limit/);
-  assert.equal(bumps.length, 1);
 });
 
 test("单条视频参考图：实拍在前、故事板帧在后，去重并截断，帧不被挤掉", () => {

@@ -31,12 +31,10 @@ test("ordinary authenticated customer can persist the audited Shuyu snapshot", (
 });
 
 test("customer-facing dispatch routes never grant staff a legacy provider override", async () => {
-  const [singleRoute, batchRoute] = await Promise.all([
+  const [singleRoute] = await Promise.all([
     readFile("src/app/api/video-generation/dispatch/route.ts", "utf8"),
-    readFile("src/app/api/batches/route.ts", "utf8"),
   ]);
   assert.match(singleRoute, /selectVideoRouteSnapshot\(\{[\s\S]{0,320}isInternalStaff:\s*false/);
-  assert.match(batchRoute, /createBatchJob\(\{[\s\S]{0,520}isInternalStaff:\s*false/);
   assert.doesNotMatch(singleRoute, /mayOverrideVideoRoute/);
 });
 
@@ -343,12 +341,11 @@ test("direct dispatch replays before provider checks and checks the whole batch 
 });
 
 test("Shuyu adapter validates the request locally before submitting; batch keeps its provider preflight boundaries", async () => {
-  const [providerSource, batchSource] = await Promise.all([
+  const [providerSource] = await Promise.all([
     readFile(
       "src/lib/video-generation/providers/shuyu-video-provider.ts",
       "utf8",
     ),
-    readFile("src/lib/services/batch-service.ts", "utf8"),
   ]);
   /// 内容审核 2026-11-17 整套删除（生产一直关着，是空操作）：适配器里不再有审核钩子。
   /// 留下的本地预检（提示词长度、参考图、不支持的参考音视频）仍然全部排在提交之前。
@@ -364,16 +361,4 @@ test("Shuyu adapter validates the request locally before submitting; batch keeps
     const index = providerSource.indexOf(preflight);
     assert.ok(index > 0 && index < submitIndex, preflight);
   }
-
-  const replayIndex = batchSource.indexOf("if (existing)");
-  const availabilityIndex = batchSource.indexOf("await getVideoRouteSnapshotRuntimeAvailability");
-  assert.equal(batchSource.match(/await getVideoRouteSnapshotRuntimeAvailability/g)?.length, 1);
-  /// 批量从不换线路：2026-11-16 起连「换线路」这一层都没有了，只剩对建批次时选定的那条线路做一次可用性检查
-  assert.doesNotMatch(batchSource, /resolveRouteWithFailover|failedOver|allowFailover/);
-  assert.ok(replayIndex < availabilityIndex);
-  const transactionIndex = batchSource.indexOf("return await db.$transaction");
-  assert.ok(replayIndex > 0 && replayIndex < availabilityIndex);
-  assert.ok(availabilityIndex < transactionIndex);
-  assert.match(batchSource, /合作方线路只接受 HTTPS 图片地址/);
-  assert.match(batchSource, /mergedPrompt\.length > 5_000/);
 });

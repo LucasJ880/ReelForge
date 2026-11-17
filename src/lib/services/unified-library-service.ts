@@ -20,7 +20,7 @@ import {
   type UnifiedLibraryStatus,
 } from "@/lib/contracts/unified-library";
 import { isCurrentSegmentJob, isSegmentRedoCandidate } from "@/lib/video-generation/segment-redo";
-import { readBatchPostProductionFromSnapshot } from "@/lib/services/batch-service";
+import { readBatchPostProductionFromSnapshot } from "@/lib/library/batch-post-production";
 import { SHOWCASE_SAMPLES, type ShowcaseSample } from "@/lib/config/showcase-allowlist";
 import { resolveShowcaseFor, type ShowcaseAllowlist } from "@/lib/services/showcase-library";
 import { bgmAttributionFor } from "@/lib/video-generation/bgm-attribution";
@@ -506,7 +506,13 @@ function redoStateOf(status: VideoJobStatus | undefined): UnifiedLibrarySegment[
 export function restitchDefaultsFor(postProduction: unknown) {
   const parsed = postProductionPlanSchema.safeParse(postProduction);
   if (!parsed.success) return null;
-  return { captions: parsed.data.captions, bgm: parsed.data.audio.bgm, signoff: parsed.data.signoff ?? null };
+  return {
+    captions: parsed.data.captions,
+    bgm: parsed.data.audio.bgm,
+    signoff: parsed.data.signoff ?? null,
+    /// 这条片自带模型原生配的音乐（导演线路）：表单不再摆曲库
+    nativeMusic: parsed.data.audio.nativeMusic === true,
+  };
 }
 
 function toUnifiedLibraryDetail(

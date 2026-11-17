@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T18:38:27.300Z",
+  "generatedAt": "2026-11-17T19:41:34.140Z",
   "routes": [
     {
       "routePath": "/",
@@ -102,61 +102,6 @@
       "isDynamic": false
     },
     {
-      "routePath": "/api/batch-style-templates",
-      "filePath": "src/app/api/batch-style-templates/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "GET"
-      ],
-      "isDynamic": false
-    },
-    {
-      "routePath": "/api/batches",
-      "filePath": "src/app/api/batches/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": false
-    },
-    {
-      "routePath": "/api/batches/[id]/cancel",
-      "filePath": "src/app/api/batches/[id]/cancel/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
-    },
-    {
-      "routePath": "/api/batches/[id]/jobs/[jobId]/retry",
-      "filePath": "src/app/api/batches/[id]/jobs/[jobId]/retry/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
-    },
-    {
-      "routePath": "/api/batches/[id]/retry",
-      "filePath": "src/app/api/batches/[id]/retry/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
-    },
-    {
-      "routePath": "/api/batches/[id]/status",
-      "filePath": "src/app/api/batches/[id]/status/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "GET",
-        "POST"
-      ],
-      "isDynamic": true
-    },
-    {
       "routePath": "/api/brand-packaging",
       "filePath": "src/app/api/brand-packaging/route.ts",
       "kind": "api",
@@ -226,16 +171,6 @@
     {
       "routePath": "/api/cron/poll-videos",
       "filePath": "src/app/api/cron/poll-videos/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "GET",
-        "POST"
-      ],
-      "isDynamic": false
-    },
-    {
-      "routePath": "/api/cron/process-batches",
-      "filePath": "src/app/api/cron/process-batches/route.ts",
       "kind": "api",
       "httpMethods": [
         "GET",
@@ -602,15 +537,6 @@
       "isDynamic": false
     },
     {
-      "routePath": "/api/video-generation/plan",
-      "filePath": "src/app/api/video-generation/plan/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": false
-    },
-    {
       "routePath": "/api/video-generation/prompt-draft",
       "filePath": "src/app/api/video-generation/prompt-draft/route.ts",
       "kind": "api",
@@ -684,15 +610,6 @@
       "isDynamic": true
     },
     {
-      "routePath": "/api/video-generation/voiceover-draft",
-      "filePath": "src/app/api/video-generation/voiceover-draft/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": false
-    },
-    {
       "routePath": "/api/videos",
       "filePath": "src/app/api/videos/route.ts",
       "kind": "api",
@@ -718,69 +635,6 @@
     {
       "routePath": "/app",
       "filePath": "src/app/(platform)/app/page.tsx",
-      "kind": "page",
-      "group": "platform",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/app/batches",
-      "filePath": "src/app/(platform)/app/batches/error.tsx",
-      "kind": "error",
-      "group": "platform",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/app/batches",
-      "filePath": "src/app/(platform)/app/batches/loading.tsx",
-      "kind": "loading",
-      "group": "platform",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/app/batches",
-      "filePath": "src/app/(platform)/app/batches/page.tsx",
-      "kind": "page",
-      "group": "platform",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/app/batches/[id]",
-      "filePath": "src/app/(platform)/app/batches/[id]/error.tsx",
-      "kind": "error",
-      "group": "platform",
-      "isDynamic": true
-    },
-    {
-      "routePath": "/app/batches/[id]",
-      "filePath": "src/app/(platform)/app/batches/[id]/loading.tsx",
-      "kind": "loading",
-      "group": "platform",
-      "isDynamic": true
-    },
-    {
-      "routePath": "/app/batches/[id]",
-      "filePath": "src/app/(platform)/app/batches/[id]/page.tsx",
-      "kind": "page",
-      "group": "platform",
-      "isDynamic": true
-    },
-    {
-      "routePath": "/app/batches/new",
-      "filePath": "src/app/(platform)/app/batches/new/error.tsx",
-      "kind": "error",
-      "group": "platform",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/app/batches/new",
-      "filePath": "src/app/(platform)/app/batches/new/loading.tsx",
-      "kind": "loading",
-      "group": "platform",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/app/batches/new",
-      "filePath": "src/app/(platform)/app/batches/new/page.tsx",
       "kind": "page",
       "group": "platform",
       "isDynamic": false
@@ -940,27 +794,6 @@
       "isDynamic": false
     },
     {
-      "routePath": "/app/templates",
-      "filePath": "src/app/(platform)/app/templates/error.tsx",
-      "kind": "error",
-      "group": "platform",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/app/templates",
-      "filePath": "src/app/(platform)/app/templates/loading.tsx",
-      "kind": "loading",
-      "group": "platform",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/app/templates",
-      "filePath": "src/app/(platform)/app/templates/page.tsx",
-      "kind": "page",
-      "group": "platform",
-      "isDynamic": false
-    },
-    {
       "routePath": "/app/welcome",
       "filePath": "src/app/(platform)/app/welcome/page.tsx",
       "kind": "page",
@@ -1023,13 +856,6 @@
       "filePath": "src/app/(public)/terms/page.tsx",
       "kind": "page",
       "group": "public",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/wall",
-      "filePath": "src/app/(wall)/wall/page.tsx",
-      "kind": "page",
-      "group": "wall",
       "isDynamic": false
     }
   ]

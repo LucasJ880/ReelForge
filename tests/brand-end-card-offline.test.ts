@@ -22,12 +22,9 @@ test("尾卡入口关着：创作页默认干净视频，那一步与摘要行�
   assert.match(studio, /\{BRAND_END_CARD_ENTRY_ENABLED \? \(\s*<TicketRow\s+data-testid="streamlined-brand-package"/);
   /// 「更多设置」芯片上的摘要只写口播与字幕，不提片尾
   /// 2026-11-17：导演线路下摘要写「AI 配音配乐 · 字幕」，其余情况仍是「口播 · 字幕」；两种都不提片尾卡
-  assert.match(studio, /const moreSummary = directorMode\s+\? `\$\{copy\.summaryDirectorAudio\}[^\n]*\s+: `\$\{copy\.summaryVoiceover\}/);
   assert.doesNotMatch(studio, /summaryEnding/);
   /// 「高级生成」的说明不再拿品牌片尾当卖点
   assert.doesNotMatch(studio, /模板与品牌片尾|模板或品牌片尾|branded ending|branded-ending/);
-  const planCard = await readFile("src/components/video-generation/plan-preview-card.tsx", "utf8");
-  assert.match(planCard, /BRAND_END_CARD_ENTRY_ENABLED \|\| preview\.breakdown\.hasBrandEndCard/);
 });
 
 test("成品库：不再给封装入口，以前封装过的成片照旧能下载", async () => {

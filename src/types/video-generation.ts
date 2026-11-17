@@ -93,6 +93,8 @@ export interface PostProductionPlan {
       trackId: BgmTrackId;
       volume: number;
     };
+    /// 导演线路的片：配乐是出片模型按脚本原生配的，随片子一起出。有这个记号的成片后期不混曲库（再加一首会叠在一起）
+    nativeMusic?: boolean;
   };
   captions: CaptionSettings;
   /**

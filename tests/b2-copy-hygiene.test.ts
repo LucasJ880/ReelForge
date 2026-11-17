@@ -7,7 +7,6 @@ import { getGrowthCopy } from "../src/i18n/growth-copy";
 import { getPasswordResetCopy } from "../src/i18n/password-reset-copy";
 import { zhCN } from "../src/i18n/dictionaries/zh-CN";
 import { enUS } from "../src/i18n/dictionaries/en-US";
-import { TEMPLATE_LIBRARY_COPY } from "../src/components/templates/template-library-copy";
 import type { Locale } from "../src/i18n/config";
 
 /**
@@ -49,7 +48,6 @@ function customerCopy(locale: Locale): Record<string, unknown> {
     public: getPublicPageCopy(locale),
     growth: getGrowthCopy(locale),
     passwordReset: getPasswordResetCopy(locale),
-    templates: TEMPLATE_LIBRARY_COPY[locale],
     dictionary: locale === "zh-CN" ? zhCN : enUS,
   };
 }
@@ -85,11 +83,8 @@ const CUSTOMER_SOURCES = [
   "src/components/video-generation/first-run-onboarding-dialog.tsx",
   "src/components/video-generation/storyboard-workflow-panel.tsx",
   "src/components/video-generation/audio-caption-controls.tsx",
-  "src/components/batch/batch-monitor.tsx",
   "src/components/brand/brand-package-manager.tsx",
   "src/components/brand/customer-brand-wall.tsx",
-  "src/components/templates/template-recipe-dialog.tsx",
-  "src/components/templates/template-library-grid.tsx",
   "src/app/(platform)/app/library/[id]/page.tsx",
   "src/app/(public)/privacy/page.tsx",
   "src/app/(public)/terms/page.tsx",

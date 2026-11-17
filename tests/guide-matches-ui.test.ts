@@ -39,10 +39,13 @@ for (const locale of ["zh-CN", "en-US"] as const) {
   });
 }
 
-test("指南里的等待时间与界面上写的是同一个口径", () => {
+test("指南里的等待时间与界面上写的是同一个口径", async () => {
+  const studio = await readFile("src/components/video-generation/streamlined-video-studio.tsx", "utf8");
   const quickStart = JSON.stringify(guideArticle("quick-start", "zh-CN"));
   const waiting = getPlatformCopy("zh-CN").library.waitingGenerating;
   assert.match(waiting, /一般 10–15 分钟出片，少数要半小时以上/);
   assert.match(quickStart, /一般 10–15 分钟出片，少数要半小时以上/);
-  assert.match(quickStart, /一般两三分钟出齐/);
+  /// 故事板这一步现在是「AI 写镜头脚本 + 一张开场画面」：指南和创作页的进度条说的是同一个时间
+  assert.match(quickStart, /写脚本约 1–3 分钟/);
+  assert.match(studio, /directorStages: \["写镜头脚本（约 1–3 分钟）", "出开场画面"\]/);
 });

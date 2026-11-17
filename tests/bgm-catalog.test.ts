@@ -81,9 +81,9 @@ test("合成器认得新曲目；音量上限不再只认最早那一首", () =>
 });
 
 test("两处选曲界面共用同一个组件，曲目从目录列出", () => {
-  /// 创作页：选了配乐，「更多设置」收起来的摘要里也写出是哪一首
+  /// 2026-11-17：创作页不再摆曲库（导演线路的配乐随片子出）；曲库只留在成片详情的「只重新合成」里
   const studio = readFileSync("src/components/video-generation/streamlined-video-studio.tsx", "utf8");
-  assert.match(studio, /bgmTrack \? ` · \$\{copy\.summaryBgm\} \$\{bgmTrack\[english \? "en" : "zh"\]\}` : ""/);
+  assert.doesNotMatch(studio, /BgmPicker|BGM_CATALOG/);
   /// 原来没配乐的成片音量是 0：选了曲子要给起始音量，否则「选了等于没选」
   const restitch = readFileSync("src/components/library/restitch-form.tsx", "utf8");
   assert.match(restitch, /if \(next !== "none" && bgmVolume === 0\) setBgmVolume\(DEFAULT_BGM_VOLUME\);/);
@@ -92,7 +92,6 @@ test("两处选曲界面共用同一个组件，曲目从目录列出", () => {
   assert.match(picker, /data-testid="bgm-preview"/);
   for (const file of ["src/components/video-generation/audio-caption-controls.tsx", "src/components/library/restitch-form.tsx"]) {
     const source = readFileSync(file, "utf8");
-    assert.match(source, /<BgmPicker/, file);
     assert.doesNotMatch(source, /<option value="wholesome">/, `${file} 不再手写曲目`);
   }
 });

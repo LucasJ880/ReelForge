@@ -10,7 +10,6 @@ const CUSTOMER_FILES = [
   "src/app/(platform)/app/library/[id]/page.tsx",
   "src/components/library/video-actions.tsx",
   "src/components/platform/platform-shell.tsx",
-  "src/components/video-generation/plan-preview-card.tsx",
   "src/components/video-generation/streamlined-video-studio.tsx",
 ];
 
@@ -56,7 +55,6 @@ test("统一成品页包含失败重试、支持提示与可行动空状态", as
   assert.match(copy, /重新生成/);
   assert.match(copy, /联系支持/);
   assert.match(copy, /还没有成片/);
-  assert.match(source, /\/app\/templates/);
   assert.doesNotMatch(source, /\{\s*row\.status\s*\}/);
 });
 
@@ -69,12 +67,6 @@ test("统一详情复用 owner-scoped service 与安全 VideoActions", async () 
   assert.match(actions, /render-status/);
   assert.match(actions, /render-retry/);
   assert.match(actions, /all:\s*true/);
-});
-
-test("方案预览不展示原始 prompt，客户看到 Scene 而非 Segment", async () => {
-  const source = await readFile(path.join(ROOT, "src/components/video-generation/plan-preview-card.tsx"), "utf8");
-  assert.doesNotMatch(source, /s\.prompt\.slice|Segment\s+\{|Segment\s+breakdown/i);
-  assert.match(source, /Scene/);
 });
 
 test("render API 保持 brief ownership 守门", async () => {

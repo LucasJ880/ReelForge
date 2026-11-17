@@ -3,13 +3,6 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { getOnboardingCopy, TERMS_VERSION } from "../src/i18n/onboarding-copy";
 import { getGrowthCopy } from "../src/i18n/growth-copy";
-import {
-  BUSINESS_INDUSTRIES,
-  FALLBACK_TEMPLATE_ORDER,
-  INDUSTRY_TEMPLATE_PREFERENCES,
-  isBusinessIndustry,
-} from "../src/lib/onboarding/industries";
-import { COMMERCE_TEMPLATE_SLUGS } from "../src/lib/video-generation/commerce-template-catalog";
 import { stateTone, stateWord } from "../src/lib/exchange/state-vocab";
 import { LANDING_HERO_SCENES, LANDING_PROOF_VIDEOS, LANDING_STORYBOARD_FRAMES } from "../src/lib/config/landing-media";
 
@@ -42,31 +35,6 @@ test("onboarding-copy：中英结构一致，英文界面不出现中文", () =>
   assert.deepEqual(keyShape(en), keyShape(zh));
   for (const text of strings(en)) assert.doesNotMatch(text, CJK, text);
   assert.match(TERMS_VERSION, /^terms-\d{4}-\d{2}-\d{2}$/);
-});
-
-test("行业：每个行业都有标签、尾卡默认行动与询盘页默认服务；推荐模板都是目录里真实存在的模板", () => {
-  const catalog = new Set<string>(COMMERCE_TEMPLATE_SLUGS);
-  for (const locale of ["zh-CN", "en-US"] as const) {
-    const copy = getOnboardingCopy(locale);
-    for (const industry of BUSINESS_INDUSTRIES) {
-      assert.ok(copy.industries[industry], `${locale} label ${industry}`);
-      assert.ok(copy.welcome.brand.ctaDefaults[industry], `${locale} cta ${industry}`);
-      assert.ok(copy.welcome.leadPage.defaultServices[industry].length > 0, `${locale} services ${industry}`);
-    }
-  }
-  for (const industry of BUSINESS_INDUSTRIES) {
-    for (const slug of INDUSTRY_TEMPLATE_PREFERENCES[industry]) assert.ok(catalog.has(slug), `${industry}: ${slug}`);
-  }
-  for (const slug of FALLBACK_TEMPLATE_ORDER) assert.ok(catalog.has(slug), slug);
-  assert.equal(isBusinessIndustry("window_coverings"), true);
-  assert.equal(isBusinessIndustry("pets"), false);
-});
-
-test("推荐模板只推有真机样片的（样片即门面），按行业偏好再按通用顺序补齐 3 个", () => {
-  const service = read("src/lib/services/onboarding-service.ts");
-  assert.match(service, /if \(!template \|\| !hasVerifiedTemplateVideo\(slug\)\) continue;/);
-  assert.match(service, /INDUSTRY_TEMPLATE_PREFERENCES\[industry\] : \[\]\), \.\.\.FALLBACK_TEMPLATE_ORDER\]/);
-  assert.match(service, /if \(picked\.length >= 3\) break;/);
 });
 
 test("每一步做没做完从真实数据推出来：档案、品牌包、成片、询盘页", () => {
@@ -157,16 +125,6 @@ test("迁移只加可空列（铁律：只加不删）", () => {
   }
 });
 
-test("批量向导：默认数量与上限按本月剩余额度钳制（试用 3 条不再默认 10 条），内部角色不钳", () => {
-  const wizard = read("src/components/batch/batch-create-wizard.tsx");
-  assert.match(wizard, /remainingVideos = null,/);
-  assert.match(wizard, /Math\.max\(1, Math\.min\(MAX_BATCH_VIDEO_COUNT, remainingVideos\)\)/);
-  assert.match(wizard, /useState\(Math\.min\(10, countCap\)\)/);
-  assert.match(wizard, /max=\{countCap\}/);
-  const page = read("src/app/(platform)/app/batches/new/page.tsx");
-  assert.match(page, /remainingVideos=\{isInternalRole\(session\.user\.role\) \|\| quota\.limit <= 0 \? null : Math\.max\(0, quota\.limit - quota\.used\)\}/);
-});
-
 test("询盘页设置：没开通时给「申请开通」，申请过显示已申请（不再只说联系对接人）", () => {
   const settings = read("src/components/leads/lead-page-settings.tsx");
   assert.match(settings, /sendJson\("\/api\/leads\/page\/activation-request", "POST", \{\}\)/);
@@ -178,18 +136,3 @@ test("询盘页设置：没开通时给「申请开通」，申请过显示已�
   }
 });
 
-test("C1 摩擦：没品牌包给去处；批量额度用完给能点的去处（周计划视频帖那一条随本周内容 2026-11-16 删除）", () => {
-  const studio = read("src/components/video-generation/streamlined-video-studio.tsx");
-  assert.match(studio, /<Link href="\/app\/brands"[^>]*>\s*\{copy\.setUpBrandPackage\}/);
-  const wizard = read("src/components/batch/batch-create-wizard.tsx");
-  assert.match(wizard, /recoveryAction === "view_usage" \? \(/);
-  assert.match(wizard, /<QuotaNextSteps locale=\{english \? "en-US" : "zh-CN"\} contactEmail=\{contactEmail\} \/>/);
-  assert.match(read("src/app/(platform)/app/batches/new/page.tsx"), /contactEmail=\{contactEmail\(\)\}/);
-});
-
-test("A6：原生口播不再承诺口型同步（Shuyu 不接受显式音频开关，口播只是尽力而为）", () => {
-  const controls = read("src/components/video-generation/audio-caption-controls.tsx");
-  assert.doesNotMatch(controls, /口型与画面同步|in sync with the picture/);
-  assert.match(controls, /不保证口型同步/);
-  assert.match(controls, /lip-sync and exact wording aren't guaranteed/);
-});

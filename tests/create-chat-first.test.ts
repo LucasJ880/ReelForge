@@ -61,14 +61,16 @@ test("模板芯片取代快速 / 高级生成；更多设置收起时也保持�
   /// 透明原生下拉铺满芯片：点哪里都能打开，键盘与读屏不用另做
   assert.match(studio, /className="absolute inset-0 cursor-pointer appearance-none opacity-0 disabled:cursor-not-allowed"/);
   /// 示例描述换成真实商品的说法（原来是浴室 UGC 的长句）
-  assert.match(studio, /promptPlaceholder: "例：把这只保温杯拍成通勤广告/);
+  assert.match(studio, /promptPlaceholder: "例：婴儿纱布口水巾，三条一包。/);
   assert.doesNotMatch(studio, /明亮浴室/);
 });
 
-test("拖进提示卡：有图当商品图（满了转参考），只有视频进参考；上传中 / 锁定时不接", async () => {
+test("拖进提示卡：只收商品实拍图；上传中 / 锁定时不接", async () => {
   const studio = await readFile(STUDIO, "utf8");
   const drop = sliceFunction(studio, "function dropFiles(files: File[])");
-  assert.match(drop, /if \(images\.length > 0 && !productSlotsFull\) \{\s*void uploadProductImages\(images\);\s*return;\s*\}\s*void uploadReferenceAssets\(files\);/);
+  /// 2026-11-17：只收商品实拍图；拖进来的不是图片就明说，不再转进「参考」
+  assert.match(drop, /if \(images\.length === 0\) \{\s*if \(files\.length > 0\) toast\.error\(copy\.unsupportedFile\);\s*return;\s*\}\s*if \(!productSlotsFull\) void uploadProductImages\(images\);/);
+  assert.doesNotMatch(studio, /uploadReferenceAssets/);
   assert.match(studio, /if \(attachDisabled \|\| !event\.dataTransfer\.types\.includes\("Files"\)\) return;/);
 });
 

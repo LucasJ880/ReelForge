@@ -297,7 +297,7 @@ export function deriveMakingProcess(
     postStatus = "failed";
     postSummary = "post_failed";
   } else if (
-    evidence.finalVideoStatus === "PENDING" ||
+    /// 成片记录在派发时就建好了（PENDING），那时镜头还在生成：只有真的在拼、或镜头都出完了，才说「正在拼接」
     evidence.finalVideoStatus === "STITCHING" ||
     generationStatus === "completed"
   ) {

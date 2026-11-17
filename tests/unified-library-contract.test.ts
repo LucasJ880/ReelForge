@@ -196,3 +196,32 @@ test("制作过程：第 1 步的时间不晚于第 2 步（订单是点「生�
   });
   assert.equal(legacy[0]?.timestamp?.toISOString(), "2026-07-20T10:01:00.000Z");
 });
+
+test("制作过程：镜头还在生成时「后期制作」是等待，不是「正在拼接」（成片记录派发时就建了，状态是 PENDING）", () => {
+  const base = {
+    orderCreatedAt: new Date("2026-11-17T21:37:00.000Z"),
+    briefCreatedAt: new Date("2026-11-17T21:37:02.000Z"),
+    briefStatus: "RENDERING" as const,
+    storyboardStatus: "APPROVED" as const,
+    storyboardCreatedAt: new Date("2026-11-17T21:29:00.000Z"),
+    storyboardApprovedAt: new Date("2026-11-17T21:37:00.000Z"),
+    hasPlayableVideo: false,
+  };
+  const generating = deriveMakingProcess({
+    ...base,
+    videoJobs: [{ status: "RUNNING", submittedAt: new Date("2026-11-17T21:37:34.000Z") }],
+    finalVideoStatus: "PENDING",
+  });
+  assert.equal(generating[2]?.status, "current");
+  assert.equal(generating[3]?.status, "pending");
+  assert.equal(generating[3]?.summary, "post_pending");
+  assert.equal(generating.filter((step) => step.status === "current").length, 1, "同一时刻只有一步在进行");
+
+  const stitching = deriveMakingProcess({
+    ...base,
+    videoJobs: [{ status: "SUCCEEDED", submittedAt: new Date("2026-11-17T21:37:34.000Z"), finishedAt: new Date("2026-11-17T22:40:00.000Z") }],
+    finalVideoStatus: "PENDING",
+  });
+  assert.equal(stitching[3]?.status, "current");
+  assert.equal(stitching[3]?.summary, "post_processing");
+});

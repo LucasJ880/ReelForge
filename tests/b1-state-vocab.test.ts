@@ -111,8 +111,8 @@ test("StatusTick 只接收「实体 × 状态」，全站没有自由文本 labe
 
 test("不是状态的标签（样例 / 草案 / 攒样本 / 样片待补）用中性 MonoTag，不借状态记号", () => {
   const checks: Array<[string, RegExp]> = [
-    ["src/app/(public)/privacy/page.tsx", /<MonoTag[^>]*>\{copy\.draftStatus\}<\/MonoTag>/],
-    ["src/app/(public)/terms/page.tsx", /<MonoTag[^>]*>\{copy\.draftStatus\}<\/MonoTag>/],
+    ["src/app/(public)/privacy/page.tsx", /<MonoTag[^>]*>\{copy\.versionLabel\}<\/MonoTag>/],
+    ["src/app/(public)/terms/page.tsx", /<MonoTag[^>]*>\{copy\.versionLabel\}<\/MonoTag>/],
   ];
   for (const [file, pattern] of checks) {
     const source = readFileSync(file, "utf8");

@@ -203,14 +203,14 @@ test("B2.6 隐私 / 条款：正文没有运营待办与环境变量名，保留
     const copy = getPublicPageCopy(locale);
     const text = JSON.stringify({ privacy: copy.privacy, terms: copy.terms });
     assert.doesNotMatch(text, /NEXT_PUBLIC_|运营负责人|Human operations|IAD1|Buddy|工程草案|engineering draft|launch configuration/i);
-    assert.ok(copy.privacy.draftStatus.length > 0);
-    assert.ok(copy.terms.draftStatus.length > 0);
+    assert.ok(copy.privacy.versionLabel.length > 0);
+    assert.ok(copy.terms.versionLabel.length > 0);
     assert.doesNotMatch(copy.privacy.metadata.title + copy.terms.metadata.title, /草案|Draft/);
   }
   for (const file of ["src/app/(public)/privacy/page.tsx", "src/app/(public)/terms/page.tsx"]) {
     const source = read(file);
     assert.doesNotMatch(source, /assumption/);
-    assert.match(source, /copy\.draftStatus/);
+    assert.match(source, /copy\.versionLabel/);
   }
 });
 

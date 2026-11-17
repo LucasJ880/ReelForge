@@ -32,6 +32,11 @@ interface AudioCaptionControlsProps {
   value: AudioCaptionControlValue;
   english: boolean;
   disabled?: boolean;
+  /**
+   * 故事板已经出来了：镜头脚本（连同台词）已经写定，这时再改口播稿不会生效——输入框锁住并说明怎么改。
+   * 字幕设置不受影响（派发那一刻才取值）。
+   */
+  scriptLocked?: boolean;
   /** 这条片的时长：口播稿下面按它提示「说不说得完」。不传就不提示。 */
   durationSec?: number;
   onChange: (next: AudioCaptionControlValue) => void;
@@ -82,6 +87,7 @@ export function AudioCaptionControls({
   value,
   english,
   disabled = false,
+  scriptLocked = false,
   durationSec,
   onChange,
   wordTimestampsAvailable = false,
@@ -102,7 +108,7 @@ export function AudioCaptionControls({
             value={value.voiceoverScript}
             maxLength={2000}
             rows={3}
-            disabled={disabled}
+            disabled={disabled || scriptLocked}
             placeholder={
               english
                 ? "Leave it empty and the AI writes one line per shot from your description."
@@ -111,6 +117,13 @@ export function AudioCaptionControls({
             className="mt-2 min-h-20 w-full resize-y rounded-(--radius-md) x-well border-input px-3 py-2 text-body leading-relaxed text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50"
             onChange={(event) => update({ voiceoverScript: event.target.value })}
           />
+          {scriptLocked ? (
+            <span className="mt-1 block text-pretty text-meta font-normal text-tertiary" data-testid="script-locked-hint">
+              {english
+                ? "The shot script is already written, so changes here no longer apply. To change the lines, cancel this round and generate the storyboard again."
+                : "镜头脚本已经写好，这里再改不会生效。想改台词，请取消这一轮、改好后重新生成故事板。"}
+            </span>
+          ) : null}
           {/* 按时长提示说不说得完（同一把尺：voiceover-budget） */}
           {scriptLength ? (
             <span

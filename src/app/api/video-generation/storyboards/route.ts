@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { DIRECTOR_LINE_DURATIONS } from "@/lib/video-generation/director-line-policy";
 import { requireAuth } from "@/lib/api-auth";
 import { isInternalRole } from "@/lib/auth-role-policy";
 import {
@@ -49,7 +50,8 @@ export async function GET() {
 const createSchema = z.object({
   prompt: z.string().trim().min(8).max(4000),
   /// 导演线路只做 15 / 30 秒（都是整条一次生成）
-  durationSec: z.union([z.literal(15), z.literal(30)]),
+  /// 导演线路做得了的时长，和创作页、服务层用同一张表
+  durationSec: z.number().int().refine((value) => DIRECTOR_LINE_DURATIONS.includes(value)),
   aspectRatio: z.enum(["9:16", "16:9", "1:1"]),
   sourceAssetIds: z.array(z.string().min(1).max(200)).max(9).default([]),
   /// 主播参考图（P02-D(s)）：最多 4 张，开关 STORYBOARD_PERSON_REFS 决定谁能传（默认 off → 非空即 400）。

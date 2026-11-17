@@ -271,14 +271,20 @@ export async function buildPlan(
  */
 function withDirectorVoiceover(base: PostProductionPlan, job: DirectorJob, rawPrompt: string): PostProductionPlan {
   const script = directorCaptionScript(job);
-  if (!script) return base;
   const language = directorVoiceLanguage(rawPrompt);
+  /// 配乐随片子一起出（脚本里写了 music）：曲库的曲子不再混进去，不然两段音乐叠在一起。
+  /// 脚本里一句台词都没有（静物、沉浸声音这类风格）也一样：音轨仍是模型原生的，只是没有口播、没有字幕可烧。
+  const nativeAudio = { bgm: { trackId: "none" as const, volume: 0 }, nativeMusic: true };
+  if (!script) {
+    return {
+      ...base,
+      audio: { ...nativeAudio, voiceover: { ...base.audio.voiceover, enabled: false, script: "" } },
+    };
+  }
   return {
     ...base,
     audio: {
-      /// 配乐随片子一起出（脚本里写了 music）：曲库的曲子不再混进去，不然两段音乐叠在一起
-      bgm: { trackId: "none", volume: 0 },
-      nativeMusic: true,
+      ...nativeAudio,
       voiceover: { ...base.audio.voiceover, enabled: true, language, script, drive: "native" },
     },
     captions: { ...base.captions, language },

@@ -9,7 +9,8 @@ interface PublicPageCopy {
   privacy: {
     metadata: { title: string; description: string };
     /** 法务状态：不是眉题，放在标题下方的状态行。 */
-    draftStatus: string;
+    /// 标题上方的版本标签（生效日期）；2026-11-17 之前这里是「草案 · 待律师复核」
+    versionLabel: string;
     title: string;
     intro: string;
     information: LegalSectionCopy;
@@ -29,7 +30,8 @@ interface PublicPageCopy {
   terms: {
     metadata: { title: string; description: string };
     /** 法务状态：不是眉题，放在标题下方的状态行。 */
-    draftStatus: string;
+    /// 标题上方的版本标签（生效日期）；2026-11-17 之前这里是「草案 · 待律师复核」
+    versionLabel: string;
     title: string;
     intro: string;
     usage: LegalSectionCopy;
@@ -67,12 +69,12 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
         title: "隐私政策 · Aivora",
         description: "Aivora 如何收集、使用、保存与处理你的信息，以及你享有的权利。",
       },
-      draftStatus: "草案 · 待加拿大律师复核",
+      versionLabel: "2026 年 11 月 17 日生效",
       title: "隐私政策",
       intro: "适用于由加拿大安大略省团队运营的 Aivora。最后更新于 2026 年 11 月 17 日。",
       information: {
         title: "我们处理的信息",
-        body: "我们会处理账户与工作区资料、你上传的产品图片和视频、提示词与创意指令、生成媒体、任务与质量记录、用量和成本事件，以及保障和运营服务所需的技术日志。在商家询盘页或试点申请表里留下的称呼、电话、邮箱和留言，只用于处理那一次询盘或申请：商家询盘页上的信息由该商家收集，Aivora 代为保存并转交给商家。这类记录会一直保存到你申请删除为止（归档不会清除它们），具体保存期限将在正式版本中写明。",
+        body: "我们会处理账户与工作区资料、你上传的产品图片和视频、提示词与创意指令、生成媒体、任务与质量记录、用量和成本事件，以及保障和运营服务所需的技术日志。在商家询盘页或试点申请表里留下的称呼、电话、邮箱和留言，只用于处理那一次询盘或申请：商家询盘页上的信息由该商家收集，Aivora 代为保存并转交给商家。这类记录会一直保存到你申请删除为止（归档不会清除它们）。",
       },
       purpose: {
         title: "我们为何使用这些信息",
@@ -80,12 +82,12 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
       },
       processors: {
         title: "处理方与数据路径",
-        body: "目前参与处理数据的服务商：Neon（数据库托管，北美）；Vercel（应用托管与文件存储，美国）；OpenAI（写镜头脚本与文案、看你上传的商品图，美国）；Seedance 2.5 视频模型与 GPT Image 2 图片模型（出片和出开场画面；经接口服务商 Shuyu 调用，会收到你提交的产品图、提示词与创意指令）。只在用到对应功能时参与：Resend（开通邮件通知后，发送新询盘与试点申请提醒）。这家接口服务商的处理区域与合同条款仍在确认中，确认后我们会在本节写明。",
+        body: "目前参与处理数据的服务商：Neon（数据库托管，北美）；Vercel（应用托管与文件存储，美国）；OpenAI（写镜头脚本与文案、看你上传的商品图，美国）；Seedance 2.5 视频模型与 GPT Image 2 图片模型（出片和出开场画面；经接口服务商 Shuyu 调用，会收到你提交的产品图、提示词与创意指令）。只在用到对应功能时参与：Resend（开通邮件通知后，发送新询盘与试点申请提醒）。经接口服务商调用视频和图片模型时，你提交的内容可能在加拿大和美国以外的地区处理；我们只发送完成这次生成所必需的内容。",
       },
       retention: {
         title: "保存与删除",
-        beforeContact: "我们只会为上述运营、合同、安全与审计目的保存记录，具体保存期限将在正式版本中写明。你可以发送邮件至",
-        afterContact: "申请访问、更正、导出或删除数据。我们会核验身份，并说明因法律或安全原因必须保留的记录。",
+        beforeContact: "我们只为上述运营、合同、安全与审计目的保存记录。账户资料、你上传的素材、提示词和生成的成片没有自动清除的期限，会一直保存到你申请删除或关闭账户为止；技术日志由托管服务商按其周期滚动清除。你可以发送邮件至",
+        afterContact: "申请访问、更正、导出或删除数据。我们会先核验身份，并在 30 天内处理完毕；因法律或安全原因必须保留的记录，会告诉你是哪些、为什么保留。",
       },
       security: {
         title: "安全与跨境处理",
@@ -101,9 +103,9 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
         title: "服务条款 · Aivora",
         description: "Aivora 商业试点服务条款，涵盖输入授权、AI 输出、禁止用途与服务边界。",
       },
-      draftStatus: "草案 · 待加拿大律师复核",
+      versionLabel: "2026 年 11 月 17 日生效",
       title: "服务条款",
-      intro: "供商业试点使用。最后更新于 2026 年 7 月 13 日。",
+      intro: "适用于由加拿大安大略省团队运营的 Aivora。最后更新于 2026 年 11 月 17 日。",
       usage: {
         title: "使用 Aivora",
         body: "你必须提供准确的账户信息、妥善保护登录凭据，并且仅将服务用于合法商业目的。发布前，你仍需负责审阅生成媒体，并完成目标分发平台要求的披露。",
@@ -122,11 +124,11 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
       },
       plans: {
         title: "套餐、可用性与试点",
-        body: "套餐限制与试点费用以适用的订单或客户协议为准。服务商与容量可能变化；为保障安全与可靠性，我们可以排队、停止或改用其他线路处理任务。当前试点不包含自助支付。",
+        body: "套餐限制与试点费用以适用的订单或客户协议为准。试用额度按页面上写明的条数提供，失败与取消的生成会返还额度。模型服务与容量可能变化；为保障安全与可靠性，我们可以排队或暂停任务。目前不提供自助支付。",
       },
       liability: {
         title: "保证与责任",
-        body: "服务适用的保证、责任限制、赔偿、管辖法律与终止条款，以最终签署的协议为准。",
+        body: "服务按「现状」提供：我们会尽力保持服务可用、生成结果符合你的描述，但不保证不中断、无错误，也不保证生成内容适合某一特定用途。在法律允许的范围内，Aivora 对因使用本服务产生的间接损失、利润损失不承担责任；任何情况下的赔偿总额不超过你在索赔前三个月内为本服务实际支付的费用，没有付费的，以 100 加元为限。你对自己上传的素材、发布的内容以及由此引起的第三方主张负责。任何一方都可以随时停止使用或终止账户；终止后你仍可按隐私政策申请导出或删除数据。本条款受加拿大安大略省法律管辖；你另外和我们签了书面协议的，以那份协议为准。",
       },
       questions: "问题：",
       privacyLink: "隐私政策",
@@ -158,12 +160,12 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
         title: "Privacy Policy · Aivora",
         description: "How Aivora collects, uses, retains and processes your information, and the rights you have.",
       },
-      draftStatus: "DRAFT · PENDING CANADIAN LEGAL REVIEW",
+      versionLabel: "EFFECTIVE NOVEMBER 17, 2026",
       title: "Privacy Policy",
       intro: "Applies to Aivora, operated from Ontario, Canada. Last updated November 17, 2026.",
       information: {
         title: "Information we handle",
-        body: "We process account and workspace details, product images and videos you upload, prompts and creative instructions, generated media, job and quality records, usage and cost events, and technical logs needed to secure and operate the service. Names, phone numbers, emails and messages left on a business's inquiry page or our pilot application form are used only to handle that inquiry or application; on a business's inquiry page, the business collects the information and Aivora stores it and passes it on to them. These records are kept until you ask us to delete them (archiving does not erase them); exact retention periods will be stated in the final version.",
+        body: "We process account and workspace details, product images and videos you upload, prompts and creative instructions, generated media, job and quality records, usage and cost events, and technical logs needed to secure and operate the service. Names, phone numbers, emails and messages left on a business's inquiry page or our pilot application form are used only to handle that inquiry or application; on a business's inquiry page, the business collects the information and Aivora stores it and passes it on to them. These records are kept until you ask us to delete them (archiving does not erase them).",
       },
       purpose: {
         title: "Why we use it",
@@ -171,12 +173,12 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
       },
       processors: {
         title: "Processors and data routes",
-        body: "Processors that handle data today: Neon (database hosting, North America); Vercel (application hosting and file storage, United States); OpenAI (writing shot scripts and copy, and viewing the product photos you upload, United States); and the Seedance 2.5 video model and GPT Image 2 image model (filming and the opening frame; called through the API provider Shuyu, which receives the product photos, prompts and creative instructions you submit). Used only when the matching feature runs: Resend (sends new-inquiry and pilot-application alerts once email notifications are turned on). That API provider's processing region and contract terms are still being confirmed; we will state them in this section once they are.",
+        body: "Processors that handle data today: Neon (database hosting, North America); Vercel (application hosting and file storage, United States); OpenAI (writing shot scripts and copy, and viewing the product photos you upload, United States); and the Seedance 2.5 video model and GPT Image 2 image model (filming and the opening frame; called through the API provider Shuyu, which receives the product photos, prompts and creative instructions you submit). Used only when the matching feature runs: Resend (sends new-inquiry and pilot-application alerts once email notifications are turned on). When the video and image models are called through that API provider, the content you submit may be processed outside Canada and the United States; we send only what that generation needs.",
       },
       retention: {
         title: "Retention and deletion",
-        beforeContact: "Records are retained only for the operating, contractual, security, and audit purposes described above; exact retention periods will be stated in the final version. You may request access, correction, export, or deletion by emailing",
-        afterContact: "We will verify identity and explain any records that must be retained for legal or security reasons.",
+        beforeContact: "Records are retained only for the operating, contractual, security, and audit purposes described above. Account details, the assets you upload, prompts and finished videos have no automatic expiry: they are kept until you ask us to delete them or close your account. Technical logs are rotated by our hosting providers on their own schedule. You may request access, correction, export, or deletion by emailing",
+        afterContact: "We verify identity first and complete the request within 30 days; if any records must be retained for legal or security reasons, we will tell you which ones and why.",
       },
       security: {
         title: "Security and international processing",
@@ -192,9 +194,9 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
         title: "Terms of Service · Aivora",
         description: "Aivora's business-pilot terms covering input rights, AI output, prohibited use, and service boundaries.",
       },
-      draftStatus: "DRAFT · PENDING CANADIAN LEGAL REVIEW",
+      versionLabel: "EFFECTIVE NOVEMBER 17, 2026",
       title: "Terms of Service",
-      intro: "For business pilots. Last updated July 13, 2026.",
+      intro: "Applies to Aivora, operated from Ontario, Canada. Last updated November 17, 2026.",
       usage: {
         title: "Using Aivora",
         body: "You must provide accurate account information, protect your credentials, and use the service only for lawful business purposes. You remain responsible for reviewing generated media before publication and for disclosures required by the destination platform.",
@@ -213,11 +215,11 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
       },
       plans: {
         title: "Plans, availability, and pilots",
-        body: "Plan limits and any pilot fees are defined in the applicable order form or customer agreement. Service providers and capacity may change. We may queue, stop, or reroute work to preserve safety and reliability. Self-serve payment is not part of the current pilot.",
+        body: "Plan limits and any pilot fees are defined in the applicable order form or customer agreement. Trial allowances are provided as stated on the page, and failed or cancelled generations are returned to your allowance. Model services and capacity may change. We may queue or pause work to preserve safety and reliability. Self-serve payment is not available yet.",
       },
       liability: {
         title: "Warranty and liability",
-        body: "The service is provided subject to the warranties, liability limits, indemnities, governing law, and termination terms in the final signed agreement.",
+        body: "The service is provided as is. We work to keep it available and to make results match your description, but we do not promise it will be uninterrupted or error-free, or that generated content is fit for a particular purpose. To the extent the law allows, Aivora is not liable for indirect losses or lost profits arising from use of the service, and our total liability is limited to the fees you actually paid for the service in the three months before the claim, or CAD 100 if you paid nothing. You are responsible for the assets you upload, the content you publish, and third-party claims arising from them. Either party may stop using the service or close the account at any time; after that you may still request export or deletion under the Privacy Policy. These terms are governed by the laws of Ontario, Canada. If you have signed a separate written agreement with us, that agreement prevails.",
       },
       questions: "Questions:",
       privacyLink: "Privacy Policy",

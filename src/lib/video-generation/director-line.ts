@@ -30,6 +30,7 @@ import {
   type DirectorWriterScenario,
 } from "@/lib/video-generation/director-writer";
 import { directorStyle, type DirectorScriptView } from "@/lib/video-generation/director-line-policy";
+import { directorStyleBrief } from "@/lib/video-generation/director-style-briefs";
 
 export const DIRECTOR_SCRIPT_KIND = "director_script";
 
@@ -256,7 +257,7 @@ export async function writeDirectorScriptForStoryboard(
     aspectRatio: input.aspectRatio,
     voiceLanguage: directorVoiceLanguage(input.description),
     /// 选了风格：片种和拍法要求都照风格卡；「自动匹配」两样都不给，由写手按商品定
-    ...(style ? { genre: style.genre, styleBrief: style.brief } : {}),
+    ...(style ? { genre: style.genre, styleBrief: directorStyleBrief(style.id) ?? undefined } : {}),
   };
   const complete: DirectorWriterCompleter = async (args) => {
     const room = remaining();

@@ -54,7 +54,7 @@ import { BRAND_END_CARD_ENTRY_ENABLED } from "@/lib/brand/brand-end-card-policy"
 import { HOOK_ANGLES, applyHookAngle, detectHookAngle, stripHookAngle } from "@/lib/create/hook-angles";
 import { applyProductSize, detectProductSize, PRODUCT_SIZE_MAX, stripProductSize } from "@/lib/create/product-size";
 import { SIGNOFF_BRAND_MAX, SIGNOFF_CTA_MAX } from "@/lib/video-generation/brand-signoff";
-import { DIRECTOR_STYLES, DIRECTOR_STYLE_GROUPS, directorLineBlocker, directorStyle } from "@/lib/video-generation/director-line-policy";
+import { DIRECTOR_LINE_DURATIONS, DIRECTOR_STYLES, DIRECTOR_STYLE_GROUPS, directorLineBlocker, directorStyle } from "@/lib/video-generation/director-line-policy";
 import { decideStoryboardResume } from "@/lib/create/storyboard-resume";
 import { loadVoiceoverDraft, saveVoiceoverDraft } from "@/lib/video-generation/voiceover-draft-storage";
 import { detectScriptLanguage } from "@/lib/video-generation/detect-script-language";
@@ -73,8 +73,8 @@ const ONBOARDING_STORAGE_KEY = "aivora.create-onboarding.v1";
 const STORYBOARD_ATTEMPT_STORAGE_KEY = "aivora.storyboard-attempt.v1";
 const DISPATCH_ATTEMPT_STORAGE_KEY = "aivora.dispatch-attempt.v1";
 const DISMISSED_STORYBOARDS_STORAGE_KEY = "aivora.dismissed-storyboards.v1";
-/// 导演线路只做 15 / 30 秒，都是整条一次生成（60 秒 2026-11-17 下线）
-const DURATIONS = [15, 30] as const;
+/// 导演线路只做 15 / 30 秒，都是整条一次生成（60 秒 2026-11-17 下线）。和服务端用同一张表（director-line-policy）
+const DURATIONS = DIRECTOR_LINE_DURATIONS as readonly (15 | 30)[];
 const ASPECT_RATIOS: AspectRatio[] = ["9:16", "16:9", "1:1"];
 
 type CreationMode = "quick" | "advanced";
@@ -1359,7 +1359,13 @@ export function StreamlinedVideoStudio({
       if (files.length > 0) toast.error(copy.unsupportedFile);
       return;
     }
-    if (!productSlotsFull) void uploadProductImages(images);
+    /// 满了、或拖进来的里面夹着不是图片的文件，都要说一声：之前是什么都不发生
+    if (productSlotsFull) {
+      toast.error(copy.tooManyProducts);
+      return;
+    }
+    if (images.length < files.length) toast.error(copy.unsupportedFile);
+    void uploadProductImages(images);
   }
 
   const loadedFromStudio = initialProductAssets.filter((initial) =>
@@ -1966,6 +1972,7 @@ export function StreamlinedVideoStudio({
               value={audioCaptionSettings}
               english={english}
               disabled={finishingLocked}
+              scriptLocked={configurationLocked}
               durationSec={selectedDuration}
               onChange={updateAudioCaptionSettings}
             />

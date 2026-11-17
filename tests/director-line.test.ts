@@ -33,6 +33,7 @@ import {
   directorLineBlocker,
   directorStyle,
 } from "../src/lib/video-generation/director-line-policy";
+import { DIRECTOR_STYLE_BRIEFS, directorStyleBrief } from "../src/lib/video-generation/director-style-briefs";
 import { buildVideoPrompt, cornerLogoFilter, parseDirectorJob } from "../src/lib/video-generation/director-plan";
 import { buildPlan } from "../src/lib/video-generation/generation-supervisor";
 import { mapPlanToDirectorPlan } from "../src/lib/video-generation/plan-to-director";
@@ -181,25 +182,31 @@ test("风格卡：二十来种分五组，id 不重复，都有中英文名和�
     assert.ok(style.zh.length >= 2 && style.zh.length <= 6, `${style.id} 中文名要短：下拉里放得下`);
     assert.ok(style.en.length > 0 && style.hintZh.length > 0 && style.hintEn.length > 0);
     assert.ok(style.hintZh.length <= 40, `${style.id} 的一句话说明要短：手机上显示成一两行`);
-    assert.doesNotMatch(style.brief, /[\u4e00-\u9fff]/u, `${style.id} 的拍法要求全程英文`);
-    assert.ok(style.brief.length >= 200 && style.brief.length <= 900, `${style.id} brief 长度 ${style.brief.length}`);
+    assert.doesNotMatch(directorStyleBrief(style.id)!, /[\u4e00-\u9fff]/u, `${style.id} 的拍法要求全程英文`);
+    assert.ok(directorStyleBrief(style.id)!.length >= 200 && directorStyleBrief(style.id)!.length <= 900, `${style.id} brief 长度 ${directorStyleBrief(style.id)!.length}`);
     assert.ok(["fmcg", "lifestyle"].includes(style.genre));
     assert.ok(groupIds.includes(style.group), style.id);
     /// 和导演规则对着干的写法不许进风格：对着镜头说话、让模型画字
-    assert.doesNotMatch(style.brief, /talks? to (the )?camera,|speaks? to (the )?camera|on-screen text|caption (says|reads)|price tag/iu, style.id);
+    assert.doesNotMatch(directorStyleBrief(style.id)!, /talks? to (the )?camera,|speaks? to (the )?camera|on-screen text|caption (says|reads)|price tag/iu, style.id);
     assert.equal(directorStyle(style.id), style);
   }
   assert.equal(directorStyle(null), null);
   assert.equal(directorStyle("auto"), null);
   /// 客户点名要的那种：情绪种草要有正脸表情镜头
-  assert.match(directorStyle("tpl_emotion_story")!.brief, /face visible/u);
+  assert.match(directorStyleBrief("tpl_emotion_story")!, /face visible/u);
   /// 质感特写不露脸、是慢节奏片种
   assert.equal(directorStyle("tpl_texture_closeup")!.genre, "lifestyle");
   /// 促销：价格只在口播里说、只说商家给的事实
-  assert.match(directorStyle("tpl_offer_promo")!.brief, /only in spoken lines and only with facts given in the description/u);
+  assert.match(directorStyleBrief("tpl_offer_promo")!, /only in spoken lines and only with facts given in the description/u);
   /// 新人向导先摆出来的几种都在表里
   assert.equal(DIRECTOR_FEATURED_STYLE_IDS.length, 6);
   for (const id of DIRECTOR_FEATURED_STYLE_IDS) assert.ok(directorStyle(id), id);
+  /// 拍法要求只在服务端：两边 id 一一对应；会进浏览器的 policy 文件和创作页里都没有这些要求
+  assert.deepEqual(Object.keys(DIRECTOR_STYLE_BRIEFS).sort(), DIRECTOR_STYLES.map((style) => style.id).sort());
+  assert.equal(directorStyleBrief(null), null);
+  const policySource = readFileSync("src/lib/video-generation/director-line-policy.ts", "utf8");
+  assert.doesNotMatch(policySource, /brief:\s*\n?\s*"/);
+  assert.doesNotMatch(readFileSync("src/components/video-generation/streamlined-video-studio.tsx", "utf8"), /director-style-briefs/);
 });
 
 // ---------------------------------------------------------------------------
@@ -589,4 +596,17 @@ test("建故事板：写手没写成 → 明说、不建 run、不退回老的�
     (error: unknown) => error instanceof StoryboardRequestError && error.code === "VALIDATION_FAILED" && /模板已经下线/.test(error.message),
   );
   assert.equal(writerCalls, 1, "下线的老模板当场拒绝，不叫写手");
+});
+
+test("脚本里一句台词都没有（静物、沉浸声音这类风格）：音轨仍是模型原生的——曲库不混进去、标上 nativeMusic，口播关着", async () => {
+  const silent = job();
+  for (const shot of silent.video.shots) shot.sound = shot.sound.replace(/[“"][^”"]*[”"]/gu, "").replace(/the voice says\s*/giu, "ambient room tone ");
+  assert.equal(directorCaptionScript(silent), "", "夹具里的台词要真的去干净");
+  const plan = await buildPlan(
+    { ...request(15), audio: { voiceover: { enabled: false, voiceId: "warm-confident", language: "zh-CN", script: "" }, bgm: { trackId: "upbeat-pop", volume: 0.3 } } },
+    { director: { job: silent } },
+  );
+  assert.deepEqual(plan.postProduction?.audio.bgm, { trackId: "none", volume: 0 });
+  assert.equal(plan.postProduction?.audio.nativeMusic, true);
+  assert.equal(plan.postProduction?.audio.voiceover.enabled, false);
 });

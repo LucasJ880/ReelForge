@@ -69,7 +69,7 @@ test("拖进提示卡：只收商品实拍图；上传中 / 锁定时不接", as
   const studio = await readFile(STUDIO, "utf8");
   const drop = sliceFunction(studio, "function dropFiles(files: File[])");
   /// 2026-11-17：只收商品实拍图；拖进来的不是图片就明说，不再转进「参考」
-  assert.match(drop, /if \(images\.length === 0\) \{\s*if \(files\.length > 0\) toast\.error\(copy\.unsupportedFile\);\s*return;\s*\}\s*if \(!productSlotsFull\) void uploadProductImages\(images\);/);
+  assert.match(drop, /if \(productSlotsFull\) \{\s*toast\.error\(copy\.tooManyProducts\);\s*return;\s*\}\s*if \(images\.length < files\.length\) toast\.error\(copy\.unsupportedFile\);\s*void uploadProductImages\(images\);/);
   assert.doesNotMatch(studio, /uploadReferenceAssets/);
   assert.match(studio, /if \(attachDisabled \|\| !event\.dataTransfer\.types\.includes\("Files"\)\) return;/);
 });

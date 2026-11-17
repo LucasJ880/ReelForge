@@ -132,20 +132,21 @@ test("故事板出帧：写明一般多久，排队的帧不说「正在绘制�
   assert.match(panel, /排队中，马上开始/);
 });
 
-test("出图比平时慢：按等得最久的那一帧算分钟，四分钟起如实提示；做好 / 失败的帧和没有时间戳的旧响应不算", async () => {
-  const { slowestPendingFrameMinutes, STORYBOARD_SLOW_AFTER_MS } = await import("../src/components/video-generation/storyboard-workflow-panel");
-  const now = Date.parse("2026-11-17T20:30:00.000Z");
-  const frame = (status: string, startedAt: string | null) => ({
-    id: status, ordinal: 0, attempt: 1, beat: "", prompt: "", status, imageUrl: null, errorCode: null, errorMessage: null, startedAt,
+test("出图比平时慢：按等得最久的那一帧算分钟，四分钟起如实提示；等待时间由服务端算，不看客户端的钟", async () => {
+  const { slowestPendingFrameMinutes, STORYBOARD_SLOW_AFTER_SEC } = await import("../src/components/video-generation/storyboard-workflow-panel");
+  const frame = (status: string, waitedSec: number | null | undefined) => ({
+    id: status, ordinal: 0, attempt: 1, beat: "", prompt: "", status, imageUrl: null, errorCode: null, errorMessage: null, waitedSec,
   });
-  assert.equal(STORYBOARD_SLOW_AFTER_MS, 4 * 60_000);
-  assert.equal(slowestPendingFrameMinutes([frame("PROCESSING", "2026-11-17T20:12:00.000Z")], now), 18);
-  assert.equal(slowestPendingFrameMinutes([frame("PROCESSING", "2026-11-17T20:29:30.000Z")], now), 0);
-  assert.equal(slowestPendingFrameMinutes([frame("SUCCEEDED", "2026-11-17T20:00:00.000Z"), frame("FAILED", "2026-11-17T20:00:00.000Z")], now), null);
-  assert.equal(slowestPendingFrameMinutes([frame("PROCESSING", null)], now), null, "旧响应没有时间戳：不提示，不瞎猜");
+  assert.equal(STORYBOARD_SLOW_AFTER_SEC, 240);
+  assert.equal(slowestPendingFrameMinutes([frame("PROCESSING", 18 * 60 + 20)]), 18);
+  assert.equal(slowestPendingFrameMinutes([frame("PROCESSING", 30), frame("QUEUED", 5 * 60)]), 5);
+  assert.equal(slowestPendingFrameMinutes([frame("SUCCEEDED", null), frame("FAILED", null)]), null);
+  assert.equal(slowestPendingFrameMinutes([frame("PROCESSING", undefined)]), null, "旧响应没带等待时间：不提示，不瞎猜");
   const panel = await readFile("src/components/video-generation/storyboard-workflow-panel.tsx", "utf8");
   assert.match(panel, /data-testid="storyboard-slow-notice"/);
   assert.match(panel, /取消不扣额度/);
+  assert.doesNotMatch(panel, /Date\.now\(\)|setInterval/, "面板不拿客户端的钟算等待时间");
   const service = await readFile("src/lib/video-generation/storyboard-service.ts", "utf8");
-  assert.match(service, /startedAt: \(frame\.submittedAt \?\? frame\.createdAt\)\?\.toISOString\(\) \?\? null,/);
+  assert.match(service, /waitedSec: frameWaitedSec\(frame, viewedAt\),/);
+  assert.match(service, /const since = frame\.submittedAt \?\? frame\.createdAt;/);
 });

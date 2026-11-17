@@ -36,6 +36,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { DIRECTOR_STYLES, directorStyle } from "@/lib/video-generation/director-line-policy";
+import { directorStyleBrief } from "@/lib/video-generation/director-style-briefs";
 import { createHash } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, extname, isAbsolute, join, relative, resolve } from "node:path";
@@ -848,7 +849,7 @@ async function commandDraft(jobDir: string | null, flags: Flags): Promise<void> 
     }
     const { style: _style, ...rest } = raw;
     void _style;
-    input = style ? { ...rest, genre: rest.genre ?? style.genre, styleBrief: rest.styleBrief ?? style.brief } : rest;
+    input = style ? { ...rest, genre: rest.genre ?? style.genre, styleBrief: rest.styleBrief ?? directorStyleBrief(style.id) ?? undefined } : rest;
     directorWriterInputSchema.parse(input);
     if (style) console.log(`[director] 风格：${style.zh}（${style.id}）`);
   } catch (error) {

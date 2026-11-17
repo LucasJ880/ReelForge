@@ -75,6 +75,7 @@ import {
 } from "@/lib/video-generation/director-line";
 import {
   DIRECTOR_LINE_BLOCKER_MESSAGE,
+  DIRECTOR_LINE_DURATIONS,
   directorLineBlocker,
   type DirectorScriptView,
 } from "@/lib/video-generation/director-line-policy";
@@ -182,8 +183,9 @@ export interface StoryboardRunView {
     errorCode: string | null;
     errorMessage: string | null;
     canRegenerate: boolean;
-    /// 这一帧交给出图服务的时间（还没交出去 = 建帧时间）。面板据此算等了多久：出图比平时慢时如实说，不让人对着「一两分钟」干等。
-    startedAt: string | null;
+    /// 这一帧还没好的话，已经等了多少秒（从交给出图服务算起，还没交出去就从建帧算起）；好了 / 失败了是 null。
+    /// 在服务端按服务器时间算好：面板直接用，不拿客户端的钟去比（手机的钟不准会把等待时间算错）。
+    waitedSec: number | null;
   }>;
 }
 
@@ -389,8 +391,19 @@ export function buildRegeneratedStoryboardFramePrompt(input: {
   });
 }
 
+/** 还在画的帧已经等了多少秒（从交给出图服务算起，还没交出去就从建帧算起）；不在画、或没有时间戳 → null。 */
+function frameWaitedSec(
+  frame: { status: StoryboardFrameStatus; submittedAt?: Date | null; createdAt?: Date | null },
+  nowMs: number,
+): number | null {
+  if (frame.status !== StoryboardFrameStatus.QUEUED && frame.status !== StoryboardFrameStatus.PROCESSING) return null;
+  const since = frame.submittedAt ?? frame.createdAt;
+  return since ? Math.max(0, Math.round((nowMs - since.getTime()) / 1000)) : null;
+}
+
 export function storyboardRunView(run: StoryboardRunRecord): StoryboardRunView {
   const cancelled = run.status === StoryboardRunStatus.CANCELLED;
+  const viewedAt = Date.now();
   const frames = [...run.frames]
     .filter((frame) => frame.isCurrent !== false)
     .sort((a, b) => a.ordinal - b.ordinal)
@@ -406,7 +419,7 @@ export function storyboardRunView(run: StoryboardRunRecord): StoryboardRunView {
       errorMessage: frame.errorMessage ?? null,
       // 已取消的一轮不再出帧：任何分镜都不能重做。
       canRegenerate: !cancelled && canRegenerateStoryboardFrame(frame),
-      startedAt: (frame.submittedAt ?? frame.createdAt)?.toISOString() ?? null,
+      waitedSec: frameWaitedSec(frame, viewedAt),
     }));
   const allReady =
     frames.length === expectedStoryboardFrameCount(run) &&
@@ -594,7 +607,7 @@ export async function createStoryboardRun(
   if (!input.prompt.trim()) {
     throw new StoryboardRequestError("请描述视频故事。", "VALIDATION_FAILED");
   }
-  if (![15, 30].includes(input.durationSec)) {
+  if (!DIRECTOR_LINE_DURATIONS.includes(input.durationSec)) {
     throw new StoryboardRequestError("视频时长不受支持。", "VALIDATION_FAILED");
   }
   const assetIds = [...new Set(input.sourceAssetIds ?? [])];

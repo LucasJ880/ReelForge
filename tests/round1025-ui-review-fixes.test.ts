@@ -26,8 +26,8 @@ test("LENS-2 隐私政策点名唯一的客户视频线路的供应商（Shuyu�
   assert.match(en, /Shuyu/);
   /// 2026-11-17：按实际模型写（Seedance 2.5、GPT Image 2），接口服务商的名字仍如实披露
   assert.match(zh, /Seedance 2\.5 视频模型与 GPT Image 2 图片模型/);
-  assert.match(zh, /这家接口服务商的处理区域与合同条款仍在确认中/);
-  assert.match(en, /That API provider's processing region and contract terms are still being confirmed/);
+  assert.match(zh, /可能在加拿大和美国以外的地区处理/);
+  assert.match(en, /may be processed outside Canada and the United States/);
   /// 不再许下「新增处理方前先更新本节」这种已经被违反过的承诺
   assert.doesNotMatch(zh, /新增处理方前/);
   assert.doesNotMatch(en, /before adding a new processor/);
@@ -63,8 +63,9 @@ test("LENS-2 询盘与试点申请的联系方式：写清用途与保存多久�
   assert.match(zh.information.body, /保存到你申请删除为止/);
   assert.match(en.information.body, /inquiry page or our pilot application form/);
   assert.match(en.information.body, /kept until you ask us to delete them/);
-  assert.equal(zh.draftStatus, "草案 · 待加拿大律师复核");
-  assert.equal(en.draftStatus, "DRAFT · PENDING CANADIAN LEGAL REVIEW");
+  /// 2026-11-17 转正式版（CEO 定）：不再标「草案」，标签改成生效日期；保存期限、责任限制、管辖法律写明
+  assert.equal(zh.versionLabel, "2026 年 11 月 17 日生效");
+  assert.equal(en.versionLabel, "EFFECTIVE NOVEMBER 17, 2026");
 });
 
 /* ── LENS-1 读数墙：名字与口径在窄屏折行，不截断 ─────────────────────── */

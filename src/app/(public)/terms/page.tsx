@@ -31,7 +31,7 @@ export default async function TermsPage() {
           <h1 className="x-display">{copy.title}</h1>
           <LanguageSwitcher variant="inline" className="w-auto min-w-32 shrink-0" />
         </div>
-        <MonoTag className="self-start">{copy.draftStatus}</MonoTag>
+        <MonoTag className="self-start">{copy.versionLabel}</MonoTag>
         <p className="text-muted-foreground">{copy.intro}</p>
       </header>
 

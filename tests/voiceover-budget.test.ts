@@ -74,7 +74,9 @@ test("故事板出来之后：不改画面的设置照样能改，改了不丢�
   const studio = readFileSync("src/components/video-generation/streamlined-video-studio.tsx", "utf8");
   assert.match(studio, /const finishingLocked = busy !== null;/);
   /// 自己写的口播稿 / 字幕设置：只在提交途中锁
-  assert.match(studio, /disabled=\{finishingLocked\}\s+durationSec=\{selectedDuration\}\s+onChange=\{updateAudioCaptionSettings\}/);
+  /// 自己写的口播稿只在故事板出来之前有用：脚本写定之后输入框锁住并说明（scriptLocked），字幕设置照样能改
+  assert.match(studio, /disabled=\{finishingLocked\}\s+scriptLocked=\{configurationLocked\}\s+durationSec=\{selectedDuration\}\s+onChange=\{updateAudioCaptionSettings\}/);
+  assert.match(readFileSync("src/components/video-generation/audio-caption-controls.tsx", "utf8"), /data-testid="script-locked-hint"/);
   /// 改这些设置不清故事板（不调会清掉故事板的 invalidatePlan）
   const soft = studio.slice(
     studio.indexOf("const updateAudioCaptionSettings = useCallback"),

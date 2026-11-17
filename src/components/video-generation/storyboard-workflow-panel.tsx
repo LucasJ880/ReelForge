@@ -247,7 +247,11 @@ export function StoryboardWorkflowPanel({
         data-testid="storyboard-frame-grid"
       >
         {Array.from({ length: expectedCount }, (_, ordinal) => {
-          const frame = run.frames.find((item) => item.ordinal === ordinal);
+          /// 导演线路只剩一张时（商家选定之后，或旧轮次）直接取那一张：选中的可能是第 2 张候选，序号不是 0，
+          /// 按序号去找会找不到、画出一个空的「正在绘制」（2026-11-17 真机验证时撞到）
+          const frame = director && candidateCount === 1
+            ? run.frames[0]
+            : run.frames.find((item) => item.ordinal === ordinal);
           const pending = !frame || frame.status === "QUEUED" || frame.status === "PROCESSING";
           const failed = frame?.status === "FAILED";
           const regenerating = frame?.id === busyFrameId;

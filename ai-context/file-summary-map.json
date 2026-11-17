@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T16:44:40.847Z",
+  "generatedAt": "2026-11-17T18:06:52.352Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -10711,8 +10711,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 129,
-      "sizeBytes": 11028,
+      "lineCount": 156,
+      "sizeBytes": 15283,
       "notes": "Documentation"
     },
     {
@@ -14559,8 +14559,8 @@
         "PlatformCreatePage",
         "default"
       ],
-      "lineCount": 227,
-      "sizeBytes": 10329,
+      "lineCount": 230,
+      "sizeBytes": 10540,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -14934,8 +14934,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 448,
-      "sizeBytes": 26522,
+      "lineCount": 449,
+      "sizeBytes": 26671,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -17586,8 +17586,8 @@
         "NewBrandPackageButton",
         "BrandPackageManager"
       ],
-      "lineCount": 553,
-      "sizeBytes": 21120,
+      "lineCount": 557,
+      "sizeBytes": 21469,
       "notes": "React component; client component"
     },
     {
@@ -19743,7 +19743,7 @@
         "storyboardFrameTarget"
       ],
       "lineCount": 492,
-      "sizeBytes": 24790,
+      "sizeBytes": 24784,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -19790,8 +19790,8 @@
         "StudioReadings",
         "StreamlinedVideoStudio"
       ],
-      "lineCount": 2946,
-      "sizeBytes": 134939,
+      "lineCount": 3046,
+      "sizeBytes": 140377,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -21589,6 +21589,23 @@
       ],
       "lineCount": 45,
       "sizeBytes": 2163,
+      "notes": "Utility / helper module"
+    },
+    {
+      "path": "src/lib/create/storyboard-resume.ts",
+      "type": "util",
+      "area": "shared",
+      "exports": [
+        "StoryboardResumeDecision",
+        "decideStoryboardResume"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "StoryboardResumeDecision",
+        "decideStoryboardResume"
+      ],
+      "lineCount": 36,
+      "sizeBytes": 2193,
       "notes": "Utility / helper module"
     },
     {
@@ -25727,8 +25744,8 @@
         "DirectorWriterDeps",
         "DIRECTOR_WRITER_PHOTOS_MAX"
       ],
-      "lineCount": 850,
-      "sizeBytes": 46623,
+      "lineCount": 852,
+      "sizeBytes": 46929,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -28688,6 +28705,22 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
+      "path": "tests/create-page-fixes-1117.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "../src/lib/create/storyboard-resume"
+      ],
+      "importantSymbols": [],
+      "lineCount": 81,
+      "sizeBytes": 5909,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
       "path": "tests/create-reuse-and-size.test.ts",
       "type": "test",
       "area": "tests",
@@ -29061,8 +29094,8 @@
         "../src/lib/video-generation/director-writer-openai"
       ],
       "importantSymbols": [],
-      "lineCount": 1097,
-      "sizeBytes": 63032,
+      "lineCount": 1101,
+      "sizeBytes": 63309,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -31683,13 +31716,14 @@
         "node:test",
         "../src/lib/db",
         "../src/lib/services/create-retry-prefill-service",
-        "../src/lib/services/video-service"
+        "../src/lib/services/video-service",
+        "../src/lib/create/storyboard-resume"
       ],
       "importantSymbols": [
         "POST"
       ],
-      "lineCount": 253,
-      "sizeBytes": 10167,
+      "lineCount": 263,
+      "sizeBytes": 10724,
       "notes": "Unit / integration test; area=tests"
     },
     {

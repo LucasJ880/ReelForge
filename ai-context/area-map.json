@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T16:44:40.880Z",
+  "generatedAt": "2026-11-17T18:06:52.358Z",
   "areas": {
     "unknown": [
       ".claude/launch.json",
@@ -1109,6 +1109,7 @@
       "src/lib/contracts/videos-api.ts",
       "src/lib/create/hook-angles.ts",
       "src/lib/create/product-size.ts",
+      "src/lib/create/storyboard-resume.ts",
       "src/lib/db.ts",
       "src/lib/duration/segment-planner.ts",
       "src/lib/exchange/pulse.ts",
@@ -1548,6 +1549,7 @@
       "tests/content-report-contract.test.ts",
       "tests/create-chat-first.test.ts",
       "tests/create-one-click-storyboard.test.ts",
+      "tests/create-page-fixes-1117.test.ts",
       "tests/create-reuse-and-size.test.ts",
       "tests/creation-round-cancel.test.ts",
       "tests/cron-poll-videos.test.ts",

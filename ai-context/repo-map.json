@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T16:44:40.844Z",
+  "generatedAt": "2026-11-17T18:06:52.350Z",
   "package": {
     "name": "aivora",
     "version": "0.2.0"
@@ -36,7 +36,7 @@
     "bcryptjs (^3.0.3)"
   ],
   "fileTotals": {
-    "total": 1753,
+    "total": 1755,
     "byType": {
       "unknown": 415,
       "doc": 430,
@@ -51,17 +51,17 @@
       "api": 69,
       "component": 108,
       "i18n": 17,
-      "util": 167,
+      "util": 168,
       "provider": 10,
       "service": 46,
       "type": 2,
-      "test": 320
+      "test": 321
     },
     "byArea": {
       "unknown": 824,
       "media-processing": 53,
       "config": 11,
-      "shared": 273,
+      "shared": 274,
       "prisma": 59,
       "auth": 25,
       "payments": 1,
@@ -78,7 +78,7 @@
       "demo": 1,
       "ai-providers": 10,
       "publishing": 1,
-      "tests": 320
+      "tests": 321
     }
   },
   "routes": {

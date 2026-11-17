@@ -223,7 +223,17 @@ test("创作台「取消这一轮」走服务端真取消，再清浏览器里�
   assert.match(editBody, /await cancelStoryboardOnServer\(storyboard\)/);
   // 别处取消的 run 不再出现在面板里，也不会被静默恢复。
   assert.match(studio, /next\?\.status === "CANCELLED"/);
-  assert.match(studio, /run\.status === "CANCELLED"\) return;/);
+  /// 2026-11-17：「带不带回来」的判断挪进了纯函数 decideStoryboardResume（创作页把 run.status 交给它），已取消的一轮一律不恢复
+  assert.match(studio, /decideStoryboardResume\(\{\s+runStatus: run\.status,/);
+  const { decideStoryboardResume } = await import("../src/lib/create/storyboard-resume");
+  for (const formTouched of [false, true]) {
+    for (const resumeRequested of [false, true]) {
+      assert.equal(
+        decideStoryboardResume({ runStatus: "CANCELLED", formTouched, resumeRequested, dismissed: false, storyboardOnPage: false }),
+        "ignore",
+      );
+    }
+  }
 });
 
 test("故事板路由：取消入口 auth → zod → service；创建与重做计入用户限流", async () => {

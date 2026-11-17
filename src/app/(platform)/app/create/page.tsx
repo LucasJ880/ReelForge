@@ -33,11 +33,13 @@ export default async function PlatformCreatePage({
     machineTask?: string;
     /// 拍这件存好的商品（商品页 / 创作页「接着拍」带过来）：带入它的商品图、名字、卖点和尺寸
     product?: string;
+    /// 成品库顶部「回创作页继续」带过来：明确要接着处理上一轮故事板（失败的那一轮也直接带回来）
+    resume?: string;
   }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/create");
-  const [{ styleTemplate, prompt, guide, retry, hook, machineTask, product }, locale] = await Promise.all([
+  const [{ styleTemplate, prompt, guide, retry, hook, machineTask, product, resume }, locale] = await Promise.all([
     searchParams,
     getServerLocale(),
   ]);
@@ -122,6 +124,7 @@ export default async function PlatformCreatePage({
     <div data-route-state="ready">
       <StreamlinedVideoStudio
         directorLine={directorLineEnabled()}
+        resumeRequested={resume === "1"}
         initialAssets={initialAssets}
         initialStyleTemplateId={styleTemplate}
         initialPrompt={

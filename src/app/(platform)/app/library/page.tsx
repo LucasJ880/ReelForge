@@ -161,7 +161,8 @@ export default async function PlatformLibraryPage({
       {pendingStoryboard && !query ? (
         /* 故事板不在成品库的任何一栏里：离开创作页后，这是唯一能把人带回去的入口 */
         <Link
-          href="/app/create"
+          /// resume=1：明确要接着处理这一轮——创作页不带这个参数时，失败的旧故事板不再自动填回表单
+          href="/app/create?resume=1"
           data-testid="library-pending-storyboard"
           className="x-panel flex items-center gap-4 px-4 py-3 transition-colors hover:bg-raised focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
         >

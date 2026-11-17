@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T16:44:40.871Z",
+  "generatedAt": "2026-11-17T18:06:52.356Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -13900,6 +13900,23 @@
       ]
     },
     {
+      "file": "tests/create-page-fixes-1117.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "../src/lib/create/storyboard-resume"
+      ],
+      "localImports": [
+        "../src/lib/create/storyboard-resume"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test"
+      ]
+    },
+    {
       "file": "tests/create-reuse-and-size.test.ts",
       "imports": [
         "node:assert/strict",
@@ -17163,12 +17180,14 @@
         "node:test",
         "../src/lib/db",
         "../src/lib/services/create-retry-prefill-service",
-        "../src/lib/services/video-service"
+        "../src/lib/services/video-service",
+        "../src/lib/create/storyboard-resume"
       ],
       "localImports": [
         "../src/lib/db",
         "../src/lib/services/create-retry-prefill-service",
-        "../src/lib/services/video-service"
+        "../src/lib/services/video-service",
+        "../src/lib/create/storyboard-resume"
       ],
       "externalImports": [
         "node:assert/strict",

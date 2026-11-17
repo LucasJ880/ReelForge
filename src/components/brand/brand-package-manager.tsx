@@ -295,10 +295,14 @@ export function BrandPackageManager({
       if (!response.ok || !payload.brandPackage) {
         throw new Error(payload.error || copy.failed);
       }
-      setPackages((current) => [
-        ...current.filter((item) => item.id !== payload.brandPackage?.id),
-        payload.brandPackage as WorkspaceBrandPackageView,
-      ]);
+      const saved = payload.brandPackage;
+      setPackages((current) => {
+        /// 存成默认时，服务端已经把工作区里别的默认取消了：页面上也要跟着去掉，不然会同时显示两个「默认」
+        const others = current
+          .filter((item) => item.id !== saved.id)
+          .map((item) => (saved.isDefault && item.scope === "workspace" && item.isDefault ? { ...item, isDefault: false } : item));
+        return saved.isDefault ? [saved, ...others] : [...others, saved];
+      });
       setDraft(null);
       setMessage(copy.saved);
     } catch (error) {

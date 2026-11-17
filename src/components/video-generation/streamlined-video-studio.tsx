@@ -62,6 +62,7 @@ import { applyProductSize, detectProductSize, PRODUCT_SIZE_MAX, stripProductSize
 import { BGM_CATALOG } from "@/lib/video-generation/bgm-catalog";
 import { SIGNOFF_BRAND_MAX, SIGNOFF_CTA_MAX } from "@/lib/video-generation/brand-signoff";
 import { DIRECTOR_LINE_TEMPLATE_ID, directorLineApplies } from "@/lib/video-generation/director-line-policy";
+import { decideStoryboardResume } from "@/lib/create/storyboard-resume";
 import { loadVoiceoverDraft, saveVoiceoverDraft } from "@/lib/video-generation/voiceover-draft-storage";
 import { awaitVoiceoverDraft } from "@/lib/video-generation/voiceover-draft-wait";
 import {
@@ -142,6 +143,13 @@ const ZH_COPY = {
   rowSpecs: "视频规格",
   rowEnding: "结尾联系方式",
   rowAudio: "口播与字幕",
+  resumeOfferGenerating: "你有一轮故事板还在出画面。",
+  resumeOfferAwaiting: "你有一轮故事板画好了，等你确认。",
+  resumeOfferApproved: "你有一轮故事板已经确认，还没开始生成视频。",
+  resumeOfferFailed: "你有一轮故事板没做完：有画面没画成，已画好的都保留着。",
+  resumeOfferHint: "接着处理会把那一轮的商品图和描述带回来，替换现在填的内容。",
+  resumeOfferApply: "接着处理那一轮",
+  resumeOfferDismiss: "不用了",
   rowCornerLogo: "右上角 Logo",
   cornerLogoToggle: "全程在右上角挂上 Logo",
   cornerLogoHint: "用你默认品牌包里的 Logo，做成透明的白色图形角标，像水印一样全程挂在右上角。透明底的 PNG 效果最好；白底深色线稿也可以。",
@@ -292,6 +300,13 @@ const EN_COPY: StudioCopy = {
   rowSpecs: "Specs",
   rowEnding: "End frame",
   rowAudio: "Voice & captions",
+  resumeOfferGenerating: "You have a storyboard that is still being drawn.",
+  resumeOfferAwaiting: "You have a finished storyboard waiting for your approval.",
+  resumeOfferApproved: "You have an approved storyboard that hasn't been turned into a video yet.",
+  resumeOfferFailed: "You have an unfinished storyboard: some frames failed, and the finished ones are kept.",
+  resumeOfferHint: "Picking it up brings back that round's product photos and description, replacing what you've entered here.",
+  resumeOfferApply: "Pick that round up",
+  resumeOfferDismiss: "No thanks",
   rowCornerLogo: "Corner logo",
   cornerLogoToggle: "Keep the logo in the top-right corner",
   cornerLogoHint: "Uses the logo from your default brand package as a transparent white mark in the top-right corner for the whole video. A transparent PNG works best; dark line art on white also works.",
@@ -452,7 +467,13 @@ export function StreamlinedVideoStudio({
   contactEmail = null,
   recentSources = [],
   directorLine = false,
+  resumeRequested = false,
 }: {
+  /**
+   * 明确要接着处理上一轮故事板（成品库顶部「回创作页继续」带 ?resume=1 过来）：失败的那一轮也直接带回来。
+   * 不带这个参数时，失败的旧故事板不再自动把素材和描述填回表单，只给一条提示让用户自己选。
+   */
+  resumeRequested?: boolean;
   /** 导演线路的总开关（服务端页面读好传进来）：开着且这条片适用时，由 AI 写镜头脚本、只出一张开场帧、整条一次生成。 */
   directorLine?: boolean;
   /** 最近拍过的商品（服务端按属主读好）：空白创作页上点一下就带回那一单的商品图和描述。 */
@@ -588,6 +609,12 @@ export function StreamlinedVideoStudio({
   const voiceoverEditedRef = useRef(initialVoiceoverScript.trim().length > 0);
   /// 用户一旦改动任何创作输入，挂载时的静默恢复就必须放弃，避免覆盖新意图。
   const interactedRef = useRef(false);
+  /// 表单现在是不是已经有用户的内容（描述变了、有商品图 / 参考图、正在上传）。恢复请求要先跟供应商对账，
+  /// 可能几十秒后才回来：回来那一刻按表单的现状判断，不只看「动没动过」的记号（11-17 线上实测：恢复晚到，把刚填的内容整个换掉了）。
+  const formDirtyRef = useRef(false);
+  /// 没有自动带回来的上一轮故事板：只在表单上方给一条提示，接不接着处理由用户选
+  const [resumeOffer, setResumeOffer] = useState<ResumableStoryboardPayload | null>(null);
+  const storyboardOnPageRef = useRef(false);
 
   useEffect(() => {
     try {
@@ -608,6 +635,71 @@ export function StreamlinedVideoStudio({
     storyboardAttemptRef.current = loadStoredAttempt(STORYBOARD_ATTEMPT_STORAGE_KEY);
     dispatchAttemptRef.current = loadStoredAttempt(DISPATCH_ATTEMPT_STORAGE_KEY);
   }, []);
+
+  /// 给晚到的恢复请求看的「表单现状」：每次渲染后更新
+  useEffect(() => {
+    formDirtyRef.current =
+      rawPrompt.trim() !== initialPrompt.trim()
+      || productAssets.length !== initialProductAssets.length
+      || referenceAssets.length !== initialReferenceAssets.length
+      || uploadingTarget !== null;
+    storyboardOnPageRef.current = storyboard !== null;
+  });
+
+  /** 把上一轮故事板和它的素材、描述带回表单（挂载时自动恢复，或用户点了「接着处理那一轮」）。 */
+  const applyResume = useCallback((resume: ResumableStoryboardPayload) => {
+    const { run, context } = resume;
+    interactedRef.current = true;
+    setResumeOffer(null);
+    setStoryboard(run);
+    setRawPrompt(context.prompt);
+    /// 故事板恢复了，口播稿也要回来：商家改过 / AI 写过的稿子不能悄悄退回模板稿
+    const voiceoverDraft = loadVoiceoverDraft(sessionStorage, context.prompt);
+    if (voiceoverDraft !== null) {
+      voiceoverEditedRef.current = true;
+      setAudioCaptionSettings((current) => ({ ...current, voiceoverScript: voiceoverDraft }));
+    }
+    if ((DURATIONS as readonly number[]).includes(context.durationSec)) {
+      setSelectedDuration(context.durationSec as 15 | 30 | 60);
+    }
+    if (ASPECT_RATIOS.includes(context.aspectRatio as AspectRatio)) {
+      setSelectedAspectRatio(context.aspectRatio as AspectRatio);
+    }
+    if (context.sourceAssets.length > 0) {
+      setProductAssets(context.sourceAssets.slice(0, MAX_PRODUCT_IMAGES).map((asset, index) => ({
+        id: asset.id,
+        assetId: asset.id,
+        type: "IMAGE" as const,
+        inferredRole: "product_image" as const,
+        roleConfidence: 1,
+        url: asset.url,
+        mimeType: asset.mimeType,
+        fileName: `product-image-${index + 1}`,
+        width: asset.width,
+        height: asset.height,
+        durationSeconds: null,
+        userAssignedRole: "product_image" as const,
+        suggestedUse: english
+          ? "Restored from your storyboard in progress."
+          : "已从进行中的故事板任务恢复。",
+        warnings: [],
+      })));
+    }
+    if (run.status === "FAILED") {
+      setError(run.errorMessage ?? copy.storyboardFailed);
+    }
+    toast.success(
+      english
+        ? "Resumed your storyboard in progress."
+        : "已恢复进行中的故事板任务。",
+    );
+    requestAnimationFrame(() => {
+      document.getElementById("single-video-storyboard")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }, [copy.storyboardFailed, english]);
 
   useEffect(() => {
     // Arriving with prefilled product photos (a saved product, the regenerate link in the
@@ -640,64 +732,24 @@ export function StreamlinedVideoStudio({
         }
       }
       if (cancelled || !payload?.ok || !payload.resume) return;
-      if (interactedRef.current) return;
-      const { run, context } = payload.resume;
-      if (run.status === "CANCELLED") return;
-      if (loadDismissedStoryboardRunIds().includes(run.id)) return;
-      setStoryboard(run);
-      setRawPrompt(context.prompt);
-      /// 故事板恢复了，口播稿也要回来：商家改过 / AI 写过的稿子不能悄悄退回模板稿
-      const voiceoverDraft = loadVoiceoverDraft(sessionStorage, context.prompt);
-      if (voiceoverDraft !== null) {
-        voiceoverEditedRef.current = true;
-        setAudioCaptionSettings((current) => ({ ...current, voiceoverScript: voiceoverDraft }));
-      }
-      if ((DURATIONS as readonly number[]).includes(context.durationSec)) {
-        setSelectedDuration(context.durationSec as 15 | 30 | 60);
-      }
-      if (ASPECT_RATIOS.includes(context.aspectRatio as AspectRatio)) {
-        setSelectedAspectRatio(context.aspectRatio as AspectRatio);
-      }
-      if (context.sourceAssets.length > 0) {
-        setProductAssets(context.sourceAssets.slice(0, MAX_PRODUCT_IMAGES).map((asset, index) => ({
-          id: asset.id,
-          assetId: asset.id,
-          type: "IMAGE" as const,
-          inferredRole: "product_image" as const,
-          roleConfidence: 1,
-          url: asset.url,
-          mimeType: asset.mimeType,
-          fileName: `product-image-${index + 1}`,
-          width: asset.width,
-          height: asset.height,
-          durationSeconds: null,
-          userAssignedRole: "product_image" as const,
-          suggestedUse: english
-            ? "Restored from your storyboard in progress."
-            : "已从进行中的故事板任务恢复。",
-          warnings: [],
-        })));
-      }
-      if (run.status === "FAILED") {
-        setError(run.errorMessage ?? copy.storyboardFailed);
-      }
-      toast.success(
-        english
-          ? "Resumed your storyboard in progress."
-          : "已恢复进行中的故事板任务。",
-      );
-      requestAnimationFrame(() => {
-        document.getElementById("single-video-storyboard")?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
+      const { run } = payload.resume;
+      /// 带不带回来按请求回来那一刻的表单现状判断（规矩见 storyboard-resume.ts）：表单已经有内容、或那一轮早就失败了，
+      /// 就只给一条提示，不动表单
+      const decision = decideStoryboardResume({
+        runStatus: run.status,
+        formTouched: interactedRef.current || formDirtyRef.current,
+        resumeRequested,
+        dismissed: loadDismissedStoryboardRunIds().includes(run.id),
+        storyboardOnPage: storyboardOnPageRef.current,
       });
+      if (decision === "apply") applyResume(payload.resume);
+      else if (decision === "offer") setResumeOffer(payload.resume);
     };
     void resume();
     return () => {
       cancelled = true;
     };
-  }, [copy.storyboardFailed, english, initialProductAssets.length, machineTaskId, retryOfOrderId]);
+  }, [applyResume, initialProductAssets.length, machineTaskId, resumeRequested, retryOfOrderId]);
 
   useEffect(() => {
     if (!retryOfOrderId) return;
@@ -2077,6 +2129,49 @@ export function StreamlinedVideoStudio({
         {storyboardStage !== null && directorMode ? (
           <p className="text-center text-meta text-muted-foreground" data-testid="director-stage-hint">{copy.directorStagesHint}</p>
         ) : null}
+        {/* 上一轮没走完的故事板：表单已经有内容、或那一轮早就失败了，就不自动带回来，只在这里问一句（2026-11-17） */}
+        {resumeOffer && !storyboard ? (
+          <div
+            role="status"
+            data-testid="storyboard-resume-offer"
+            className="x-well flex flex-wrap items-center gap-x-4 gap-y-2 rounded-(--radius-md) px-3 py-2.5 text-meta"
+          >
+            <p className="min-w-0 flex-1 basis-56 text-muted-foreground">
+              <span className="text-foreground">
+                {resumeOffer.run.status === "GENERATING"
+                  ? copy.resumeOfferGenerating
+                  : resumeOffer.run.status === "AWAITING_APPROVAL"
+                    ? copy.resumeOfferAwaiting
+                    : resumeOffer.run.status === "APPROVED"
+                      ? copy.resumeOfferApproved
+                      : copy.resumeOfferFailed}
+              </span>{" "}
+              {copy.resumeOfferHint}
+            </p>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={busy !== null || uploadingTarget !== null}
+                onClick={() => applyResume(resumeOffer)}
+              >
+                {copy.resumeOfferApply}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  markStoryboardRunDismissed(resumeOffer.run.id);
+                  setResumeOffer(null);
+                }}
+              >
+                {copy.resumeOfferDismiss}
+              </Button>
+            </div>
+          </div>
+        ) : null}
         {uploadError ? <p role="alert" className="text-meta text-danger">{uploadError}</p> : null}
         {loadedFromStudio.length > 0 ? (
           loadedProductName ? (
@@ -2542,7 +2637,12 @@ export function StreamlinedVideoStudio({
             </Button>
           </div>
           {/* 有故事板之后的操作条：贴底常驻（窄屏也看得到唯一的主按钮） */}
-          <div className="sticky bottom-20 z-10 space-y-3 rounded-(--radius-card) border border-border bg-surface p-3 md:bottom-10">
+          {/* bg-card 才是不透明的面板色：原来写的 bg-surface 在主题里没有定义，操作条其实是透明的，
+              滚动时下面的镜头清单会透上来和它叠在一起（2026-11-17 线上实测） */}
+          <div
+            data-testid="storyboard-sticky-bar"
+            className="sticky bottom-20 z-10 space-y-3 rounded-(--radius-card) border border-border bg-card p-3 shadow-(--shadow-card) md:bottom-10"
+          >
             {statusNotices}
             <div className="flex flex-wrap items-center gap-3">
               <div className="min-w-0 flex-1">

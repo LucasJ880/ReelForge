@@ -55,7 +55,7 @@ import { BRAND_END_CARD_ENTRY_ENABLED } from "@/lib/brand/brand-end-card-policy"
 import { HOOK_ANGLES, applyHookAngle, detectHookAngle, stripHookAngle } from "@/lib/create/hook-angles";
 import { applyProductSize, detectProductSize, PRODUCT_SIZE_MAX, stripProductSize } from "@/lib/create/product-size";
 import { SIGNOFF_BRAND_MAX, SIGNOFF_CTA_MAX } from "@/lib/video-generation/brand-signoff";
-import { DIRECTOR_STYLES, directorLineBlocker, directorStyle } from "@/lib/video-generation/director-line-policy";
+import { DIRECTOR_STYLES, DIRECTOR_STYLE_GROUPS, directorLineBlocker, directorStyle } from "@/lib/video-generation/director-line-policy";
 import { decideStoryboardResume } from "@/lib/create/storyboard-resume";
 import { loadVoiceoverDraft, saveVoiceoverDraft } from "@/lib/video-generation/voiceover-draft-storage";
 import { detectScriptLanguage } from "@/lib/video-generation/detect-script-language";
@@ -169,6 +169,7 @@ const ZH_COPY = {
   square: "1:1 方形",
   template: "创意模板",
   templateAuto: "自动匹配（推荐）",
+  templateAutoHint: "自动匹配：AI 导演按你的商品和描述定拍法。想换一种感觉，在「创意模板」里挑。",
   brandPackageStep: "结尾联系方式帧（可选）",
   brandPackageHint: "每条视频单独选择。关闭输出干净视频；开启后在片尾追加一帧品牌联系方式（logo 印在产品上，画面不再盖角标水印）。",
   cleanVideo: "只生成干净视频",
@@ -301,6 +302,7 @@ const EN_COPY: StudioCopy = {
   square: "1:1 square",
   template: "Creative template",
   templateAuto: "Auto match (recommended)",
+  templateAutoHint: "Auto match: the AI director picks how to film it from your product and description. Want a different feel? Choose one under Creative template.",
   brandPackageStep: "Contact end frame (optional)",
   brandPackageHint: "Choose per video. Off produces a clean video; on appends one brand contact frame at the end (no corner watermark — the logo lives on the product).",
   cleanVideo: "Clean video only",
@@ -1380,13 +1382,20 @@ export function StreamlinedVideoStudio({
         readingStat("monthlyQuota", null, locale),
         readingStat("successRate7d", null, locale),
       ];
-  /// 模板芯片：「自动」= 系统按描述匹配；选了模板就按它的镜头配方走（原「快速 / 高级生成」并进这里，2026-10-28 晚）。
-  /// 从模板库带进来的老模板不在配方表里，单独补一项，下拉显示才与实际一致。
-  const templateOptions = [
+  /// 风格芯片：「自动匹配」由 AI 导演按商品定拍法；其余是风格卡（director-line-policy 的 DIRECTOR_STYLES），
+  /// 每种是一套拍法要求，按 带货 / 种草 / 质感 / 剧情 / 场景 分组列出。
+  const templateOptions: ChipOption[] = [
     { value: "auto", label: copy.templateAuto },
-    /// 风格卡（director-line-policy 的 DIRECTOR_STYLES）：「自动匹配」由 AI 导演按商品定拍法，其余每种是一套拍法要求
-    ...DIRECTOR_STYLES.map((style) => ({ value: style.id, label: english ? style.en : style.zh })),
+    ...DIRECTOR_STYLE_GROUPS.flatMap((group) =>
+      DIRECTOR_STYLES.filter((style) => style.group === group.id).map((style) => ({
+        value: style.id,
+        label: english ? style.en : style.zh,
+        group: english ? group.en : group.zh,
+      })),
+    ),
   ];
+  /// 选中的风格拍出来是什么感觉：写在芯片下面一行（手机上没有悬停提示，20 种风格光看名字分不清）
+  const styleHint = selectedStyle ? (english ? selectedStyle.hintEn : selectedStyle.hintZh) : copy.templateAutoHint;
   /// 写作能力暂停时，在卡下明说镜头怎么规划（C4 · 诚实说明）
   const capabilityDegraded = shotsFromTemplate;
   /// 配音配乐随片子出，摘要里只写字幕、角标和落款
@@ -1527,7 +1536,7 @@ export function StreamlinedVideoStudio({
       />
 
       {/* 对话框优先（2026-10-28 晚，上线审核 §4）：学 Runway 首页——一句轻标题 + 一张提示卡，规格芯片在卡下面；
-          默认值都替商家定好，口播 / 字幕 / 参考方式收进「更多设置」，不展开也能出片 */}
+          默认值都替商家定好，口播稿 / 字幕 / Logo / 落款收进「更多设置」，不展开也能出片 */}
       <section aria-labelledby="create-hero-title" className="mx-auto w-full max-w-[52.5rem] space-y-4 pt-2 md:pt-6">
         <header className="space-y-3 text-center">
           <h1 id="create-hero-title" className="create-hero-title">{copy.heroTitle}</h1>
@@ -1799,7 +1808,7 @@ export function StreamlinedVideoStudio({
             showLabel
             value={activeStyleTemplateId}
             disabled={locked}
-            hint={selectedStyle ? (english ? selectedStyle.hintEn : selectedStyle.hintZh) : quickModeHint}
+            hint={styleHint}
             options={templateOptions}
             onChange={(value) => {
               setCreationMode("advanced");
@@ -1820,6 +1829,14 @@ export function StreamlinedVideoStudio({
             <span className="font-normal text-tertiary">{moreSummary}</span>
           </button>
         </div>
+        {/* 选中的风格是什么感觉：选了风格才显示（自动匹配时不占一行） */}
+        {selectedStyle && !storyboard ? (
+          <p className="text-center text-meta text-muted-foreground text-pretty" data-testid="style-hint" aria-live="polite">
+            <span className="text-foreground">{english ? selectedStyle.en : selectedStyle.zh}</span>
+            {english ? ": " : "："}
+            {styleHint}
+          </p>
+        ) : null}
 
         {/* 试试这些：一点就把描述填好（模板化的说法） */}
         {!storyboard ? (
@@ -2290,7 +2307,7 @@ function ChipSelect({
   /// 芯片上显示「模板」这类前缀；时长、画幅的值自己就说明了，只给读屏
   showLabel?: boolean;
   value: string;
-  options: Array<{ value: string; label: string }>;
+  options: ChipOption[];
   disabled: boolean;
   hint?: string;
   onChange: (value: string) => void;
@@ -2318,12 +2335,36 @@ function ChipSelect({
         }}
         className="absolute inset-0 cursor-pointer appearance-none opacity-0 disabled:cursor-not-allowed"
       >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>{option.label}</option>
-        ))}
+        {chipOptionGroups(options).map((entry) =>
+          entry.group === null ? (
+            entry.options.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))
+          ) : (
+            <optgroup key={entry.group} label={entry.group}>
+              {entry.options.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </optgroup>
+          ),
+        )}
       </select>
     </label>
   );
+}
+
+type ChipOption = { value: string; label: string; group?: string };
+
+/** 相邻的同组选项收进一个 optgroup；没写组的照原样平铺。 */
+function chipOptionGroups(options: ChipOption[]): Array<{ group: string | null; options: ChipOption[] }> {
+  const groups: Array<{ group: string | null; options: ChipOption[] }> = [];
+  for (const option of options) {
+    const group = option.group ?? null;
+    const last = groups.at(-1);
+    if (last && last.group === group) last.options.push(option);
+    else groups.push({ group, options: [option] });
+  }
+  return groups;
 }
 
 /** 提示卡里的「+ 商品图 / + 参考」：按钮代点隐藏的文件框；拖到整张卡上也能传（见提示卡的 onDrop）。 */

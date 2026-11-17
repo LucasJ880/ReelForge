@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T19:41:34.135Z",
+  "generatedAt": "2026-11-17T19:54:44.242Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -52,8 +52,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 369,
-      "sizeBytes": 35281,
+      "lineCount": 388,
+      "sizeBytes": 37238,
       "notes": "Documentation"
     },
     {
@@ -9795,7 +9795,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 136,
-      "sizeBytes": 15790,
+      "sizeBytes": 15884,
       "notes": "Documentation"
     },
     {
@@ -9817,7 +9817,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 435,
-      "sizeBytes": 30780,
+      "sizeBytes": 30911,
       "notes": "Documentation"
     },
     {
@@ -10689,8 +10689,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 181,
-      "sizeBytes": 17808,
+      "lineCount": 200,
+      "sizeBytes": 20473,
       "notes": "Documentation"
     },
     {
@@ -18381,8 +18381,8 @@
         "StudioReadings",
         "StreamlinedVideoStudio"
       ],
-      "lineCount": 2497,
-      "sizeBytes": 116567,
+      "lineCount": 2538,
+      "sizeBytes": 118468,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -20212,7 +20212,7 @@
         "guideArticle"
       ],
       "lineCount": 437,
-      "sizeBytes": 25024,
+      "sizeBytes": 25853,
       "notes": "Utility / helper module"
     },
     {
@@ -21749,8 +21749,8 @@
         "businessProfileSchema",
         "businessProfileInputSchema"
       ],
-      "lineCount": 300,
-      "sizeBytes": 11245,
+      "lineCount": 301,
+      "sizeBytes": 11459,
       "notes": "Business logic service; hits Prisma DB"
     },
     {
@@ -23677,8 +23677,11 @@
       "area": "video-generation",
       "exports": [
         "DIRECTOR_LINE_TEMPLATE_ID",
+        "DirectorStyleGroup",
+        "DIRECTOR_STYLE_GROUPS",
         "DirectorStyle",
         "DIRECTOR_STYLES",
+        "DIRECTOR_FEATURED_STYLE_IDS",
         "directorStyle",
         "DIRECTOR_LINE_DURATIONS",
         "DirectorLineRequest",
@@ -23691,16 +23694,16 @@
       "imports": [],
       "importantSymbols": [
         "DIRECTOR_LINE_TEMPLATE_ID",
+        "DirectorStyleGroup",
+        "DIRECTOR_STYLE_GROUPS",
         "DirectorStyle",
         "DIRECTOR_STYLES",
+        "DIRECTOR_FEATURED_STYLE_IDS",
         "DIRECTOR_LINE_DURATIONS",
-        "DirectorLineRequest",
-        "DirectorLineBlocker",
-        "DIRECTOR_LINE_BLOCKER_MESSAGE",
-        "DirectorScriptView"
+        "DirectorLineRequest"
       ],
-      "lineCount": 166,
-      "sizeBytes": 9551,
+      "lineCount": 363,
+      "sizeBytes": 24557,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -25334,8 +25337,8 @@
         "node:fs/promises"
       ],
       "importantSymbols": [],
-      "lineCount": 72,
-      "sizeBytes": 3687,
+      "lineCount": 70,
+      "sizeBytes": 3677,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -26280,8 +26283,8 @@
         "../src/lib/video-generation/storyboard-prompt-display"
       ],
       "importantSymbols": [],
-      "lineCount": 142,
-      "sizeBytes": 7752,
+      "lineCount": 144,
+      "sizeBytes": 7906,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -26312,7 +26315,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 82,
-      "sizeBytes": 6091,
+      "sizeBytes": 6013,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -26617,8 +26620,8 @@
       "importantSymbols": [
         "expectedStoryboardFrameCount"
       ],
-      "lineCount": 576,
-      "sizeBytes": 30471,
+      "lineCount": 593,
+      "sizeBytes": 31832,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -27080,8 +27083,8 @@
         "@/lib/guide/guide-articles"
       ],
       "importantSymbols": [],
-      "lineCount": 49,
-      "sizeBytes": 2558,
+      "lineCount": 52,
+      "sizeBytes": 2912,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -30317,8 +30320,8 @@
         "../src/lib/video-generation/voiceover-budget"
       ],
       "importantSymbols": [],
-      "lineCount": 94,
-      "sizeBytes": 5678,
+      "lineCount": 93,
+      "sizeBytes": 5605,
       "notes": "Unit / integration test; area=tests"
     },
     {

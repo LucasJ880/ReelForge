@@ -8,7 +8,7 @@ import { loadRecentVideoRows } from "@/lib/services/unified-library-service";
 import { loadVideoQuota } from "@/lib/services/exchange-readings";
 import { parseLeadPageConfig } from "@/lib/services/lead-service";
 import { emailConfig, founderEmail, safeSubject, sendEmail } from "@/lib/services/notification-service";
-import { DIRECTOR_STYLES } from "@/lib/video-generation/director-line-policy";
+import { DIRECTOR_FEATURED_STYLE_IDS, DIRECTOR_STYLES } from "@/lib/video-generation/director-line-policy";
 
 /**
  * 自助注册后的上手向导（1025 整合轮 C1）：/app/welcome 四步——生意 → 品牌 → 第一条视频 → 询盘页。
@@ -116,11 +116,12 @@ async function requireWorkspace(userId: string) {
 }
 
 /**
- * 第 3 步给新人看的风格：就是创作页「创意模板」里的那几种（同一张表，director-line-policy.ts）。
+ * 第 3 步给新人看的风格：创作页「创意模板」里最常用的几种（同一张表，director-line-policy.ts；全部 20 来种在创作页选）。
  * 老的按行业推荐、带样片的 34 个模板 2026-11-17 随模板库下线。
  */
 export function onboardingStyles(locale: Locale): OnboardingTemplate[] {
-  return DIRECTOR_STYLES.map((style) => ({
+  /// 向导里只摆几种最常用的，其余在创作页「创意模板」里选
+  return DIRECTOR_STYLES.filter((style) => DIRECTOR_FEATURED_STYLE_IDS.includes(style.id)).map((style) => ({
     slug: style.id,
     name: locale === "en-US" ? style.en : style.zh,
     hint: locale === "en-US" ? style.hintEn : style.hintZh,

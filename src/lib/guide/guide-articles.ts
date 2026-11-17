@@ -170,20 +170,20 @@ const ARTICLES: readonly ArticleSource[] = [
     href: "/app/create",
     copy: {
       "zh-CN": {
-        title: "选风格：同一件商品，六种拍法",
+        title: "选风格：同一件商品，二十来种拍法",
         summary: "「创意模板」里的每一种风格都是一套拍法。拿不准就用「自动匹配」，让 AI 导演按商品来定。",
         features: ["创意模板", "自动匹配", "换个开头"],
         sections: [
           {
-            heading: "六种风格分别适合什么",
+            heading: "五组风格，各管一种目的",
             steps: [
-              "电商快销：两秒钩子、一个卖点一个镜头、节奏快，适合讲得清卖点的日用品",
-              "情绪种草：用的人笑起来最抓人，正脸表情镜头穿插商品特写，适合母婴、家居、礼品",
-              "痛点解决：先拍最狼狈的那一下，再拍用了之后，适合解决具体麻烦的商品",
-              "质感特写：慢一点、近一点，拍材质和做工，声音很轻，适合讲究用料的商品",
-              "开箱上手：第一人称拆开、摸一摸、第一次用，像买家自己拍的",
-              "探厂探店：带买家走一遍真实的厂房或门店，上传的是场地照片",
+              "带货：电商快销、痛点解决、开箱上手、卖点实测、三个理由、促销快讯、一问一答——讲清卖点、催下单",
+              "种草：情绪种草、真实测评、生活方式、一天陪伴、送礼时刻、一物多用——让人想拥有",
+              "质感：质感特写、静物大片、沉浸声音、新品亮相、上身穿搭——慢一点、近一点，卖用料和做工",
+              "剧情：日常轻喜剧、温情小剧场——用一个小故事带出商品",
+              "场景：探厂探店——带买家走一遍真实的厂房或门店，上传的是场地照片",
             ],
+            tip: "选中一种，芯片下面会写一句它拍出来是什么感觉。价格和促销信息只会出现在口播里，画面上不出字。",
           },
           {
             heading: "风格之外还能换什么",
@@ -197,20 +197,20 @@ const ARTICLES: readonly ArticleSource[] = [
         cta: "去选风格",
       },
       "en-US": {
-        title: "Styles: six ways to film the same product",
+        title: "Styles: twenty-odd ways to film the same product",
         summary: "Each option under Creative template is a way of filming. If unsure, use Auto match and let the AI director decide from the product.",
         features: ["Creative template", "Auto match", "Change the opening"],
         sections: [
           {
-            heading: "What each style is for",
+            heading: "Five groups, each for a purpose",
             steps: [
-              "Fast e-commerce ad: two-second hook, one selling point per shot, quick pace; for everyday products with clear benefits",
-              "Emotion-led story: the user's happy face sells it, with face-visible reactions between product close-ups; for baby, home and gift products",
-              "Problem then fix: the worst moment first, then the same moment with the product",
-              "Texture close-ups: slower and closer, materials and workmanship, very quiet sound",
-              "Unboxing in hand: first-person opening, touching and first use, like a buyer's own clip",
-              "Factory or store tour: walk the buyer through the real place; upload photos of the site",
+              "Selling: fast e-commerce ad, problem then fix, unboxing, proof test, three reasons, offer spot, question and answer; make the benefit clear and drive the order",
+              "Lifestyle: emotion-led story, honest review, lifestyle scene, a day with it, gift moment, many uses; make people want it",
+              "Texture: texture close-ups, still life, sound first, launch reveal, worn and styled; slower and closer, selling materials and workmanship",
+              "Story: light comedy, small story; a short story that carries the product",
+              "Place: factory or store tour; walk the buyer through the real place, using photos of the site",
             ],
+            tip: "Pick one and a line under the chips says what it will feel like. Prices and offers are only ever spoken, never drawn on screen.",
           },
           {
             heading: "What else you can change",

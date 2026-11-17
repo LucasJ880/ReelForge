@@ -26,7 +26,9 @@ import {
 import {
   DIRECTOR_LINE_BLOCKER_MESSAGE,
   DIRECTOR_LINE_TEMPLATE_ID,
+  DIRECTOR_FEATURED_STYLE_IDS,
   DIRECTOR_STYLES,
+  DIRECTOR_STYLE_GROUPS,
   directorLineApplies,
   directorLineBlocker,
   directorStyle,
@@ -164,17 +166,27 @@ test("做不了的当场说清原因（没有退路）：没有实拍图、别�
   }
 });
 
-test("风格卡：六种，id 不重复，都有中英文名和一句话说明；拍法要求是英文、不写商品事实、够写手用", () => {
-  assert.equal(DIRECTOR_STYLES.length, 6);
+test("风格卡：二十来种分五组，id 不重复，都有中英文名和一句话说明；拍法要求是英文、不写商品事实、够写手用", () => {
+  assert.ok(DIRECTOR_STYLES.length >= 20 && DIRECTOR_STYLES.length <= 24, `现在 ${DIRECTOR_STYLES.length} 种`);
   assert.equal(new Set(DIRECTOR_STYLES.map((style) => style.id)).size, DIRECTOR_STYLES.length);
+  assert.equal(new Set(DIRECTOR_STYLES.map((style) => style.zh)).size, DIRECTOR_STYLES.length, "中文名不重复");
   assert.equal(DIRECTOR_STYLES[0]!.id, DIRECTOR_LINE_TEMPLATE_ID);
+  const groupIds = DIRECTOR_STYLE_GROUPS.map((group) => group.id);
+  assert.deepEqual(groupIds, ["sell", "seed", "texture", "story", "place"]);
+  for (const group of DIRECTOR_STYLE_GROUPS) {
+    assert.ok(DIRECTOR_STYLES.some((style) => style.group === group.id), `${group.zh} 组不能是空的`);
+  }
   for (const style of DIRECTOR_STYLES) {
     assert.match(style.id, /^tpl_[a-z_]+$/u);
     assert.ok(style.zh.length >= 2 && style.zh.length <= 6, `${style.id} 中文名要短：下拉里放得下`);
     assert.ok(style.en.length > 0 && style.hintZh.length > 0 && style.hintEn.length > 0);
+    assert.ok(style.hintZh.length <= 40, `${style.id} 的一句话说明要短：手机上显示成一两行`);
     assert.doesNotMatch(style.brief, /[\u4e00-\u9fff]/u, `${style.id} 的拍法要求全程英文`);
     assert.ok(style.brief.length >= 200 && style.brief.length <= 900, `${style.id} brief 长度 ${style.brief.length}`);
     assert.ok(["fmcg", "lifestyle"].includes(style.genre));
+    assert.ok(groupIds.includes(style.group), style.id);
+    /// 和导演规则对着干的写法不许进风格：对着镜头说话、让模型画字
+    assert.doesNotMatch(style.brief, /talks? to (the )?camera,|speaks? to (the )?camera|on-screen text|caption (says|reads)|price tag/iu, style.id);
     assert.equal(directorStyle(style.id), style);
   }
   assert.equal(directorStyle(null), null);
@@ -183,6 +195,11 @@ test("风格卡：六种，id 不重复，都有中英文名和一句话说明�
   assert.match(directorStyle("tpl_emotion_story")!.brief, /face visible/u);
   /// 质感特写不露脸、是慢节奏片种
   assert.equal(directorStyle("tpl_texture_closeup")!.genre, "lifestyle");
+  /// 促销：价格只在口播里说、只说商家给的事实
+  assert.match(directorStyle("tpl_offer_promo")!.brief, /only in spoken lines and only with facts given in the description/u);
+  /// 新人向导先摆出来的几种都在表里
+  assert.equal(DIRECTOR_FEATURED_STYLE_IDS.length, 6);
+  for (const id of DIRECTOR_FEATURED_STYLE_IDS) assert.ok(directorStyle(id), id);
 });
 
 // ---------------------------------------------------------------------------

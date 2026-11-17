@@ -177,12 +177,6 @@ const ZH_COPY = {
   promptLabel: "描述你想生成的视频",
   promptPlaceholder: "例：婴儿纱布口水巾，三条一包。宝宝吃辅食总漏一身，戴上它，米糊落在口水巾上，衣服干干净净。",
   promptRequired: "请填写视频提示词。",
-  promptPresets: ["真实 UGC 演示", "产品质感展示", "痛点到效果"],
-  presetPrompts: [
-    "真实 UGC 产品演示：人物在可信生活场景中自然使用产品，开头直接呈现问题，中段清楚展示使用动作与结果，产品外观与上传图片保持一致。",
-    "产品质感展示：用简洁光线和近景镜头突出产品材质、结构与细节，画面高级克制，产品外观与上传图片保持一致。",
-    "痛点到效果：前 3 秒呈现一个真实具体的问题，随后用产品完成一次清晰使用动作，结尾展示可信结果，不夸大产品功能。",
-  ],
   charCount: "{count} / 4000",
   /// 「生成 AI 故事板」一个按钮背后是三段等待：写明现在在哪一段、哪一段最久
   stagesLabel: "生成故事板的进度",
@@ -224,7 +218,6 @@ const ZH_COPY = {
   helpWriteNeedsInput: "先上传商品图，或写一句想拍什么。",
   helpWriteFailed: "这次没写出来，你原来的字都还在，可以再点一次。",
   helpWriteDone: "写好了，可以直接改。",
-  tryThese: "试试这些",
   hookAngles: "换个开头",
   moreSettings: "更多设置",
 } as const;
@@ -309,12 +302,6 @@ const EN_COPY: StudioCopy = {
   promptLabel: "Describe the video you want to generate",
   promptPlaceholder: "Example: Muslin baby bibs, three in a pack. Feeding time always ends up on the shirt; with the bib on, the puree lands on the bib and the shirt stays clean.",
   promptRequired: "Write a video prompt.",
-  promptPresets: ["Real UGC demo", "Material showcase", "Pain to result"],
-  presetPrompts: [
-    "A realistic UGC product demo in a believable everyday setting. Open with a specific problem, show one clear use action and outcome, and keep the product identical to the uploaded images.",
-    "A restrained product showcase using clean light and close shots to reveal materials, construction, and details. Keep the product identical to the uploaded images.",
-    "Show one real problem in the first three seconds, solve it with one clear product action, and end on a believable result without exaggerating any feature.",
-  ],
   charCount: "{count} / 4000",
   stagesLabel: "Storyboard progress",
   directorStages: ["Write the shot script (about 1–3 min)", "Draw the opening frame"],
@@ -354,7 +341,6 @@ const EN_COPY: StudioCopy = {
   helpWriteNeedsInput: "Add a product photo or a few words first.",
   helpWriteFailed: "Couldn't write it this time. Your text is kept, so you can try again.",
   helpWriteDone: "Draft ready. Edit it as you like.",
-  tryThese: "Try these",
   hookAngles: "Change the opening",
   moreSettings: "More settings",
 };
@@ -1841,7 +1827,7 @@ export function StreamlinedVideoStudio({
           </p>
         ) : null}
 
-        {/* 试试这些：一点就把描述填好（模板化的说法） */}
+        {/* 「试试这些」三句套话 2026-11-17 撤掉：点一下会把商家自己写的描述换成一段不提商品的模板，怎么拍已经由风格下拉管 */}
         {!storyboard ? (
           <div className="space-y-3">
             {/* 换个开头：描述写好之后才出现；点一下在描述末尾补一句「开头怎么拍」，再点一次取消。
@@ -1896,27 +1882,6 @@ export function StreamlinedVideoStudio({
                 />
               </div>
             ) : null}
-            <div
-              role="group"
-              aria-label={english ? "Video prompt presets" : "视频提示词快捷选项"}
-              className="flex flex-wrap items-center justify-center gap-1.5"
-            >
-              <span className="mr-1 text-meta text-tertiary">{copy.tryThese}</span>
-              {copy.promptPresets.map((label, index) => (
-                <button
-                  key={label}
-                  type="button"
-                  className={CHIP_CLASS}
-                  disabled={locked || draftingPrompt}
-                  onClick={() => {
-                    setRawPrompt(copy.presetPrompts[index] ?? "");
-                    invalidatePlan();
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
           </div>
         ) : null}
 

@@ -12,6 +12,8 @@ import { getPlatformCopy } from "@/i18n/platform-copy";
  */
 export function NotFoundPanel({ locale, workspaceHref = "/app/create" }: { locale: Locale; workspaceHref?: string | null }) {
   const copy = getPlatformCopy(locale).notFound;
+  /// 工作区壳层里（workspaceHref 传 null）：人已经登录了，指回成品库和创作页，而不是首页
+  const inShell = workspaceHref === null;
   return (
     <section className="x-panel w-full max-w-lg space-y-5 p-6 sm:p-8" aria-labelledby="not-found-title" data-route-state="not-found">
       <p className="flex items-center gap-2 font-mono text-data uppercase tracking-wide text-danger">
@@ -19,18 +21,30 @@ export function NotFoundPanel({ locale, workspaceHref = "/app/create" }: { local
         {copy.code}
       </p>
       <h1 id="not-found-title" className="x-display">{copy.title}</h1>
-      <p className="max-w-[46ch] text-body text-muted-foreground text-pretty">{copy.body}</p>
-      <div className="flex flex-wrap gap-2 pt-1">
-        <Button render={<Link href="/" />}>
-          {copy.home}
-          <ArrowRight aria-hidden />
-        </Button>
-        {workspaceHref ? (
-          <Button render={<Link href={workspaceHref} />} variant="outline">
-            {copy.workspace}
+      <p className="max-w-[46ch] text-body text-muted-foreground text-pretty">{inShell ? copy.shellBody : copy.body}</p>
+      {inShell ? (
+        <div className="flex flex-wrap gap-2 pt-1">
+          <Button render={<Link href="/app/library" />}>
+            {copy.library}
+            <ArrowRight aria-hidden />
           </Button>
-        ) : null}
-      </div>
+          <Button render={<Link href="/app/create" />} variant="outline">
+            {copy.create}
+          </Button>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2 pt-1">
+          <Button render={<Link href="/" />}>
+            {copy.home}
+            <ArrowRight aria-hidden />
+          </Button>
+          {workspaceHref ? (
+            <Button render={<Link href={workspaceHref} />} variant="outline">
+              {copy.workspace}
+            </Button>
+          ) : null}
+        </div>
+      )}
     </section>
   );
 }

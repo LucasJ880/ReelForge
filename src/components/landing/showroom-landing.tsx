@@ -8,7 +8,7 @@ import { getGrowthCopy } from "@/i18n/growth-copy";
 import {
   LANDING_HERO_SCENES,
   LANDING_PROOF_VIDEOS,
-  LANDING_STORYBOARD_FRAMES,
+  LANDING_SCRIPT_SAMPLE,
   SHOWROOM_PRODUCT_PAIRS,
 } from "@/lib/config/landing-media";
 import { HeroReel } from "./hero-reel";
@@ -21,7 +21,7 @@ const pad = (value: number) => String(value).padStart(2, "0");
  *
  *  - 第一幕：全屏静音视频轮播（AI 生成的电影感商品广告镜头，必须标 AI 生成），文字只在底部：一个大标题、一句话、
  *    三个等宽玻璃胶囊（免费试做 → 注册 / 看样片 / 申请陪跑）。没有眉题、要点列表和读数。
- *  - 第二幕：浅灰画廊，每节一个标题 + 一句话 + 「输入 → 成片」横向轮播：商品图 → 样片、故事板四帧 → 成片、
+ *  - 第二幕：浅灰画廊，每节一个标题 + 一句话 + 「输入 → 成片」横向轮播：商品图 → 样片、一份真实的镜头脚本 + 开场画面 → 成片、
  *    关联方 SunnyShutter 的真实投放。成片只取公开安全名单里的样片。
  *  - 第三幕：申请 30 天陪跑表单 + 页脚。
  * 界面是灰的，颜色只来自成片；毛玻璃只给压在视频上的控件（.on-media）。
@@ -29,6 +29,7 @@ const pad = (value: number) => String(value).padStart(2, "0");
 export function ShowroomLanding({ locale, fallbackEmail }: { locale: Locale; fallbackEmail: string | null }) {
   const copy = getGrowthCopy(locale).landing;
   const show = copy.showroom;
+  const sample = show.scriptSample;
   const scenes = LANDING_HERO_SCENES.map((scene) => ({
     video: scene.video,
     poster: scene.poster,
@@ -126,40 +127,53 @@ export function ShowroomLanding({ locale, fallbackEmail }: { locale: Locale; fal
         </ShowRail>
 
         <ShowRail id="how" title={show.storyboardTitle} body={show.storyboardBody} prev={show.prev} next={show.next}>
-          <li className="show-card show-card-wide">
-            <div className="show-frames">
-              {LANDING_STORYBOARD_FRAMES.map((url, index) => (
-                <figure key={url} className="relative min-w-0">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={url} alt="" loading="lazy" />
-                  <figcaption className="show-chip absolute left-2 top-2 tabular-nums">{pad(index + 1)}</figcaption>
-                </figure>
-              ))}
+          <li className="show-card show-card-script" data-testid="landing-script-sample">
+            <div className="show-script">
+              <figure className="show-script-frame">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={LANDING_SCRIPT_SAMPLE.openingFrame} alt="" loading="lazy" />
+                <figcaption className="show-chip">{sample.frameChip}</figcaption>
+              </figure>
+              <div className="show-script-head">
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="show-chip">{show.storyboardChip}</span>
+                  <AiGeneratedLabel compact />
+                </span>
+                <h3>{sample.head}</h3>
+                <p>{sample.meta}</p>
+              </div>
+              <ol className="show-script-shots">
+                {sample.shots.map((shot) => (
+                  <li key={shot.time}>
+                    <span className="show-script-time">{shot.time}</span>
+                    <span className="min-w-0">
+                      <span className="show-script-action">{shot.action}</span>
+                      <span className="show-script-line" data-silent={shot.line ? undefined : "true"}>
+                        {shot.line ? `「${shot.line}」` : sample.noLine}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
             </div>
+          </li>
+          <li className="show-card show-card-tall">
+            <video
+              className="show-card-media"
+              src={LANDING_SCRIPT_SAMPLE.video}
+              poster={LANDING_SCRIPT_SAMPLE.poster}
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              aria-label={sample.videoName}
+            />
+            <div className="show-card-scrim" aria-hidden />
             <div className="show-card-top">
-              <span className="show-chip">{show.storyboardChip}</span>
+              <span className="show-chip">{show.outputChip}</span>
               <AiGeneratedLabel compact />
             </div>
           </li>
-          {LANDING_PROOF_VIDEOS[1] ? (
-            <li className="show-card show-card-tall">
-              <video
-                className="show-card-media"
-                src={LANDING_PROOF_VIDEOS[1].video}
-                poster={LANDING_PROOF_VIDEOS[1].poster}
-                muted
-                loop
-                playsInline
-                preload="metadata"
-                aria-label={copy.proofItems[1] ?? show.outputChip}
-              />
-              <div className="show-card-scrim" aria-hidden />
-              <div className="show-card-top">
-                <span className="show-chip">{show.outputChip}</span>
-                <AiGeneratedLabel compact />
-              </div>
-            </li>
-          ) : null}
         </ShowRail>
 
         <ShowRail id="delivered" title={show.deliveredTitle} body={show.deliveredBody} prev={show.prev} next={show.next}>

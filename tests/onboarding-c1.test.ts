@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { getOnboardingCopy, TERMS_VERSION } from "../src/i18n/onboarding-copy";
 import { getGrowthCopy } from "../src/i18n/growth-copy";
 import { stateTone, stateWord } from "../src/lib/exchange/state-vocab";
-import { LANDING_HERO_SCENES, LANDING_PROOF_VIDEOS, LANDING_STORYBOARD_FRAMES } from "../src/lib/config/landing-media";
+import { LANDING_HERO_SCENES, LANDING_PROOF_VIDEOS, LANDING_SCRIPT_SAMPLE } from "../src/lib/config/landing-media";
 
 /**
  * 1025 整合轮 C1：首页 → 注册 → /app/welcome 上手向导 → 创作。
@@ -86,11 +87,24 @@ test("状态词典：上手一步的三种状态（进行中是半圆金，等�
   assert.equal(stateTone("setupStep", "done"), "filled");
 });
 
+test("首页「怎么做」的样例是导演线路的真实产物：一张开场画面 + 逐镜头脚本，文件随仓库带、不走 /brand/*", () => {
+  for (const url of Object.values(LANDING_SCRIPT_SAMPLE)) {
+    assert.match(url, /^\/landing\/blanket-/, url);
+    assert.ok(existsSync(join(process.cwd(), "public", url)), url);
+  }
+  for (const locale of ["zh-CN", "en-US"] as const) {
+    const sample = getGrowthCopy(locale).landing.showroom.scriptSample;
+    assert.equal(sample.shots.length, 6);
+    assert.equal(sample.shots.filter((shot) => shot.line === null).length, 1, "有一个镜头不说话");
+  }
+  const landing = readFileSync(join(process.cwd(), "src/components/landing/showroom-landing.tsx"), "utf8");
+  assert.doesNotMatch(landing, /show-frames|LANDING_STORYBOARD_FRAMES/, "四帧故事板不再出现在首页");
+});
+
 test("首页媒体：都在生产 Blob（不走 /brand/*），英雄墙标 AI 生成，真实交付写明关联方", () => {
   const all = [
     ...LANDING_HERO_SCENES.flatMap((item) => [item.video, item.poster]),
     ...LANDING_PROOF_VIDEOS.flatMap((item) => [item.video, item.poster]),
-    ...LANDING_STORYBOARD_FRAMES,
   ];
   for (const url of all) {
     /// 1025 的证明片与分镜 + 2026-10-28 晚换上的英雄墙（landing-1028，Veo 3.1 商品广告镜头）

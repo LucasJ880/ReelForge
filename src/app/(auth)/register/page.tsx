@@ -210,7 +210,7 @@ export default function RegisterPage() {
             ) : null}
             {loading ? copy.creating : copy.create}
           </Button>
-          <p className="font-mono text-data text-tertiary">{reg.trialNote}</p>
+          <p className="text-meta text-tertiary">{reg.trialNote}</p>
         </form>
 
         <div className="space-y-3 border-t border-border pt-5 text-center">

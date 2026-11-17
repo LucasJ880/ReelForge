@@ -116,7 +116,7 @@ const ZH: OnboardingCopy = {
   register: {
     lead: "免费试做 3 条：建好工作区，下一步带你走完上手。",
     businessName: "店名 / 公司名",
-    businessNamePlaceholder: "例如：SunnyShutter 窗饰",
+    businessNamePlaceholder: "例如：暖窝家居",
     industry: "做什么生意",
     industryPlaceholder: "请选择",
     city: "所在城市（选填）",
@@ -269,7 +269,7 @@ const EN: OnboardingCopy = {
   register: {
     lead: "Make 3 videos free: set up your workspace, then we walk you through the first steps.",
     businessName: "Business name",
-    businessNamePlaceholder: "e.g. SunnyShutter Window Coverings",
+    businessNamePlaceholder: "e.g. Cozy Nest Home",
     industry: "What do you do?",
     industryPlaceholder: "Choose one",
     city: "City (optional)",

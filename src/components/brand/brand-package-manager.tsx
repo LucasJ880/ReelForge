@@ -403,18 +403,21 @@ export function BrandPackageManager({
         </section>
       ) : message ? <p role="status" className="text-meta text-muted-foreground">{message}</p> : null}
 
-      <PackageSection
-        id="global-brand-packages"
-        title={copy.global}
-        description={copy.globalHint}
-        packages={globalPackages}
-        empty={copy.emptyGlobal}
-        emptyAction={null}
-        readonlyLabel={copy.readonly}
-        defaultLabel={copy.default}
-        editLabel={copy.edit}
-        onEdit={editPackage}
-      />
+      {/* 平台没发布全局预设时整块不出现：空着的一栏只是在向商家解释一个他用不到的概念 */}
+      {globalPackages.length > 0 ? (
+        <PackageSection
+          id="global-brand-packages"
+          title={copy.global}
+          description={copy.globalHint}
+          packages={globalPackages}
+          empty={copy.emptyGlobal}
+          emptyAction={null}
+          readonlyLabel={copy.readonly}
+          defaultLabel={copy.default}
+          editLabel={copy.edit}
+          onEdit={editPackage}
+        />
+      ) : null}
     </div>
   );
 }

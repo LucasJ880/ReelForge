@@ -109,6 +109,14 @@ interface GrowthCopy {
       storyboardTitle: string;
       storyboardBody: string;
       storyboardChip: string;
+      scriptSample: {
+        frameChip: string;
+        head: string;
+        meta: string;
+        videoName: string;
+        shots: ReadonlyArray<{ time: string; action: string; line: string | null }>;
+        noLine: string;
+      };
       deliveredTitle: string;
       deliveredBody: string;
       deliveredChip: string;
@@ -392,7 +400,7 @@ const ZH: GrowthCopy = {
     ],
     applyTitle: "申请 30 天陪跑",
     applyLead: "留下至少一种联系方式。我们会用它和你约时间，先了解你的生意，再定试点安排。",
-    applyNext: ["我们用你留下的方式联系你", "约一次通话，了解你的服务、地区和现在的获客方式", "约定试点内容、费用与结果口径后再开通"],
+    applyNext: ["我们用你留下的方式联系你", "约一次通话，了解你卖什么、在哪些平台发视频", "约定试点内容、费用与结果口径后再开通"],
     privacy: "隐私政策",
     terms: "服务条款",
     showroom: {
@@ -412,7 +420,22 @@ const ZH: GrowthCopy = {
       },
       storyboardTitle: "按你点头的故事板拍",
       storyboardBody: "每个镜头拍什么、说哪句话都写在脚本里，连同画面先给你看，确认了才开拍；不对路就改一句描述重来，这一步不花视频额度。",
-      storyboardChip: "故事板",
+      storyboardChip: "镜头脚本",
+      scriptSample: {
+        frameChip: "开场画面",
+        head: "双面绒毛毯 · 镜头脚本",
+        meta: "15 秒 · 6 个镜头 · 我们自己的测试商品",
+        videoName: "按这份脚本拍出来的成片",
+        noLine: "不说话，配乐落拍",
+        shots: [
+          { time: "0–2 秒", action: "手按进毯面，绒毛陷到指根", line: "摸一下就回不去！" },
+          { time: "2–4 秒", action: "指尖划过绒面，留下一道深色的痕", line: "细绒面，顺滑不掉毛。" },
+          { time: "4–7 秒", action: "掀开一角，捏一把里面的羊羔绒", line: "翻过来，是羊羔绒。" },
+          { time: "7–10 秒", action: "两手把毯子朝镜头抖开，铺满画面", line: null },
+          { time: "10–13 秒", action: "从背后看，她把毯子裹上肩，往沙发里一靠", line: "裹上它，沙发秒变暖窝。" },
+          { time: "13–15 秒", action: "叠好的毯子停在沙发上，手轻拍一下", line: "今天就带走！" },
+        ],
+      },
       deliveredTitle: "真实交付",
       deliveredBody: "关联方 SunnyShutter 用 Aivora 做的三条窗饰广告，已在他们的渠道上投放。",
       deliveredChip: "已投放",
@@ -425,7 +448,7 @@ const ZH: GrowthCopy = {
     name: "你的称呼",
     company: "店名 / 公司",
     industry: "做什么生意",
-    industryPlaceholder: "例如：窗帘安装、厨房翻新",
+    industryPlaceholder: "例如：家纺、母婴用品、窗帘安装",
     city: "所在城市",
     contactGroup: "联系方式（至少填一项）",
     email: "邮箱",
@@ -433,7 +456,7 @@ const ZH: GrowthCopy = {
     whatsapp: "WhatsApp",
     wechat: "微信",
     website: "网站或主页（选填）",
-    spend: "现在每月在获客上大概花多少（广告、平台费）",
+    spend: "现在每月在推广上大概花多少（广告、平台费）",
     spendPlaceholder: "请选择（选填）",
     message: "想先聊什么（选填）",
     consent: "我同意 Aivora 用我留下的联系方式联系我，商量试点事宜；这些信息不会用于其他用途。",
@@ -767,7 +790,7 @@ const EN: GrowthCopy = {
     applyLead: "Leave at least one way to reach you. We'll use it to book a time, learn about your business, then plan the pilot.",
     applyNext: [
       "We reach out using the contact you leave",
-      "A short call about your services, area and how you get customers today",
+      "A short call about what you sell and where you post videos",
       "We agree scope, fees and how results are measured before anything starts",
     ],
     privacy: "Privacy",
@@ -789,7 +812,22 @@ const EN: GrowthCopy = {
       },
       storyboardTitle: "Filmed from the storyboard you approve",
       storyboardBody: "What each shot shows and which line is spoken is written in the script, and you see it with the picture before anything is filmed. If it misses the point, change one sentence and try again; this step uses no video credit.",
-      storyboardChip: "Storyboard",
+      storyboardChip: "Shot script",
+      scriptSample: {
+        frameChip: "Opening frame",
+        head: "Double-sided fleece blanket · shot script",
+        meta: "15 seconds · 6 shots · our own test product, voiced in Mandarin",
+        videoName: "The ad filmed from this script",
+        noLine: "No line; the music hits",
+        shots: [
+          { time: "0–2s", action: "A hand presses in and the pile sinks to the knuckles", line: "One touch and you won't go back!" },
+          { time: "2–4s", action: "Fingertips rake the pile and leave a darker trail", line: "Fine pile, smooth, no shedding." },
+          { time: "4–7s", action: "A corner flips open; the hand squeezes the sherpa inside", line: "Flip it over: sherpa." },
+          { time: "7–10s", action: "Two hands shake the blanket open until it fills the frame", line: null },
+          { time: "10–13s", action: "Seen from behind, she wraps it round her shoulders and sinks into the sofa", line: "Wrap up and the sofa turns into a nest." },
+          { time: "13–15s", action: "The folded blanket rests on the sofa; a hand gives it a pat", line: "Take it home today!" },
+        ],
+      },
       deliveredTitle: "Delivered work",
       deliveredBody: "Three window-shade ads our affiliate SunnyShutter made with Aivora and runs on its own channels.",
       deliveredChip: "Running",
@@ -802,7 +840,7 @@ const EN: GrowthCopy = {
     name: "Your name",
     company: "Business name",
     industry: "What your business does",
-    industryPlaceholder: "e.g. blinds installation, kitchen renovation",
+    industryPlaceholder: "e.g. home textiles, baby products, blinds installation",
     city: "City",
     contactGroup: "How to reach you (at least one)",
     email: "Email",
@@ -810,7 +848,7 @@ const EN: GrowthCopy = {
     whatsapp: "WhatsApp",
     wechat: "WeChat",
     website: "Website or profile (optional)",
-    spend: "Roughly what you spend on getting customers each month (ads, platform fees)",
+    spend: "Roughly what you spend on promotion each month (ads, platform fees)",
     spendPlaceholder: "Choose (optional)",
     message: "Anything you'd like to discuss first (optional)",
     consent: "I agree that Aivora may contact me using the details above to discuss a pilot. They won't be used for anything else.",

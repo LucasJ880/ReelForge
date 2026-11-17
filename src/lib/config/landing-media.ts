@@ -6,7 +6,7 @@
  *    换掉的是 1025 的上门服务场景（窗饰 / 橱柜 / 园艺，720P）——平台卖的是商品短视频，背景就放商品镜头。
  *    是 AI 画面，页面上必须标「AI 生成」，不冒充客户实拍；不出现任何品牌、文字和人（球鞋那条因侧面三道杠像商标而弃用）。
  *  - proof：SunnyShutter（关联方）用 Aivora 做的三条竖版窗饰广告，540×960 静音版。
- *  - storyboard：proof 第二条的四帧，给「一周会发生什么」的出片样例。
+ *  - 「怎么做」的样例见文件末尾 LANDING_SCRIPT_SAMPLE。
  *
  * 纯数据、无服务端依赖：客户端组件也能引用。
  */
@@ -64,9 +64,13 @@ export const SHOWROOM_PRODUCT_PAIRS: ReadonlyArray<ShowroomPair> = [
   },
 ];
 
-export const LANDING_STORYBOARD_FRAMES: readonly string[] = [
-  `${BASE}/storyboard-0.8.jpg`,
-  `${BASE}/storyboard-4.6.jpg`,
-  `${BASE}/storyboard-8.6.jpg`,
-  `${BASE}/storyboard-12.6.jpg`,
-];
+/**
+ * 「怎么做」那一节的真实样例（2026-11-17）：我们自己的测试商品（双面绒毛毯）在导演线路上出的一条 15 秒片——
+ * 开场画面是当时定稿的那一张，成片是带字幕的后期版（540×960 静音）。脚本文字在 growth-copy 的 scriptSample。
+ * 换掉的是 1025 的四帧故事板：线上早就不是分帧故事板了。文件随仓库带（public/landing/）。
+ */
+export const LANDING_SCRIPT_SAMPLE = {
+  openingFrame: "/landing/blanket-opening.jpg",
+  video: "/landing/blanket-fmcg.mp4",
+  poster: "/landing/blanket-fmcg.jpg",
+} as const;

@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   buildFramePrompt,
   buildVideoPrompt,
+  cornerLogoGeometry,
   directorParts,
   directorRequestKey,
   directorSpokenLines,
@@ -624,4 +625,15 @@ test("别的品类不误报：表盘 / 洁面产品不是人脸，型号（model
   assert.doesNotMatch(shotLint("The newest model of the blind lowers on its own as the chain settles."), /没写脸在哪/);
   assert.match(shotLint("A runner stops at the window and pulls the chain down."), /镜头 1 里有人但没写脸在哪/);
   assert.match(shotLint('A hand turns the box so the words "CleanCube" face the lens.'), /镜头 1 的 action 里有引号/);
+});
+
+test("角标 Logo：要 Logo 就默认右上角；竖片宽 28%、躲开顶部界面，不贴边、不出画", () => {
+  const withLogo = parseDirectorJob(fmcgJob({ post: { logo: "assets/mengxin/logo-horizontal.png" } }));
+  assert.equal(withLogo.post?.logoPosition, "top-right");
+  assert.equal(withLogo.post?.captions, true, "带 Logo 的交付默认也带字幕");
+  assert.deepEqual(cornerLogoGeometry(1080, 1920), { logoWidth: 302, x: 730, y: 120 });
+  assert.deepEqual(cornerLogoGeometry(1080, 1920, "top-left"), { logoWidth: 302, x: 48, y: 120 });
+  const wide = cornerLogoGeometry(1920, 1080);
+  assert.ok(wide.x + wide.logoWidth < 1920 && wide.x > 1920 / 2 && wide.y > 0);
+  assert.throws(() => parseDirectorJob(fmcgJob({ post: { logo: "x.png", logoPosition: "bottom" } })));
 });

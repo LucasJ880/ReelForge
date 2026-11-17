@@ -30,6 +30,7 @@ import { loadEnvConfig } from "@next/env";
 import {
   buildFramePrompt,
   buildVideoPrompt,
+  cornerLogoGeometry,
   directorParts,
   directorRequestKey,
   directorSpokenLines,
@@ -610,6 +611,13 @@ async function commandPost(workspace: Workspace, flags: Flags): Promise<void> {
   rmSync(workRoot, { recursive: true, force: true });
   mkdirSync(workRoot, { recursive: true });
   const useRecognition = !flags["script-timing"];
+  /// 角标 Logo：全程挂在一角（缺省右上）
+  let cornerLogoPath: string | null = null;
+  if (job.post?.logo) {
+    const logo = await loadImage(workspace, job.post.logo);
+    cornerLogoPath = join(workRoot, `corner-logo.${logo.mimeType === "image/png" ? "png" : logo.mimeType === "image/webp" ? "webp" : "jpg"}`);
+    writeFileSync(cornerLogoPath, logo.bytes);
+  }
   /// 落款 Logo：只认本地图片文件（合成器要的是文件路径）；转成 png 放进工作目录
   let signoffLogoPath: string | null = null;
   if (signoff?.logo) {
@@ -661,11 +669,26 @@ async function commandPost(workspace: Workspace, flags: Flags): Promise<void> {
       outputName: "composed.mp4",
     });
     const output = join(workspace.dir, `${job.id}-take${attempt.attempt}${suffix}-post.mp4`);
-    copyFileSync(composed.videoPath, output);
+    let cornerLogo = false;
+    if (cornerLogoPath) {
+      /// 角标 Logo：合成之后再叠一道（合成器里的 Logo 位只管片尾落款）。白底的图略带透明直接压，不用抠图
+      const size = probeVideo(composed.videoPath);
+      const geometry = cornerLogoGeometry(size.width ?? 1080, size.height ?? 1920, job.post?.logoPosition ?? "top-right");
+      execFileSync(ffmpegBin(), [
+        "-v", "error", "-y", "-i", composed.videoPath, "-loop", "1", "-i", cornerLogoPath,
+        "-filter_complex",
+        `[1:v]scale=${geometry.logoWidth}:-2:flags=lanczos,format=rgba,colorchannelmixer=aa=0.94[logo];[0:v][logo]overlay=x=${geometry.x}:y=${geometry.y}:shortest=1[v]`,
+        "-map", "[v]", "-map", "0:a?", "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p", "-c:a", "copy", "-movflags", "+faststart", output,
+      ]);
+      cornerLogo = true;
+    } else {
+      copyFileSync(composed.videoPath, output);
+    }
     if (composed.srtPath) copyFileSync(composed.srtPath, output.replace(/\.mp4$/u, ".srt"));
     const applied = [
       composed.applied.captions ? `字幕（${timing}${composed.captionSource && composed.captionSource !== "speech" ? "；对齐没成，按字数摊的" : ""}）` : null,
       composed.applied.signoff ? `片尾落款「${signoff?.brandName}」${composed.applied.signoffLogo ? "（带 Logo）" : ""}` : null,
+      cornerLogo ? `${job.post?.logoPosition === "top-left" ? "左上角" : "右上角"} Logo` : null,
       composed.applied.aiBadge ? "AI 生成角标" : null,
     ].filter(Boolean);
     console.log(`[director] ${parts.length > 1 ? `第 ${part.index} 条（${part.fromSec}–${part.toSec} 秒）` : "成片"} → ${relative(REPO, output)}（${composed.durationSec} 秒；${applied.join("、") || "只重新封装，没有叠加任何东西"}）`);

@@ -118,6 +118,10 @@ const postSchema = z
   .object({
     /// 把台词烧成字幕（按脚本里每句台词所在镜头的时间；开通了语音识别就跟着人声走）
     captions: z.boolean().default(true),
+    /// 角标 Logo：全程挂在画面一角的品牌 Logo 图（本地 png / jpg / webp，白底的图直接用，不用抠图）。
+    /// 2026-11-17 定：要 Logo 就默认放右上角；Logo 永远不交给视频模型画
+    logo: z.string().trim().min(1).max(2_000).optional(),
+    logoPosition: z.enum(["top-right", "top-left"]).default("top-right"),
     /// 片尾落款：最后约两秒压品牌名 + 一句行动指引（可以是中文）
     signoff: z
       .object({
@@ -399,6 +403,22 @@ export function scriptSpeechWords(
       return { text, startMs: Math.round(startMs + unit * index), endMs: Math.round(startMs + unit * (index + 1)) };
     });
   });
+}
+
+/**
+ * 角标 Logo 的大小与位置（像素）。竖片宽度占画面 28%、离上沿 6.25%（躲开平台顶部的界面），横片与方片小一号。
+ * x / y 是 Logo 左上角。
+ */
+export function cornerLogoGeometry(
+  width: number,
+  height: number,
+  position: "top-right" | "top-left" = "top-right",
+): { logoWidth: number; x: number; y: number } {
+  const portrait = height > width;
+  const logoWidth = 2 * Math.round((width * (portrait ? 0.28 : 0.18)) / 2);
+  const margin = Math.round(width * (portrait ? 0.044 : 0.03));
+  const y = Math.round(height * (portrait ? 0.0625 : 0.05));
+  return { logoWidth, x: position === "top-left" ? margin : width - logoWidth - margin, y };
 }
 
 /** 这一条的口播稿（烧字幕用）：属于这一条的台词按先后连起来。 */

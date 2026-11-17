@@ -224,6 +224,22 @@ npm run director -- status tmp/director/<任务名>
 - **音效对着画面写**：每个声音都对应一个看得见的东西（按下去的布料声、抖开的呼声），想卡点就写在对应镜头里。
 - 最后一句台词别贴着片尾：给结尾留半秒以上，不然会被截断。
 
+## 交付的默认样子（按客户）
+
+2026-11-17 定。先看这条片是做给谁的，再决定后期加什么：
+
+| 做给谁 | 交付 | `job.json` 里写 |
+|---|---|---|
+| **梦馨家纺**（用户或 CEO 说了是梦馨的商品 / 给梦馨的） | 带字幕 + 右上角 Logo | `"post": { "captions": true, "logo": "assets/mengxin/logo-horizontal.png" }` |
+| 没说给谁（测试片、样片、别的客户） | 和以前一样：原片 + 带字幕版，不加 Logo | `"post": { "captions": true }` |
+
+- **要 Logo 就默认放右上角**（`logoPosition` 缺省 `top-right`），全程挂着，大小和位置脚本定好了。白底的 Logo 图直接用，不用抠图。
+- 梦馨的 Logo 在仓库里：`assets/mengxin/logo-horizontal.png`（横排，带中文名，角标用这张）、`logo-icon.png`（只有图形）。
+  这两张是从截图里裁的，够角标用；要放大用得跟客户要原文件。
+- 没人说要 Logo 的片不要自己加；别的客户要 Logo，问清用哪张图，放法照旧是右上角。
+- Logo 只在后期叠，不写进提示词、不画进故事板帧：11-16 试过让它印在商品上跟着走，正反两面都冒出来，还有错字。
+- 交付时两个文件都给：原片（`…-take1.mp4`）和成品（`…-take1-post.mp4`）。
+
 ## 不加预算的几样工具
 
 都写在 `job.json` 里，`check` 会查。
@@ -239,8 +255,11 @@ npm run director -- status tmp/director/<任务名>
 - **本地后期 `post`**：
 
   ```json
-  "post": { "captions": true, "signoff": { "brandName": "暖窝家居", "cta": "点下方链接 今天带走" } }
+  "post": { "captions": true, "logo": "assets/mengxin/logo-horizontal.png",
+            "signoff": { "brandName": "暖窝家居", "cta": "点下方链接 今天带走" } }
   ```
+
+  `logo` 是全程挂在右上角的角标；`signoff` 是片尾最后两秒压的品牌名和行动指引，两样互不相干，都可以不写。
 
   字幕默认按脚本里每句台词所在镜头的时间烧（没有语音识别时的估法：模型把话说早说晚，字幕就会偏）；
   OpenAI 项目开通 `whisper-1` 之后自动改成跟着人声走，`review` 还会把识别到的台词打出来对照。

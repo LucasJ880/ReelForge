@@ -93,7 +93,7 @@ export default async function PlatformLibraryPage({
   /// 行标题里的模板名按界面语言取（英文界面不挂中文模板名）
   const [library, attention, production, finished, brandPackages, pendingStoryboard, publishRegistered] = await Promise.all([
     loadUnifiedLibrary(userId, { locale }),
-    loadNeedsAttention(userId, { locale }),
+    loadNeedsAttention(userId),
     loadProductionCounts(userId),
     countFinished(userId),
     listWorkspaceBrandPackagesForUser(userId),

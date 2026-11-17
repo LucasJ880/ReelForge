@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
 import { loadPulse } from "@/lib/services/exchange-readings";
-import { getServerLocale } from "@/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -14,8 +13,8 @@ export async function GET() {
   const guard = await requireAuth();
   if (!guard.ok) return guard.response;
   try {
-    /// 生产带的批次名在没有产品名时退回模板名，按界面语言取（与首屏 layout 同一个 locale cookie）
-    const pulse = await loadPulse(guard.session.user.id, { locale: await getServerLocale() });
+    /// 脉搏里只有数字，没有要按界面语言取的文字（生产带与批次名 2026-11-17 已删）
+    const pulse = await loadPulse(guard.session.user.id);
     return NextResponse.json(pulse, { headers: { "cache-control": "no-store" } });
   } catch (error) {
     console.error("[GET /api/exchange/pulse]", error);

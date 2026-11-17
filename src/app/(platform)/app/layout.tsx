@@ -6,7 +6,6 @@ import { isInternalRole } from "@/lib/auth-role-policy";
 import { db } from "@/lib/db";
 import { loadPulse } from "@/lib/services/exchange-readings";
 import { getCapabilities } from "@/lib/services/capability-status-service";
-import { getServerLocale } from "@/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +17,6 @@ export default async function PlatformLayout({ children }: { children: React.Rea
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app");
   const userId = session.user.id;
-  const locale = await getServerLocale();
   const [workspace, pulse, capabilities] = await Promise.all([
     /// 2026-10-28 /persona 选择页删除后，无身份类型、没有工作区的存量账号会直接进 /app：
     /// 补建一个入门版默认工作区（与注册时同一形状），不再 500。
@@ -33,7 +31,7 @@ export default async function PlatformLayout({ children }: { children: React.Rea
       },
       select: { name: true },
     }),
-    loadPulse(userId, { locale }),
+    loadPulse(userId),
     /// C4：能力状态（进程内缓存 60 秒，永不抛出）——状态栏据此亮「部分 AI 能力暂停」。
     getCapabilities(),
   ]);

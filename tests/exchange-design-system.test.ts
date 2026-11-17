@@ -70,7 +70,7 @@ test("工作区：导航计数与生产带都来自 owner-scoped 脉搏，顶栏
     read("src/lib/services/exchange-readings.ts"),
   ]);
   // 首屏脉搏与 /api/exchange/pulse 同一个函数，只读本人
-  assert.match(layout, /loadPulse\(userId, \{ locale \}\)/);
+  assert.match(layout, /loadPulse\(userId\)/);
   assert.match(layout, /const userId = session\.user\.id/);
   assert.doesNotMatch(layout, /failedJobs|status:\s*\{\s*in:\s*\["EXPANDING", "RUNNING", "PAUSED"\]/);
   // 生产带与批次读数随批量生产 2026-11-17 下线：脉搏不再查批次

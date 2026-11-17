@@ -206,7 +206,7 @@ export async function loadProductionCounts(userId: string): Promise<ProductionCo
  */
 export async function loadPulse(
   userId: string,
-  { now = new Date() }: { now?: Date; locale?: Locale } = {},
+  { now = new Date() }: { now?: Date } = {},
 ): Promise<ExchangePulse> {
   const workspace = await db.workspace.findUnique({
     where: { ownerId: userId },
@@ -272,7 +272,7 @@ export async function loadNeedsAttention(
   {
     now = new Date(),
     take = NEEDS_ATTENTION_LIST_LIMIT,
-  }: { now?: Date; take?: number; locale?: Locale } = {},
+  }: { now?: Date; take?: number } = {},
 ): Promise<{ items: NeedsAttentionItem[]; total: number; since: Date }> {
   const workspace = await db.workspace.findUnique({ where: { ownerId: userId }, select: { failuresAckedAt: true } });
   const since = needsAttentionSince(now, workspace?.failuresAckedAt);

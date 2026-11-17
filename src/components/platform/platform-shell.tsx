@@ -49,7 +49,6 @@ import { getPlatformCopy } from "@/i18n/platform-copy";
 const ICONS = {
   create: Clapperboard,
   batches: Layers3,
-  /// 战绩（wins）入口暂时下线（见 platform-routes）：放回导航时连同 Trophy 图标一起加回。
   library: Film,
   products: Package,
   brands: Palette,

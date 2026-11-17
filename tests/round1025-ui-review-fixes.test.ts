@@ -9,7 +9,6 @@ import { VIDEO_ROUTE_REGISTRY } from "../src/lib/video-generation/video-route-re
 import { READINGS } from "../src/lib/exchange/readings-registry";
 import { loadNeedsAttention, loadPulse } from "../src/lib/services/exchange-readings";
 import { templateDisplayName, toBatchLibraryRow } from "../src/lib/services/unified-library-service";
-import { videoFirstPassRate } from "../src/lib/services/first-pass-rate-service";
 import { batchMonitorReadings } from "../src/components/batch/batch-monitor-readings";
 import { leadMilestone } from "../src/components/leads/lead-milestone";
 
@@ -224,23 +223,6 @@ test("LENS-5 批次读数墙：已取消单独一格，各格加起来等于总�
   assert.match(monitor, /readings=\{batchMonitorReadings\(batch, \{/);
   /// 2026-10-28 读数改成自动换行的一排小数据卡：7 格也不会留空格
   assert.match(read("src/components/exchange/quote-header.tsx"), /<dl aria-label=\{readingsLabel\} className="flex flex-wrap gap-2">/);
-});
-
-/* ── LENS-6 战绩页一次通过率：取消不算失败 ──────────────────────────── */
-
-test("LENS-6 视频一次通过率的样本只含成片与失败，取消不进分母", async (t) => {
-  const calls: Calls = {};
-  stub(t, calls, "videoJob", "count", (args) => {
-    const where = (args as { where: { status: unknown } }).where;
-    return where.status === "SUCCEEDED" ? 23 : 29; // 23 条一次通过；成片 + 失败 = 29（另有 3 条取消不计）
-  });
-  const rate = await videoFirstPassRate({ userId: "user-1" });
-  const sampleWhere = (calls["videoJob.count"]![0] as { where: { status: { in: string[] } } }).where;
-  assert.deepEqual(sampleWhere.status.in, ["SUCCEEDED", "FAILED"]);
-  assert.equal(rate.sample, 29);
-  assert.equal(Math.round((rate.rate ?? 0) * 100), 79);
-  assert.match(getPlatformCopy("zh-CN").wins.scope, /取消不计/);
-  assert.match(getPlatformCopy("en-US").wins.scope, /cancels excluded/);
 });
 
 /* ── LENS-8 询盘时间列：里程碑不和当前状态打架 ─────────────────────── */

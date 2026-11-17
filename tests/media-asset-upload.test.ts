@@ -5,16 +5,11 @@ import test from "node:test";
 import { uploadBlobSuccessSchema } from "../src/lib/contracts/upload-blob";
 
 test("upload succeeds without invoking AI review", async () => {
-  const [uploadRoute, productImageRoute] = await Promise.all([
-    readFile("src/app/api/upload/blob/route.ts", "utf8"),
-    readFile("src/app/api/product-images/route.ts", "utf8"),
-  ]);
+  /// 另一条当时一起守着的路由（/api/product-images）2026-11-16 随产品图工作台删除
+  const uploadRoute = await readFile("src/app/api/upload/blob/route.ts", "utf8");
 
-  for (const source of [uploadRoute, productImageRoute]) {
-    assert.doesNotMatch(source, /reviewMediaOrThrow/);
-  }
+  assert.doesNotMatch(uploadRoute, /reviewMediaOrThrow/);
   assert.match(uploadRoute, /createOwnedMediaAsset/);
-  assert.match(productImageRoute, /resolveOwnedImageAssets/);
 
   const response = uploadBlobSuccessSchema.parse({
     ok: true,
@@ -79,12 +74,11 @@ test("media asset persistence hashes bytes and inspects image dimensions", async
 });
 
 test("active creation upload consumers use the server-issued asset ID", async () => {
-  const [xhr, uploadAssets, batchWizard, singleStudio, imageStudio] = await Promise.all([
+  const [xhr, uploadAssets, batchWizard, singleStudio] = await Promise.all([
     readFile("src/lib/upload/blob-xhr.ts", "utf8"),
     readFile("src/components/personal/upload-assets.ts", "utf8"),
     readFile("src/components/batch/batch-create-wizard.tsx", "utf8"),
     readFile("src/components/video-generation/streamlined-video-studio.tsx", "utf8"),
-    readFile("src/components/product-images/product-image-studio.tsx", "utf8"),
   ]);
 
   /// 10-30 起直传 + 登记（ticket → Blob → complete），两条路径都经 toUploadResult 取服务端资产 ID
@@ -102,7 +96,4 @@ test("active creation upload consumers use the server-issued asset ID", async ()
   assert.doesNotMatch(batchWizard, /images: uploaded\.map/);
 
   assert.match(singleStudio, /toOwnedCreationRequest/);
-  assert.match(imageStudio, /uploadBlobWithProgress\(\{ file, prefix: "product-images\/sources" \}\)/);
-  assert.match(imageStudio, /id: stored\.assetId/);
-  assert.match(imageStudio, /sourceAssetId: sourceAsset\?\.id/);
 });

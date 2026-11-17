@@ -18,6 +18,8 @@ Theme instruction conflict resolved at the Phase 0 gate:
 
 ## Frontend route inventory (33/33)
 
+> 这张表是 2026-07 那次扫描的快照，不随页面增删维护（`/persona`、`/showcase`、`/internal/*` 大部分页面 2026-10-28 已删）。2026-11-16 删除的 `/app/create/images`（产品图工作台）与 `/app/racing`（投放赛马）两行已从表里拿掉；同一天删的 `/app/plan`（本周内容）、`/app/wins`（战绩）是扫描之后才加的页面，本来就不在表里。现行页面以 `next build` 的路由清单为准。
+
 All routes below are backed by `src/app/**/page.tsx`. The Phase 0 scanner cold-loaded every route at 1440×1000 against the Neon rehearsal branch with explicit mock providers. It recorded console/page errors, HTTP errors, horizontal overflow, and full-page screenshots. Responsive 1280/1920 and loading/empty/error interception remain Phase 3 acceptance work, not Phase 0 evidence.
 
 | Route | Surface | Access boundary | Primary purpose | Cold load | Console/page errors | Network | Layout | Evidence |
@@ -31,13 +33,11 @@ All routes below are backed by `src/app/**/page.tsx`. The Phase 0 scanner cold-l
 | `/terms` | Public | Public | Terms draft | HEALTHY | 0 | HEALTHY | HEALTHY | `routes/terms.png` |
 | `/app` | Customer | Session | Agent Director landing/create entry | HEALTHY → `/app/create` | 0 | HEALTHY | HEALTHY | `routes/app.png` |
 | `/app/create` | Customer | Session | Single-video creation flow | HEALTHY | 0 | HEALTHY | HEALTHY | `routes/app-create.png` |
-| `/app/create/images` | Customer | Session | Product Image Studio | HEALTHY | 0 | HEALTHY | HEALTHY | `routes/app-create-images.png` |
 | `/app/batches` | Customer | Session | Batch list/L1 monitoring | HEALTHY | 0 | HEALTHY | HEALTHY | `routes/app-batches.png` |
 | `/app/batches/new` | Customer | Session | Batch creation wizard | HEALTHY | 0 | HEALTHY | HEALTHY | `routes/app-batches-new.png` |
 | `/app/batches/[id]` | Customer | Session + ownership | Batch detail/L2 monitoring | PARTIAL: synthetic 404 only | Expected 404 | Expected 404 | HEALTHY 404 state | `routes/app-batches-id.png` |
 | `/app/library` | Customer | Session | Finished video library | HEALTHY | 0 | HEALTHY | HEALTHY | `routes/app-library.png` |
 | `/app/library/[id]` | Customer | Session + ownership | Finished video detail/review/download | HEALTHY | 0 | HEALTHY | HEALTHY | `routes/app-library-id.png` |
-| `/app/racing` | Customer | Session | Campaign racing workspace | HEALTHY | 0 | HEALTHY | HEALTHY | `routes/app-racing.png` |
 | `/app/templates` | Customer | Session | Style template library | HEALTHY | 0 | HEALTHY | DEGRADED: filter buttons reach x=1942 | `routes/app-templates.png`; RF-011 |
 | `/internal` | Operator | Operator role/persona | Internal overview | HEALTHY → `/internal/orders` | 0 | HEALTHY | HEALTHY | `routes/internal.png` |
 | `/internal/ai-usage` | Operator | Operator role/persona | AI usage/cost audit | HEALTHY | 0 | HEALTHY | HEALTHY | `routes/internal-ai-usage.png` |
@@ -70,7 +70,7 @@ Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against 
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
-## API endpoint inventory (95/95 route files; 2026-10-28 删除旧中台 / 数字人 / persona 等 32 个；10-29 加线路目录；10-30 加直传 ticket / complete；11-08 加机器视频任务 2 个；11-09 加抖音发布包；11-10 加成片评价、商品档案 2 个)
+## API endpoint inventory (69/69 route files; 2026-10-28 删除旧中台 / 数字人 / persona 等 32 个；10-29 加线路目录；10-30 加直传 ticket / complete；11-08 加机器视频任务 2 个；11-09 加抖音发布包；11-10 加成片评价、商品档案 2 个；11-16 瘦身删 26 个：Stripe webhook、创始人日报、b-roll / 链接抓取 / 商品主体 / publish / 旧 brief 接口 12 个，以及本周内容 3 个、投放赛马 4 个、产品图工作台 4 个、旧 demo 候补登记 1 个——下表已同步删行)
 
 Middleware provides public/session boundaries. Phase 0 statically reviewed the endpoint guard calls, ownership lookup patterns, validators, and machine authentication. Full request/response schema snapshots and hostile-input execution belong to Phase 2.
 
@@ -97,14 +97,9 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | GET, HEAD | `/api/health` | Public, sanitized | VERIFIED H1 strict: bounded healthy/degraded 200/503 schemas; secrets rejected |
 | GET | `/api/health/media` | `CRON_SECRET` (handler fail-closed) | NEW 1025-A3: ffmpeg version + bundled CJK font/BGM + 1s synthesis probe (CJK end card + ass subtitles); 200/503; `?frame=1` JPEG |
 | GET | `/api/videos` | Machine auth (Bearer CRON_SECRET), middleware-exact | PRD M0: 青砚 aivora-sync 拉成片；fail-closed，无会话回退；只给已品牌封装、非 takedown、非样片账号的成片 |
-| GET, POST | `/api/content-plans` | Session | PRD M3/O1: 一句话进多形态出；生成不计费，出图才计费 |
-| GET, POST, DELETE | `/api/content-plans/[id]/posts/[postId]/render` | Session, owner-scoped; POST demo-blocked | PRD M3/O1 + C2: 单图/轮播出图默认走 Shuyu 异步（POST 开一轮回 202，GET 读时对账；`CONTENT_POST_IMAGE_PROVIDER=openai` 回滚同步线路）；重复出图幂等不重复计费；DELETE 弃用保留素材并取消未提交的屏 |
-| POST | `/api/content-plans/[id]/posts/[postId]/render/cancel` | Session, owner-scoped | C2: 停止出图——未提交的屏取消（不计费），已提交的照常收回落库，这一轮不再变可发布 |
 | POST | `/api/performance` | Machine auth (Bearer CRON_SECRET) | PRD M2/R2: 青砚回灌渠道指标；配方只从我方 subject 读，回流方不得指定 |
 | POST | `/api/machine/video-tasks` | Machine auth (dedicated bearer token, constant-time compare; missing config → 503, wrong token → 401) | ADDED 1108 (PR #31), inventoried 1109: creates a machine video task; requires an `Idempotency-Key` header and validates the body against `contracts/machine-video-api` before touching the service. Creating a task does not dispatch generation |
 | GET | `/api/machine/video-tasks/[id]` | Machine auth (same guard) + task ownership (reads by the token's user id) | ADDED 1108 (PR #31), inventoried 1109: reads one machine video task as `machineVideoTaskViewSchema`; unknown or foreign id → 404 |
-| GET | `/api/racing` | Session, owner-scoped | PRD M2/R3: 配方维度胜负；样本不足明确返回 insufficient，不给方向性结论 |
-| POST | `/api/product-images/[id]/cancel` | Session, owner-scoped | 铁律 #7：取消这一轮产品图；清幂等键、保留素材、取消不计费 |
 | GET | `/api/cron/capability-probe` | Machine auth (Bearer CRON_SECRET) | PRD M7/C1: 能力探测（非存活探测）；逐字段漂移诊断落库；漂移返回 503 供拨测告警。C4：同一轮探测全部能力（OpenAI 文本 1 token / 看图 / TTS 每 24h 一次 / 审核、Pexels、Firecrawl 额度、remove.bg 账户、Shuyu 余额、邮件配置）写入 CapabilityStatus；`?force=1` 强制 TTS |
 | GET | `/api/capabilities` | Session (any signed-in user) | C4: 能力注册表客户视图（状态 / 最近检测 / 异常起点 / 中英人话 / 受影响功能）；route 只做鉴权 + getCapabilities()；service 永不抛出（状态表读不到时按配置显示） |
 | GET | `/api/exchange/pulse` | Session, owner-scoped | Round 1025 B1: shell pulse (generating / queued / active + paused batches / awaiting images / needs-attention / new leads / UTC-month quota / production tape); DB count + groupBy only; 500 instead of zeros on failure |
@@ -117,9 +112,6 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 
 | Method | Endpoint | Intended boundary | Contract audit |
 |---|---|---|---|
-| POST | `/api/product-link` | Session; read-only | VERIFIED: link-to-video prefill (Shopify JSON → direct → Firecrawl fallback), no records created |
-| POST | `/api/broll/dispatch` | Session; demo blocked (paid TTS) | VERIFIED: sync prepare (plan/picks/TTS) then PENDING chain; ffmpeg deferred to stitch runner broll branch |
-| POST | `/api/broll/cancel` | Session + ownership | VERIFIED: broll-only cancel, inputs preserved, jobs CANCELLED so claim never picks it |
 | POST | `/api/library/[id]/cancel` | Session + ownership (own unified_input order) | ADDED 1025: customer cancel for a dispatched single video; unfinished segments CAS→CANCELLED with customer_cancelled marker, brief RENDER_FAILED, quota refunded immediately, inputs preserved |
 | POST | `/api/library/[id]/douyin-kit` | Session + ownership (own unified_input order with a READY video) | ADDED 1109: Douyin publish kit actions that need no ffmpeg — `copy` drafts title/caption/hashtags via the fast LLM tier (explicit 502 on failure, no template fallback; hourly rate limit), `register` logs the posting account (one account per video, second account → 409 PUBLISH_ACCOUNT_CONFLICT), `unregister` sets the log to CANCELLED. Asset export (cover + AI-labelled video) runs on `/api/brand-packaging` with body `{ douyinKit }` |
 | POST | `/api/video-generation/plan` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
@@ -136,14 +128,9 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | POST | `/api/video-generation/storyboards/[id]/frames/[frameId]/regenerate` | Session + ownership | VERIFIED: immutable new attempt; fails closed for ambiguous billing/refund state |
 | GET | `/api/internal/ops-credits` | Operator/Super Admin session; read-only | ADDED post-H1: raw Shuyu balance is deliberately internal-only (customer routes API never exposes it); zod-parsed response, no-store, upstream failures map to 502 without leaking provider payloads |
 | GET, PATCH | `/api/briefs/[id]` | Operator | VERIFIED H1 light: success wiring + operator boundary |
-| POST | `/api/briefs/[id]/ad-plan` | Operator | VERIFIED H1 light: success wiring + operator boundary |
-| POST | `/api/briefs/[id]/scenes` | Operator | VERIFIED H1 light: success wiring + operator boundary |
-| POST | `/api/briefs/[id]/script` | Operator | VERIFIED H1 light: success wiring + operator boundary |
-| POST | `/api/briefs/[id]/render` | Operator | VERIFIED H1 light: success wiring + operator boundary |
 | GET, POST | `/api/briefs/[id]/render-status` | Session + ownership | VERIFIED H1 light: customer DTO wiring, shared 401 and ownership check |
 | POST | `/api/briefs/[id]/render-retry` | Session + ownership | VERIFIED H1 light: customer DTO wiring, shared 401 and ownership check |
 | POST | `/api/briefs/[id]/feedback` | Session + owner only | 2026-11-10：静态顺序测试（鉴权 → 校验 → 归属 → 落库）+ 本地预览实测 400 / 404 / 503（评价表未建）；落库成功路径待迁移后验证 |
-| POST | `/api/briefs/[id]/qa` | Reviewer | VERIFIED H1 light: dynamic success/auth + reviewer boundary |
 
 ### Batch generation and templates
 
@@ -156,44 +143,23 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | POST | `/api/batches/[id]/retry` | Session + ownership | VERIFIED H1 strict: retry-all DTO and billing-safe predicate |
 | POST | `/api/batches/[id]/jobs/[jobId]/retry` | Session + ownership | VERIFIED H1 strict: explicit not-found/state/billing outcomes |
 
-### Product images and brand assets
+### Products and brand assets
 
 | Method | Endpoint | Intended boundary | Contract audit |
 |---|---|---|---|
-| GET, POST | `/api/product-images` | Session + ownership | VERIFIED H1 light: success wiring, shared 401 and user/idempotency scope |
-| GET | `/api/product-images/[id]` | Session + ownership | VERIFIED task status reconciliation; owner-scoped durable Shuyu polling |
-| POST | `/api/product-images/tasks/[taskId]/retry` | Session + ownership | VERIFIED confirmed-rejection-only retry with atomic durable task claim |
-| GET, POST | `/api/product-anchors` | Session; demo blocked (paid cutout) | PRD §5/M5 B1: 品牌页「锚定这个产品」入口；服务端资产 ID + 框选 roi 防抠错主体；同 SKU upsert 天然幂等；抠图失败落库为 FAILED+failureReason 不报 HTTP 错 |
 | GET, POST | `/api/products` | Session + owner only | 2026-11-10 商品档案：静态顺序测试（鉴权 → 校验 → 服务）；服务层全部按 userId 读写，存图前核对是本人的图片。本地预览实测（表未建时）：GET 503、缺字段 400 INVALID_INPUT、别人的 / 不存在的图 400 INVALID_IMAGES。迁移后本地预览实测（测试账号，连生产库）：从拍过的一单一键存、手填 + 直传一张图新建、列表读回，均成功 |
 | PATCH | `/api/products/[id]` | Session + owner only | 2026-11-10 商品档案：改字段或归档（只写 archivedAt，不删除）；别人的 / 已归档的回 404。本地预览实测：表未建时回 503；迁移后改卖点 / 尺寸成功、归档后列表与接口都不再返回这一条 |
-| POST | `/api/product-anchors/[id]/retry` | Session + ownership; demo blocked | PRD §5/M5 B1: FAILED 原地重跑 + PENDING_CUTOUT（key 后配）界面续跑；READY 短路不重复扣费 |
 | GET, PUT, POST | `/api/brand-packaging` | Session + workspace ownership | VERIFIED: tenant package listing/upsert plus owner-scoped optional post-production packaging |
 | POST | `/api/projects/[id]/logo/generate` | Operator | VERIFIED H1 light: success wiring + operator boundary |
 | POST | `/api/projects/[id]/logo/select` | Operator | VERIFIED H1 light: success wiring + operator boundary |
-
-### Delivery orders and round workflow
-
-| Method | Endpoint | Intended boundary | Contract audit |
-|---|---|---|---|
-
-### Racing MVP
-
-| Method | Endpoint | Intended boundary | Contract audit |
-|---|---|---|---|
-| POST | `/api/racing/rounds/[id]/metrics` | Session + ownership | VERIFIED H1 light: success schema + direct owner-scope service test |
-| POST | `/api/racing/rounds/[id]/analyze` | Session + ownership | VERIFIED H1 light: success schema + direct owner-scope service test |
-| POST | `/api/racing/rounds/[id]/next` | Session + ownership | VERIFIED H1 light: success schema + direct owner-scope service test |
 
 ### QA, publishing, reports, and public intake
 
 | Method | Endpoint | Intended boundary | Contract audit |
 |---|---|---|---|
-| GET | `/api/publish` | Operator | VERIFIED H1 light: dynamic success, 401 and customer 403 |
-| POST | `/api/publish/[id]` | Operator | VERIFIED H1 light: dynamic validation/success, 401 and customer 403 |
 | POST | `/api/reports` | Session + ownership | VERIFIED H1 light: dynamic validation/ownership/success contract |
 | GET | `/api/internal/reports` | Operator | VERIFIED H1 light: dynamic success, 401 and customer 403 |
 | PATCH | `/api/internal/reports/[id]` | Operator | VERIFIED H1 light: dynamic validation/success, 401 and customer 403 |
-| POST | `/api/demo/real-footage-ads/waitlist` | Public | VERIFIED H1 light: dynamic validation/success with in-memory DB stub |
 
 ### Growth loop: inquiries, tracked links, pilot applications (1025 · A5)
 
@@ -219,20 +185,8 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | GET, POST | `/api/cron/stitch-videos` | `CRON_SECRET` | VERIFIED auth fail-closed |
 | GET, POST | `/api/cron/stitch-dispatch` | `CRON_SECRET` | VERIFIED H1 strict: auth plus 200/502/503/500 schemas aligned with heartbeat outcomes |
 | GET, POST | `/api/cron/sweep-stuck-tasks` | `CRON_SECRET` | VERIFIED auth fail-closed |
-| GET, POST | `/api/cron/founder-digest` | `CRON_SECRET` | VERIFIED auth fail-closed; 2026-10-25 B8 创始人每日汇总：只读查询，没配 Resend 只记日志并 200 `{sent:false, reason}`，按 UTC 日幂等（RateLimitBucket 闩锁） |
 | POST (GET → 405) | `/api/internal/stitch/claim` | `CRON_SECRET` | VERIFIED auth fail-closed; C3: claim only on POST, `task: null` while `STITCH_RUNTIME=inprocess` |
 | POST | `/api/internal/stitch/complete` | `CRON_SECRET` | VERIFIED auth fail-closed |
-
-### Digital human sealed surface
-
-| Method | Endpoint | Intended boundary | Contract audit |
-|---|---|---|---|
-
-### Third-party webhooks
-
-| Method | Endpoint | Intended boundary | Contract audit |
-|---|---|---|---|
-| POST | `/api/webhooks/stripe` | Exact middleware exception + Stripe signature | VERIFIED H1 light: exact path reachable; sibling path 401; missing/invalid signature 400; offline signed event 200 |
 
 ## Background task and queue inventory
 

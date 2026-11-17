@@ -213,8 +213,8 @@ test("创作页：?product= 带入商品图和那段话；「接着拍」先放�
   const studio = readFileSync("src/components/video-generation/streamlined-video-studio.tsx", "utf8");
   assert.match(studio, /<Link\s+href=\{source\.href\}/);
   assert.match(studio, /href="\/app\/products"/);
-  /// 带着商品进来时，「已载入」那句话说的是这件商品，不是照搬产品图工作台那句
-  assert.match(page, /loadedProductName=\{productAssets\.length > 0 && !result && retryAssets\.length === 0 \? productPrefill\?\.name \?\? null : null\}/);
+  /// 带着商品进来时，「已载入」那句话说的是这件商品
+  assert.match(page, /loadedProductName=\{productAssets\.length > 0 && retryAssets\.length === 0 \? productPrefill\?\.name \?\? null : null\}/);
   const notice = studio.slice(studio.indexOf("loadedFromStudio.length > 0 ? ("), studio.indexOf("{!storyboard ? statusNotices : null}"));
   assert.ok(notice.indexOf("loadedProductName ? (") < notice.indexOf("retryOfOrderId || machineTaskId ? ("));
   assert.match(notice, /已载入「\$\{loadedProductName\}」的 \$\{loadedFromStudio\.length\} 张商品图。接着写这次想怎么拍。/);

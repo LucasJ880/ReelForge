@@ -158,7 +158,7 @@ test("创作页接线：空白页才摆最近的商品；三段进度跟着真�
   assert.match(studio, /setRawPrompt\(applyProductSize\(rawPrompt, event\.target\.value, english \? "en" : "zh"\)\);\s+invalidatePlan\(\);/);
   assert.doesNotMatch(studio, /import (?!type )[^;]*from "@\/lib\/services\//, "客户端组件不引服务端模块");
   const page = readFileSync("src/app/(platform)/app/create/page.tsx", "utf8");
-  assert.match(page, /routeState === "empty" \|\| result \|\| retryPrefill \|\| machinePrefill \|\| productPrefill\s+\? \[\]/, "带着预填进来的不查");
+  assert.match(page, /routeState === "empty" \|\| retryPrefill \|\| machinePrefill \|\| productPrefill\s+\? \[\]/, "带着预填进来的不查");
   /// 2026-11-10：改由 loadCreateShortcutsOrNone 读（存好的商品 + 最近拍过的），兜底仍在服务层
   assert.match(page, /await loadCreateShortcutsOrNone\(session\.user\.id\)/, "读不到就不显示，不拦创作");
   const shortcutService = readFileSync("src/lib/services/product-profile-service.ts", "utf8");

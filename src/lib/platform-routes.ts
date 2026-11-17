@@ -1,12 +1,11 @@
 export const PLATFORM_PRIMARY_NAV = [
-  /// 2026-10-28 瘦身（学 LibTV，只留 SunnyShutter 真实用过的主线）：「本周内容」（/app/plan）与「询盘」
-  ///（/app/leads，含询盘页与追踪链接）A 级下线——只撤导航，路由与代码保留可直达，要用时放回这里。
+  /// 2026-10-28 瘦身（学 LibTV，只留 SunnyShutter 真实用过的主线）：「询盘」（/app/leads，含询盘页与追踪链接）
+  /// A 级下线——只撤导航，路由与代码保留可直达，要用时放回这里。
+  /// 2026-11-16 第 3 批瘦身：「本周内容」（/app/plan）、「战绩」（/app/wins）、「投放赛马」（/app/racing）、
+  /// 「产品图工作台」（/app/create/images）四个早就撤出导航的页面连同接口、服务一起删了（C 级）。
+  /// 旧网址由 next.config.ts 转到创作页 / 成品库；要放回得从 git 历史取回代码，不是往这里加一行。
   { id: "create", label: "创作", href: "/app/create" },
   { id: "batches", label: "批量生产", href: "/app/batches" },
-  /// R5 战绩页替换旧「投放与赛马」（PRD §10.4 A 级下线：导航移除，/app/racing 路由保留可直达）。
-  /// 「战绩」（/app/wins）入口也暂时下线（2026-10-25 审计 B5，A 级：只撤导航、不删代码）：
-  /// 表现数据回流（青砚同步）还没开，这页现在只能是零；路由保留可直达，空态如实说明。
-  /// 有真实表现数据回流之后再把 { id: "wins", label: "战绩", href: "/app/wins" } 放回这里。
   { id: "library", label: "成品库", href: "/app/library" },
   /// 2026-11-10 商品档案：常拍的商品存一次（名字、卖点、尺寸、商品图），以后点一下就带进创作页。
   { id: "products", label: "商品", href: "/app/products" },

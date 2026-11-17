@@ -103,26 +103,11 @@ test("subjectId 的来源前缀会被归一化 —— /api/videos 给的是带�
   assert.match(source, /\^\(batch-\|brief-\)/);
 });
 
-test("回流是机器鉴权，无会话回退；赛马查询是客户会话", () => {
+test("回流是机器鉴权，无会话回退（赛马查询接口 /api/racing 2026-11-16 删除）", () => {
   const ingest = readFileSync(
     path.join(process.cwd(), "src/app/api/performance/route.ts"),
     "utf8",
   );
   assert.match(ingest, /machineAuthFailure\(req\)/);
   assert.doesNotMatch(ingest, /requireAuth|requireOperator/);
-
-  const racing = readFileSync(
-    path.join(process.cwd(), "src/app/api/racing/route.ts"),
-    "utf8",
-  );
-  assert.match(racing, /requireAuth\(\)/);
-  /// 赛马只解释**我方内容**的胜负，不做全账号看板（PRD §12）。
-  /// 判据只能来自 judgeRecipes，且样本只取当前用户名下的内容。
-  assert.match(racing, /judgeRecipes\(rows, /);
-  assert.match(racing, /userId: guard\.session\.user\.id/);
-  assert.match(
-    racing,
-    /summary: explainVerdict\(verdict\)/,
-    "前端要显示这句话，而不是自己解读 verdict",
-  );
 });

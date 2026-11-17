@@ -107,21 +107,6 @@ const contracts: RouteMethodContract[] = [
       /reconcileBriefRenderStatus\(briefId\)[\s\S]*toCustomerBriefRenderSummary\(summary\)/,
   },
   {
-    method: "GET",
-    route: "/api/product-images",
-    file: "src/app/api/product-images/route.ts",
-    boundary: "session",
-    successMarker: /NextResponse\.json\(\{ ok: true, jobs: jobs\.map\(productImageJobView\) \}\)/,
-  },
-  {
-    method: "POST",
-    route: "/api/product-images",
-    file: "src/app/api/product-images/route.ts",
-    boundary: "session",
-    successMarker:
-      /duplicate: false,[\s\S]*job: productImageJobView\(job\),[\s\S]*asset: assetView\(job\.sourceAsset\)[\s\S]*\{ status: 201 \}/,
-  },
-  {
     method: "POST",
     route: "/api/projects/contract-project/logo/generate",
     file: "src/app/api/projects/[id]/logo/generate/route.ts",
@@ -152,10 +137,11 @@ function routeSource(file: string): string {
   return readFileSync(path.join(process.cwd(), file), "utf8");
 }
 
-test("H1 group A STATIC: all 14 route methods lock a success shape and handler boundary", () => {
+test("H1 group A STATIC: all 12 route methods lock a success shape and handler boundary", () => {
   /// 2026-10-28 me/usage、billing/checkout、personal/agent-chat、ad-plans render、raw-assets preprocess 随删：24 → 19
   /// 2026-11-16 没人调的旧 brief 接口（ad-plan / scenes / script / render / qa）随删：19 → 14
-  assert.equal(contracts.length, 14);
+  /// 2026-11-16 产品图工作台的接口（GET / POST /api/product-images）随删：14 → 12
+  assert.equal(contracts.length, 12);
   assert.equal(
     new Set(contracts.map(({ method, route }) => `${method} ${route}`)).size,
     contracts.length,
@@ -293,11 +279,6 @@ test("H1 group A STATIC: staff and owner-scoped routes cannot silently lose auth
     assert.match(source, /checkBriefAccess\(/, file);
     assert.match(source, /status:[\s\S]*404[\s\S]*403|404 : 403/, file);
   }
-
-  const productImages = routeSource("src/app/api/product-images/route.ts");
-  assert.match(productImages, /guard\.session\.user\.id/);
-  assert.match(productImages, /listProductImageJobsForUser\(guard\.session\.user\.id\)/);
-  assert.match(productImages, /userId_idempotencyKey: \{ userId, idempotencyKey \}/);
 });
 
 function restoreEnvironment(name: string, value: string | undefined) {

@@ -27,7 +27,6 @@ import { getPlatformCopy } from "@/i18n/platform-copy";
 import { requestPulseRefresh } from "@/lib/exchange/pulse";
 import { formatRate, quotaStat, readingStat } from "@/lib/exchange/readings-registry";
 import { SectionHead } from "@/components/exchange/section-head";
-import { CreateModeTabs } from "@/components/product-images/create-mode-tabs";
 import { uploadFilesToAssets } from "@/components/personal/upload-assets";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -62,7 +61,6 @@ import {
 import { cn } from "@/lib/utils";
 import type { WorkspaceBrandPackageView } from "@/lib/services/workspace-brand-package-service";
 import { BRAND_END_CARD_ENTRY_ENABLED } from "@/lib/brand/brand-end-card-policy";
-import { PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED } from "@/lib/create/entry-policy";
 import { HOOK_ANGLES, applyHookAngle, detectHookAngle, stripHookAngle } from "@/lib/create/hook-angles";
 import { applyProductSize, detectProductSize, PRODUCT_SIZE_MAX, stripProductSize } from "@/lib/create/product-size";
 import { BGM_CATALOG } from "@/lib/video-generation/bgm-catalog";
@@ -605,9 +603,9 @@ export function StreamlinedVideoStudio({
   }, []);
 
   useEffect(() => {
-    // Arriving from the Product Image Studio (or the regenerate link in the library)
-    // expresses intent to start a new creation, so the silent resume stays out
-    // of the way.
+    // Arriving with prefilled product photos (a saved product, the regenerate link in the
+    // library, a machine task) expresses intent to start a new creation, so the silent
+    // resume stays out of the way.
     if (initialProductAssets.length > 0 || retryOfOrderId || machineTaskId) return;
     let cancelled = false;
     const resume = async () => {
@@ -1887,8 +1885,6 @@ export function StreamlinedVideoStudio({
       {/* 对话框优先（2026-10-28 晚，上线审核 §4）：学 Runway 首页——一句轻标题 + 一张提示卡，规格芯片在卡下面；
           默认值都替商家定好，口播 / 字幕 / 参考方式收进「更多设置」，不展开也能出片 */}
       <section aria-labelledby="create-hero-title" className="mx-auto w-full max-w-[52.5rem] space-y-4 pt-2 md:pt-6">
-        {/* 「生成视频 / 产品图片」切换 A 级下线（entry-policy.ts）：商品图改进品牌套件 */}
-        {PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED ? <CreateModeTabs active="video" /> : null}
         <header className="space-y-3 text-center">
           <h1 id="create-hero-title" className="create-hero-title">{copy.heroTitle}</h1>
           <dl
@@ -2083,21 +2079,18 @@ export function StreamlinedVideoStudio({
                 : `已载入「${loadedProductName}」的 ${loadedFromStudio.length} 张商品图。接着写这次想怎么拍。`}
             </p>
           ) : retryOfOrderId || machineTaskId ? (
-            /// 「重新生成 / 用同样的素材再做一条」带过来的是那条视频的商品图，不是产品图工作台的产物；
-            /// 之前照搬工作台那句话，还列出 product-image-1 这样的占位文件名。
+            /// 「重新生成 / 用同样的素材再做一条」带过来的是那条视频的商品图；不列 product-image-1 这样的占位文件名。
             <p role="status" className="text-meta text-success" data-testid="prefill-assets-notice">
               {english
                 ? `Loaded ${loadedFromStudio.length} product photo${loadedFromStudio.length === 1 ? "" : "s"} from that video. Keep them, or add and remove as you like.`
                 : `已载入那条视频的 ${loadedFromStudio.length} 张商品图，可以直接用，也可以增删。`}
             </p>
           ) : (
-            <p role="status" className="text-meta text-success">
+            /// 兜底（带了预填的商品图、却没有上面两种来源的名字）：只说载入了几张
+            <p role="status" className="text-meta text-success" data-testid="prefill-assets-notice">
               {english
-                ? "Loaded from Product Image Studio as a product consistency reference."
-                : "已从产品图工作台载入，并作为产品一致性参考。"}
-              <span className="ml-1 font-mono text-muted-foreground">
-                {loadedFromStudio.map((asset) => asset.fileName).join("、")}
-              </span>
+                ? `Loaded ${loadedFromStudio.length} product photo${loadedFromStudio.length === 1 ? "" : "s"}. Keep them, or add and remove as you like.`
+                : `已载入 ${loadedFromStudio.length} 张商品图，可以直接用，也可以增删。`}
             </p>
           )
         ) : null}

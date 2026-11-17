@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T01:03:51.285Z",
+  "generatedAt": "2026-11-17T01:08:17.762Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -4908,7 +4908,6 @@
         "@/components/batch/batch-create-wizard",
         "@/lib/auth",
         "@/lib/auth-role-policy",
-        "@/lib/services/product-image-service",
         "@/lib/services/exchange-readings",
         "@/lib/services/style-template-service",
         "@/components/exchange/quote-header",
@@ -4921,7 +4920,6 @@
         "@/components/batch/batch-create-wizard",
         "@/lib/auth",
         "@/lib/auth-role-policy",
-        "@/lib/services/product-image-service",
         "@/lib/services/exchange-readings",
         "@/lib/services/style-template-service",
         "@/components/exchange/quote-header",
@@ -5040,57 +5038,6 @@
       "externalImports": []
     },
     {
-      "file": "src/app/(platform)/app/create/images/error.tsx",
-      "imports": [
-        "@/components/platform/customer-route-error"
-      ],
-      "localImports": [
-        "@/components/platform/customer-route-error"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/app/(platform)/app/create/images/loading.tsx",
-      "imports": [
-        "@/components/platform/customer-route-loading"
-      ],
-      "localImports": [
-        "@/components/platform/customer-route-loading"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/app/(platform)/app/create/images/page.tsx",
-      "imports": [
-        "next-auth",
-        "next/navigation",
-        "@/components/exchange/workspace-page",
-        "@/components/product-images/create-mode-tabs",
-        "@/components/product-images/product-image-studio",
-        "@/lib/auth",
-        "@/lib/db",
-        "@/lib/services/product-image-service",
-        "@/lib/services/workspace-brand-package-service",
-        "@/i18n/platform-copy",
-        "@/i18n/server"
-      ],
-      "localImports": [
-        "@/components/exchange/workspace-page",
-        "@/components/product-images/create-mode-tabs",
-        "@/components/product-images/product-image-studio",
-        "@/lib/auth",
-        "@/lib/db",
-        "@/lib/services/product-image-service",
-        "@/lib/services/workspace-brand-package-service",
-        "@/i18n/platform-copy",
-        "@/i18n/server"
-      ],
-      "externalImports": [
-        "next-auth",
-        "next/navigation"
-      ]
-    },
-    {
       "file": "src/app/(platform)/app/create/loading.tsx",
       "imports": [
         "@/components/platform/customer-route-loading"
@@ -5117,7 +5064,6 @@
         "@/lib/services/media-asset-service",
         "@/lib/services/machine-video-task-service",
         "@/lib/services/exchange-readings",
-        "@/lib/services/product-image-service",
         "@/types/video-generation",
         "@/i18n/server",
         "@/lib/qa/customer-route-state-rehearsal",
@@ -5136,7 +5082,6 @@
         "@/lib/services/media-asset-service",
         "@/lib/services/machine-video-task-service",
         "@/lib/services/exchange-readings",
-        "@/lib/services/product-image-service",
         "@/types/video-generation",
         "@/i18n/server",
         "@/lib/qa/customer-route-state-rehearsal",
@@ -5460,8 +5405,6 @@
         "@/lib/brand/brand-end-card-policy",
         "@/components/library/failures-ack-button",
         "@/components/library/library-highlight",
-        "@/components/library/render-pending-posts-button",
-        "@/components/library/post-render-watcher",
         "@/components/library/processing-refresher",
         "@/lib/video-generation/storyboard-service",
         "@/components/compliance/ai-generated-label",
@@ -5473,7 +5416,9 @@
         "@/components/exchange/status-tick",
         "@/i18n/platform-copy",
         "@/i18n/server",
-        "@/lib/exchange/readings-registry"
+        "@/lib/exchange/readings-registry",
+        "@/lib/exchange/state-vocab",
+        "@/lib/qa/customer-route-state-rehearsal"
       ],
       "localImports": [
         "@/lib/auth",
@@ -5487,8 +5432,6 @@
         "@/lib/brand/brand-end-card-policy",
         "@/components/library/failures-ack-button",
         "@/components/library/library-highlight",
-        "@/components/library/render-pending-posts-button",
-        "@/components/library/post-render-watcher",
         "@/components/library/processing-refresher",
         "@/lib/video-generation/storyboard-service",
         "@/components/compliance/ai-generated-label",
@@ -5500,7 +5443,9 @@
         "@/components/exchange/status-tick",
         "@/i18n/platform-copy",
         "@/i18n/server",
-        "@/lib/exchange/readings-registry"
+        "@/lib/exchange/readings-registry",
+        "@/lib/exchange/state-vocab",
+        "@/lib/qa/customer-route-state-rehearsal"
       ],
       "externalImports": [
         "next/link",
@@ -5542,59 +5487,6 @@
       ]
     },
     {
-      "file": "src/app/(platform)/app/plan/error.tsx",
-      "imports": [
-        "@/components/platform/customer-route-error"
-      ],
-      "localImports": [
-        "@/components/platform/customer-route-error"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/app/(platform)/app/plan/loading.tsx",
-      "imports": [
-        "@/components/platform/customer-route-loading"
-      ],
-      "localImports": [
-        "@/components/platform/customer-route-loading"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/app/(platform)/app/plan/page.tsx",
-      "imports": [
-        "next-auth",
-        "next/navigation",
-        "@/lib/auth",
-        "@/lib/services/content-plan-store",
-        "@/lib/services/content-post-render-service",
-        "@/lib/services/capability-status-service",
-        "@/components/capabilities/capability-notice",
-        "@/lib/services/content-post-image-job-service",
-        "@/lib/contracts/content-post-render",
-        "@/components/content-plan/plan-timeline",
-        "@/i18n/platform-copy",
-        "@/i18n/server"
-      ],
-      "localImports": [
-        "@/lib/auth",
-        "@/lib/services/content-plan-store",
-        "@/lib/services/content-post-render-service",
-        "@/lib/services/capability-status-service",
-        "@/components/capabilities/capability-notice",
-        "@/lib/services/content-post-image-job-service",
-        "@/lib/contracts/content-post-render",
-        "@/components/content-plan/plan-timeline",
-        "@/i18n/platform-copy",
-        "@/i18n/server"
-      ],
-      "externalImports": [
-        "next-auth",
-        "next/navigation"
-      ]
-    },
-    {
       "file": "src/app/(platform)/app/products/page.tsx",
       "imports": [
         "next-auth",
@@ -5623,57 +5515,6 @@
       "externalImports": [
         "next-auth",
         "next/navigation"
-      ]
-    },
-    {
-      "file": "src/app/(platform)/app/racing/error.tsx",
-      "imports": [
-        "@/components/platform/customer-route-error"
-      ],
-      "localImports": [
-        "@/components/platform/customer-route-error"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/app/(platform)/app/racing/loading.tsx",
-      "imports": [
-        "@/components/platform/customer-route-loading"
-      ],
-      "localImports": [
-        "@/components/platform/customer-route-loading"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/app/(platform)/app/racing/page.tsx",
-      "imports": [
-        "next/link",
-        "next-auth",
-        "next/navigation",
-        "lucide-react",
-        "@/lib/auth",
-        "@/lib/services/racing-service",
-        "@/components/racing/racing-dashboard",
-        "@/components/ui/button",
-        "@/i18n/platform-copy",
-        "@/i18n/server",
-        "@/lib/qa/customer-route-state-rehearsal"
-      ],
-      "localImports": [
-        "@/lib/auth",
-        "@/lib/services/racing-service",
-        "@/components/racing/racing-dashboard",
-        "@/components/ui/button",
-        "@/i18n/platform-copy",
-        "@/i18n/server",
-        "@/lib/qa/customer-route-state-rehearsal"
-      ],
-      "externalImports": [
-        "next/link",
-        "next-auth",
-        "next/navigation",
-        "lucide-react"
       ]
     },
     {
@@ -5807,67 +5648,6 @@
         "@/i18n/server"
       ],
       "externalImports": [
-        "next-auth",
-        "next/navigation"
-      ]
-    },
-    {
-      "file": "src/app/(platform)/app/wins/error.tsx",
-      "imports": [
-        "@/components/platform/customer-route-error"
-      ],
-      "localImports": [
-        "@/components/platform/customer-route-error"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/app/(platform)/app/wins/loading.tsx",
-      "imports": [
-        "@/components/platform/customer-route-loading"
-      ],
-      "localImports": [
-        "@/components/platform/customer-route-loading"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/app/(platform)/app/wins/page.tsx",
-      "imports": [
-        "next/link",
-        "next-auth",
-        "next/navigation",
-        "@/lib/auth",
-        "@/lib/services/performance-ingest-service",
-        "@/lib/services/recipe-racing-service",
-        "@/lib/services/winner-derivation-service",
-        "@/lib/services/content-plan-store",
-        "@/lib/services/first-pass-rate-service",
-        "@/components/exchange/quote-header",
-        "@/components/exchange/section-head",
-        "@/components/exchange/workspace-page",
-        "@/components/ui/button",
-        "@/components/wins/dimension-ledger",
-        "@/i18n/platform-copy",
-        "@/i18n/server"
-      ],
-      "localImports": [
-        "@/lib/auth",
-        "@/lib/services/performance-ingest-service",
-        "@/lib/services/recipe-racing-service",
-        "@/lib/services/winner-derivation-service",
-        "@/lib/services/content-plan-store",
-        "@/lib/services/first-pass-rate-service",
-        "@/components/exchange/quote-header",
-        "@/components/exchange/section-head",
-        "@/components/exchange/workspace-page",
-        "@/components/ui/button",
-        "@/components/wins/dimension-ledger",
-        "@/i18n/platform-copy",
-        "@/i18n/server"
-      ],
-      "externalImports": [
-        "next/link",
         "next-auth",
         "next/navigation"
       ]
@@ -6377,79 +6157,6 @@
       ]
     },
     {
-      "file": "src/app/api/content-plans/[id]/posts/[postId]/render/cancel/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/api/customer-generation-error",
-        "@/lib/services/content-post-render-service",
-        "@/lib/services/content-post-image-job-service"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/api/customer-generation-error",
-        "@/lib/services/content-post-render-service",
-        "@/lib/services/content-post-image-job-service"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/content-plans/[id]/posts/[postId]/render/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/api-rate-limit",
-        "@/lib/api/customer-generation-error",
-        "@/lib/contracts/content-post-render",
-        "@/lib/demo-account",
-        "@/lib/services/content-post-render-service",
-        "@/lib/services/content-post-image-job-service",
-        "@/lib/services/paid-action-rate-limit"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/api-rate-limit",
-        "@/lib/api/customer-generation-error",
-        "@/lib/contracts/content-post-render",
-        "@/lib/demo-account",
-        "@/lib/services/content-post-render-service",
-        "@/lib/services/content-post-image-job-service",
-        "@/lib/services/paid-action-rate-limit"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/content-plans/route.ts",
-      "imports": [
-        "next/server",
-        "zod",
-        "@/lib/api-auth",
-        "@/lib/api-rate-limit",
-        "@/lib/api/customer-generation-error",
-        "@/lib/services/content-plan-store",
-        "@/lib/services/product-link-service",
-        "@/lib/services/product-image-facts-service",
-        "@/lib/services/paid-action-rate-limit"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/api-rate-limit",
-        "@/lib/api/customer-generation-error",
-        "@/lib/services/content-plan-store",
-        "@/lib/services/product-link-service",
-        "@/lib/services/product-image-facts-service",
-        "@/lib/services/paid-action-rate-limit"
-      ],
-      "externalImports": [
-        "next/server",
-        "zod"
-      ]
-    },
-    {
       "file": "src/app/api/cron/capability-probe/route.ts",
       "imports": [
         "next/server",
@@ -6561,23 +6268,6 @@
       ],
       "externalImports": [
         "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/demo/real-footage-ads/waitlist/route.ts",
-      "imports": [
-        "next/server",
-        "@prisma/client",
-        "zod",
-        "@/lib/db"
-      ],
-      "localImports": [
-        "@/lib/db"
-      ],
-      "externalImports": [
-        "next/server",
-        "@prisma/client",
-        "zod"
       ]
     },
     {
@@ -7026,86 +6716,6 @@
       ]
     },
     {
-      "file": "src/app/api/product-images/[id]/cancel/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/api/customer-generation-error",
-        "@/app/api/product-images/route",
-        "@/lib/services/product-image-service"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/api/customer-generation-error",
-        "@/app/api/product-images/route",
-        "@/lib/services/product-image-service"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/product-images/[id]/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/app/api/product-images/route",
-        "@/lib/services/product-image-service"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/app/api/product-images/route",
-        "@/lib/services/product-image-service"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/product-images/route.ts",
-      "imports": [
-        "next/server",
-        "zod",
-        "@/lib/api-auth",
-        "@/lib/api-quota",
-        "@/lib/db",
-        "@/lib/services/media-asset-service",
-        "@/lib/services/product-image-service",
-        "@/lib/services/quota-service",
-        "@/lib/services/workspace-brand-package-service"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/api-quota",
-        "@/lib/db",
-        "@/lib/services/media-asset-service",
-        "@/lib/services/product-image-service",
-        "@/lib/services/quota-service",
-        "@/lib/services/workspace-brand-package-service"
-      ],
-      "externalImports": [
-        "next/server",
-        "zod"
-      ]
-    },
-    {
-      "file": "src/app/api/product-images/tasks/[taskId]/retry/route.ts",
-      "imports": [
-        "next/server",
-        "@/app/api/product-images/route",
-        "@/lib/api-auth",
-        "@/lib/services/product-image-service"
-      ],
-      "localImports": [
-        "@/app/api/product-images/route",
-        "@/lib/api-auth",
-        "@/lib/services/product-image-service"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
       "file": "src/app/api/products/[id]/route.ts",
       "imports": [
         "next/server",
@@ -7228,74 +6838,6 @@
       ],
       "externalImports": [
         "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/racing/rounds/[id]/analyze/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/racing-service"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/racing-service"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/racing/rounds/[id]/metrics/route.ts",
-      "imports": [
-        "next/server",
-        "zod",
-        "@/lib/api-auth",
-        "@/lib/services/racing-service"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/racing-service"
-      ],
-      "externalImports": [
-        "next/server",
-        "zod"
-      ]
-    },
-    {
-      "file": "src/app/api/racing/rounds/[id]/next/route.ts",
-      "imports": [
-        "next/server",
-        "zod",
-        "@/lib/api-auth",
-        "@/lib/services/racing-service"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/racing-service"
-      ],
-      "externalImports": [
-        "next/server",
-        "zod"
-      ]
-    },
-    {
-      "file": "src/app/api/racing/route.ts",
-      "imports": [
-        "next/server",
-        "zod",
-        "@/lib/api-auth",
-        "@/lib/services/performance-ingest-service",
-        "@/lib/services/recipe-racing-service"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/performance-ingest-service",
-        "@/lib/services/recipe-racing-service"
-      ],
-      "externalImports": [
-        "next/server",
-        "zod"
       ]
     },
     {
@@ -8230,25 +7772,6 @@
       ]
     },
     {
-      "file": "src/components/capabilities/capability-notice.tsx",
-      "imports": [
-        "next/link",
-        "@/components/exchange/status-tick",
-        "@/i18n/config",
-        "@/lib/capabilities/registry",
-        "@/lib/utils"
-      ],
-      "localImports": [
-        "@/components/exchange/status-tick",
-        "@/i18n/config",
-        "@/lib/capabilities/registry",
-        "@/lib/utils"
-      ],
-      "externalImports": [
-        "next/link"
-      ]
-    },
-    {
       "file": "src/components/capabilities/use-capabilities.ts",
       "imports": [
         "react",
@@ -8270,41 +7793,6 @@
         "@/lib/utils"
       ],
       "externalImports": []
-    },
-    {
-      "file": "src/components/content-plan/plan-timeline.tsx",
-      "imports": [
-        "react",
-        "next/link",
-        "@/components/exchange/fill-bar",
-        "@/components/exchange/status-tick",
-        "@/components/exchange/workspace-page",
-        "@/components/ui/button",
-        "@/components/ui/input",
-        "@/i18n/platform-copy",
-        "@/i18n/useTranslation",
-        "@/lib/contracts/content-post-render",
-        "@/lib/utils",
-        "./plan-week",
-        "./plan-timeline.module.css"
-      ],
-      "localImports": [
-        "@/components/exchange/fill-bar",
-        "@/components/exchange/status-tick",
-        "@/components/exchange/workspace-page",
-        "@/components/ui/button",
-        "@/components/ui/input",
-        "@/i18n/platform-copy",
-        "@/i18n/useTranslation",
-        "@/lib/contracts/content-post-render",
-        "@/lib/utils",
-        "./plan-week",
-        "./plan-timeline.module.css"
-      ],
-      "externalImports": [
-        "react",
-        "next/link"
-      ]
     },
     {
       "file": "src/components/exchange/delta.tsx",
@@ -9007,23 +8495,6 @@
       ]
     },
     {
-      "file": "src/components/library/post-render-watcher.tsx",
-      "imports": [
-        "react",
-        "next/navigation",
-        "@/lib/contracts/content-post-render",
-        "./render-pending-posts-button"
-      ],
-      "localImports": [
-        "@/lib/contracts/content-post-render",
-        "./render-pending-posts-button"
-      ],
-      "externalImports": [
-        "react",
-        "next/navigation"
-      ]
-    },
-    {
       "file": "src/components/library/processing-refresher.tsx",
       "imports": [
         "react",
@@ -9033,25 +8504,6 @@
       "externalImports": [
         "react",
         "next/navigation"
-      ]
-    },
-    {
-      "file": "src/components/library/render-pending-posts-button.tsx",
-      "imports": [
-        "react",
-        "next/navigation",
-        "lucide-react",
-        "@/components/ui/button",
-        "@/i18n/useTranslation"
-      ],
-      "localImports": [
-        "@/components/ui/button",
-        "@/i18n/useTranslation"
-      ],
-      "externalImports": [
-        "react",
-        "next/navigation",
-        "lucide-react"
       ]
     },
     {
@@ -9379,60 +8831,6 @@
       ]
     },
     {
-      "file": "src/components/product-images/create-mode-tabs.tsx",
-      "imports": [
-        "next/link",
-        "lucide-react",
-        "@/lib/utils",
-        "@/i18n/useTranslation",
-        "@/i18n/platform-copy"
-      ],
-      "localImports": [
-        "@/lib/utils",
-        "@/i18n/useTranslation",
-        "@/i18n/platform-copy"
-      ],
-      "externalImports": [
-        "next/link",
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/components/product-images/product-image-studio.tsx",
-      "imports": [
-        "react",
-        "next/image",
-        "next/link",
-        "lucide-react",
-        "@/components/ui/button",
-        "@/components/compliance/ai-generated-label",
-        "@/components/exchange/status-tick",
-        "@/lib/exchange/state-vocab",
-        "@/components/ui/textarea",
-        "@/lib/utils",
-        "@/lib/upload/blob-xhr",
-        "@/i18n/useTranslation",
-        "@/i18n/platform-copy"
-      ],
-      "localImports": [
-        "@/components/ui/button",
-        "@/components/compliance/ai-generated-label",
-        "@/components/exchange/status-tick",
-        "@/lib/exchange/state-vocab",
-        "@/components/ui/textarea",
-        "@/lib/utils",
-        "@/lib/upload/blob-xhr",
-        "@/i18n/useTranslation",
-        "@/i18n/platform-copy"
-      ],
-      "externalImports": [
-        "react",
-        "next/image",
-        "next/link",
-        "lucide-react"
-      ]
-    },
-    {
       "file": "src/components/products/product-library.tsx",
       "imports": [
         "react",
@@ -9513,29 +8911,6 @@
       ],
       "externalImports": [
         "next/link",
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/components/racing/racing-dashboard.tsx",
-      "imports": [
-        "react",
-        "next/navigation",
-        "lucide-react",
-        "@/components/ui/badge",
-        "@/components/ui/button",
-        "@/components/ui/input",
-        "@/i18n"
-      ],
-      "localImports": [
-        "@/components/ui/badge",
-        "@/components/ui/button",
-        "@/components/ui/input",
-        "@/i18n"
-      ],
-      "externalImports": [
-        "react",
-        "next/navigation",
         "lucide-react"
       ]
     },
@@ -10006,7 +9381,6 @@
         "@/lib/exchange/pulse",
         "@/lib/exchange/readings-registry",
         "@/components/exchange/section-head",
-        "@/components/product-images/create-mode-tabs",
         "@/components/personal/upload-assets",
         "@/components/ui/button",
         "@/components/ui/confirm-dialog",
@@ -10024,7 +9398,8 @@
         "@/lib/api/customer-video-dispatch",
         "@/lib/api/customer-video-dispatch-recovery",
         "@/lib/utils",
-        "@/lib/services/workspace-brand-package-service"
+        "@/lib/services/workspace-brand-package-service",
+        "@/lib/brand/brand-end-card-policy"
       ],
       "localImports": [
         "@/components/exchange/quote-header",
@@ -10032,7 +9407,6 @@
         "@/lib/exchange/pulse",
         "@/lib/exchange/readings-registry",
         "@/components/exchange/section-head",
-        "@/components/product-images/create-mode-tabs",
         "@/components/personal/upload-assets",
         "@/components/ui/button",
         "@/components/ui/confirm-dialog",
@@ -10050,7 +9424,8 @@
         "@/lib/api/customer-video-dispatch",
         "@/lib/api/customer-video-dispatch-recovery",
         "@/lib/utils",
-        "@/lib/services/workspace-brand-package-service"
+        "@/lib/services/workspace-brand-package-service",
+        "@/lib/brand/brand-end-card-policy"
       ],
       "externalImports": [
         "next/link",
@@ -10077,27 +9452,6 @@
       ],
       "externalImports": [
         "react",
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/components/wins/dimension-ledger.tsx",
-      "imports": [
-        "next/link",
-        "lucide-react",
-        "@/lib/services/recipe-racing-service",
-        "@/components/exchange/mono-tag",
-        "@/components/ui/button",
-        "@/i18n/platform-copy"
-      ],
-      "localImports": [
-        "@/lib/services/recipe-racing-service",
-        "@/components/exchange/mono-tag",
-        "@/components/ui/button",
-        "@/i18n/platform-copy"
-      ],
-      "externalImports": [
-        "next/link",
         "lucide-react"
       ]
     },
@@ -11143,19 +10497,6 @@
       ]
     },
     {
-      "file": "src/lib/schemas/content-plan.ts",
-      "imports": [
-        "zod",
-        "@/lib/video-generation/creative-recipe"
-      ],
-      "localImports": [
-        "@/lib/video-generation/creative-recipe"
-      ],
-      "externalImports": [
-        "zod"
-      ]
-    },
-    {
       "file": "src/lib/schemas/director-plan.ts",
       "imports": [
         "zod"
@@ -11177,23 +10518,6 @@
         "@/lib/video-generation/brand-signoff",
         "@/lib/video-generation/bgm-catalog",
         "@/types/video-generation"
-      ],
-      "externalImports": [
-        "zod"
-      ]
-    },
-    {
-      "file": "src/lib/services/ad-intel-service.ts",
-      "imports": [
-        "zod",
-        "@/lib/db",
-        "@/lib/ai",
-        "@/lib/video-generation/creative-recipe"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/ai",
-        "@/lib/video-generation/creative-recipe"
       ],
       "externalImports": [
         "zod"
@@ -11336,47 +10660,6 @@
       "externalImports": []
     },
     {
-      "file": "src/lib/services/content-plan-service.ts",
-      "imports": [
-        "@/lib/ai",
-        "@/lib/schemas/content-plan",
-        "@/lib/video-generation/creative-recipe",
-        "@/lib/services/originality-check"
-      ],
-      "localImports": [
-        "@/lib/ai",
-        "@/lib/schemas/content-plan",
-        "@/lib/video-generation/creative-recipe",
-        "@/lib/services/originality-check"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/lib/services/content-plan-store.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/brand/global-brand-access",
-        "@/lib/services/content-plan-service",
-        "@/lib/services/product-link-service",
-        "@/lib/services/product-image-facts-service",
-        "@/lib/services/winner-derivation-service",
-        "@/lib/schemas/content-plan"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/brand/global-brand-access",
-        "@/lib/services/content-plan-service",
-        "@/lib/services/product-link-service",
-        "@/lib/services/product-image-facts-service",
-        "@/lib/services/winner-derivation-service",
-        "@/lib/schemas/content-plan"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
       "file": "src/lib/services/content-post-image-job-service.ts",
       "imports": [
         "node:crypto",
@@ -11464,21 +10747,6 @@
       "localImports": [
         "@/lib/db",
         "./video-watchdog"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "src/lib/services/distillation-service.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/ai"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/ai"
       ],
       "externalImports": [
         "@prisma/client"
@@ -11575,18 +10843,6 @@
       ]
     },
     {
-      "file": "src/lib/services/first-pass-rate-service.ts",
-      "imports": [
-        "@/lib/db",
-        "@/lib/experiments/run-key"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/experiments/run-key"
-      ],
-      "externalImports": []
-    },
-    {
       "file": "src/lib/services/historical-dispatch-quarantine.ts",
       "imports": [
         "@prisma/client",
@@ -11598,22 +10854,6 @@
       "externalImports": [
         "@prisma/client"
       ]
-    },
-    {
-      "file": "src/lib/services/iteration-service.ts",
-      "imports": [
-        "@/lib/db",
-        "@/lib/services/distillation-service",
-        "@/lib/services/scoring-service",
-        "@/lib/services/racing-confidence"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/services/distillation-service",
-        "@/lib/services/scoring-service",
-        "@/lib/services/racing-confidence"
-      ],
-      "externalImports": []
     },
     {
       "file": "src/lib/services/lead-service.ts",
@@ -11727,19 +10967,6 @@
       "externalImports": [
         "node:crypto",
         "sharp"
-      ]
-    },
-    {
-      "file": "src/lib/services/metrics-service.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db"
-      ],
-      "localImports": [
-        "@/lib/db"
-      ],
-      "externalImports": [
-        "@prisma/client"
       ]
     },
     {
@@ -11864,16 +11091,6 @@
       "externalImports": []
     },
     {
-      "file": "src/lib/services/product-image-facts-service.ts",
-      "imports": [
-        "@/lib/ai"
-      ],
-      "localImports": [
-        "@/lib/ai"
-      ],
-      "externalImports": []
-    },
-    {
       "file": "src/lib/services/product-image-service.ts",
       "imports": [
         "node:crypto",
@@ -11898,20 +11115,6 @@
       "externalImports": [
         "node:crypto",
         "@prisma/client"
-      ]
-    },
-    {
-      "file": "src/lib/services/product-link-service.ts",
-      "imports": [
-        "node:dns/promises",
-        "node:net",
-        "zod"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "node:dns/promises",
-        "node:net",
-        "zod"
       ]
     },
     {
@@ -11987,27 +11190,6 @@
       ]
     },
     {
-      "file": "src/lib/services/racing-service.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/services/round-service",
-        "@/lib/services/iteration-service",
-        "@/lib/services/metrics-service",
-        "@/lib/services/racing-confidence"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/services/round-service",
-        "@/lib/services/iteration-service",
-        "@/lib/services/metrics-service",
-        "@/lib/services/racing-confidence"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
       "file": "src/lib/services/rate-limit-service.ts",
       "imports": [
         "node:crypto",
@@ -12018,31 +11200,6 @@
       ],
       "externalImports": [
         "node:crypto"
-      ]
-    },
-    {
-      "file": "src/lib/services/round-service.ts",
-      "imports": [
-        "@/lib/db"
-      ],
-      "localImports": [
-        "@/lib/db"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/lib/services/scoring-service.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/config/scoring-weights"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/config/scoring-weights"
-      ],
-      "externalImports": [
-        "@prisma/client"
       ]
     },
     {
@@ -12453,20 +11610,6 @@
         "@/lib/video-generation/voiceover-drive",
         "@/lib/video-generation/video-route-registry",
         "@/types/video-generation"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/lib/services/winner-derivation-service.ts",
-      "imports": [
-        "@/lib/services/performance-ingest-service",
-        "@/lib/services/recipe-racing-service",
-        "@/lib/services/ad-intel-service"
-      ],
-      "localImports": [
-        "@/lib/services/performance-ingest-service",
-        "@/lib/services/recipe-racing-service",
-        "@/lib/services/ad-intel-service"
       ],
       "externalImports": []
     },
@@ -13567,35 +12710,14 @@
         "node:assert/strict",
         "node:test",
         "../src/lib/db",
-        "../src/lib/services/product-image-service",
-        "../src/lib/services/content-plan-service"
+        "../src/lib/services/product-image-service"
       ],
       "localImports": [
         "../src/lib/db",
-        "../src/lib/services/product-image-service",
-        "../src/lib/services/content-plan-service"
+        "../src/lib/services/product-image-service"
       ],
       "externalImports": [
         "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/ad-intel-compliance.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:path",
-        "node:test",
-        "../src/lib/services/ad-intel-service"
-      ],
-      "localImports": [
-        "../src/lib/services/ad-intel-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:path",
         "node:test"
       ]
     },
@@ -13959,23 +13081,17 @@
         "node:path",
         "node:test",
         "../src/components/exchange/workspace-page",
-        "../src/components/content-plan/plan-week",
         "../src/components/templates/recipe-summary",
-        "../src/components/wins/dimension-ledger",
         "../src/components/platform/customer-route-state",
         "../src/i18n/platform-copy",
-        "../src/i18n/public-copy",
-        "../src/lib/services/recipe-racing-service"
+        "../src/i18n/public-copy"
       ],
       "localImports": [
         "../src/components/exchange/workspace-page",
-        "../src/components/content-plan/plan-week",
         "../src/components/templates/recipe-summary",
-        "../src/components/wins/dimension-ledger",
         "../src/components/platform/customer-route-state",
         "../src/i18n/platform-copy",
-        "../src/i18n/public-copy",
-        "../src/lib/services/recipe-racing-service"
+        "../src/i18n/public-copy"
       ],
       "externalImports": [
         "node:assert/strict",
@@ -14492,8 +13608,6 @@
       "file": "tests/brand-placement-and-category.test.ts",
       "imports": [
         "node:assert/strict",
-        "node:fs",
-        "node:path",
         "node:test",
         "../src/lib/video-generation/category-lock-registry",
         "../src/lib/video-generation/client-lock-profiles"
@@ -14504,8 +13618,6 @@
       ],
       "externalImports": [
         "node:assert/strict",
-        "node:fs",
-        "node:path",
         "node:test"
       ]
     },
@@ -14797,10 +13909,8 @@
         "next/server",
         "../src/components/capabilities/capability-board",
         "../src/components/capabilities/capability-indicator",
-        "../src/components/capabilities/capability-notice",
         "../src/components/video-generation/audio-caption-controls",
         "../src/components/platform/customer-route-state",
-        "../src/i18n/platform-copy",
         "../src/lib/capabilities/registry",
         "../src/lib/contracts/customer-api",
         "../src/middleware"
@@ -14808,10 +13918,8 @@
       "localImports": [
         "../src/components/capabilities/capability-board",
         "../src/components/capabilities/capability-indicator",
-        "../src/components/capabilities/capability-notice",
         "../src/components/video-generation/audio-caption-controls",
         "../src/components/platform/customer-route-state",
-        "../src/i18n/platform-copy",
         "../src/lib/capabilities/registry",
         "../src/lib/contracts/customer-api",
         "../src/middleware"
@@ -15055,23 +14163,6 @@
       ]
     },
     {
-      "file": "tests/content-plan.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/schemas/content-plan",
-        "../src/lib/services/content-plan-service"
-      ],
-      "localImports": [
-        "../src/lib/schemas/content-plan",
-        "../src/lib/services/content-plan-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/content-post-image-job.test.ts",
       "imports": [
         "node:assert/strict",
@@ -15087,7 +14178,6 @@
         "../src/lib/services/content-post-render-state",
         "../src/lib/services/exchange-readings",
         "../src/lib/services/unified-library-service",
-        "../src/app/api/content-plans/[id]/posts/[postId]/render/route",
         "../src/app/api/cron/poll-videos/route",
         "./helpers/content-post-image-fake-db"
       ],
@@ -15101,7 +14191,6 @@
         "../src/lib/services/content-post-render-state",
         "../src/lib/services/exchange-readings",
         "../src/lib/services/unified-library-service",
-        "../src/app/api/content-plans/[id]/posts/[postId]/render/route",
         "../src/app/api/cron/poll-videos/route",
         "./helpers/content-post-image-fake-db"
       ],
@@ -15288,20 +14377,6 @@
       ],
       "externalImports": [
         "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/customer-create-images-route-boundary.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:test"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "node:assert/strict",
-        "node:fs",
         "node:test"
       ]
     },
@@ -15709,16 +14784,12 @@
       "imports": [
         "node:assert/strict",
         "node:test",
-        "../src/lib/db",
         "../src/lib/experiments/run-key",
-        "../src/lib/services/exchange-readings",
-        "../src/lib/services/first-pass-rate-service"
+        "../src/lib/services/exchange-readings"
       ],
       "localImports": [
-        "../src/lib/db",
         "../src/lib/experiments/run-key",
-        "../src/lib/services/exchange-readings",
-        "../src/lib/services/first-pass-rate-service"
+        "../src/lib/services/exchange-readings"
       ],
       "externalImports": [
         "node:assert/strict",
@@ -15743,23 +14814,6 @@
       "externalImports": [
         "node:assert/strict",
         "node:fs",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/first-pass-rate.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/db",
-        "../src/lib/services/first-pass-rate-service"
-      ],
-      "localImports": [
-        "../src/lib/db",
-        "../src/lib/services/first-pass-rate-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
         "node:test"
       ]
     },
@@ -15970,26 +15024,18 @@
       "imports": [
         "node:assert/strict",
         "node:fs/promises",
-        "node:path",
         "node:test",
-        "zod",
         "../src/lib/api-auth",
-        "../src/lib/contracts/customer-api",
-        "../src/lib/db",
-        "../src/lib/services/racing-service"
+        "../src/lib/contracts/customer-api"
       ],
       "localImports": [
         "../src/lib/api-auth",
-        "../src/lib/contracts/customer-api",
-        "../src/lib/db",
-        "../src/lib/services/racing-service"
+        "../src/lib/contracts/customer-api"
       ],
       "externalImports": [
         "node:assert/strict",
         "node:fs/promises",
-        "node:path",
-        "node:test",
-        "zod"
+        "node:test"
       ]
     },
     {
@@ -16030,7 +15076,6 @@
         "../src/app/api/reports/route.ts",
         "../src/app/api/internal/reports/route.ts",
         "../src/app/api/internal/reports/[id]/route.ts",
-        "../src/app/api/demo/real-footage-ads/waitlist/route.ts",
         "../src/app/api/auth/[...nextauth]/route.ts",
         "../src/middleware.ts"
       ],
@@ -16039,7 +15084,6 @@
         "../src/app/api/reports/route.ts",
         "../src/app/api/internal/reports/route.ts",
         "../src/app/api/internal/reports/[id]/route.ts",
-        "../src/app/api/demo/real-footage-ads/waitlist/route.ts",
         "../src/app/api/auth/[...nextauth]/route.ts",
         "../src/middleware.ts"
       ],
@@ -16538,25 +15582,6 @@
       ]
     },
     {
-      "file": "tests/metrics-iteration.integration.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/db",
-        "../src/lib/services/iteration-service",
-        "../src/lib/services/racing-service"
-      ],
-      "localImports": [
-        "../src/lib/db",
-        "../src/lib/services/iteration-service",
-        "../src/lib/services/racing-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/middleware-auth-cookie.test.ts",
       "imports": [
         "node:assert/strict",
@@ -16883,21 +15908,6 @@
       ]
     },
     {
-      "file": "tests/originality-check.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/originality-check"
-      ],
-      "localImports": [
-        "../src/lib/services/originality-check"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/password-reset.test.ts",
       "imports": [
         "node:assert/strict",
@@ -17211,13 +16221,11 @@
         "node:fs/promises",
         "@prisma/client",
         "../src/app/api/cron/poll-videos/route",
-        "../src/app/api/product-images/route",
         "../src/lib/db",
         "../src/lib/services/product-image-service"
       ],
       "localImports": [
         "../src/app/api/cron/poll-videos/route",
-        "../src/app/api/product-images/route",
         "../src/lib/db",
         "../src/lib/services/product-image-service"
       ],
@@ -17229,25 +16237,9 @@
       ]
     },
     {
-      "file": "tests/product-image-retry-route.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/app/api/product-images/tasks/[taskId]/retry/route"
-      ],
-      "localImports": [
-        "../src/app/api/product-images/tasks/[taskId]/retry/route"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/product-image-studio.test.ts",
       "imports": [
         "node:assert/strict",
-        "node:fs/promises",
         "node:test",
         "../src/lib/services/product-image-service",
         "../src/lib/upload/media-file-validation",
@@ -17260,7 +16252,6 @@
       ],
       "externalImports": [
         "node:assert/strict",
-        "node:fs/promises",
         "node:test"
       ]
     },
@@ -17275,36 +16266,6 @@
       "externalImports": [
         "node:assert/strict",
         "node:fs/promises",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/product-link-ssrf.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/product-link-service"
-      ],
-      "localImports": [
-        "../src/lib/services/product-link-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/product-link.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/product-link-service"
-      ],
-      "localImports": [
-        "../src/lib/services/product-link-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
         "node:test"
       ]
     },
@@ -17676,23 +16637,6 @@
       ]
     },
     {
-      "file": "tests/racing-confidence.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "node:fs/promises",
-        "../src/lib/services/racing-confidence"
-      ],
-      "localImports": [
-        "../src/lib/services/racing-confidence"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test",
-        "node:fs/promises"
-      ]
-    },
-    {
       "file": "tests/reburn-captions-ops.test.ts",
       "imports": [
         "node:assert/strict",
@@ -17706,21 +16650,6 @@
       "externalImports": [
         "node:assert/strict",
         "node:fs/promises",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/recipe-racing.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/recipe-racing-service"
-      ],
-      "localImports": [
-        "../src/lib/services/recipe-racing-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
         "node:test"
       ]
     },
@@ -17908,13 +16837,11 @@
         "node:path",
         "node:test",
         "../src/lib/capabilities/registry",
-        "../src/lib/create/entry-policy",
         "../src/lib/services/capability-status-service",
         "../src/lib/services/ops-alert-service"
       ],
       "localImports": [
         "../src/lib/capabilities/registry",
-        "../src/lib/create/entry-policy",
         "../src/lib/services/capability-status-service",
         "../src/lib/services/ops-alert-service"
       ],
@@ -17988,7 +16915,6 @@
         "../src/lib/exchange/readings-registry",
         "../src/lib/services/exchange-readings",
         "../src/lib/services/unified-library-service",
-        "../src/lib/services/first-pass-rate-service",
         "../src/components/batch/batch-monitor-readings",
         "../src/components/leads/lead-milestone"
       ],
@@ -18001,7 +16927,6 @@
         "../src/lib/exchange/readings-registry",
         "../src/lib/services/exchange-readings",
         "../src/lib/services/unified-library-service",
-        "../src/lib/services/first-pass-rate-service",
         "../src/components/batch/batch-monitor-readings",
         "../src/components/leads/lead-milestone"
       ],
@@ -19871,13 +18796,11 @@
         "node:assert/strict",
         "node:test",
         "../src/app/api/upload/blob/route",
-        "../src/app/api/product-images/route",
         "../src/lib/db",
         "../src/lib/services/product-image-service"
       ],
       "localImports": [
         "../src/app/api/upload/blob/route",
-        "../src/app/api/product-images/route",
         "../src/lib/db",
         "../src/lib/services/product-image-service"
       ],
@@ -20468,46 +19391,6 @@
       ],
       "externalImports": [
         "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/winner-derivation.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:path",
-        "node:test",
-        "../src/lib/services/winner-derivation-service",
-        "../src/lib/services/content-plan-service"
-      ],
-      "localImports": [
-        "../src/lib/services/winner-derivation-service",
-        "../src/lib/services/content-plan-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:path",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/wins-entry-hidden.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test",
-        "../src/i18n/platform-copy",
-        "../src/lib/platform-routes"
-      ],
-      "localImports": [
-        "../src/i18n/platform-copy",
-        "../src/lib/platform-routes"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:fs/promises",
         "node:test"
       ]
     },

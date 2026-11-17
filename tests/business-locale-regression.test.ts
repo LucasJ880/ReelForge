@@ -24,7 +24,6 @@ const FORBIDDEN_HARDCODED = [
 const BUSINESS_PAGE_FILES = [
   "src/app/(platform)/app/create/page.tsx",
   "src/app/(platform)/app/batches/page.tsx",
-  "src/app/(platform)/app/racing/page.tsx",
   "src/app/(platform)/app/library/page.tsx",
   "src/app/(platform)/app/templates/page.tsx",
 ];
@@ -63,7 +62,11 @@ test("platform locale: 页面源码不得残留旧 B 端英文页头", () => {
 test("platform locale: 一级区导航中英文均存在且语义不同", () => {
   assert.equal(zhCN.shell.platformNav.library, "成品库");
   assert.equal(enUS.shell.platformNav.library, "Video library");
-  /// R5 战绩替换旧赛马导航；本周内容是新定位的主入口。
-  assert.notEqual(zhCN.shell.platformNav.wins, enUS.shell.platformNav.wins);
-  assert.notEqual(zhCN.shell.platformNav.plan, enUS.shell.platformNav.plan);
+  assert.notEqual(zhCN.shell.platformNav.batches, enUS.shell.platformNav.batches);
+  assert.notEqual(zhCN.shell.platformNav.products, enUS.shell.platformNav.products);
+  /// 「本周内容」「战绩」两页 2026-11-16 删除，导航名也随之拿掉
+  for (const nav of [zhCN.shell.platformNav, enUS.shell.platformNav] as Array<Record<string, string>>) {
+    assert.equal("plan" in nav, false);
+    assert.equal("wins" in nav, false);
+  }
 });

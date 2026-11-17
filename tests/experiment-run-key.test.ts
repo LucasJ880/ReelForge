@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
-import test, { type TestContext } from "node:test";
-import { db } from "../src/lib/db";
+import test from "node:test";
 import {
   EXPERIMENT_BATCH_KEY_PREFIX,
   isExperimentBatchKey,
@@ -8,31 +7,16 @@ import {
   notExperimentVideoJobWhere,
 } from "../src/lib/experiments/run-key";
 import { platformBatchFailureWhere } from "../src/lib/services/exchange-readings";
-import { videoFirstPassRate } from "../src/lib/services/first-pass-rate-service";
 
 /**
  * X-SCAF-0：实验批次（BatchJob.idempotencyKey 以 exp-2611- 开头）走生产批量管线写库，
- * 但不是商家的生成质量、也不是平台故障。两处平台读数必须把它们排除：
- *   1. platformBatchFailureWhere（exchange-readings；原来的调用方创始人日报 2026-11-16 已删）
- *   2. 一次通过率（first-pass-rate-service）
- * Prisma 一律打桩，不连数据库；另用一个小 where 解释器在内存行上真正执行同一份条件。
+ * 但不是商家的生成质量、也不是平台故障。平台读数必须把它们排除：
+ *   platformBatchFailureWhere（exchange-readings；原来的调用方创始人日报 2026-11-16 已删）。
+ *   （第二处「一次通过率」只有战绩页在用，随那一页 2026-11-16 删除。）
+ * 不连数据库：用一个小 where 解释器在内存行上真正执行同一份条件。
  */
 
-type Calls = Record<string, unknown[]>;
 type Row = Record<string, unknown>;
-
-/** 把 db.<model>.<method> 换成桩，记录每次的入参；测试结束还原。 */
-function stub(t: TestContext, calls: Calls, model: string, method: string, impl: (args: unknown) => unknown) {
-  const target = (db as unknown as Record<string, Record<string, unknown>>)[model];
-  const original = target[method];
-  target[method] = async (args: unknown) => {
-    (calls[`${model}.${method}`] ??= []).push(args);
-    return impl(args);
-  };
-  t.after(() => {
-    target[method] = original;
-  });
-}
 
 /* ── 小 where 解释器：只认这几处读数用到的算子 ───────────────────────── */
 
@@ -137,38 +121,4 @@ test("platformBatchFailureWhere：实验批次的失败不算平台失败，商�
   assert.equal(matches(failedJob(merchantBatch, { status: "SUCCEEDED" }), where), false);
   assert.equal(matches(failedJob(null), where), false);
   assert.equal(matches(failedJob(merchantBatch, { finishedAt: new Date(NOW.getTime() - 48 * HOUR) }), where), false);
-});
-
-/* ── 2. 一次通过率：只加运行键排除，样本判据不动 ────────────────────── */
-
-test("一次通过率：实验批次不进样本也不进通过数；单条任务与商家批次照旧；判据其余不变", async (t) => {
-  const calls: Calls = {};
-  const rows: Row[] = [
-    failedJob(merchantBatch, { status: "SUCCEEDED" }),
-    failedJob(merchantBatch, { status: "SUCCEEDED", retryCount: 1 }),
-    failedJob(merchantBatch),
-    failedJob(null, { status: "SUCCEEDED" }),
-    failedJob(merchantBatch, { status: "CANCELLED" }),
-    ...Array.from({ length: 20 }, () => failedJob(experimentBatch, { status: "SUCCEEDED" })),
-    ...Array.from({ length: 20 }, () => failedJob(experimentBatch)),
-  ];
-  stub(t, calls, "videoJob", "count", (args) => rows.filter((row) => matches(row, (args as { where: Row }).where)).length);
-
-  const platform = await videoFirstPassRate({});
-  assert.equal(platform.sample, 4, "成片 3 + 失败 1；取消不计；40 条实验任务一条不进");
-  assert.equal(platform.passed, 2, "一次通过 = 无重试的成片（含单条）");
-
-  const sampleWhere = (calls["videoJob.count"]![0] as { where: Row }).where;
-  assert.deepEqual(sampleWhere.status, { in: ["SUCCEEDED", "FAILED"] }, "样本判据不动：成片 + 失败，取消不计");
-  assert.equal("batchJob" in sampleWhere, false, "不传 userId 时不加归属过滤，单条任务仍在样本里");
-  const passedWhere = (calls["videoJob.count"]![1] as { where: Row }).where;
-  assert.equal(passedWhere.status, "SUCCEEDED");
-  assert.equal(passedWhere.retryCount, 0);
-  assert.deepEqual(passedWhere.submitAttempts, { lte: 1 });
-
-  /// 按账号看也一样排除（实验若挂在某个账号下，不污染它的通过率）
-  const operatorRows = rows.filter((row) => (row.batchJob as Row | null)?.userId === "operator");
-  stub(t, calls, "videoJob", "count", (args) => operatorRows.filter((row) => matches(row, (args as { where: Row }).where)).length);
-  const operator = await videoFirstPassRate({ userId: "operator" });
-  assert.equal(operator.sample, 0);
 });

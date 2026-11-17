@@ -9,7 +9,6 @@ const ROUTES = [
   "src/app/(platform)/app/create",
   "src/app/(platform)/app/batches",
   "src/app/(platform)/app/batches/[id]",
-  "src/app/(platform)/app/racing",
   "src/app/(platform)/app/library",
   "src/app/(platform)/app/templates",
 ] as const;
@@ -25,7 +24,7 @@ test("RF-012 customer route loaders never collapse service failures into empty d
   }
 });
 
-test("RF-012 all six customer routes own loading and error boundaries", async () => {
+test("RF-012 all five customer routes own loading and error boundaries", async () => {
   for (const route of ROUTES) {
     await Promise.all([
       access(path.join(ROOT, route, "loading.tsx")),

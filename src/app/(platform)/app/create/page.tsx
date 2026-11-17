@@ -15,7 +15,6 @@ import { applyHookAngle, HOOK_ANGLES, stripHookAngle } from "@/lib/create/hook-a
 import { resolveOwnedImageAssets } from "@/lib/services/media-asset-service";
 import { readMachineVideoTaskPrefill } from "@/lib/services/machine-video-task-service";
 import { countFinished, loadExchangeReadings, loadProductionCounts, loadVideoQuota } from "@/lib/services/exchange-readings";
-import { findProductImageResultForUser } from "@/lib/services/product-image-service";
 import type { UploadedAsset } from "@/types/video-generation";
 import { getServerLocale } from "@/i18n/server";
 import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
@@ -32,7 +31,6 @@ export default async function PlatformCreatePage({
   searchParams,
 }: {
   searchParams: Promise<{
-    productImageResultId?: string;
     styleTemplate?: string;
     prompt?: string;
     guide?: string;
@@ -46,7 +44,7 @@ export default async function PlatformCreatePage({
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/create");
-  const [{ productImageResultId, styleTemplate, prompt, guide, retry, hook, machineTask, product }, locale, routeState] = await Promise.all([
+  const [{ styleTemplate, prompt, guide, retry, hook, machineTask, product }, locale, routeState] = await Promise.all([
     searchParams,
     getServerLocale(),
     getCustomerRouteRehearsalState("create"),
@@ -59,18 +57,15 @@ export default async function PlatformCreatePage({
     /// 出过成片的账号不再被当成新人弹首启引导（只看本地记号时，换台电脑就又弹一次）
     routeState === "empty" ? Promise.resolve(0) : countFinished(session.user.id).catch(() => 0),
   ]);
-  const result = productImageResultId
-    ? await findProductImageResultForUser(productImageResultId, session.user.id)
-    : null;
   /// 成品库「重新生成」：按属主读回原订单的产品照片与创作方向（别人的订单当作不存在）。
-  const retryPrefill = typeof retry === "string" && retry && !result
+  const retryPrefill = typeof retry === "string" && retry
     ? await loadCreateRetryPrefill(retry, session.user.id)
     : null;
   /// 商品档案：按属主读（别人的、归档的当作不存在）。和「重新生成」同时带时以重新生成为准。
-  const productPrefill = typeof product === "string" && product && !result && !retryPrefill
+  const productPrefill = typeof product === "string" && product && !retryPrefill
     ? await loadProductProfilePrefill(session.user.id, product)
     : null;
-  const machinePrefill = typeof machineTask === "string" && machineTask && !result && !retryPrefill && !productPrefill
+  const machinePrefill = typeof machineTask === "string" && machineTask && !retryPrefill && !productPrefill
     ? await readMachineVideoTaskPrefill(session.user.id, machineTask)
     : null;
   const machineAssets = machinePrefill?.assetIds.length
@@ -79,7 +74,7 @@ export default async function PlatformCreatePage({
   const hookAngle = HOOK_ANGLES.find((angle) => angle.id === hook)?.id ?? null;
   /// 「接着拍这些商品」：只在空白创作页上用得着（带着预填进来的不查）；读不到由服务层记日志、当作没有，不拦创作
   /// 存好的商品在前，不够四格再用最近拍过、还没存的补上。
-  const recentSources = routeState === "empty" || result || retryPrefill || machinePrefill || productPrefill
+  const recentSources = routeState === "empty" || retryPrefill || machinePrefill || productPrefill
     ? []
     : (await loadCreateShortcutsOrNone(session.user.id)).map((shortcut) => ({
         id: `${shortcut.kind}:${shortcut.id}`,
@@ -126,28 +121,11 @@ export default async function PlatformCreatePage({
     warnings: [],
   }));
   const initialAssets: UploadedAsset[] =
-    result
-      ? [{
-          id: result.assetId,
-          assetId: result.assetId,
-          type: "IMAGE",
-          inferredRole: "product_image",
-          roleConfidence: 1,
-          url: absoluteAssetUrl(result.asset.url),
-          mimeType: result.asset.mimeType,
-          fileName: `Aivora-product-image-${result.id.slice(-6)}.png`,
-          width: result.asset.width,
-          height: result.asset.height,
-          durationSeconds: null,
-          userAssignedRole: "product_image",
-          suggestedUse: locale === "en-US" ? "Loaded from Product Image Studio as a product-consistency reference." : "已从产品图工作台载入，可作为视频的产品一致性参考。",
-          warnings: [],
-        }]
-      : retryAssets.length > 0
-        ? retryAssets
-        : productAssets.length > 0
-          ? productAssets
-          : machineAssets;
+    retryAssets.length > 0
+      ? retryAssets
+      : productAssets.length > 0
+        ? productAssets
+        : machineAssets;
   return (
     <div data-route-state={routeState === "empty" ? "empty" : "ready"}>
       <StreamlinedVideoStudio
@@ -173,7 +151,7 @@ export default async function PlatformCreatePage({
             : null
         }
         retryOfOrderId={retryPrefill?.orderId ?? null}
-        loadedProductName={productAssets.length > 0 && !result && retryAssets.length === 0 ? productPrefill?.name ?? null : null}
+        loadedProductName={productAssets.length > 0 && retryAssets.length === 0 ? productPrefill?.name ?? null : null}
         recentSources={recentSources}
         brandPackages={brandPackages}
         canSelectVideoRoute={false}

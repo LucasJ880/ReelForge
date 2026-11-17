@@ -24,7 +24,6 @@ import {
   type CapabilityKey,
   type CapabilityRecord,
 } from "../src/lib/capabilities/registry";
-import * as entryPolicy from "../src/lib/create/entry-policy";
 import { rowToCapabilityRecord } from "../src/lib/services/capability-status-service";
 import { capabilityTransitionAlert } from "../src/lib/services/ops-alert-service";
 
@@ -109,11 +108,12 @@ test("没有活代码还指着删掉的线路：不 import、不请求那些接�
 });
 
 test("入口开关随代码一起拿掉：要放回得取回代码，不是改个开关", () => {
-  assert.deepEqual(Object.keys(entryPolicy).sort(), ["PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED"]);
-  assert.equal(entryPolicy.PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED, false);
+  /// 最后一个开关（产品图工作台的切换）2026-11-16 第 3 批随工作台删除，entry-policy.ts 整个文件没了
+  assert.equal(existsSync("src/lib/create/entry-policy.ts"), false);
 
   const studio = read("src/components/video-generation/streamlined-video-studio.tsx");
   assert.doesNotMatch(studio, /PRODUCT_LINK_ENTRY_ENABLED|BROLL_ROUTE_ENTRY_ENABLED|ProductLinkPrefill|BrollQuickCard/);
+  assert.doesNotMatch(studio, /PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED|CreateModeTabs|entry-policy/);
   const brands = read("src/app/(platform)/app/brands/page.tsx");
   assert.doesNotMatch(brands, /PRODUCT_ANCHOR_ENTRY_ENABLED|ProductAnchorManager|listProductAnchorsForUser/);
   assert.match(brands, /<BrandPackageManager/, "品牌包管理照旧");
@@ -235,4 +235,83 @@ test("画面质检整套删除之后：功能表里没有它，状态页「影�
   assert.ok(vision, "看图能力仍在客户视图里");
   assert.deepEqual(vision.features, ["storyboardReview"]);
   assert.match(vision.message["zh-CN"], /商品图/);
+});
+
+/* ── 第 3 批之三（2026-11-16）：四个早已撤出菜单的页面彻底删除 ───────────────── */
+
+test("本周内容、战绩、投放赛马、产品图工作台：页面、接口、组件、只有它们用的服务都不在了", () => {
+  for (const gone of [
+    "src/app/(platform)/app/plan",
+    "src/app/(platform)/app/wins",
+    "src/app/(platform)/app/racing",
+    "src/app/(platform)/app/create/images",
+    "src/app/api/content-plans",
+    "src/app/api/racing",
+    "src/app/api/product-images",
+    "src/app/api/demo",
+    "src/components/content-plan",
+    "src/components/wins",
+    "src/components/racing",
+    "src/components/product-images",
+    "src/components/library/render-pending-posts-button.tsx",
+    "src/components/library/post-render-watcher.tsx",
+    "src/lib/services/content-plan-service.ts",
+    "src/lib/services/content-plan-store.ts",
+    "src/lib/services/product-link-service.ts",
+    "src/lib/services/racing-service.ts",
+    "src/lib/services/scoring-service.ts",
+    "src/lib/services/racing-confidence.ts",
+    "src/lib/services/recipe-racing-service.ts",
+    "src/lib/services/winner-derivation-service.ts",
+    "src/lib/services/first-pass-rate-service.ts",
+  ]) {
+    assert.equal(existsSync(gone), false, `${gone} 应该已经删除`);
+  }
+});
+
+test("没有活代码还链到那四页或请求它们的接口；旧网址由 next.config 转到还在的页面", () => {
+  const offenders: string[] = [];
+  const forbidden =
+    /["'`(]\/app\/(plan|wins|racing)\b|\/app\/create\/images|\/api\/content-plans|\/api\/racing|\/api\/product-images|\/api\/demo\b|productImageResultId/;
+  for (const file of walk("src")) {
+    /// 注释里可以提历史；只看代码行
+    const code = read(file)
+      .split("\n")
+      .filter((line) => !/^\s*(\/\/|\*|\/\*)/.test(line))
+      .join("\n");
+    if (forbidden.test(code)) offenders.push(file);
+  }
+  assert.deepEqual(offenders, []);
+
+  const config = read("next.config.ts");
+  for (const [source, destination] of [
+    ["/app/plan", "/app/create"],
+    ["/app/wins", "/app/library"],
+    ["/app/racing", "/app/library"],
+    ["/app/create/images", "/app/create"],
+  ]) {
+    assert.ok(
+      config.includes(`{ source: "${source}", destination: "${destination}", permanent: false }`),
+      `${source} 的旧书签要落到 ${destination}`,
+    );
+  }
+  assert.doesNotMatch(config, /destination: "\/app\/(plan|wins|racing|create\/images)"/, "不能再有转向已删页面的跳转");
+});
+
+test("成品库里以前做好的图文帖照旧摆着，但不再链到已删的本周内容；询盘出错时的返回钮改回创作页", () => {
+  const library = read("src/app/(platform)/app/library/page.tsx");
+  assert.match(library, /readyPostRows\.map/);
+  assert.match(library, /row\.source !== "post" \|\| row\.status === "ready"/);
+  assert.match(read("src/app/(platform)/app/library/[id]/page.tsx"), /if \(id\.startsWith\("post-"\)\) redirect\("\/app\/library"\);/);
+  const routeState = read("src/components/platform/customer-route-state.ts");
+  assert.match(routeState, /leads: "\/app\/create"/);
+  assert.doesNotMatch(routeState, /"createImages"|"racing"|"plan"|"wins"/);
+});
+
+test("每分钟的 poll-videos 还在给在途的产品图 / 图文配图任务收尾（两张表与任务都留着）", () => {
+  const cron = read("src/app/api/cron/poll-videos/route.ts");
+  assert.match(cron, /pollPendingProductImageJobs/);
+  assert.match(cron, /pollPendingContentPostRenders/);
+  assert.ok(existsSync("src/lib/services/product-image-service.ts"));
+  assert.ok(existsSync("src/lib/services/content-post-image-job-service.ts"));
 });

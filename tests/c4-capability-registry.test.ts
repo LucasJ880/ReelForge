@@ -112,7 +112,6 @@ test("C4 客户端组件不（直接或传递地）引服务端模块：OpenAI /
     "src/lib/capabilities/registry.ts",
     "src/components/capabilities/capability-indicator.tsx",
     "src/components/capabilities/use-capabilities.ts",
-    "src/components/capabilities/capability-notice.tsx",
     "src/components/capabilities/capability-board.tsx",
     "src/components/video-generation/audio-caption-controls.tsx",
     "src/components/platform/platform-shell.tsx",

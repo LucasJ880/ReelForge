@@ -18,8 +18,9 @@ const expected = new Map([
   ["/business/creative-studio", "/app/create"],
   ["/business/products", "/app/library"],
   ["/business/products/:id", "/app/library/:id"],
-  ["/business/performance", "/app/racing"],
-  ["/business/recommendations", "/app/racing"],
+  /// 这两条原来落到投放赛马（/app/racing）；那一页 2026-11-16 删了，改落成品库
+  ["/business/performance", "/app/library"],
+  ["/business/recommendations", "/app/library"],
   ["/business/billing", "/app/create"],
   ["/business/integrations", "/app/create"],
   ["/business/digital-human-store-ad", "/app/create"],

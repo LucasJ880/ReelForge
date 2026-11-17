@@ -15,18 +15,6 @@ function read(relative: string): string {
   return readFileSync(path.join(process.cwd(), relative), "utf8");
 }
 
-test("🔴 C2.1 生成一周计划不计费：content-plans 路由没有任何扣费调用", () => {
-  const route = read("src/app/api/content-plans/route.ts");
-  const store = read("src/lib/services/content-plan-store.ts");
-  for (const source of [route, store]) {
-    assert.doesNotMatch(
-      source,
-      /quota|credit|charge|billing|consume/i,
-      "计划生成的成本只有一次 LLM 调用，对它收费等于惩罚迭代",
-    );
-  }
-});
-
 test("🔴 C2.1 重复出图不重复计费：已出齐的帖子短路返回", () => {
   const source = read("src/lib/services/content-post-render-service.ts");
   /// A4 5.3 起按 slide 补缺：每屏都有图才短路（以前「有任意一张就返回」，半套轮播永远补不齐）。

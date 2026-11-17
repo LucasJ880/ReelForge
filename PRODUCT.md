@@ -26,8 +26,9 @@ AI 批量生成短视频广告与产品图，管理素材库与投放赢家，�
 
 ## Operating Context
 
-- 客户自助面 `/app`：plan（内容计划）→ create（生成向导）→ batches（批次监控）→
-  library（成品库）→ wins（赢家）→ brands / templates。
+- 客户自助面 `/app`：create（创作）→ batches（批次监控）→ library（成品库）→
+  products / brands / templates。plan（本周内容）、wins（战绩）、racing（投放赛马）、
+  create/images（产品图工作台）四页 2026-11-16 已删除（代码与接口都不在了，表还在）。
 - 旧代运营中台 `(internal)` 19 页，PRD §10 A 级下线中，只减不加。
 - 商单面 `(business)`、个人面 `(personal)`、公开落地页 `(public)`、登录 `(auth)`。
 - 真实供应商链路：Shuyu / Seedance / OpenAI / Vercel Blob / Neon。生成任务长时运行、

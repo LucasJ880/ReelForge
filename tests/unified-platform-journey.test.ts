@@ -8,11 +8,10 @@ import { PLATFORM_PRIMARY_NAV, platformPathAfterGeneration } from "../src/lib/pl
 /// 这里仍然逐项断言而不是只数个数 —— 一级区的增减必须是有意的产品决定。
 test("Phase1 unified journey：一级区只有一套 /app 路径", () => {
   assert.deepEqual(PLATFORM_PRIMARY_NAV.map(({ label, href }) => ({ label, href })), [
-    /// 2026-10-28 瘦身（学 LibTV）：「本周内容」与「询盘」A 级下线，路由保留可直达。
+    /// 2026-10-28 瘦身（学 LibTV）：「询盘」A 级下线，路由保留可直达。
+    /// 「本周内容」「战绩」「投放赛马」三页 2026-11-16 彻底删除（旧网址由 next.config 转走）。
     { label: "创作", href: "/app/create" },
     { label: "批量生产", href: "/app/batches" },
-    /// 「战绩」入口暂时下线（2026-10-25 审计 B5）：表现数据回流没开，页面只能是零；
-    /// /app/wins 路由保留可直达（见下一个测试），有真实数据后再放回导航。
     { label: "成品库", href: "/app/library" },
     /// 2026-11-10 商品档案（用户确认：放在资产组，成品库和品牌之间）
     { label: "商品", href: "/app/products" },
@@ -21,25 +20,18 @@ test("Phase1 unified journey：一级区只有一套 /app 路径", () => {
     /// 2026-10-28 客户使用指南（学 LibTV「学院」）
     { label: "使用指南", href: "/app/guide" },
   ]);
-  assert.ok(
-    !PLATFORM_PRIMARY_NAV.map((item): string => item.href).includes("/app/wins"),
-    "没有真实表现数据之前，战绩页不进导航",
-  );
+  for (const gone of ["/app/plan", "/app/wins", "/app/racing", "/app/create/images"]) {
+    assert.ok(!PLATFORM_PRIMARY_NAV.map((item): string => item.href).includes(gone), `${gone} 已删除，不能回到导航`);
+  }
   assert.equal(platformPathAfterGeneration("order 1"), "/app/library?highlight=order%201");
 });
 
 test("Phase1 unified journey：各一级区页面与批次/成品详情均存在", async () => {
   for (const file of [
-    "src/app/(platform)/app/plan/page.tsx",
-    /// 战绩入口撤了导航，路由保留可直达（A 级下线只动导航）。
-    "src/app/(platform)/app/wins/page.tsx",
-    /// A 级下线只动导航：旧 racing 路由必须仍然存在（可直达）。
-    "src/app/(platform)/app/racing/page.tsx",
     "src/app/(platform)/app/create/page.tsx",
     "src/app/(platform)/app/batches/new/page.tsx",
     "src/app/(platform)/app/batches/page.tsx",
     "src/app/(platform)/app/batches/[id]/page.tsx",
-    "src/app/(platform)/app/racing/page.tsx",
     "src/app/(platform)/app/library/page.tsx",
     "src/app/(platform)/app/library/[id]/page.tsx",
     "src/app/(platform)/app/brands/page.tsx",

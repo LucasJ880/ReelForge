@@ -24,7 +24,6 @@ const { db } = require("../src/lib/db.ts") as { db: Record<string, unknown> };
 const reportsRoute = require("../src/app/api/reports/route.ts") as MutableRecord;
 const internalReportsRoute = require("../src/app/api/internal/reports/route.ts") as MutableRecord;
 const internalReportRoute = require("../src/app/api/internal/reports/[id]/route.ts") as MutableRecord;
-const waitlistRoute = require("../src/app/api/demo/real-footage-ads/waitlist/route.ts") as MutableRecord;
 const nextAuthRoute = require("../src/app/api/auth/[...nextauth]/route.ts") as MutableRecord;
 const { middleware } = require("../src/middleware.ts") as {
   middleware: (request: NextRequest) => Promise<Response>;
@@ -246,56 +245,6 @@ test("H1 secondary contracts group C", async (t) => {
     );
   });
 
-  await t.test("public demo waitlist locks validation and accepted response without external IO", async (st) => {
-    const lead = db.realFootageDemoLead as MutableRecord;
-    let created: unknown;
-    patch(st, lead, {
-      create: async (args: unknown) => {
-        created = args;
-        return { id: "lead-contract" };
-      },
-    });
-    const post = handler<(request: NextRequest) => Promise<Response>>(waitlistRoute, "POST");
-
-    const invalid = await post(
-      jsonRequest("/api/demo/real-footage-ads/waitlist", "POST", {
-        name: "",
-        businessType: "ecommerce",
-        monthlyVolume: "51-200",
-        painPoint: "Need reliable batch ads",
-        email: "contract-lead@example.com",
-      }),
-    );
-    assert.equal(invalid.status, 400);
-    assert.deepEqual(await invalid.json(), { error: "请填写姓名。" });
-
-    await assertJson(
-      await post(
-        jsonRequest("/api/demo/real-footage-ads/waitlist", "POST", {
-          name: "Contract Lead",
-          businessType: "ecommerce",
-          monthlyVolume: "51-200",
-          painPoint: "Need reliable batch ads",
-          email: "contract-lead@example.com",
-        }),
-      ),
-      200,
-      { ok: true, message: "已收到，我们会联系你安排 demo。" },
-    );
-    assert.deepEqual(created, {
-      data: {
-        name: "Contract Lead",
-        businessType: "ecommerce",
-        monthlyVolume: "51-200",
-        painPoint: "Need reliable batch ads",
-        email: "contract-lead@example.com",
-        source: "demo/real-footage-ads",
-      },
-    });
-  });
-
-
-
   await t.test("removed Stripe webhook path is no longer let through middleware", async (st) => {
     /// 2026-11-16 线上收款定了不做，webhook 路由已删；放行名单里也不能留着这一条。
     const previousAuthSecret = process.env.AUTH_SECRET;
@@ -305,7 +254,9 @@ test("H1 secondary contracts group C", async (t) => {
       else process.env.AUTH_SECRET = previousAuthSecret;
     });
 
-    for (const path of ["/api/webhooks/stripe", "/api/webhooks/stripe/extra"]) {
+    /// 同一天删的还有旧 demo 的候补登记接口（/api/demo/real-footage-ads/waitlist，没有任何页面在调）：
+    /// 放行名单里的 `/api/demo` 一并拿掉，匿名请求和别的接口一样回 401。
+    for (const path of ["/api/webhooks/stripe", "/api/webhooks/stripe/extra", "/api/demo/real-footage-ads/waitlist"]) {
       await assertJson(
         await middleware(
           new NextRequest(`https://app.aivora.example${path}`, {
@@ -323,7 +274,6 @@ test("H1 secondary contracts group C", async (t) => {
       ["/api/reports", reportsRoute, ["POST"]],
       ["/api/internal/reports", internalReportsRoute, ["GET"]],
       ["/api/internal/reports/[id]", internalReportRoute, ["PATCH"]],
-      ["/api/demo/real-footage-ads/waitlist", waitlistRoute, ["POST"]],
       ["/api/auth/[...nextauth]", nextAuthRoute, ["GET", "POST"]],
     ];
     const httpMethods = new Set(["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]);

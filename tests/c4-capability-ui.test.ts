@@ -6,10 +6,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { NextRequest } from "next/server";
 import { CapabilityBoard, orderCapabilities } from "../src/components/capabilities/capability-board";
 import { CapabilityIndicator } from "../src/components/capabilities/capability-indicator";
-import { CapabilityNotice } from "../src/components/capabilities/capability-notice";
 import { AudioCaptionControls } from "../src/components/video-generation/audio-caption-controls";
 import { CUSTOMER_ROUTE_FALLBACKS, CUSTOMER_ROUTE_WALL_CELLS } from "../src/components/platform/customer-route-state";
-import { getPlatformCopy } from "../src/i18n/platform-copy";
 import {
   CAPABILITY_KEYS,
   resolveCapabilities,
@@ -175,36 +173,6 @@ test("创作页：写作暂停时写明镜头按模板规划；成片画面质�
 });
 
 /* ── 本周内容页头 ──────────────────────────────────────────────────── */
-
-test("本周内容：写作或配图暂停时，时间线上方一条细通知（只改 page.tsx，不动 plan-timeline）", () => {
-  const page = read("src/app/(platform)/app/plan/page.tsx");
-  assert.match(page, /const PLAN_CAPABILITY_FEATURES = \["contentPlanWriting", "imagePosts"\] as const;/);
-  const notice = page.indexOf("<CapabilityNotice");
-  const timeline = page.indexOf("<PlanTimeline plan={plan} />");
-  assert.ok(notice > 0 && timeline > notice, "通知在时间线上方");
-  assert.doesNotMatch(read("src/components/content-plan/plan-timeline.tsx"), /CapabilityNotice|capabilities/);
-
-  const html = renderToStaticMarkup(
-    React.createElement(CapabilityNotice, {
-      capabilities: PRODUCTION_1025,
-      features: ["contentPlanWriting", "imagePosts"],
-      locale: "zh-CN",
-      linkLabel: getPlatformCopy("zh-CN").status.noticeLink,
-    }),
-  );
-  assert.match(html, /role="status"/);
-  assert.match(html, /周计划撰写暂停：AI 写作暂不可用。周计划先按模板排好/);
-  /// C2 起图文配图走 Shuyu（image）：OpenAI 没额度不再连带图文出图，只剩周计划撰写一条通知
-  assert.doesNotMatch(html, /图文配图暂停/, "图文配图走 Shuyu，不随 OpenAI 账户停");
-  assert.match(html, /href="\/app\/status"/);
-  assert.equal(
-    renderToStaticMarkup(
-      React.createElement(CapabilityNotice, { capabilities: ALL_GOOD, features: ["contentPlanWriting", "imagePosts"], locale: "zh-CN" }),
-    ),
-    "",
-    "全部正常时不占位",
-  );
-});
 
 /* ── 壳层状态栏 + 状态页 ───────────────────────────────────────────── */
 

@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { BatchCreateWizard } from "@/components/batch/batch-create-wizard";
 import { authOptions } from "@/lib/auth";
 import { isInternalRole } from "@/lib/auth-role-policy";
-import { findProductImageResultForUser } from "@/lib/services/product-image-service";
 import { loadProductionCounts, loadVideoQuota } from "@/lib/services/exchange-readings";
 import { listActiveStyleTemplates } from "@/lib/services/style-template-service";
 import { QuoteHeader } from "@/components/exchange/quote-header";
@@ -15,28 +14,18 @@ import { contactEmail } from "@/lib/config/contact";
 export default async function PlatformBatchCreatePage({
   searchParams,
 }: {
-  searchParams: Promise<{ template?: string; productImageResultId?: string }>;
+  searchParams: Promise<{ template?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/batches/new");
-  const { template: initialTemplateId, productImageResultId } = await searchParams;
-  const [result, production, quota, templates, locale] = await Promise.all([
-    productImageResultId
-      ? findProductImageResultForUser(productImageResultId, session.user.id)
-      : Promise.resolve(null),
+  const { template: initialTemplateId } = await searchParams;
+  const [production, quota, templates, locale] = await Promise.all([
     loadProductionCounts(session.user.id),
     /// 额度格读本月真实用量对生效上限（试用 3 条），不是「近 30 天成片 / 套餐表上限」。
     loadVideoQuota(session.user.id),
     listActiveStyleTemplates(),
     getServerLocale(),
   ]);
-  const initialImages = result
-    ? [{
-        id: result.assetId,
-        url: absoluteAssetUrl(result.asset.url),
-        fileName: `Aivora-product-image-${result.id.slice(-6)}.png`,
-      }]
-    : [];
   const copy = getPlatformCopy(locale).batches;
   return (
     <div className="x-stack">
@@ -55,20 +44,10 @@ export default async function PlatformBatchCreatePage({
       <BatchCreateWizard
         batchDetailsBasePath="/app/batches"
         initialTemplateId={initialTemplateId}
-        initialImages={initialImages}
         showProviderPoints={isInternalRole(session.user.role)}
         contactEmail={contactEmail()}
         remainingVideos={isInternalRole(session.user.role) || quota.limit <= 0 ? null : Math.max(0, quota.limit - quota.used)}
       />
     </div>
   );
-}
-
-function absoluteAssetUrl(url: string): string {
-  if (/^https?:\/\//i.test(url)) return url;
-  const base = process.env.NEXT_PUBLIC_APP_URL
-    || (process.env.VERCEL_PROJECT_PRODUCTION_URL
-      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-      : "http://localhost:3000");
-  return new URL(url, base).toString();
 }

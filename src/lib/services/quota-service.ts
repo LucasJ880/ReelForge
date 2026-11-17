@@ -883,11 +883,6 @@ export async function assertRegisterRateLimit(params: {
  * spike without inventing a new commercial entitlement.
  */
 const AUTHENTICATED_ACTION_RATE_LIMITS = {
-  "product-image": {
-    envKey: "PRODUCT_IMAGE_RATE_LIMIT_PER_HOUR",
-    fallback: 5,
-    message: "图片生成操作过于频繁，请一小时后再试。",
-  },
   /// P05-B 只重拼（换字幕样式 / 配乐）：零生成计费，但每次都要跑一遍合成器函数，
   /// 限频防止循环点击把 stitch-dispatch 打满。
   restitch: {

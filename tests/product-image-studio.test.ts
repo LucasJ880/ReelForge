@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
   buildProductImagePrompt,
@@ -113,64 +112,4 @@ test("shared upload validator accepts ISO media container for MP4 video and M4A 
   assert.equal(validateMediaMagicBytes(ftyp, "video/mp4").ok, true);
   assert.equal(validateMediaMagicBytes(ftyp, "audio/x-m4a").ok, true);
   assert.equal(validateMediaMagicBytes(ftyp, "image/png").ok, false);
-});
-
-test("product-image route contract has auth, owner idempotency, rate limit and owned source assets", async () => {
-  const route = await readFile("src/app/api/product-images/route.ts", "utf8");
-  assert.match(route, /requireAuth\(\)/);
-  assert.match(route, /userId_idempotencyKey/);
-  assert.match(route, /assertAuthenticatedActionRateLimit/);
-  assert.match(route, /resolveOwnedImageAssets/);
-  assert.doesNotMatch(route, /reviewMediaOrThrow/);
-  assert.match(route, /sourceAssetId/);
-  assert.match(route, /resultCount/);
-});
-
-test("video handoff loads product images with owner-scoped lookup", async () => {
-  const [single, batch] = await Promise.all([
-    readFile("src/app/(platform)/app/create/page.tsx", "utf8"),
-    readFile("src/app/(platform)/app/batches/new/page.tsx", "utf8"),
-  ]);
-  for (const page of [single, batch]) {
-    assert.match(page, /findProductImageResultForUser/);
-    assert.match(page, /session\.user\.id/);
-    assert.match(page, /productImageResultId/);
-  }
-  assert.match(single, /result\.assetId/);
-  assert.match(single, /assetId: result\.assetId/);
-  assert.match(batch, /result\.assetId/);
-  assert.doesNotMatch(single, /product_image_\$\{job\.id\}/);
-  assert.doesNotMatch(batch, /product-image-\$\{job\.id\}/);
-  assert.match(single, /inferredRole: "product_image"/);
-  assert.match(batch, /initialImages/);
-});
-
-test("customer UI exposes one optional-reference Aivora workbench and video handoffs", async () => {
-  const [ui, copy] = await Promise.all([
-    readFile("src/components/product-images/product-image-studio.tsx", "utf8"),
-    readFile("src/i18n/platform-copy.ts", "utf8"),
-  ]);
-  // 1025 · B2.5：内部模型名（Image 2）不再出现在客户界面，工作台标签是「AI 出图」
-  assert.doesNotMatch(ui, /Image 2/);
-  assert.match(ui, /AI 出图/);
-  assert.match(ui, /Aivora/);
-  assert.match(ui, /sourceAssetId/);
-  assert.match(ui, /resultCount/);
-  assert.match(ui, /copy\.useSingle/);
-  assert.match(ui, /copy\.useBatch/);
-  assert.match(ui, /outputAssetId: string \| null/);
-  assert.match(ui, /productImageResultId/);
-  assert.match(copy, /优化实拍图/);
-  assert.match(copy, /生成产品图/);
-  assert.match(copy, /用于单条视频/);
-  assert.match(copy, /用于批量视频/);
-  assert.match(ui, /download/);
-  assert.doesNotMatch(ui, /shuyu_api_key|sk_live_|ARK_API_KEY/);
-  /// 印上品牌 Logo 入口：开关 + 品牌包提交字段 + zh/en 文案。
-  assert.match(ui, /product-image-brand-logo-toggle/);
-  assert.match(ui, /brandPackageId/);
-  assert.match(copy, /印上品牌 Logo/);
-  assert.match(copy, /Imprint brand logo/);
-  /// 客户端组件不得 import 服务端 service（client-bundle-safety 铁律）。
-  assert.doesNotMatch(ui, /lib\/services\/workspace-brand-package-service/);
 });

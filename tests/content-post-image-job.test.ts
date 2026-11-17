@@ -33,7 +33,6 @@ import {
 } from "../src/lib/services/content-post-render-state";
 import { awaitingImagesWhere } from "../src/lib/services/exchange-readings";
 import { toContentPostLibraryRow } from "../src/lib/services/unified-library-service";
-import { createContentPostRenderHandlers } from "../src/app/api/content-plans/[id]/posts/[postId]/render/route";
 import * as pollVideosRoute from "../src/app/api/cron/poll-videos/route";
 import { ContentPostImageFakeDb, type Row } from "./helpers/content-post-image-fake-db";
 
@@ -815,9 +814,10 @@ test("成品库：正在出图的图文帖是「生成中」+ 按张数的进度
   assert.deepEqual(rendering.imageUrls, ["https://cdn.example.com/0.png", "https://cdn.example.com/2.png"]);
   const idle = toContentPostLibraryRow({ ...base, _count: { imageTasks: 0 } } as never, false, now)!;
   assert.equal(idle.status, "ready", "不在出图时沿用既有口径（有图即进成片区）");
+  /// 「本周内容」2026-11-16 删了：成品库页只摆做好的图文帖，没出完的不再列出来（没有可做的事）
   const page = readFileSync("src/app/(platform)/app/library/page.tsx", "utf8");
-  assert.match(page, /const renderingPostRows = rows\.filter\(\(row\) => isPost\(row\) && row\.status === "generating"\)/);
-  assert.match(page, /<PostRenderWatcher/);
+  assert.match(page, /row\.source !== "post" \|\| row\.status === "ready"/);
+  assert.doesNotMatch(page, /PostRenderWatcher|RenderPendingPostsButton|\/app\/plan|\/api\/content-plans/);
 });
 
 test("视图：出图中 / 停止收回中 / 空闲 / 已可发布，每屏状态按位置给", () => {
@@ -848,105 +848,12 @@ test("视图：出图中 / 停止收回中 / 空闲 / 已可发布，每屏状�
   assert.equal(buildContentPostRenderView({ post: { ...post, status: "READY", renderStartedAt: null }, tasks: [], now }).state, "ready");
 });
 
-/* ── 路由：演示账号 / 线路开关 ───────────────────────────────────── */
+/* ── 线路开关（出图接口随「本周内容」2026-11-16 删除，只剩服务层的开关） ───────────── */
 
-function routeContext() {
-  return { params: Promise.resolve({ id: "plan-1", postId: "post-1" }) };
-}
-
-function authed(email: string) {
-  return async () => ({ ok: true as const, session: { user: { id: "user-1", email } } as never });
-}
-
-const SAMPLE_VIEW = {
-  postId: "post-1",
-  status: "DRAFT" as const,
-  state: "rendering" as const,
-  total: 1,
-  done: 0,
-  inFlight: 1,
-  renderedImageUrls: [],
-  renderError: null,
-  slides: [{ index: 0, state: "generating" as const, imageUrl: null, note: null }],
-  canStop: true,
-};
-
-test("🔴 演示账号不跑付费出图：POST 直接 403，服务层一次都不调", async () => {
-  const calls: string[] = [];
-  const handlers = createContentPostRenderHandlers({
-    requireAuth: authed("demo@aivora.app"),
-    startContentPostRender: async () => { calls.push("start"); return SAMPLE_VIEW; },
-    renderContentPost: async () => { calls.push("openai"); return { urls: [], skipped: true }; },
-  });
-  const response = await handlers.POST(new NextRequest("http://localhost/x", { method: "POST" }), routeContext());
-  assert.equal(response.status, 403);
-  assert.equal(((await response.json()) as { code?: string }).code, "DEMO_BLOCKED");
-  assert.deepEqual(calls, []);
-});
-
-test("线路开关：默认 Shuyu 异步（202 + state + slides）；CONTENT_POST_IMAGE_PROVIDER=openai 走原同步线路", async () => {
+test("线路开关：默认 Shuyu 异步；CONTENT_POST_IMAGE_PROVIDER=openai 走原同步线路", () => {
   assert.equal(contentPostImageProvider({}), "shuyu");
   assert.equal(contentPostImageProvider({ CONTENT_POST_IMAGE_PROVIDER: " OpenAI " }), "openai");
   assert.equal(contentPostImageProvider({ CONTENT_POST_IMAGE_PROVIDER: "bogus" }), "shuyu");
-
-  const calls: Array<{ via: string; args: unknown }> = [];
-  const shuyu = createContentPostRenderHandlers({
-    requireAuth: authed("merchant@example.com"),
-    imageProvider: () => "shuyu",
-    assertPaidActionRateLimit: async () => undefined,
-    startContentPostRender: async (args) => {
-      calls.push({ via: "shuyu", args: { planId: args.planId, postId: args.postId, userId: args.userId } });
-      await args.beforeRender?.();
-      return SAMPLE_VIEW;
-    },
-    renderContentPost: async () => { calls.push({ via: "openai", args: null }); return { urls: [], skipped: false }; },
-  });
-  const accepted = await shuyu.POST(new NextRequest("http://localhost/x", { method: "POST" }), routeContext());
-  assert.equal(accepted.status, 202);
-  const body = (await accepted.json()) as { state: string; slides: unknown[] };
-  assert.equal(body.state, "rendering");
-  assert.equal(body.slides.length, 1);
-  assert.deepEqual(calls, [{ via: "shuyu", args: { planId: "plan-1", postId: "post-1", userId: "user-1" } }]);
-
-  const syncCalls: Array<{ via: string; args: unknown }> = [];
-  const openai = createContentPostRenderHandlers({
-    requireAuth: authed("merchant@example.com"),
-    imageProvider: () => "openai",
-    startContentPostRender: async () => { syncCalls.push({ via: "shuyu", args: null }); return SAMPLE_VIEW; },
-    renderContentPost: async (args) => {
-      syncCalls.push({ via: "openai", args: args.postId });
-      return { urls: ["https://blob.example.test/a.png"], skipped: false };
-    },
-  });
-  const sync = await openai.POST(new NextRequest("http://localhost/x", { method: "POST" }), routeContext());
-  assert.equal(sync.status, 200);
-  assert.deepEqual(await sync.json(), { urls: ["https://blob.example.test/a.png"], skipped: false });
-  assert.deepEqual(syncCalls, [{ via: "openai", args: "post-1" }]);
-});
-
-test("路由：GET 读时对账；DELETE 弃用后一并取消没提交的；退款未确认回 409 + 联系我们", async () => {
-  const calls: string[] = [];
-  const handlers = createContentPostRenderHandlers({
-    requireAuth: authed("merchant@example.com"),
-    reconcileContentPostRender: async () => { calls.push("reconcile"); return SAMPLE_VIEW; },
-    discardContentPost: async () => { calls.push("discard"); return true; },
-    cancelUnsubmittedContentPostImages: async () => { calls.push("cancel-unsubmitted"); return 2; },
-    imageProvider: () => "shuyu",
-    assertPaidActionRateLimit: async () => undefined,
-    startContentPostRender: async () => {
-      throw new ContentPostRenderError("退款未确认", "billing_review");
-    },
-  });
-  const read = await handlers.GET(new NextRequest("http://localhost/x"), routeContext());
-  assert.equal(read.status, 200);
-  assert.equal(((await read.json()) as { state: string }).state, "rendering");
-  const removed = await handlers.DELETE(new NextRequest("http://localhost/x", { method: "DELETE" }), routeContext());
-  assert.equal(removed.status, 200);
-  assert.deepEqual(calls, ["reconcile", "discard", "cancel-unsubmitted"]);
-  const held = await handlers.POST(new NextRequest("http://localhost/x", { method: "POST" }), routeContext());
-  assert.equal(held.status, 409);
-  const heldBody = (await held.json()) as { action: string; retryable: boolean };
-  assert.deepEqual([heldBody.action, heldBody.retryable], ["contact_support", false]);
 });
 
 test("回滚线路的同步出图拿锁时让出给异步线路：有没结束的任务不接管，并清掉轮次号", () => {
@@ -954,20 +861,4 @@ test("回滚线路的同步出图拿锁时让出给异步线路：有没结束�
   const lock = legacy.slice(legacy.indexOf("const lock = await db.contentPost.updateMany"));
   assert.match(lock.slice(0, 900), /imageTasks: \{ none: \{ status: \{ in: \["QUEUED", "PROCESSING"\] \} \} \}/);
   assert.match(lock.slice(0, 900), /data: \{ renderStartedAt: lockedAt, renderRunId: null \}/);
-});
-
-test("本周内容（client 组件）只拿纯契约，不引任何服务端 service", () => {
-  for (const file of [
-    "src/components/content-plan/plan-timeline.tsx",
-    "src/components/library/post-render-watcher.tsx",
-    "src/components/library/render-pending-posts-button.tsx",
-  ]) {
-    const source = readFileSync(file, "utf8");
-    assert.match(source, /^"use client";/);
-    assert.doesNotMatch(source, /from "@\/lib\/services\//, `${file} 不得 import 服务端 service`);
-  }
-  const timeline = readFileSync("src/components/content-plan/plan-timeline.tsx", "utf8");
-  assert.match(timeline, /key=\{slot\.index\}/, "画框按屏序号做 key（空位是 \"\"，按 URL 会撞 key）");
-  assert.match(timeline, /window\.setTimeout\(poll, RENDER_POLL_MS\)/);
-  assert.match(timeline, /visibilitychange/);
 });

@@ -182,9 +182,7 @@ test("middleware：允许 demo 登录的环境里，demo 对付费入口的写�
       "/api/video-generation/dispatch",
       "/api/video-generation/storyboards",
       "/api/batches",
-      "/api/product-images",
       "/api/brand-packaging",
-      "/api/content-plans",
     ];
     for (const path of paidRoutes) {
       const response = await requestAs("demo@aivora.app", path, "POST");

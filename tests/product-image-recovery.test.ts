@@ -4,14 +4,31 @@ import { readFile } from "node:fs/promises";
 import { ProductImageStatus, ProviderSubmissionState } from "@prisma/client";
 
 import * as cronRoute from "../src/app/api/cron/poll-videos/route";
-import { productImageJobView } from "../src/app/api/product-images/route";
 import { db } from "../src/lib/db";
 import {
   __test__ as productImageServiceTest,
   createProductImageJob,
   findProductImageResultForUser,
+  hasFatalProductImageTask,
+  isRetryableProductImageTask,
   retryRejectedProductImageProviderTask,
 } from "../src/lib/services/product-image-service";
+
+/**
+ * 接口那层的 DTO（/api/product-images 的 productImageJobView）2026-11-16 随产品图工作台删除。
+ * 「哪几张可以重试」的判据在服务里，这里按同一条规则直接算：整单失败、且没有不可重试的失败任务时，才列出可重试的那几张。
+ */
+function productImageJobView(job: {
+  status: ProductImageStatus;
+  providerTasks: Array<Parameters<typeof isRetryableProductImageTask>[0] & { id: string }>;
+}) {
+  return {
+    retryableTasks:
+      job.status === ProductImageStatus.FAILED && !hasFatalProductImageTask(job.providerTasks)
+        ? job.providerTasks.filter(isRetryableProductImageTask).map((task) => ({ id: task.id }))
+        : [],
+  };
+}
 
 test("new product-image jobs are born recoverable and idempotent replay promotes legacy QUEUED jobs", async (t) => {
   const source = await readFile(
@@ -171,7 +188,7 @@ test("transient polling errors back off without converting an ACCEPTED task into
   assert.equal(task.completedAt, undefined);
 });
 
-test("fatal sibling suppresses confirmed-rejection retry in both DTO and service", async (t) => {
+test("fatal sibling suppresses confirmed-rejection retry in both the retryable list and the service", async (t) => {
   const job = {
     id: "mixed-failure",
     userId: "owner-1",

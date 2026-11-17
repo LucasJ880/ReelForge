@@ -94,19 +94,19 @@ test("注册路由给新账号写试用标记，Workspace 仍是 starter（外�
 });
 
 test("付费入口限流：默认值、环境变量覆盖与上下限", () => {
-  assert.equal(paidActionHourlyLimit("content-plan", {}), PAID_ACTION_RATE_LIMITS["content-plan"].perHour);
-  assert.equal(paidActionHourlyLimit("content-plan", { CONTENT_PLAN_RATE_LIMIT_PER_HOUR: "2" }), 2);
-  assert.equal(paidActionHourlyLimit("content-plan", { CONTENT_PLAN_RATE_LIMIT_PER_HOUR: "0" }), 1, "不能被配成 0 把入口关死");
-  assert.equal(paidActionHourlyLimit("content-plan", { CONTENT_PLAN_RATE_LIMIT_PER_HOUR: "100000" }), 200);
+  assert.equal(paidActionHourlyLimit("douyin-kit-copy", {}), PAID_ACTION_RATE_LIMITS["douyin-kit-copy"].perHour);
+  assert.equal(paidActionHourlyLimit("douyin-kit-copy", { DOUYIN_KIT_COPY_RATE_LIMIT_PER_HOUR: "2" }), 2);
+  assert.equal(paidActionHourlyLimit("douyin-kit-copy", { DOUYIN_KIT_COPY_RATE_LIMIT_PER_HOUR: "0" }), 1, "不能被配成 0 把入口关死");
+  assert.equal(paidActionHourlyLimit("douyin-kit-copy", { DOUYIN_KIT_COPY_RATE_LIMIT_PER_HOUR: "100000" }), 200);
   assert.equal(
-    paidActionHourlyLimit("content-plan", { CONTENT_PLAN_RATE_LIMIT_PER_HOUR: "abc" }),
-    PAID_ACTION_RATE_LIMITS["content-plan"].perHour,
+    paidActionHourlyLimit("douyin-kit-copy", { DOUYIN_KIT_COPY_RATE_LIMIT_PER_HOUR: "abc" }),
+    PAID_ACTION_RATE_LIMITS["douyin-kit-copy"].perHour,
   );
-  assert.equal(paidActionBucketKey("content-post-render", "u1"), "paid:content-post-render:user:u1");
+  assert.equal(paidActionBucketKey("douyin-kit-render", "u1"), "paid:douyin-kit-render:user:u1");
 });
 
 test("🔴 生产强制：同一用户同一小时超过上限抛 RateLimitExceededError，并按用户分桶", async (t) => {
-  withEnv(t, { QUOTA_ENFORCE: "true", CONTENT_POST_RENDER_RATE_LIMIT_PER_HOUR: "2" });
+  withEnv(t, { QUOTA_ENFORCE: "true", DOUYIN_KIT_RENDER_RATE_LIMIT_PER_HOUR: "2" });
   const buckets = new Map<string, number>();
   patch(t, db.rateLimitBucket, {
     upsert: async (args: { where: { bucketKey_windowKey: { bucketKey: string; windowKey: string } } }) => {
@@ -117,20 +117,20 @@ test("🔴 生产强制：同一用户同一小时超过上限抛 RateLimitExcee
     },
   });
   const now = new Date("2026-10-25T10:15:00Z");
-  await assertPaidActionRateLimit({ action: "content-post-render", userId: "u1", now });
-  await assertPaidActionRateLimit({ action: "content-post-render", userId: "u1", now });
+  await assertPaidActionRateLimit({ action: "douyin-kit-render", userId: "u1", now });
+  await assertPaidActionRateLimit({ action: "douyin-kit-render", userId: "u1", now });
   await assert.rejects(
-    assertPaidActionRateLimit({ action: "content-post-render", userId: "u1", now }),
-    (err: unknown) => err instanceof RateLimitExceededError && /配图生成过于频繁/.test(err.message),
+    assertPaidActionRateLimit({ action: "douyin-kit-render", userId: "u1", now }),
+    (err: unknown) => err instanceof RateLimitExceededError && /发布素材生成过于频繁/.test(err.message),
   );
   /// 另一个用户不受影响；下一个小时重新计
-  await assertPaidActionRateLimit({ action: "content-post-render", userId: "u2", now });
+  await assertPaidActionRateLimit({ action: "douyin-kit-render", userId: "u2", now });
   await assertPaidActionRateLimit({
-    action: "content-post-render",
+    action: "douyin-kit-render",
     userId: "u1",
     now: new Date("2026-10-25T11:01:00Z"),
   });
-  assert.ok(buckets.has("paid:content-post-render:user:u1|2026-10-25T10"));
+  assert.ok(buckets.has("paid:douyin-kit-render:user:u1|2026-10-25T10"));
 });
 
 test("开发环境默认不强制（与产品图限流同一口径），不碰数据库", async (t) => {
@@ -140,13 +140,13 @@ test("开发环境默认不强制（与产品图限流同一口径），不碰�
       throw new Error("dev 不该写限流桶");
     },
   });
-  await assertPaidActionRateLimit({ action: "content-plan", userId: "u1" });
+  await assertPaidActionRateLimit({ action: "douyin-kit-copy", userId: "u1" });
 });
 
-test("付费入口路由都接了限流：内容计划 / 出图（链接抓取、产品锚点、b-roll 的路由 2026-11-16 已删）", async () => {
+test("付费入口路由都接了限流：抖音发布包的文案与素材（内容计划、图文出图、链接抓取、产品锚点、b-roll 的路由 2026-11-16 已删）", async () => {
   const expectations: Array<[string, string]> = [
-    ["src/app/api/content-plans/route.ts", "content-plan"],
-    ["src/app/api/content-plans/[id]/posts/[postId]/render/route.ts", "content-post-render"],
+    ["src/app/api/library/[id]/douyin-kit/route.ts", "douyin-kit-copy"],
+    ["src/app/api/brand-packaging/route.ts", "douyin-kit-render"],
   ];
   for (const [file, action] of expectations) {
     const source = await readFile(file, "utf8");
@@ -159,10 +159,8 @@ test("付费入口路由都接了限流：内容计划 / 出图（链接抓取�
   }
 });
 
-test("限流表里不再有已删线路的入口：链接抓取、产品锚点（抠图）、实拍图库（2026-11-16 随线路删除）", () => {
+test("限流表里不再有已删线路的入口：链接抓取、产品锚点（抠图）、实拍图库、内容计划、图文出图（2026-11-16 随线路删除）", () => {
   assert.deepEqual(Object.keys(PAID_ACTION_RATE_LIMITS).sort(), [
-    "content-plan",
-    "content-post-render",
     "douyin-kit-copy",
     "douyin-kit-render",
   ]);

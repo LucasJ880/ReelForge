@@ -30,7 +30,7 @@ function clearSessionCookies(req: NextRequest, res: NextResponse): NextResponse 
  *  - `/login`, `/register`, `/api/auth/*` → 登录 / 公开注册 / NextAuth
  *  - `/forgot-password`, `/reset-password` → 密码找回两页（接口在 `/api/auth/password-reset/*`，随 `/api/auth` 放行）
  *  - `/privacy`, `/terms` → public legal pages
- *  - `/demo`, `/api/demo` → 旧 demo（Step 8 会删 /demo/ai-video；这里先保留 /demo/real-footage-ads）
+ *  - `/demo` → public/demo 下的公开演示素材（旧 demo 页面与 `/api/demo` 的候补登记接口都已删除，2026-11-16）
  *  - `/api/cron/*` → 定时任务（带 cron secret 鉴权，不走 NextAuth）
  *  - `/api/internal/*` → 外部 runner（stitch / digital-human 等）回调与领单。
  *    这些路由统一不走 NextAuth，而是各自在 handler 内用 `Bearer ${CRON_SECRET}` 自鉴权
@@ -54,7 +54,6 @@ const publicPaths = [
   "/privacy",
   "/terms",
   "/demo",
-  "/api/demo",
   // 健康检查端点：设计上无鉴权、已脱敏（见 src/app/api/health/route.ts 安全约定），
   // 供监控 / Vercel 探活直接拉，否则会被当作未登录 401 拦截。
   "/api/health",

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T01:03:51.280Z",
+  "generatedAt": "2026-11-17T01:08:17.757Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -9457,7 +9457,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 0,
-      "sizeBytes": 14344,
+      "sizeBytes": 13934,
       "notes": "area=config"
     },
     {
@@ -9806,7 +9806,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 126,
-      "sizeBytes": 12245,
+      "sizeBytes": 12278,
       "notes": "Documentation"
     },
     {
@@ -10291,17 +10291,6 @@
       "importantSymbols": [],
       "lineCount": 80,
       "sizeBytes": 5119,
-      "notes": "Documentation"
-    },
-    {
-      "path": "docs/product-image-studio.md",
-      "type": "doc",
-      "area": "shared",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 12,
-      "sizeBytes": 1496,
       "notes": "Documentation"
     },
     {
@@ -11097,8 +11086,8 @@
         "runtimeTracingExcludes",
         "default"
       ],
-      "lineCount": 158,
-      "sizeBytes": 8584,
+      "lineCount": 163,
+      "sizeBytes": 9066,
       "notes": "Build / runtime config; area=media-processing"
     },
     {
@@ -12066,8 +12055,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 70,
-      "sizeBytes": 3727,
+      "lineCount": 71,
+      "sizeBytes": 3872,
       "notes": "Documentation"
     },
     {
@@ -13393,8 +13382,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 355,
-      "sizeBytes": 40981,
+      "lineCount": 309,
+      "sizeBytes": 36944,
       "notes": "Documentation; area=media-processing"
     },
     {
@@ -13419,7 +13408,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 886,
-      "sizeBytes": 33365,
+      "sizeBytes": 33343,
       "notes": "Maintenance / one-off script (run via tsx); NextAuth session check; area=media-processing"
     },
     {
@@ -14465,7 +14454,6 @@
         "@/components/batch/batch-create-wizard",
         "@/lib/auth",
         "@/lib/auth-role-policy",
-        "@/lib/services/product-image-service",
         "@/lib/services/exchange-readings",
         "@/lib/services/style-template-service",
         "@/components/exchange/quote-header",
@@ -14478,8 +14466,8 @@
         "PlatformBatchCreatePage",
         "default"
       ],
-      "lineCount": 75,
-      "sizeBytes": 3117,
+      "lineCount": 54,
+      "sizeBytes": 2263,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -14608,75 +14596,6 @@
       "notes": "Next.js App Router page; client component"
     },
     {
-      "path": "src/app/(platform)/app/create/images/error.tsx",
-      "type": "page",
-      "area": "unknown",
-      "exports": [
-        "ErrorBoundary",
-        "default"
-      ],
-      "imports": [
-        "@/components/platform/customer-route-error"
-      ],
-      "importantSymbols": [
-        "ErrorBoundary",
-        "default"
-      ],
-      "lineCount": 11,
-      "sizeBytes": 275,
-      "notes": "Next.js App Router page; client component"
-    },
-    {
-      "path": "src/app/(platform)/app/create/images/loading.tsx",
-      "type": "page",
-      "area": "unknown",
-      "exports": [
-        "Loading",
-        "default"
-      ],
-      "imports": [
-        "@/components/platform/customer-route-loading"
-      ],
-      "importantSymbols": [
-        "Loading",
-        "default"
-      ],
-      "lineCount": 6,
-      "sizeBytes": 180,
-      "notes": "Next.js App Router page"
-    },
-    {
-      "path": "src/app/(platform)/app/create/images/page.tsx",
-      "type": "page",
-      "area": "unknown",
-      "exports": [
-        "dynamic",
-        "ProductImagesPage",
-        "default"
-      ],
-      "imports": [
-        "next-auth",
-        "next/navigation",
-        "@/components/exchange/workspace-page",
-        "@/components/product-images/create-mode-tabs",
-        "@/components/product-images/product-image-studio",
-        "@/lib/auth",
-        "@/lib/db",
-        "@/lib/services/product-image-service",
-        "@/lib/services/workspace-brand-package-service",
-        "@/i18n/platform-copy",
-        "@/i18n/server"
-      ],
-      "importantSymbols": [
-        "ProductImagesPage",
-        "dynamic",
-        "default"
-      ],
-      "lineCount": 184,
-      "sizeBytes": 7000,
-      "notes": "Next.js App Router page; NextAuth session check"
-    },
-    {
       "path": "src/app/(platform)/app/create/loading.tsx",
       "type": "page",
       "area": "unknown",
@@ -14718,7 +14637,6 @@
         "@/lib/services/media-asset-service",
         "@/lib/services/machine-video-task-service",
         "@/lib/services/exchange-readings",
-        "@/lib/services/product-image-service",
         "@/types/video-generation",
         "@/i18n/server",
         "@/lib/qa/customer-route-state-rehearsal",
@@ -14728,8 +14646,8 @@
         "PlatformCreatePage",
         "default"
       ],
-      "lineCount": 258,
-      "sizeBytes": 12027,
+      "lineCount": 236,
+      "sizeBytes": 10954,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -15017,7 +14935,7 @@
         "default"
       ],
       "lineCount": 374,
-      "sizeBytes": 21207,
+      "sizeBytes": 21242,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -15084,8 +15002,6 @@
         "@/lib/brand/brand-end-card-policy",
         "@/components/library/failures-ack-button",
         "@/components/library/library-highlight",
-        "@/components/library/render-pending-posts-button",
-        "@/components/library/post-render-watcher",
         "@/components/library/processing-refresher",
         "@/lib/video-generation/storyboard-service",
         "@/components/compliance/ai-generated-label",
@@ -15097,15 +15013,17 @@
         "@/components/exchange/status-tick",
         "@/i18n/platform-copy",
         "@/i18n/server",
-        "@/lib/exchange/readings-registry"
+        "@/lib/exchange/readings-registry",
+        "@/lib/exchange/state-vocab",
+        "@/lib/qa/customer-route-state-rehearsal"
       ],
       "importantSymbols": [
         "PlatformLibraryPage",
         "dynamic",
         "default"
       ],
-      "lineCount": 568,
-      "sizeBytes": 33524,
+      "lineCount": 452,
+      "sizeBytes": 27301,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -15152,76 +15070,6 @@
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
-      "path": "src/app/(platform)/app/plan/error.tsx",
-      "type": "page",
-      "area": "unknown",
-      "exports": [
-        "ErrorBoundary",
-        "default"
-      ],
-      "imports": [
-        "@/components/platform/customer-route-error"
-      ],
-      "importantSymbols": [
-        "ErrorBoundary",
-        "default"
-      ],
-      "lineCount": 11,
-      "sizeBytes": 267,
-      "notes": "Next.js App Router page; client component"
-    },
-    {
-      "path": "src/app/(platform)/app/plan/loading.tsx",
-      "type": "page",
-      "area": "unknown",
-      "exports": [
-        "Loading",
-        "default"
-      ],
-      "imports": [
-        "@/components/platform/customer-route-loading"
-      ],
-      "importantSymbols": [
-        "Loading",
-        "default"
-      ],
-      "lineCount": 6,
-      "sizeBytes": 172,
-      "notes": "Next.js App Router page"
-    },
-    {
-      "path": "src/app/(platform)/app/plan/page.tsx",
-      "type": "page",
-      "area": "unknown",
-      "exports": [
-        "dynamic",
-        "PlanPage",
-        "default"
-      ],
-      "imports": [
-        "next-auth",
-        "next/navigation",
-        "@/lib/auth",
-        "@/lib/services/content-plan-store",
-        "@/lib/services/content-post-render-service",
-        "@/lib/services/capability-status-service",
-        "@/components/capabilities/capability-notice",
-        "@/lib/services/content-post-image-job-service",
-        "@/lib/contracts/content-post-render",
-        "@/components/content-plan/plan-timeline",
-        "@/i18n/platform-copy",
-        "@/i18n/server"
-      ],
-      "importantSymbols": [
-        "PlanPage",
-        "dynamic",
-        "default"
-      ],
-      "lineCount": 97,
-      "sizeBytes": 3732,
-      "notes": "Next.js App Router page; NextAuth session check"
-    },
-    {
       "path": "src/app/(platform)/app/products/page.tsx",
       "type": "page",
       "area": "unknown",
@@ -15250,75 +15098,6 @@
       ],
       "lineCount": 55,
       "sizeBytes": 2599,
-      "notes": "Next.js App Router page; NextAuth session check"
-    },
-    {
-      "path": "src/app/(platform)/app/racing/error.tsx",
-      "type": "page",
-      "area": "unknown",
-      "exports": [
-        "ErrorBoundary",
-        "default"
-      ],
-      "imports": [
-        "@/components/platform/customer-route-error"
-      ],
-      "importantSymbols": [
-        "ErrorBoundary",
-        "default"
-      ],
-      "lineCount": 11,
-      "sizeBytes": 269,
-      "notes": "Next.js App Router page; client component"
-    },
-    {
-      "path": "src/app/(platform)/app/racing/loading.tsx",
-      "type": "page",
-      "area": "unknown",
-      "exports": [
-        "Loading",
-        "default"
-      ],
-      "imports": [
-        "@/components/platform/customer-route-loading"
-      ],
-      "importantSymbols": [
-        "Loading",
-        "default"
-      ],
-      "lineCount": 6,
-      "sizeBytes": 174,
-      "notes": "Next.js App Router page"
-    },
-    {
-      "path": "src/app/(platform)/app/racing/page.tsx",
-      "type": "page",
-      "area": "unknown",
-      "exports": [
-        "dynamic",
-        "PlatformRacingPage",
-        "default"
-      ],
-      "imports": [
-        "next/link",
-        "next-auth",
-        "next/navigation",
-        "lucide-react",
-        "@/lib/auth",
-        "@/lib/services/racing-service",
-        "@/components/racing/racing-dashboard",
-        "@/components/ui/button",
-        "@/i18n/platform-copy",
-        "@/i18n/server",
-        "@/lib/qa/customer-route-state-rehearsal"
-      ],
-      "importantSymbols": [
-        "PlatformRacingPage",
-        "dynamic",
-        "default"
-      ],
-      "lineCount": 37,
-      "sizeBytes": 1756,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -15491,80 +15270,6 @@
       ],
       "lineCount": 54,
       "sizeBytes": 2320,
-      "notes": "Next.js App Router page; NextAuth session check"
-    },
-    {
-      "path": "src/app/(platform)/app/wins/error.tsx",
-      "type": "page",
-      "area": "unknown",
-      "exports": [
-        "ErrorBoundary",
-        "default"
-      ],
-      "imports": [
-        "@/components/platform/customer-route-error"
-      ],
-      "importantSymbols": [
-        "ErrorBoundary",
-        "default"
-      ],
-      "lineCount": 11,
-      "sizeBytes": 267,
-      "notes": "Next.js App Router page; client component"
-    },
-    {
-      "path": "src/app/(platform)/app/wins/loading.tsx",
-      "type": "page",
-      "area": "unknown",
-      "exports": [
-        "Loading",
-        "default"
-      ],
-      "imports": [
-        "@/components/platform/customer-route-loading"
-      ],
-      "importantSymbols": [
-        "Loading",
-        "default"
-      ],
-      "lineCount": 6,
-      "sizeBytes": 172,
-      "notes": "Next.js App Router page"
-    },
-    {
-      "path": "src/app/(platform)/app/wins/page.tsx",
-      "type": "page",
-      "area": "unknown",
-      "exports": [
-        "dynamic",
-        "WinsPage",
-        "default"
-      ],
-      "imports": [
-        "next/link",
-        "next-auth",
-        "next/navigation",
-        "@/lib/auth",
-        "@/lib/services/performance-ingest-service",
-        "@/lib/services/recipe-racing-service",
-        "@/lib/services/winner-derivation-service",
-        "@/lib/services/content-plan-store",
-        "@/lib/services/first-pass-rate-service",
-        "@/components/exchange/quote-header",
-        "@/components/exchange/section-head",
-        "@/components/exchange/workspace-page",
-        "@/components/ui/button",
-        "@/components/wins/dimension-ledger",
-        "@/i18n/platform-copy",
-        "@/i18n/server"
-      ],
-      "importantSymbols": [
-        "WinsPage",
-        "dynamic",
-        "default"
-      ],
-      "lineCount": 153,
-      "sizeBytes": 6579,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -16131,99 +15836,6 @@
       "notes": "Next.js API route handler"
     },
     {
-      "path": "src/app/api/content-plans/[id]/posts/[postId]/render/cancel/route.ts",
-      "type": "api",
-      "area": "media-processing",
-      "exports": [
-        "runtime",
-        "dynamic",
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/api/customer-generation-error",
-        "@/lib/services/content-post-render-service",
-        "@/lib/services/content-post-image-job-service"
-      ],
-      "importantSymbols": [
-        "POST",
-        "runtime",
-        "dynamic"
-      ],
-      "lineCount": 54,
-      "sizeBytes": 1951,
-      "notes": "Next.js API route handler; area=media-processing"
-    },
-    {
-      "path": "src/app/api/content-plans/[id]/posts/[postId]/render/route.ts",
-      "type": "api",
-      "area": "media-processing",
-      "exports": [
-        "runtime",
-        "dynamic",
-        "maxDuration",
-        "createContentPostRenderHandlers",
-        "GET",
-        "POST",
-        "DELETE"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/api-rate-limit",
-        "@/lib/api/customer-generation-error",
-        "@/lib/contracts/content-post-render",
-        "@/lib/demo-account",
-        "@/lib/services/content-post-render-service",
-        "@/lib/services/content-post-image-job-service",
-        "@/lib/services/paid-action-rate-limit"
-      ],
-      "importantSymbols": [
-        "GET",
-        "POST",
-        "DELETE",
-        "runtime",
-        "dynamic",
-        "maxDuration",
-        "createContentPostRenderHandlers"
-      ],
-      "lineCount": 218,
-      "sizeBytes": 8755,
-      "notes": "Next.js API route handler; area=media-processing"
-    },
-    {
-      "path": "src/app/api/content-plans/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "runtime",
-        "dynamic",
-        "POST",
-        "GET"
-      ],
-      "imports": [
-        "next/server",
-        "zod",
-        "@/lib/api-auth",
-        "@/lib/api-rate-limit",
-        "@/lib/api/customer-generation-error",
-        "@/lib/services/content-plan-store",
-        "@/lib/services/product-link-service",
-        "@/lib/services/product-image-facts-service",
-        "@/lib/services/paid-action-rate-limit"
-      ],
-      "importantSymbols": [
-        "POST",
-        "GET",
-        "runtime",
-        "dynamic"
-      ],
-      "lineCount": 118,
-      "sizeBytes": 4012,
-      "notes": "Next.js API route handler"
-    },
-    {
       "path": "src/app/api/cron/capability-probe/route.ts",
       "type": "api",
       "area": "unknown",
@@ -16378,28 +15990,6 @@
       "lineCount": 27,
       "sizeBytes": 872,
       "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/demo/real-footage-ads/waitlist/route.ts",
-      "type": "api",
-      "area": "real-footage-ads",
-      "exports": [
-        "runtime",
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@prisma/client",
-        "zod",
-        "@/lib/db"
-      ],
-      "importantSymbols": [
-        "POST",
-        "runtime"
-      ],
-      "lineCount": 59,
-      "sizeBytes": 1640,
-      "notes": "Next.js API route handler; hits Prisma DB; area=real-footage-ads"
     },
     {
       "path": "src/app/api/exchange/failures-ack/route.ts",
@@ -16996,104 +16586,6 @@
       "notes": "Next.js API route handler"
     },
     {
-      "path": "src/app/api/product-images/[id]/cancel/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "runtime",
-        "dynamic",
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/api/customer-generation-error",
-        "@/app/api/product-images/route",
-        "@/lib/services/product-image-service"
-      ],
-      "importantSymbols": [
-        "POST",
-        "runtime",
-        "dynamic"
-      ],
-      "lineCount": 57,
-      "sizeBytes": 1810,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/product-images/[id]/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "GET"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/app/api/product-images/route",
-        "@/lib/services/product-image-service"
-      ],
-      "importantSymbols": [
-        "GET"
-      ],
-      "lineCount": 22,
-      "sizeBytes": 784,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/product-images/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "productImageJobView",
-        "createProductImagePostHandler",
-        "GET",
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "zod",
-        "@/lib/api-auth",
-        "@/lib/api-quota",
-        "@/lib/db",
-        "@/lib/services/media-asset-service",
-        "@/lib/services/product-image-service",
-        "@/lib/services/quota-service",
-        "@/lib/services/workspace-brand-package-service"
-      ],
-      "importantSymbols": [
-        "GET",
-        "POST",
-        "productImageJobView",
-        "createProductImagePostHandler"
-      ],
-      "lineCount": 282,
-      "sizeBytes": 9536,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/product-images/tasks/[taskId]/retry/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "createProductImageTaskRetryPostHandler",
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/app/api/product-images/route",
-        "@/lib/api-auth",
-        "@/lib/services/product-image-service"
-      ],
-      "importantSymbols": [
-        "POST",
-        "createProductImageTaskRetryPostHandler"
-      ],
-      "lineCount": 50,
-      "sizeBytes": 1661,
-      "notes": "Next.js API route handler"
-    },
-    {
       "path": "src/app/api/products/[id]/route.ts",
       "type": "api",
       "area": "unknown",
@@ -17256,90 +16748,6 @@
       ],
       "lineCount": 49,
       "sizeBytes": 2224,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/racing/rounds/[id]/analyze/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/racing-service"
-      ],
-      "importantSymbols": [
-        "POST"
-      ],
-      "lineCount": 25,
-      "sizeBytes": 746,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/racing/rounds/[id]/metrics/route.ts",
-      "type": "api",
-      "area": "metrics",
-      "exports": [
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "zod",
-        "@/lib/api-auth",
-        "@/lib/services/racing-service"
-      ],
-      "importantSymbols": [
-        "POST"
-      ],
-      "lineCount": 56,
-      "sizeBytes": 1937,
-      "notes": "Next.js API route handler; area=metrics"
-    },
-    {
-      "path": "src/app/api/racing/rounds/[id]/next/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "zod",
-        "@/lib/api-auth",
-        "@/lib/services/racing-service"
-      ],
-      "importantSymbols": [
-        "POST"
-      ],
-      "lineCount": 36,
-      "sizeBytes": 1153,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/racing/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "runtime",
-        "dynamic",
-        "GET"
-      ],
-      "imports": [
-        "next/server",
-        "zod",
-        "@/lib/api-auth",
-        "@/lib/services/performance-ingest-service",
-        "@/lib/services/recipe-racing-service"
-      ],
-      "importantSymbols": [
-        "GET",
-        "runtime",
-        "dynamic"
-      ],
-      "lineCount": 58,
-      "sizeBytes": 2043,
       "notes": "Next.js API route handler"
     },
     {
@@ -18366,29 +17774,6 @@
       "notes": "React component; client component"
     },
     {
-      "path": "src/components/capabilities/capability-notice.tsx",
-      "type": "component",
-      "area": "shared",
-      "exports": [
-        "blockedFeatureGates",
-        "CapabilityNotice"
-      ],
-      "imports": [
-        "next/link",
-        "@/components/exchange/status-tick",
-        "@/i18n/config",
-        "@/lib/capabilities/registry",
-        "@/lib/utils"
-      ],
-      "importantSymbols": [
-        "CapabilityNotice",
-        "blockedFeatureGates"
-      ],
-      "lineCount": 76,
-      "sizeBytes": 2623,
-      "notes": "React component"
-    },
-    {
       "path": "src/components/capabilities/use-capabilities.ts",
       "type": "component",
       "area": "shared",
@@ -18425,73 +17810,6 @@
       ],
       "lineCount": 24,
       "sizeBytes": 702,
-      "notes": "React component"
-    },
-    {
-      "path": "src/components/content-plan/plan-timeline.module.css",
-      "type": "style",
-      "area": "shared",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 374,
-      "sizeBytes": 8221,
-      "notes": "Stylesheet"
-    },
-    {
-      "path": "src/components/content-plan/plan-timeline.tsx",
-      "type": "component",
-      "area": "shared",
-      "exports": [
-        "TimelinePost",
-        "TimelinePlan",
-        "PlanTimeline"
-      ],
-      "imports": [
-        "react",
-        "next/link",
-        "@/components/exchange/fill-bar",
-        "@/components/exchange/status-tick",
-        "@/components/exchange/workspace-page",
-        "@/components/ui/button",
-        "@/components/ui/input",
-        "@/i18n/platform-copy",
-        "@/i18n/useTranslation",
-        "@/lib/contracts/content-post-render",
-        "@/lib/utils",
-        "./plan-week",
-        "./plan-timeline.module.css"
-      ],
-      "importantSymbols": [
-        "TimelinePost",
-        "TimelinePlan",
-        "PlanTimeline"
-      ],
-      "lineCount": 620,
-      "sizeBytes": 24951,
-      "notes": "React component; client component"
-    },
-    {
-      "path": "src/components/content-plan/plan-week.ts",
-      "type": "component",
-      "area": "shared",
-      "exports": [
-        "PLAN_DAYS",
-        "localStartOfDay",
-        "planDayDates",
-        "planTodayOffset",
-        "apiErrorMessage"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "PLAN_DAYS",
-        "localStartOfDay",
-        "planDayDates",
-        "planTodayOffset",
-        "apiErrorMessage"
-      ],
-      "lineCount": 46,
-      "sizeBytes": 1892,
       "notes": "React component"
     },
     {
@@ -18819,7 +18137,7 @@
         "workspaceNavTitle"
       ],
       "lineCount": 45,
-      "sizeBytes": 1615,
+      "sizeBytes": 1597,
       "notes": "React component"
     },
     {
@@ -19400,26 +18718,6 @@
       "notes": "React component"
     },
     {
-      "path": "src/components/library/post-render-watcher.tsx",
-      "type": "component",
-      "area": "media-processing",
-      "exports": [
-        "PostRenderWatcher"
-      ],
-      "imports": [
-        "react",
-        "next/navigation",
-        "@/lib/contracts/content-post-render",
-        "./render-pending-posts-button"
-      ],
-      "importantSymbols": [
-        "PostRenderWatcher"
-      ],
-      "lineCount": 77,
-      "sizeBytes": 2763,
-      "notes": "React component; client component; area=media-processing"
-    },
-    {
       "path": "src/components/library/processing-refresher.tsx",
       "type": "component",
       "area": "shared",
@@ -19436,29 +18734,6 @@
       "lineCount": 25,
       "sizeBytes": 887,
       "notes": "React component; client component"
-    },
-    {
-      "path": "src/components/library/render-pending-posts-button.tsx",
-      "type": "component",
-      "area": "media-processing",
-      "exports": [
-        "PendingPostRef",
-        "RenderPendingPostsButton"
-      ],
-      "imports": [
-        "react",
-        "next/navigation",
-        "lucide-react",
-        "@/components/ui/button",
-        "@/i18n/useTranslation"
-      ],
-      "importantSymbols": [
-        "PendingPostRef",
-        "RenderPendingPostsButton"
-      ],
-      "lineCount": 101,
-      "sizeBytes": 3861,
-      "notes": "React component; client component; area=media-processing"
     },
     {
       "path": "src/components/library/report-content-button.tsx",
@@ -19743,8 +19018,8 @@
         "CUSTOMER_ROUTE_FALLBACK_AREAS",
         "CUSTOMER_ROUTE_WALL_CELLS"
       ],
-      "lineCount": 72,
-      "sizeBytes": 1771,
+      "lineCount": 56,
+      "sizeBytes": 1487,
       "notes": "React component"
     },
     {
@@ -19819,63 +19094,9 @@
       "importantSymbols": [
         "PlatformShell"
       ],
-      "lineCount": 383,
-      "sizeBytes": 18007,
+      "lineCount": 382,
+      "sizeBytes": 17888,
       "notes": "React component; NextAuth session check; client component"
-    },
-    {
-      "path": "src/components/product-images/create-mode-tabs.tsx",
-      "type": "component",
-      "area": "shared",
-      "exports": [
-        "CreateModeTabs"
-      ],
-      "imports": [
-        "next/link",
-        "lucide-react",
-        "@/lib/utils",
-        "@/i18n/useTranslation",
-        "@/i18n/platform-copy"
-      ],
-      "importantSymbols": [
-        "CreateModeTabs"
-      ],
-      "lineCount": 42,
-      "sizeBytes": 1742,
-      "notes": "React component; client component"
-    },
-    {
-      "path": "src/components/product-images/product-image-studio.tsx",
-      "type": "component",
-      "area": "shared",
-      "exports": [
-        "ProductImageJobDto",
-        "BrandPackageOption",
-        "ProductImageStudio"
-      ],
-      "imports": [
-        "react",
-        "next/image",
-        "next/link",
-        "lucide-react",
-        "@/components/ui/button",
-        "@/components/compliance/ai-generated-label",
-        "@/components/exchange/status-tick",
-        "@/lib/exchange/state-vocab",
-        "@/components/ui/textarea",
-        "@/lib/utils",
-        "@/lib/upload/blob-xhr",
-        "@/i18n/useTranslation",
-        "@/i18n/platform-copy"
-      ],
-      "importantSymbols": [
-        "ProductImageJobDto",
-        "BrandPackageOption",
-        "ProductImageStudio"
-      ],
-      "lineCount": 701,
-      "sizeBytes": 34181,
-      "notes": "React component; client component"
     },
     {
       "path": "src/components/products/product-library.tsx",
@@ -19971,29 +19192,6 @@
       "lineCount": 50,
       "sizeBytes": 1665,
       "notes": "React component"
-    },
-    {
-      "path": "src/components/racing/racing-dashboard.tsx",
-      "type": "component",
-      "area": "shared",
-      "exports": [
-        "RacingDashboard"
-      ],
-      "imports": [
-        "react",
-        "next/navigation",
-        "lucide-react",
-        "@/components/ui/badge",
-        "@/components/ui/button",
-        "@/components/ui/input",
-        "@/i18n"
-      ],
-      "importantSymbols": [
-        "RacingDashboard"
-      ],
-      "lineCount": 310,
-      "sizeBytes": 17170,
-      "notes": "React component; client component"
     },
     {
       "path": "src/components/templates/recipe-summary.ts",
@@ -20661,7 +19859,6 @@
         "@/lib/exchange/pulse",
         "@/lib/exchange/readings-registry",
         "@/components/exchange/section-head",
-        "@/components/product-images/create-mode-tabs",
         "@/components/personal/upload-assets",
         "@/components/ui/button",
         "@/components/ui/confirm-dialog",
@@ -20679,14 +19876,15 @@
         "@/lib/api/customer-video-dispatch",
         "@/lib/api/customer-video-dispatch-recovery",
         "@/lib/utils",
-        "@/lib/services/workspace-brand-package-service"
+        "@/lib/services/workspace-brand-package-service",
+        "@/lib/brand/brand-end-card-policy"
       ],
       "importantSymbols": [
         "StudioReadings",
         "StreamlinedVideoStudio"
       ],
-      "lineCount": 2925,
-      "sizeBytes": 131139,
+      "lineCount": 2918,
+      "sizeBytes": 130783,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -20719,40 +19917,6 @@
       "lineCount": 587,
       "sizeBytes": 21687,
       "notes": "React component; client component; area=video-generation"
-    },
-    {
-      "path": "src/components/wins/dimension-ledger.tsx",
-      "type": "component",
-      "area": "shared",
-      "exports": [
-        "WinsCopy",
-        "SampleCounts",
-        "sampleCounts",
-        "groupLabel",
-        "missingReason",
-        "explainVerdictCopy",
-        "DimensionLedger"
-      ],
-      "imports": [
-        "next/link",
-        "lucide-react",
-        "@/lib/services/recipe-racing-service",
-        "@/components/exchange/mono-tag",
-        "@/components/ui/button",
-        "@/i18n/platform-copy"
-      ],
-      "importantSymbols": [
-        "WinsCopy",
-        "SampleCounts",
-        "DimensionLedger",
-        "sampleCounts",
-        "groupLabel",
-        "missingReason",
-        "explainVerdictCopy"
-      ],
-      "lineCount": 268,
-      "sizeBytes": 12083,
-      "notes": "React component"
     },
     {
       "path": "src/components/wizard/logo-generator-dialog.tsx",
@@ -20847,8 +20011,8 @@
         "enUS",
         "default"
       ],
-      "lineCount": 904,
-      "sizeBytes": 34001,
+      "lineCount": 902,
+      "sizeBytes": 33956,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -20889,8 +20053,8 @@
         "zhCN",
         "default"
       ],
-      "lineCount": 875,
-      "sizeBytes": 34021,
+      "lineCount": 873,
+      "sizeBytes": 33971,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -21083,8 +20247,8 @@
         "PlatformCopy",
         "getPlatformCopy"
       ],
-      "lineCount": 1304,
-      "sizeBytes": 84689,
+      "lineCount": 988,
+      "sizeBytes": 64221,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -21167,8 +20331,8 @@
         "DotPath",
         "TranslationKey"
       ],
-      "lineCount": 769,
-      "sizeBytes": 18384,
+      "lineCount": 767,
+      "sizeBytes": 18344,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -21929,29 +21093,6 @@
       "notes": "Utility / helper module; hits Prisma DB"
     },
     {
-      "path": "src/lib/config/scoring-weights.ts",
-      "type": "util",
-      "area": "shared",
-      "exports": [
-        "CONTENT_SCORE_WEIGHTS",
-        "ContentMetricKey",
-        "normalizeContentMetrics",
-        "calcContentScore",
-        "calcCompositeScore"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "CONTENT_SCORE_WEIGHTS",
-        "ContentMetricKey",
-        "normalizeContentMetrics",
-        "calcContentScore",
-        "calcCompositeScore"
-      ],
-      "lineCount": 80,
-      "sizeBytes": 2556,
-      "notes": "Utility / helper module"
-    },
-    {
       "path": "src/lib/config/seedance-runtime.ts",
       "type": "util",
       "area": "video-generation",
@@ -22666,21 +21807,6 @@
       "notes": "Utility / helper module"
     },
     {
-      "path": "src/lib/create/entry-policy.ts",
-      "type": "util",
-      "area": "shared",
-      "exports": [
-        "PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED"
-      ],
-      "lineCount": 15,
-      "sizeBytes": 1024,
-      "notes": "Utility / helper module"
-    },
-    {
       "path": "src/lib/create/hook-angles.ts",
       "type": "util",
       "area": "shared",
@@ -23360,8 +22486,8 @@
         "PlatformNavId",
         "platformPathAfterGeneration"
       ],
-      "lineCount": 26,
-      "sizeBytes": 1757,
+      "lineCount": 25,
+      "sizeBytes": 1637,
       "notes": "Utility / helper module"
     },
     {
@@ -23838,44 +22964,6 @@
       "notes": "Utility / helper module"
     },
     {
-      "path": "src/lib/schemas/content-plan.ts",
-      "type": "schema",
-      "area": "shared",
-      "exports": [
-        "contentPlanSourceSchema",
-        "contentFormatSchema",
-        "ContentFormat",
-        "hookTypeSchema",
-        "postCopySchema",
-        "carouselSlideSchema",
-        "contentPostSchema",
-        "ContentPost",
-        "contentPlanSchema",
-        "ContentPlan",
-        "MIN_POSTS_PER_WEEK",
-        "TARGET_POSTS_PER_WEEK",
-        "REQUIRED_FORMATS",
-        "missingRequiredFormats"
-      ],
-      "imports": [
-        "zod",
-        "@/lib/video-generation/creative-recipe"
-      ],
-      "importantSymbols": [
-        "ContentFormat",
-        "ContentPost",
-        "ContentPlan",
-        "MIN_POSTS_PER_WEEK",
-        "TARGET_POSTS_PER_WEEK",
-        "REQUIRED_FORMATS",
-        "contentPlanSourceSchema",
-        "contentFormatSchema"
-      ],
-      "lineCount": 123,
-      "sizeBytes": 4526,
-      "notes": "Schema / validation"
-    },
-    {
       "path": "src/lib/schemas/director-plan.ts",
       "type": "schema",
       "area": "shared",
@@ -23965,41 +23053,6 @@
       "lineCount": 453,
       "sizeBytes": 14611,
       "notes": "Schema / validation; area=media-processing"
-    },
-    {
-      "path": "src/lib/services/ad-intel-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "adIntelObservationSchema",
-        "AdIntelObservation",
-        "adStructureSchema",
-        "AdStructure",
-        "annotateAdStructure",
-        "coerceStructure",
-        "saveAdIntelRecipe",
-        "listIndustryStructures",
-        "structuresToPromptLines"
-      ],
-      "imports": [
-        "zod",
-        "@/lib/db",
-        "@/lib/ai",
-        "@/lib/video-generation/creative-recipe"
-      ],
-      "importantSymbols": [
-        "AdIntelObservation",
-        "AdStructure",
-        "adIntelObservationSchema",
-        "adStructureSchema",
-        "annotateAdStructure",
-        "coerceStructure",
-        "saveAdIntelRecipe",
-        "listIndustryStructures"
-      ],
-      "lineCount": 236,
-      "sizeBytes": 8191,
-      "notes": "Business logic service"
     },
     {
       "path": "src/lib/services/ai-usage-log-service.ts",
@@ -24220,74 +23273,6 @@
       "notes": "Business logic service"
     },
     {
-      "path": "src/lib/services/content-plan-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "ContentPlanInput",
-        "buildContentPlan",
-        "repairPlan",
-        "planSubjectFromSentence",
-        "planFactsFromSentence",
-        "heuristicPlan"
-      ],
-      "imports": [
-        "@/lib/ai",
-        "@/lib/schemas/content-plan",
-        "@/lib/video-generation/creative-recipe",
-        "@/lib/services/originality-check"
-      ],
-      "importantSymbols": [
-        "ContentPlanInput",
-        "buildContentPlan",
-        "repairPlan",
-        "planSubjectFromSentence",
-        "planFactsFromSentence",
-        "heuristicPlan"
-      ],
-      "lineCount": 513,
-      "sizeBytes": 20252,
-      "notes": "Business logic service"
-    },
-    {
-      "path": "src/lib/services/content-plan-store.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "postRecipeId",
-        "CreateContentPlanArgs",
-        "ContentPlanConflictError",
-        "createContentPlan",
-        "getContentPlan",
-        "listContentPlans",
-        "ProductLinkError",
-        "ProductImageFactsError"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/brand/global-brand-access",
-        "@/lib/services/content-plan-service",
-        "@/lib/services/product-link-service",
-        "@/lib/services/product-image-facts-service",
-        "@/lib/services/winner-derivation-service",
-        "@/lib/schemas/content-plan"
-      ],
-      "importantSymbols": [
-        "CreateContentPlanArgs",
-        "ContentPlanConflictError",
-        "ProductLinkError",
-        "ProductImageFactsError",
-        "postRecipeId",
-        "createContentPlan",
-        "getContentPlan",
-        "listContentPlans"
-      ],
-      "lineCount": 245,
-      "sizeBytes": 8193,
-      "notes": "Business logic service; hits Prisma DB"
-    },
-    {
       "path": "src/lib/services/content-post-image-job-service.ts",
       "type": "service",
       "area": "shared",
@@ -24465,25 +23450,6 @@
       "notes": "Business logic service; hits Prisma DB"
     },
     {
-      "path": "src/lib/services/distillation-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "distillRound"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/ai"
-      ],
-      "importantSymbols": [
-        "distillRound"
-      ],
-      "lineCount": 133,
-      "sizeBytes": 4028,
-      "notes": "Business logic service; hits Prisma DB"
-    },
-    {
       "path": "src/lib/services/douyin-copy-service.ts",
       "type": "service",
       "area": "shared",
@@ -24611,30 +23577,6 @@
       "notes": "Business logic service; hits Prisma DB"
     },
     {
-      "path": "src/lib/services/first-pass-rate-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "FirstPassRate",
-        "MIN_SAMPLE",
-        "videoFirstPassRate",
-        "postFirstPassRate"
-      ],
-      "imports": [
-        "@/lib/db",
-        "@/lib/experiments/run-key"
-      ],
-      "importantSymbols": [
-        "FirstPassRate",
-        "MIN_SAMPLE",
-        "videoFirstPassRate",
-        "postFirstPassRate"
-      ],
-      "lineCount": 94,
-      "sizeBytes": 3806,
-      "notes": "Business logic service"
-    },
-    {
       "path": "src/lib/services/historical-dispatch-quarantine.ts",
       "type": "service",
       "area": "shared",
@@ -24667,26 +23609,6 @@
       "lineCount": 148,
       "sizeBytes": 4573,
       "notes": "Business logic service; hits Prisma DB"
-    },
-    {
-      "path": "src/lib/services/iteration-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "generateRoundIterationReport"
-      ],
-      "imports": [
-        "@/lib/db",
-        "@/lib/services/distillation-service",
-        "@/lib/services/scoring-service",
-        "@/lib/services/racing-confidence"
-      ],
-      "importantSymbols": [
-        "generateRoundIterationReport"
-      ],
-      "lineCount": 76,
-      "sizeBytes": 2228,
-      "notes": "Business logic service"
     },
     {
       "path": "src/lib/services/lead-service.ts",
@@ -24940,34 +23862,6 @@
       "notes": "Business logic service"
     },
     {
-      "path": "src/lib/services/metrics-service.ts",
-      "type": "service",
-      "area": "metrics",
-      "exports": [
-        "ContentMetricsInput",
-        "recordMetricsSnapshot",
-        "CsvRow",
-        "parseMetricsCsv",
-        "importMetricsCsv",
-        "METRICS_CSV_TEMPLATE"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db"
-      ],
-      "importantSymbols": [
-        "ContentMetricsInput",
-        "CsvRow",
-        "METRICS_CSV_TEMPLATE",
-        "recordMetricsSnapshot",
-        "parseMetricsCsv",
-        "importMetricsCsv"
-      ],
-      "lineCount": 183,
-      "sizeBytes": 5725,
-      "notes": "Business logic service; hits Prisma DB; area=metrics"
-    },
-    {
       "path": "src/lib/services/notification-service.ts",
       "type": "service",
       "area": "shared",
@@ -25102,35 +23996,6 @@
       "notes": "Business logic service"
     },
     {
-      "path": "src/lib/services/originality-check.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "NGRAM_SIZE",
-        "ORIGINALITY_THRESHOLD",
-        "OriginalityReport",
-        "normalizeForComparison",
-        "toNgrams",
-        "checkOriginality",
-        "findLongestOverlap",
-        "flattenPlanText"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "NGRAM_SIZE",
-        "ORIGINALITY_THRESHOLD",
-        "OriginalityReport",
-        "normalizeForComparison",
-        "toNgrams",
-        "checkOriginality",
-        "findLongestOverlap",
-        "flattenPlanText"
-      ],
-      "lineCount": 174,
-      "sizeBytes": 5942,
-      "notes": "Business logic service"
-    },
-    {
       "path": "src/lib/services/paid-action-rate-limit.ts",
       "type": "service",
       "area": "media-processing",
@@ -25152,8 +24017,8 @@
         "paidActionBucketKey",
         "assertPaidActionRateLimit"
       ],
-      "lineCount": 81,
-      "sizeBytes": 3481,
+      "lineCount": 67,
+      "sizeBytes": 2748,
       "notes": "Business logic service; area=media-processing"
     },
     {
@@ -25235,31 +24100,6 @@
       "notes": "Business logic service"
     },
     {
-      "path": "src/lib/services/product-image-facts-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "ProductImageFacts",
-        "ProductImageFactsError",
-        "readProductImageFacts",
-        "coerceFacts",
-        "imageFactsToPromptLines"
-      ],
-      "imports": [
-        "@/lib/ai"
-      ],
-      "importantSymbols": [
-        "ProductImageFacts",
-        "ProductImageFactsError",
-        "readProductImageFacts",
-        "coerceFacts",
-        "imageFactsToPromptLines"
-      ],
-      "lineCount": 128,
-      "sizeBytes": 4335,
-      "notes": "Business logic service"
-    },
-    {
       "path": "src/lib/services/product-image-service.ts",
       "type": "service",
       "area": "shared",
@@ -25309,42 +24149,6 @@
       "lineCount": 1534,
       "sizeBytes": 54927,
       "notes": "Business logic service; hits Prisma DB"
-    },
-    {
-      "path": "src/lib/services/product-link-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "productLinkFactsSchema",
-        "ProductLinkFacts",
-        "MAX_REDIRECTS",
-        "ProductLinkError",
-        "assertPublicHttpUrl",
-        "isBlockedIpAddress",
-        "HostResolver",
-        "assertPublicDestination",
-        "fetchProductFacts",
-        "extractFactsFromHtml",
-        "factsToPromptLines"
-      ],
-      "imports": [
-        "node:dns/promises",
-        "node:net",
-        "zod"
-      ],
-      "importantSymbols": [
-        "ProductLinkFacts",
-        "MAX_REDIRECTS",
-        "ProductLinkError",
-        "HostResolver",
-        "productLinkFactsSchema",
-        "assertPublicHttpUrl",
-        "isBlockedIpAddress",
-        "assertPublicDestination"
-      ],
-      "lineCount": 484,
-      "sizeBytes": 16382,
-      "notes": "Business logic service"
     },
     {
       "path": "src/lib/services/product-profile-service.ts",
@@ -25529,64 +24333,9 @@
         "RateLimitExceededError",
         "isQuotaEnforced"
       ],
-      "lineCount": 964,
-      "sizeBytes": 33572,
+      "lineCount": 959,
+      "sizeBytes": 33406,
       "notes": "Business logic service; hits Prisma DB; NextAuth session check"
-    },
-    {
-      "path": "src/lib/services/racing-confidence.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "RacingConfidenceLevel",
-        "RacingVariantWindows",
-        "RacingConfidence",
-        "calculateRacingConfidence"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "RacingConfidenceLevel",
-        "RacingVariantWindows",
-        "RacingConfidence",
-        "calculateRacingConfidence"
-      ],
-      "lineCount": 80,
-      "sizeBytes": 2574,
-      "notes": "Business logic service"
-    },
-    {
-      "path": "src/lib/services/racing-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "RacingAccess",
-        "assertRacingRoundAccess",
-        "listRacingRounds",
-        "recordRacingMetrics",
-        "analyzeRacingRound",
-        "scheduleNextRacingRound",
-        "isInternalRacingUser"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/services/round-service",
-        "@/lib/services/iteration-service",
-        "@/lib/services/metrics-service",
-        "@/lib/services/racing-confidence"
-      ],
-      "importantSymbols": [
-        "RacingAccess",
-        "assertRacingRoundAccess",
-        "listRacingRounds",
-        "recordRacingMetrics",
-        "analyzeRacingRound",
-        "scheduleNextRacingRound",
-        "isInternalRacingUser"
-      ],
-      "lineCount": 228,
-      "sizeBytes": 7351,
-      "notes": "Business logic service; hits Prisma DB"
     },
     {
       "path": "src/lib/services/rate-limit-service.ts",
@@ -25619,92 +24368,6 @@
       "lineCount": 137,
       "sizeBytes": 5394,
       "notes": "Business logic service"
-    },
-    {
-      "path": "src/lib/services/recipe-racing-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "RacingMetric",
-        "RacingDimension",
-        "PerformanceRow",
-        "RecipeStats",
-        "RacingVerdict",
-        "MIN_SUBJECTS_PER_RECIPE",
-        "MIN_TRIALS_PER_RECIPE",
-        "MIN_RECIPES",
-        "groupKeyFor",
-        "wilsonInterval",
-        "RATE_SMOOTHING_EXPOSURE",
-        "studentT975",
-        "PostSample",
-        "postRateInterval",
-        "aggregateByRecipe",
-        "judgeRecipes",
-        "explainVerdict",
-        "RACING_DIMENSIONS",
-        "judgeAllDimensions"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "RacingMetric",
-        "RacingDimension",
-        "PerformanceRow",
-        "RecipeStats",
-        "RacingVerdict",
-        "MIN_SUBJECTS_PER_RECIPE",
-        "MIN_TRIALS_PER_RECIPE",
-        "MIN_RECIPES"
-      ],
-      "lineCount": 432,
-      "sizeBytes": 16513,
-      "notes": "Business logic service"
-    },
-    {
-      "path": "src/lib/services/round-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "CreateRoundArgs",
-        "createRound",
-        "finalizeDeliveryOrder",
-        "cancelDeliveryOrder"
-      ],
-      "imports": [
-        "@/lib/db"
-      ],
-      "importantSymbols": [
-        "CreateRoundArgs",
-        "createRound",
-        "finalizeDeliveryOrder",
-        "cancelDeliveryOrder"
-      ],
-      "lineCount": 88,
-      "sizeBytes": 2279,
-      "notes": "Business logic service"
-    },
-    {
-      "path": "src/lib/services/scoring-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "scoreRound",
-        "briefCompositeFromSnapshots",
-        "normalizeContentMetrics"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/config/scoring-weights"
-      ],
-      "importantSymbols": [
-        "scoreRound",
-        "briefCompositeFromSnapshots",
-        "normalizeContentMetrics"
-      ],
-      "lineCount": 171,
-      "sizeBytes": 4522,
-      "notes": "Business logic service; hits Prisma DB"
     },
     {
       "path": "src/lib/services/showcase-library.ts",
@@ -26387,29 +25050,6 @@
       ],
       "lineCount": 27,
       "sizeBytes": 1231,
-      "notes": "Business logic service"
-    },
-    {
-      "path": "src/lib/services/winner-derivation-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "DerivationInput",
-        "parseRecipeId",
-        "resolveDerivationInput"
-      ],
-      "imports": [
-        "@/lib/services/performance-ingest-service",
-        "@/lib/services/recipe-racing-service",
-        "@/lib/services/ad-intel-service"
-      ],
-      "importantSymbols": [
-        "DerivationInput",
-        "parseRecipeId",
-        "resolveDerivationInput"
-      ],
-      "lineCount": 78,
-      "sizeBytes": 2878,
       "notes": "Business logic service"
     },
     {
@@ -29061,8 +27701,8 @@
         "middleware",
         "config"
       ],
-      "lineCount": 172,
-      "sizeBytes": 7203,
+      "lineCount": 171,
+      "sizeBytes": 7211,
       "notes": ""
     },
     {
@@ -29255,29 +27895,11 @@
         "node:assert/strict",
         "node:test",
         "../src/lib/db",
-        "../src/lib/services/product-image-service",
-        "../src/lib/services/content-plan-service"
+        "../src/lib/services/product-image-service"
       ],
       "importantSymbols": [],
-      "lineCount": 140,
-      "sizeBytes": 5266,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/ad-intel-compliance.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:path",
-        "node:test",
-        "../src/lib/services/ad-intel-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 158,
-      "sizeBytes": 5285,
+      "lineCount": 88,
+      "sizeBytes": 3168,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -29596,8 +28218,8 @@
         "../src/i18n/growth-copy"
       ],
       "importantSymbols": [],
-      "lineCount": 143,
-      "sizeBytes": 6623,
+      "lineCount": 142,
+      "sizeBytes": 6501,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -29619,8 +28241,8 @@
         "../src/i18n/config"
       ],
       "importantSymbols": [],
-      "lineCount": 125,
-      "sizeBytes": 5527,
+      "lineCount": 122,
+      "sizeBytes": 5370,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -29634,17 +28256,14 @@
         "node:path",
         "node:test",
         "../src/components/exchange/workspace-page",
-        "../src/components/content-plan/plan-week",
         "../src/components/templates/recipe-summary",
-        "../src/components/wins/dimension-ledger",
         "../src/components/platform/customer-route-state",
         "../src/i18n/platform-copy",
-        "../src/i18n/public-copy",
-        "../src/lib/services/recipe-racing-service"
+        "../src/i18n/public-copy"
       ],
       "importantSymbols": [],
-      "lineCount": 423,
-      "sizeBytes": 25470,
+      "lineCount": 340,
+      "sizeBytes": 20097,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -30091,15 +28710,13 @@
       "exports": [],
       "imports": [
         "node:assert/strict",
-        "node:fs",
-        "node:path",
         "node:test",
         "../src/lib/video-generation/category-lock-registry",
         "../src/lib/video-generation/client-lock-profiles"
       ],
       "importantSymbols": [],
-      "lineCount": 62,
-      "sizeBytes": 2372,
+      "lineCount": 51,
+      "sizeBytes": 1986,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -30225,8 +28842,8 @@
         "../src/i18n/dictionaries/en-US"
       ],
       "importantSymbols": [],
-      "lineCount": 70,
-      "sizeBytes": 2232,
+      "lineCount": 73,
+      "sizeBytes": 2400,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -30306,8 +28923,8 @@
         "node:test"
       ],
       "importantSymbols": [],
-      "lineCount": 54,
-      "sizeBytes": 2393,
+      "lineCount": 42,
+      "sizeBytes": 1939,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -30343,8 +28960,8 @@
         "../src/lib/exchange/state-vocab"
       ],
       "importantSymbols": [],
-      "lineCount": 455,
-      "sizeBytes": 22915,
+      "lineCount": 454,
+      "sizeBytes": 22858,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -30363,10 +28980,8 @@
         "next/server",
         "../src/components/capabilities/capability-board",
         "../src/components/capabilities/capability-indicator",
-        "../src/components/capabilities/capability-notice",
         "../src/components/video-generation/audio-caption-controls",
         "../src/components/platform/customer-route-state",
-        "../src/i18n/platform-copy",
         "../src/lib/capabilities/registry",
         "../src/lib/contracts/customer-api",
         "../src/middleware"
@@ -30374,8 +28989,8 @@
       "importantSymbols": [
         "GET"
       ],
-      "lineCount": 294,
-      "sizeBytes": 15945,
+      "lineCount": 262,
+      "sizeBytes": 14277,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -30584,22 +29199,6 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
-      "path": "tests/content-plan.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/schemas/content-plan",
-        "../src/lib/services/content-plan-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 221,
-      "sizeBytes": 7109,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/content-post-image-job.test.ts",
       "type": "test",
       "area": "tests",
@@ -30618,13 +29217,12 @@
         "../src/lib/services/content-post-render-state",
         "../src/lib/services/exchange-readings",
         "../src/lib/services/unified-library-service",
-        "../src/app/api/content-plans/[id]/posts/[postId]/render/route",
         "../src/app/api/cron/poll-videos/route",
         "./helpers/content-post-image-fake-db"
       ],
       "importantSymbols": [],
-      "lineCount": 974,
-      "sizeBytes": 46066,
+      "lineCount": 865,
+      "sizeBytes": 40676,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -30648,8 +29246,7 @@
       "type": "test",
       "area": "tests",
       "exports": [
-        "discardContentPost",
-        "DELETE"
+        "discardContentPost"
       ],
       "imports": [
         "node:assert/strict",
@@ -30659,11 +29256,10 @@
         "../src/lib/services/content-post-render-service"
       ],
       "importantSymbols": [
-        "DELETE",
         "discardContentPost"
       ],
-      "lineCount": 79,
-      "sizeBytes": 2660,
+      "lineCount": 66,
+      "sizeBytes": 2225,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -30750,7 +29346,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 168,
-      "sizeBytes": 9938,
+      "sizeBytes": 9926,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -30797,21 +29393,6 @@
       "importantSymbols": [],
       "lineCount": 50,
       "sizeBytes": 1503,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/customer-create-images-route-boundary.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:test"
-      ],
-      "importantSymbols": [],
-      "lineCount": 25,
-      "sizeBytes": 1176,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -30916,8 +29497,8 @@
         "@/lib/qa/customer-route-state-rehearsal"
       ],
       "importantSymbols": [],
-      "lineCount": 141,
-      "sizeBytes": 5381,
+      "lineCount": 140,
+      "sizeBytes": 5347,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -30937,8 +29518,8 @@
         "../src/lib/demo-account"
       ],
       "importantSymbols": [],
-      "lineCount": 227,
-      "sizeBytes": 8916,
+      "lineCount": 225,
+      "sizeBytes": 8859,
       "notes": "Unit / integration test; NextAuth session check; area=tests"
     },
     {
@@ -31201,14 +29782,12 @@
       "imports": [
         "node:assert/strict",
         "node:test",
-        "../src/lib/db",
         "../src/lib/experiments/run-key",
-        "../src/lib/services/exchange-readings",
-        "../src/lib/services/first-pass-rate-service"
+        "../src/lib/services/exchange-readings"
       ],
       "importantSymbols": [],
-      "lineCount": 175,
-      "sizeBytes": 8886,
+      "lineCount": 125,
+      "sizeBytes": 6095,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -31239,22 +29818,6 @@
       "lineCount": 55,
       "sizeBytes": 2119,
       "notes": "Unit / integration test; NextAuth session check; area=tests"
-    },
-    {
-      "path": "tests/first-pass-rate.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/db",
-        "../src/lib/services/first-pass-rate-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 80,
-      "sizeBytes": 3419,
-      "notes": "Unit / integration test; area=tests"
     },
     {
       "path": "tests/first-run-onboarding.test.ts",
@@ -31489,25 +30052,17 @@
       "path": "tests/h1-secondary-api-contract.test.ts",
       "type": "test",
       "area": "tests",
-      "exports": [
-        "$"
-      ],
+      "exports": [],
       "imports": [
         "node:assert/strict",
         "node:fs/promises",
-        "node:path",
         "node:test",
-        "zod",
         "../src/lib/api-auth",
-        "../src/lib/contracts/customer-api",
-        "../src/lib/db",
-        "../src/lib/services/racing-service"
+        "../src/lib/contracts/customer-api"
       ],
-      "importantSymbols": [
-        "$"
-      ],
-      "lineCount": 331,
-      "sizeBytes": 9823,
+      "importantSymbols": [],
+      "lineCount": 86,
+      "sizeBytes": 2203,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -31530,8 +30085,8 @@
       "importantSymbols": [
         "$"
       ],
-      "lineCount": 307,
-      "sizeBytes": 10577,
+      "lineCount": 288,
+      "sizeBytes": 9840,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -31550,13 +30105,12 @@
         "../src/app/api/reports/route.ts",
         "../src/app/api/internal/reports/route.ts",
         "../src/app/api/internal/reports/[id]/route.ts",
-        "../src/app/api/demo/real-footage-ads/waitlist/route.ts",
         "../src/app/api/auth/[...nextauth]/route.ts",
         "../src/middleware.ts"
       ],
       "importantSymbols": [],
-      "lineCount": 344,
-      "sizeBytes": 11113,
+      "lineCount": 294,
+      "sizeBytes": 9631,
       "notes": "Unit / integration test; NextAuth session check; area=tests"
     },
     {
@@ -31812,8 +30366,8 @@
         "../next.config"
       ],
       "importantSymbols": [],
-      "lineCount": 46,
-      "sizeBytes": 1880,
+      "lineCount": 47,
+      "sizeBytes": 1987,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -31848,8 +30402,8 @@
       "importantSymbols": [
         "cancelProductImageJob"
       ],
-      "lineCount": 111,
-      "sizeBytes": 4338,
+      "lineCount": 97,
+      "sizeBytes": 4227,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -31989,8 +30543,8 @@
         "../src/lib/services/media-asset-service"
       ],
       "importantSymbols": [],
-      "lineCount": 109,
-      "sizeBytes": 3912,
+      "lineCount": 100,
+      "sizeBytes": 3476,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -32053,23 +30607,6 @@
       "importantSymbols": [],
       "lineCount": 301,
       "sizeBytes": 14475,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/metrics-iteration.integration.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/db",
-        "../src/lib/services/iteration-service",
-        "../src/lib/services/racing-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 105,
-      "sizeBytes": 3181,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -32229,8 +30766,8 @@
       "importantSymbols": [
         "needsOnboarding"
       ],
-      "lineCount": 199,
-      "sizeBytes": 11721,
+      "lineCount": 196,
+      "sizeBytes": 11423,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -32376,21 +30913,6 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
-      "path": "tests/originality-check.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/originality-check"
-      ],
-      "importantSymbols": [],
-      "lineCount": 100,
-      "sizeBytes": 4060,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/password-reset.test.ts",
       "type": "test",
       "area": "tests",
@@ -32431,8 +30953,8 @@
         "../src/lib/contracts/performance-api"
       ],
       "importantSymbols": [],
-      "lineCount": 129,
-      "sizeBytes": 4255,
+      "lineCount": 114,
+      "sizeBytes": 3705,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -32604,8 +31126,8 @@
         "POST",
         "listSyncableVideos"
       ],
-      "lineCount": 220,
-      "sizeBytes": 10193,
+      "lineCount": 219,
+      "sizeBytes": 10182,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -32675,29 +31197,13 @@
         "node:fs/promises",
         "@prisma/client",
         "../src/app/api/cron/poll-videos/route",
-        "../src/app/api/product-images/route",
         "../src/lib/db",
         "../src/lib/services/product-image-service"
       ],
       "importantSymbols": [],
-      "lineCount": 550,
-      "sizeBytes": 22310,
+      "lineCount": 567,
+      "sizeBytes": 23023,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
-    },
-    {
-      "path": "tests/product-image-retry-route.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/app/api/product-images/tasks/[taskId]/retry/route"
-      ],
-      "importantSymbols": [],
-      "lineCount": 43,
-      "sizeBytes": 1659,
-      "notes": "Unit / integration test; area=tests"
     },
     {
       "path": "tests/product-image-studio.test.ts",
@@ -32706,15 +31212,14 @@
       "exports": [],
       "imports": [
         "node:assert/strict",
-        "node:fs/promises",
         "node:test",
         "../src/lib/services/product-image-service",
         "../src/lib/upload/media-file-validation",
         "../src/lib/providers/openai-image"
       ],
       "importantSymbols": [],
-      "lineCount": 177,
-      "sizeBytes": 7406,
+      "lineCount": 116,
+      "sizeBytes": 4570,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -32728,38 +31233,8 @@
         "node:test"
       ],
       "importantSymbols": [],
-      "lineCount": 54,
-      "sizeBytes": 2351,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/product-link-ssrf.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/product-link-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 208,
-      "sizeBytes": 7862,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/product-link.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/product-link-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 184,
-      "sizeBytes": 6587,
+      "lineCount": 32,
+      "sizeBytes": 1748,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -32803,7 +31278,7 @@
         "loadCreateShortcutsOrNone"
       ],
       "lineCount": 222,
-      "sizeBytes": 14205,
+      "sizeBytes": 14155,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -32884,8 +31359,8 @@
         "../src/lib/providers/provider-billing-error"
       ],
       "importantSymbols": [],
-      "lineCount": 28,
-      "sizeBytes": 1895,
+      "lineCount": 20,
+      "sizeBytes": 1274,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -33084,22 +31559,6 @@
       "notes": "Unit / integration test; hits Prisma DB; NextAuth session check; area=tests"
     },
     {
-      "path": "tests/racing-confidence.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "node:fs/promises",
-        "../src/lib/services/racing-confidence"
-      ],
-      "importantSymbols": [],
-      "lineCount": 67,
-      "sizeBytes": 2793,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/reburn-captions-ops.test.ts",
       "type": "test",
       "area": "tests",
@@ -33117,21 +31576,6 @@
       ],
       "lineCount": 136,
       "sizeBytes": 6983,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/recipe-racing.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/recipe-racing-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 339,
-      "sizeBytes": 12109,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -33278,13 +31722,12 @@
         "node:path",
         "node:test",
         "../src/lib/capabilities/registry",
-        "../src/lib/create/entry-policy",
         "../src/lib/services/capability-status-service",
         "../src/lib/services/ops-alert-service"
       ],
       "importantSymbols": [],
-      "lineCount": 239,
-      "sizeBytes": 11326,
+      "lineCount": 318,
+      "sizeBytes": 15069,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -33358,13 +31801,12 @@
         "../src/lib/exchange/readings-registry",
         "../src/lib/services/exchange-readings",
         "../src/lib/services/unified-library-service",
-        "../src/lib/services/first-pass-rate-service",
         "../src/components/batch/batch-monitor-readings",
         "../src/components/leads/lead-milestone"
       ],
       "importantSymbols": [],
-      "lineCount": 345,
-      "sizeBytes": 20487,
+      "lineCount": 327,
+      "sizeBytes": 19406,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -33650,8 +32092,8 @@
         "node:test"
       ],
       "importantSymbols": [],
-      "lineCount": 40,
-      "sizeBytes": 1903,
+      "lineCount": 50,
+      "sizeBytes": 2432,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -34725,8 +33167,8 @@
         "../src/lib/services/rate-limit-service"
       ],
       "importantSymbols": [],
-      "lineCount": 170,
-      "sizeBytes": 7576,
+      "lineCount": 168,
+      "sizeBytes": 7611,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -34896,8 +33338,8 @@
         "../src/lib/platform-routes"
       ],
       "importantSymbols": [],
-      "lineCount": 89,
-      "sizeBytes": 5147,
+      "lineCount": 81,
+      "sizeBytes": 4735,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -34995,13 +33437,12 @@
         "node:assert/strict",
         "node:test",
         "../src/app/api/upload/blob/route",
-        "../src/app/api/product-images/route",
         "../src/lib/db",
         "../src/lib/services/product-image-service"
       ],
       "importantSymbols": [],
-      "lineCount": 333,
-      "sizeBytes": 15687,
+      "lineCount": 130,
+      "sizeBytes": 5932,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -35517,47 +33958,6 @@
       "importantSymbols": [],
       "lineCount": 352,
       "sizeBytes": 14847,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/winner-derivation.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:path",
-        "node:test",
-        "../src/lib/services/winner-derivation-service",
-        "../src/lib/services/content-plan-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 66,
-      "sizeBytes": 2494,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/wins-entry-hidden.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [
-        "WinsPage",
-        "default"
-      ],
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test",
-        "../src/i18n/platform-copy",
-        "../src/lib/platform-routes"
-      ],
-      "importantSymbols": [
-        "WinsPage",
-        "default"
-      ],
-      "lineCount": 42,
-      "sizeBytes": 2189,
       "notes": "Unit / integration test; area=tests"
     },
     {

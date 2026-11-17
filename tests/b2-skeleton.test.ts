@@ -3,9 +3,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import { workspaceNavTitle } from "../src/components/exchange/workspace-page";
-import { apiErrorMessage, planDayDates, planTodayOffset } from "../src/components/content-plan/plan-week";
 import { summarizeRecipeGuards } from "../src/components/templates/recipe-summary";
-import { explainVerdictCopy, groupLabel } from "../src/components/wins/dimension-ledger";
 import {
   CUSTOMER_ROUTE_FALLBACK_AREAS,
   CUSTOMER_ROUTE_FALLBACKS,
@@ -13,11 +11,11 @@ import {
 } from "../src/components/platform/customer-route-state";
 import { getPlatformCopy } from "../src/i18n/platform-copy";
 import { getPublicPageCopy } from "../src/i18n/public-copy";
-import type { RacingVerdict } from "../src/lib/services/recipe-racing-service";
 
 /**
- * 1025 · B2 页面骨架与控件层：行情头 / WorkspacePage、选中态与空态、本周内容、品牌、成片详情、
- * 战绩、登录与法务、404、批次详情只读与窄屏、路由边界。
+ * 1025 · B2 页面骨架与控件层：行情头 / WorkspacePage、选中态与空态、品牌、成片详情、
+ * 登录与法务、404、批次详情只读与窄屏、路由边界。
+ * （本周内容 B2.3、战绩 B2.7 的用例随这两页 2026-11-16 删除。）
  */
 
 const read = (file: string) => readFileSync(file, "utf8");
@@ -59,43 +57,39 @@ test("B2.1 WorkspacePage：标题只能是导航名（从字典取），不接�
   const page = read("src/components/exchange/workspace-page.tsx");
   assert.match(page, /Omit<QuoteHeaderProps, "title" \| "className">/);
   assert.match(page, /getDictionary\(locale\)\.shell\.platformNav\[nav\]/);
-  assert.equal(workspaceNavTitle("plan", "zh-CN"), "本周内容");
+  assert.equal(workspaceNavTitle("library", "zh-CN"), "成品库");
   assert.equal(workspaceNavTitle("brands", "zh-CN"), "品牌");
-  assert.equal(workspaceNavTitle("wins", "zh-CN"), "战绩");
   assert.equal(workspaceNavTitle("create", "zh-CN"), "创作");
-  assert.equal(workspaceNavTitle("plan", "en-US"), "This week");
+  assert.equal(workspaceNavTitle("library", "en-US"), "Video library");
   assert.equal(workspaceNavTitle("brands", "en-US"), "Brands");
+  /// 2026-11-16 删掉的两页不再是导航 id（字典里也没有它们的名字）
+  assert.doesNotMatch(page, /"plan"|"wins"/);
 });
 
 test("B2.1 一级区页面都用 WorkspacePage 开场，口号进副标题", () => {
   const pages: Array<[string, string]> = [
-    ["src/components/content-plan/plan-timeline.tsx", "plan"],
     ["src/app/(platform)/app/brands/page.tsx", "brands"],
-    ["src/app/(platform)/app/wins/page.tsx", "wins"],
     ["src/app/(platform)/app/library/page.tsx", "library"],
     ["src/app/(platform)/app/batches/page.tsx", "batches"],
     ["src/app/(platform)/app/templates/page.tsx", "templates"],
     ["src/app/(platform)/app/leads/page.tsx", "leads"],
-    ["src/app/(platform)/app/create/images/page.tsx", "create"],
   ];
   for (const [file, nav] of pages) {
     const source = read(file);
     assert.match(source, new RegExp(`<WorkspacePage\\s+nav="${nav}"`), file);
     assert.doesNotMatch(source, /<QuoteHeader\b/, `${file} 不再手写行情头`);
   }
-  // 口号挪进副标题：「一句话，排完一周」「可复用品牌包」「哪种内容在替你赚钱」不再是标题
+  // 口号挪进副标题：「可复用品牌包」不再是标题
   const zh = getPlatformCopy("zh-CN");
-  assert.match(zh.plan.subtitle, /^一句话，排完一周/);
   assert.match(zh.brands.subtitle, /^可复用品牌包/);
-  assert.match(zh.wins.subtitle, /^哪种内容在替你赚钱/);
   /// 创作页 2026-10-28 晚改成对话框优先（上线审核 §4，学 Runway 首页）：不再用行情头，
-  /// 标题是一句轻问句，读数退成一行；「生成视频 / 产品图片」切换 A 级下线，按 entry-policy 开关渲染
+  /// 标题是一句轻问句，读数退成一行；「生成视频 / 产品图片」切换随产品图工作台 2026-11-16 删除
   const studio = read("src/components/video-generation/streamlined-video-studio.tsx");
   assert.doesNotMatch(studio, /<QuoteHeader\b/);
   assert.match(studio, /<h1 id="create-hero-title" className="create-hero-title">\{copy\.heroTitle\}<\/h1>/);
   assert.match(studio, /heroTitle: "今天想拍什么？"/);
   assert.match(studio, /aria-label=\{copy\.readingsLabel\}\s+title=\{copy\.readingsScope\}/);
-  assert.match(studio, /\{PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED \? <CreateModeTabs active="video" \/> : null\}/);
+  assert.doesNotMatch(studio, /CreateModeTabs|PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED/);
 });
 
 test("B2.1 每个行情头都显式写出主行动与统计口径（新建批次、批次详情、成品库补齐口径）", () => {
@@ -147,68 +141,6 @@ test("B2.2 统一 EmptyState：按钮描边、无角标、无虚线；批量 / �
   }
 });
 
-/* ── B2.3 本周内容 ─────────────────────────────────────────────────── */
-
-test("B2.3 本周内容：共享 Button / Input，CSS module 不再自写按钮与输入框（修 .actions .primary 特异度）", () => {
-  const timeline = read("src/components/content-plan/plan-timeline.tsx");
-  const css = read("src/components/content-plan/plan-timeline.module.css");
-  assert.match(timeline, /from "@\/components\/ui\/button"/);
-  assert.match(timeline, /from "@\/components\/ui\/input"/);
-  assert.doesNotMatch(timeline, /<input\b/);
-  assert.doesNotMatch(stripComments(css), /\bbutton\b|\binput\b|\.primary\b/);
-  assert.doesNotMatch(timeline, /data-testid="cutting-room"/, "旧世界的「剪辑台」testid 退役");
-});
-
-test("B2.3 本周内容：界面文案全部来自 platform-copy（代码里没有写死的中文）", () => {
-  const code = stripComments(read("src/components/content-plan/plan-timeline.tsx"));
-  assert.doesNotMatch(code, CJK);
-  assert.match(code, /getPlatformCopy\(locale\)\.plan/);
-  const zh = getPlatformCopy("zh-CN").plan;
-  const en = getPlatformCopy("en-US").plan;
-  assert.equal(zh.trackLabel, "本周内容时间线");
-  assert.equal(zh.inputLabel, "用一句话描述你的生意，或粘贴商品链接");
-  assert.equal(en.formats.CAROUSEL, "Carousel");
-  assert.doesNotMatch(JSON.stringify(zh), /青砚/);
-});
-
-test("B2.3 接口错误读 body.error（customerApiError 的人话），读不到才用兜底", () => {
-  assert.equal(apiErrorMessage({ ok: false, error: "请先用一句话说清楚你家做什么生意" }, "兜底"), "请先用一句话说清楚你家做什么生意");
-  assert.equal(apiErrorMessage({ message: "旧字段" }, "兜底"), "兜底");
-  assert.equal(apiErrorMessage(null, "兜底"), "兜底");
-  assert.equal(apiErrorMessage({ error: "   " }, "兜底"), "兜底");
-  const timeline = read("src/components/content-plan/plan-timeline.tsx");
-  assert.doesNotMatch(timeline, /body\?\.message/);
-  /// 排一周 / 生成配图 / 停止出图（C2 新增）/ 弃用：四个接口的错误都读 body.error。
-  assert.equal((timeline.match(/apiErrorMessage\(body, copy\./g) ?? []).length, 4);
-});
-
-test("B2.3 「今天」在浏览器里按计划起始日 + dayOffset 算，服务端只传 ISO", () => {
-  const page = read("src/app/(platform)/app/plan/page.tsx");
-  assert.match(page, /startIso: latest\.createdAt\.toISOString\(\)/);
-  assert.doesNotMatch(page, /getDay\(\)|todayOffset/);
-
-  // 周三晚上排的计划：第 0 天是周三，不是写死的周一
-  const start = new Date(2026, 9, 21, 23, 30).toISOString();
-  const days = planDayDates(start);
-  assert.equal(days.length, 7);
-  assert.equal(days[0].getDate(), 21);
-  assert.equal(days[6].getDate(), 27);
-  assert.equal(planTodayOffset(start, new Date(2026, 9, 21, 23, 59)), 0);
-  assert.equal(planTodayOffset(start, new Date(2026, 9, 22, 0, 5)), 1, "过了本地午夜就是下一天");
-  assert.equal(planTodayOffset(start, new Date(2026, 9, 24, 17, 30)), 3);
-  assert.equal(planTodayOffset(start, new Date(2026, 9, 28, 9, 0)), null, "计划过期不画光针");
-  // 跨夏令时（北美 11/1）也按日历加天
-  const dst = planDayDates(new Date(2026, 9, 30, 12, 0).toISOString());
-  assert.deepEqual(dst.map((day) => day.getDate()), [30, 31, 1, 2, 3, 4, 5]);
-  assert.ok(dst.every((day) => day.getHours() === 0));
-});
-
-test("B2.3 一页一枚实心主钮：有计划时「排一周」降为描边；出图只对草稿（半套轮播可补齐）", () => {
-  const timeline = read("src/components/content-plan/plan-timeline.tsx");
-  assert.match(timeline, /variant=\{plan \? "outline" : "default"\}/);
-  assert.match(timeline, /selected\.status === "DRAFT";/);
-  assert.match(timeline, /copy\.renderMissing/);
-});
 
 /* ── B2.4 品牌 ─────────────────────────────────────────────────────── */
 
@@ -250,27 +182,6 @@ test("B2.1 成片详情：行情头 + 状态记号，成片在制作过程之前
   assert.match(page, /copy\.musicCredit/);
 });
 
-/* ── B2.7 战绩 ─────────────────────────────────────────────────────── */
-
-test("B2.7 战绩：文案进 platform-copy，英文界面不再整页中文", () => {
-  for (const file of ["src/app/(platform)/app/wins/page.tsx", "src/components/wins/dimension-ledger.tsx"]) {
-    assert.doesNotMatch(stripComments(read(file)), CJK, file);
-  }
-  const en = getPlatformCopy("en-US").wins;
-  const insufficient: RacingVerdict = {
-    status: "insufficient",
-    metric: "engagement_rate",
-    dimension: "recipe",
-    ranked: [{ recipeId: "post:POV:single_image", subjectCount: 1, trials: 40, successes: 2, rate: 0.05, lower: 0, upper: 0.2 }],
-    missing: ["目前只有 1 种配方有数据，至少要 2 种才能比较"],
-  };
-  const formats = getPlatformCopy("en-US").plan.formats;
-  assert.equal(explainVerdictCopy(insufficient, en, formats), "Not enough data to call a winner yet. Only 1 structures have data so far; at least 2 are needed to compare.");
-  assert.doesNotMatch(explainVerdictCopy(insufficient, en, formats), CJK);
-  // 不把内部 recipeId 原值摆给商家
-  assert.equal(groupLabel("recipe", "post:POV:single_image", formats), "POV · Single image");
-  assert.equal(groupLabel("durationSec", "15", formats), "15s");
-});
 
 /* ── B2.5 配方弹窗 ─────────────────────────────────────────────────── */
 
@@ -383,8 +294,8 @@ test("B2.9 批次详情：窄屏两行卡片，不再 680px 最小宽度横向�
 
 /* ── 路由边界 ──────────────────────────────────────────────────────── */
 
-test("本周内容、战绩、品牌、询盘有自己的加载 / 错误边界，壳层不再被冲掉", () => {
-  for (const route of ["plan", "wins", "brands", "leads"] as const) {
+test("品牌、询盘有自己的加载 / 错误边界，壳层不再被冲掉", () => {
+  for (const route of ["brands", "leads"] as const) {
     const dir = `src/app/(platform)/app/${route}`;
     assert.ok(existsSync(`${dir}/loading.tsx`) && existsSync(`${dir}/error.tsx`), dir);
     assert.match(read(`${dir}/loading.tsx`), new RegExp(`<CustomerRouteLoading route="${route}" />`));
@@ -415,6 +326,12 @@ test("骨架按行情头结构画（无眉题短条、读数格数与页面一�
   assert.doesNotMatch(error, /AlertTriangle/);
   assert.match(error, /copy\.backTo\.replace\("\{area\}", backArea\)/);
   assert.equal(CUSTOMER_ROUTE_FALLBACK_AREAS.libraryDetail, "library");
+  /// 询盘出错时的「返回」以前去本周内容；那一页 2026-11-16 删了，改回创作页——不能再指向不存在的页面
+  assert.equal(CUSTOMER_ROUTE_FALLBACKS.leads, "/app/create");
+  assert.equal(CUSTOMER_ROUTE_FALLBACK_AREAS.leads, "create");
+  for (const target of Object.values(CUSTOMER_ROUTE_FALLBACKS)) {
+    assert.doesNotMatch(target, /\/app\/(plan|wins|racing|create\/images)/, target);
+  }
   assert.equal(
     getPlatformCopy("zh-CN").routeStates.backTo.replace("{area}", getPlatformCopy("zh-CN").routeStates.areas.library),
     "返回成品库",

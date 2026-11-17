@@ -64,11 +64,10 @@ test("全局品牌包：无权限时范围只有本人工作区，有权限才�
   ]);
 });
 
-test("全局品牌包：列表、取包、取素材、内容计划四处都走同一个可见范围", () => {
+test("全局品牌包：列表、取包、取素材三处都走同一个可见范围（第四处「内容计划」2026-11-16 删除）", () => {
   for (const file of [
     "src/lib/services/workspace-brand-package-service.ts",
     "src/lib/services/media-asset-service.ts",
-    "src/lib/services/content-plan-store.ts",
   ]) {
     const source = read(file);
     assert.match(source, /visibleBrandPackageScope\(/, file);

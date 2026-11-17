@@ -20,8 +20,6 @@ import { BrandPackageButton } from "@/components/library/brand-package-button";
 import { BRAND_END_CARD_ENTRY_ENABLED } from "@/lib/brand/brand-end-card-policy";
 import { FailuresAckButton } from "@/components/library/failures-ack-button";
 import { LibraryHighlight } from "@/components/library/library-highlight";
-import { RenderPendingPostsButton } from "@/components/library/render-pending-posts-button";
-import { PostRenderWatcher } from "@/components/library/post-render-watcher";
 import { ProcessingRefresher } from "@/components/library/processing-refresher";
 import { peekPendingStoryboardForUser } from "@/lib/video-generation/storyboard-service";
 import { AiGeneratedLabel } from "@/components/compliance/ai-generated-label";
@@ -42,18 +40,9 @@ import { contactEmail } from "@/lib/config/contact";
 
 export const dynamic = "force-dynamic";
 
-/// 图文帖的家是「本周内容」——它没有可播放的成片，
-/// 链到视频详情页只会 404（0802 录屏抓到的真实事故）。
+/// 只给视频行用。图文帖没有详情页（「本周内容」2026-11-16 删了），它的卡片直接打开配图。
 function detailHref(row: UnifiedLibraryRow): string {
-  return row.source === "batch"
-    ? `/app/batches/${row.batchId}`
-    : row.source === "post"
-      ? "/app/plan"
-      : `/app/library/${row.id}`;
-}
-
-function postIdOf(row: UnifiedLibraryRow): string {
-  return row.id.replace(/^post-/, "");
+  return row.source === "batch" ? `/app/batches/${row.batchId}` : `/app/library/${row.id}`;
 }
 
 /** 英文界面的失败原因按 code 取译文（服务端 classify 给的是中文客户文案）。 */
@@ -103,7 +92,11 @@ export default async function PlatformLibraryPage({
     ?? null;
   const matches = (title: string, id: string) =>
     !query || title.toLocaleLowerCase().includes(query) || id.toLocaleLowerCase().includes(query);
-  const rows = library.rows.filter((row) => matches(row.title, row.id));
+  /// 图文帖只摆已经做好的：排图文、出配图的「本周内容」2026-11-16 删了，没出图的帖子在这里已经没有可做的事。
+  /// 以前出好的图文帖是成品，照旧留在「成片 · 图文」里。
+  const rows = library.rows.filter(
+    (row) => matches(row.title, row.id) && (row.source !== "post" || row.status === "ready"),
+  );
   const failures = attention.items.filter((item) => matches(item.title, item.rowId));
   const allCopy = getPlatformCopy(locale);
   const copy = allCopy.library;
@@ -115,20 +108,13 @@ export default async function PlatformLibraryPage({
    * 成品库按「一条生产线」的业务对象与阶段组织（PRD §4.3 按业务对象 / §10.5 新 IA）：
    *   需要处理   —— 近 7 天失败、未重试成功、没看过的视频（与导轨红色徽标同一个查询）。
    *   生产线上   —— 供应商侧真在生成的视频（点入可跟踪/取消）。挂光束。
-   *   出图中     —— 已交给出图服务（Shuyu 异步）的图文帖：真有任务在跑，挂光束，进度按已出张数（C2）。
    *   排队与暂停 —— 还没开始或已暂停的视频：不挂光束、不写 0%。
-   *   待生成配图 —— 本周内容排好的图文帖，没有任务在跑，等商家动作。
-   *   待生产     —— 短视频帖只有脚本，不是成片。
-   *   成片·视频 / 成片·图文 —— 按业务对象分区，各自的动作不同。
+   *   成片·视频 / 成片·图文 —— 按业务对象分区。图文只摆以前出好的（「本周内容」2026-11-16 删了，不再有新的）。
    * 交付/发布：成片就绪后由青砚侧 aivora-sync 自动拉取、Postiz 排期（PRD O2）。
    */
   const isPost = (row: UnifiedLibraryRow) => row.source === "post";
   const makingRows = rows.filter((row) => !isPost(row) && (row.status === "generating" || row.status === "assembling"));
-  /// C2：正在出图的图文帖（不在「待生成配图」里——商家已经点过了，那里只放没有任务在跑的）。
-  const renderingPostRows = rows.filter((row) => isPost(row) && row.status === "generating");
   const waitingRows = rows.filter((row) => !isPost(row) && (row.status === "planning" || row.status === "paused"));
-  const actionRows = rows.filter((row) => isPost(row) && row.status === "planning" && row.postFormat !== "VIDEO");
-  const toProduceRows = rows.filter((row) => isPost(row) && row.status === "planning" && row.postFormat === "VIDEO");
   /// 失败但还留着可播放媒体的行（可恢复的输出）照样放在成片墙上，客户不丢媒体。
   const readyVideoRows = rows.filter(
     (row) => (row.status === "ready" && !isPost(row)) || (row.status === "failed" && !isPost(row) && Boolean(row.videoUrl)),
@@ -308,52 +294,6 @@ export default async function PlatformLibraryPage({
             </section>
           ) : null}
 
-          {renderingPostRows.length > 0 ? (
-            <section aria-label={copy.sectionRendering} className="space-y-3">
-              <SectionHead
-                title={copy.sectionRendering}
-                count={renderingPostRows.length}
-                countTone="live"
-                hint={copy.sectionRenderingHint}
-                action={
-                  <PostRenderWatcher
-                    items={renderingPostRows.map((row) => ({ planId: row.planId ?? "", postId: postIdOf(row) })).filter((item) => item.planId)}
-                  />
-                }
-              />
-              <ul className="x-panel overflow-hidden">
-                {renderingPostRows.map((row) => (
-                  <li
-                    key={row.id}
-                    data-beam="row"
-                    data-library-row={row.id}
-                    data-highlighted={isHighlighted(row.id)}
-                    className="border-b border-border last:border-b-0"
-                  >
-                    <Link
-                      href={detailHref(row)}
-                      className="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-raised focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
-                      aria-label={`${row.title} ${copy.viewProgress}`}
-                    >
-                      <span className="x-live" aria-hidden />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-body font-medium">{row.title}</p>
-                        <p className="font-mono text-data tabular-nums text-muted-foreground">
-                          {copy.sourceLabels.post} · {copy.statuses[row.status]} · <LocalTime iso={row.updatedAt.toISOString()} locale={locale} variant="relative" />
-                        </p>
-                      </div>
-                      <div className="hidden w-40 shrink-0 sm:block">
-                        <Progress value={row.progress} aria-label={`${row.title} ${copy.progress}`} />
-                      </div>
-                      <span className="w-11 shrink-0 text-right font-mono text-data tabular-nums text-accent">{row.progress}%</span>
-                      <ArrowRight className="size-4 shrink-0 text-tertiary" aria-hidden />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
           {waitingRows.length > 0 ? (
             <section aria-label={copy.sectionQueued} className="space-y-3">
               <SectionHead title={copy.sectionQueued} count={waitingRows.length} hint={copy.sectionQueuedHint} />
@@ -380,59 +320,6 @@ export default async function PlatformLibraryPage({
                       </div>
                       <ArrowRight className="size-4 shrink-0 text-tertiary" aria-hidden />
                     </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          {actionRows.length > 0 ? (
-            <section aria-label={copy.sectionAction} className="space-y-3">
-              <SectionHead
-                title={copy.sectionAction}
-                count={actionRows.length}
-                countTone="winner"
-                hint={copy.sectionActionHint}
-                action={
-                  <RenderPendingPostsButton
-                    items={actionRows.map((row) => ({ planId: row.planId ?? "", postId: postIdOf(row) })).filter((item) => item.planId)}
-                    renderingItems={renderingPostRows.map((row) => ({ planId: row.planId ?? "", postId: postIdOf(row) })).filter((item) => item.planId)}
-                  />
-                }
-              />
-              <ul className="x-panel overflow-hidden">
-                {actionRows.map((row) => (
-                  <li key={row.id} className="flex flex-wrap items-center gap-4 border-b border-border px-4 py-3 last:border-b-0">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-body font-medium">{row.title}</p>
-                      <p className="font-mono text-data tabular-nums text-muted-foreground">
-                        {copy.sourceLabels.post} · <LocalTime iso={row.updatedAt.toISOString()} locale={locale} variant="date" />
-                      </p>
-                    </div>
-                    <Button render={<Link href="/app/plan" />} variant="outline" size="sm" className="shrink-0">
-                      {copy.goRender}<ArrowRight aria-hidden />
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          {toProduceRows.length > 0 ? (
-            <section aria-label={copy.sectionToProduce} className="space-y-3">
-              <SectionHead title={copy.sectionToProduce} count={toProduceRows.length} hint={copy.sectionToProduceHint} />
-              <ul className="x-panel overflow-hidden">
-                {toProduceRows.map((row) => (
-                  <li key={row.id} className="flex flex-wrap items-center gap-4 border-b border-border px-4 py-3 last:border-b-0">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-body font-medium">{row.title}</p>
-                      <p className="font-mono text-data tabular-nums text-muted-foreground">
-                        {copy.sourceLabels.post} · <LocalTime iso={row.updatedAt.toISOString()} locale={locale} variant="date" />
-                      </p>
-                    </div>
-                    <Button render={<Link href="/app/plan" />} variant="ghost" size="sm" className="shrink-0">
-                      {copy.viewPost}<ArrowRight aria-hidden />
-                    </Button>
                   </li>
                 ))}
               </ul>
@@ -533,7 +420,7 @@ export default async function PlatformLibraryPage({
                   <li key={row.id} className="min-w-0">
                     <article className="group flex min-w-0 flex-col overflow-hidden rounded-(--radius-lg) border border-border bg-card transition-colors hover:border-accent-line">
                       {row.imageUrls.length > 0 ? (
-                        <Link href="/app/plan" className="block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+                        <a href={row.imageUrls[0]} target="_blank" rel="noopener noreferrer" aria-label={row.title} className="block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
                           <div className="relative aspect-[3/2] overflow-hidden bg-sunken">
                             <Image src={row.imageUrls[0]} alt="" fill unoptimized sizes="(min-width: 1280px) 30vw, (min-width: 640px) 50vw, 100vw" className="object-cover" />
                             {row.imageUrls.length > 1 ? (
@@ -543,16 +430,13 @@ export default async function PlatformLibraryPage({
                             ) : null}
                             <AiGeneratedLabel className="absolute bottom-2 left-2" />
                           </div>
-                        </Link>
+                        </a>
                       ) : null}
                       <div className="flex flex-1 flex-col gap-2 p-4">
                         <h3 className="min-w-0 text-body font-medium">{row.title}</h3>
                         <p className="mt-auto font-mono text-data tabular-nums text-muted-foreground">
                           <LocalTime iso={row.updatedAt.toISOString()} locale={locale} variant="date" />
                         </p>
-                        <Button render={<Link href="/app/plan" />} variant="ghost" size="sm" className="self-start">
-                          {copy.viewPost}<ArrowRight aria-hidden />
-                        </Button>
                       </div>
                     </article>
                   </li>

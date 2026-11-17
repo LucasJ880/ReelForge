@@ -40,8 +40,8 @@ export const legacyPlatformRedirects = [
   { source: "/business/creative-studio", destination: "/app/create", permanent: true },
   { source: "/business/products", destination: "/app/library", permanent: true },
   { source: "/business/products/:id", destination: "/app/library/:id", permanent: true },
-  { source: "/business/performance", destination: "/app/racing", permanent: true },
-  { source: "/business/recommendations", destination: "/app/racing", permanent: true },
+  { source: "/business/performance", destination: "/app/library", permanent: true },
+  { source: "/business/recommendations", destination: "/app/library", permanent: true },
   { source: "/business/billing", destination: "/app/create", permanent: true },
   { source: "/business/integrations", destination: "/app/create", permanent: true },
   { source: "/business/digital-human-store-ad", destination: "/app/create", permanent: true },
@@ -139,6 +139,11 @@ const nextConfig: NextConfig = {
           { source: `${path}/:path*`, destination: "/app", permanent: false },
         ],
       ),
+      // 2026-11-16 删除的四个早已撤出导航的页面（本周内容、战绩、投放赛马、产品图工作台）：旧书签落到还在的页面
+      { source: "/app/plan", destination: "/app/create", permanent: false },
+      { source: "/app/wins", destination: "/app/library", permanent: false },
+      { source: "/app/racing", destination: "/app/library", permanent: false },
+      { source: "/app/create/images", destination: "/app/create", permanent: false },
       // 公开旧页 /persona、/showcase 2026-10-28 删除
       { source: "/persona", destination: "/app", permanent: false },
       { source: "/showcase", destination: "/", permanent: false },

@@ -13,15 +13,7 @@ test("1025：账户层错误（无额度 / 无权限）识别为不可重试", (
   assert.equal(isProviderBillingError(null), false);
 });
 
-test("图文出图：账户层错误回 503 + 稍后再来（不是「出图失败，请重试」），已出的图保留", async () => {
+test("图文出图：账户层错误在服务层归为「暂不可用」（出图接口 2026-11-16 随本周内容删除）", async () => {
   const service = await readFile("src/lib/services/content-post-render-service.ts", "utf8");
   assert.match(service, /isProviderBillingError\(failure\)[\s\S]*?"provider_unavailable"/);
-  const route = await readFile("src/app/api/content-plans/[id]/posts/[postId]/render/route.ts", "utf8");
-  assert.match(route, /err\.reason === "provider_unavailable"[\s\S]*?code: "SERVICE_UNAVAILABLE"[\s\S]*?action: "wait"/);
-});
-
-test("内容计划：「重新排一周」每次点击一个新幂等键（同一句话不再永远回放旧计划）", async () => {
-  const timeline = await readFile("src/components/content-plan/plan-timeline.tsx", "utf8");
-  assert.match(timeline, /idempotencyKey: `plan-\$\{crypto\.randomUUID\(\)\}`/);
-  assert.doesNotMatch(timeline, /btoa\(unescape\(encodeURIComponent\(input\)\)\)/);
 });

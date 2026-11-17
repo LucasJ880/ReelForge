@@ -532,10 +532,8 @@ export const zhCN: Dictionary = {
     personaPersonal: "个人",
     badgeSoon: "即将推出",
     platformNav: {
-      plan: "本周内容",
       create: "创作",
       batches: "批量生产",
-      wins: "战绩",
       library: "成品库",
       products: "商品",
       brands: "品牌",

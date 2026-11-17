@@ -5,14 +5,10 @@ import {
   ProductImageRequestError,
   cancelProductImageJob,
 } from "../src/lib/services/product-image-service";
-import {
-  heuristicPlan,
-  type ContentPlanInput,
-} from "../src/lib/services/content-plan-service";
 
 /**
  * A4 5.5：产品图取消加 CAS。
- * A4 5.6：本周内容兜底文案不替商家做承诺、不把 AI 图说成实拍，CTA 指向主页链接。
+ * （A4 5.6 的本周内容兜底文案用例随「本周内容」2026-11-16 删除。）
  */
 
 function patch(t: TestContext, target: object, values: Record<string, unknown>) {
@@ -88,52 +84,4 @@ test("产品图取消 CAS 抢到：任务与未终态 provider task 一起改已
   assert.equal(claim.data.status, "CANCELLED");
   assert.match(claim.data.idempotencyKey, /^cancelled:\d+:key-1$/);
   assert.ok(log.some((entry) => entry.op === "task.updateMany"));
-});
-
-/// 用任意行业、且不含任何优惠字眼的输入，确认兜底文案自己不会编出来。
-const NEUTRAL_INPUTS: ContentPlanInput[] = [
-  { sentence: "我家做手工咖啡豆烘焙", industry: "咖啡", brandName: "小林咖啡" },
-  { sentence: "社区宠物美容店" },
-  { sentence: "定制百叶窗", industry: "定制窗帘", productFacts: ["商品名：定制卷帘"] },
-];
-
-function publishedText(input: ContentPlanInput): string[] {
-  const plan = heuristicPlan(input);
-  return plan.posts.flatMap((post) => [
-    post.copy.hook,
-    post.copy.body,
-    post.copy.cta ?? "",
-    ...post.hashtags,
-    ...post.slides.map((slide) => slide.overlayText ?? ""),
-  ]);
-}
-
-test("🔴 兜底文案不编优惠、不编数据、不把 AI 图说成实拍", () => {
-  const forbidden = [/免费/, /上门量尺/, /实拍/, /真实成交/, /真实数据/, /上个月最多/];
-  for (const input of NEUTRAL_INPUTS) {
-    for (const text of publishedText(input)) {
-      for (const pattern of forbidden) {
-        assert.doesNotMatch(text, pattern, `「${text}」不能出现 ${pattern}（输入：${input.sentence}）`);
-      }
-    }
-  }
-});
-
-test("兜底文案的行动号召指向主页链接（询盘页），不再引到评论区 / 私信", () => {
-  for (const input of NEUTRAL_INPUTS) {
-    const plan = heuristicPlan(input);
-    for (const post of plan.posts) {
-      const cta = post.copy.cta ?? "";
-      assert.match(cta, /主页链接/, `${post.key} 的 CTA 要指向主页链接：${cta}`);
-      assert.doesNotMatch(cta, /评论|私信|留言区/);
-    }
-  }
-});
-
-test("商家自己说的优惠照样保留（是商家的事实，不是我们编的）", () => {
-  const plan = heuristicPlan({ sentence: "我家做定制百叶窗，免费上门量尺" });
-  assert.ok(
-    plan.posts.some((post) => post.copy.hook.includes("免费上门量尺") || post.copy.body.includes("免费上门量尺")),
-    "商家原话里的优惠应当沿用",
-  );
 });

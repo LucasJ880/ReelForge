@@ -4,31 +4,17 @@ import { bumpRateLimit, hourlyWindowKey } from "./rate-limit-service";
 /**
  * 付费入口的「按用户直接发起次数」限流（D5 / A4 5.2）。
  *
- * 这些入口不走月度计量（生成一周计划不收费、出图失败零计费……），但每次都会真实
- * 花钱：LLM、gpt-image、Shuyu 出图。注册是公开的，没有这一层，
- * 任何账号都能用脚本把供应商费用刷穿（bughunt #5）。
+ * 这些入口不走月度计量，但每次都会真实花钱（LLM）或占用合成器函数。注册是公开的，没有这一层，
+ * 任何账号都能用脚本把费用刷穿（bughunt #5）。
+ * 2026-11-16：「内容计划」「图文出图」两个入口随「本周内容」删除，表里只剩抖音发布包的两条。
  *
  * 口径：
  * - 只在路由里、用户直接发起的那一下计数；批量内部调用与系统重试不走这里。
- * - 幂等短路（已出过图、READY 直接返回）尽量不计数——出图在拿到渲染锁之后才计。
  * - 每用户每小时一个桶，bucketKey 带 `paid:` 前缀，不与其他限流桶撞名。
  * - 与产品图一致：开发环境不强制（QUOTA_ENFORCE=true 可本地验证），生产一律强制。
  * - 上限可用环境变量按入口覆盖（1–200），便于线上临时放宽或收紧，不用发版。
  */
 export const PAID_ACTION_RATE_LIMITS = {
-  /// 一句话排一周：一次 LLM（链接 / 产品图来源还要多一次抓取或读图）
-  "content-plan": {
-    perHour: 10,
-    envKey: "CONTENT_PLAN_RATE_LIMIT_PER_HOUR",
-    message: "内容计划生成过于频繁，请一小时后再试。",
-  },
-  /// 图文出图：每轮 1 张（单图）到 6 张（轮播）——默认 Shuyu 异步出图（C2），回滚线路是 gpt-image；
-  /// 按「开一轮」计一次（拿到渲染锁之后），轮询、对账、自动重投都不计
-  "content-post-render": {
-    perHour: 20,
-    envKey: "CONTENT_POST_RENDER_RATE_LIMIT_PER_HOUR",
-    message: "配图生成过于频繁，请一小时后再试。",
-  },
   /// 抖音发布包起文案：一次 fast 档 LLM
   "douyin-kit-copy": {
     perHour: 30,

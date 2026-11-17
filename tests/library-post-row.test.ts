@@ -42,27 +42,29 @@ test("出过图的图文帖是 ready；纯文案帖天生 ready", () => {
   assert.equal(toContentPostLibraryRow(post({ format: "TEXT" }))!.status, "ready");
 });
 
-test("🔴 列表页：post 行链到本周内容，不链视频详情（那里必 404）", () => {
+test("🔴 列表页：post 行不链视频详情（那里必 404），也不链已删的本周内容；做好的图文卡直接打开配图", () => {
   const source = readFileSync(
     path.join(process.cwd(), "src/app/(platform)/app/library/page.tsx"),
     "utf8",
   );
-  assert.match(source, /row\.source === "post"\s*\?\s*"\/app\/plan"/);
-  /// 0802 IA 重构后图文有独立分区：成片图文卡与待生成配图行都只链本周内容，
-  /// 按钮文案用「查看内容」而不是「查看成片」。
+  /// 「本周内容」（/app/plan）2026-11-16 删了：图文帖没有详情页，成片图文卡点开就是它的配图
+  assert.doesNotMatch(source, /\/app\/plan/);
   assert.match(source, /readyPostRows\.map/);
-  assert.match(source, /href="\/app\/plan"/);
-  assert.match(source, /\{copy\.viewPost\}/);
+  assert.match(source, /<a href=\{row\.imageUrls\[0\]\} target="_blank" rel="noopener noreferrer"/);
+  /// 没出完图的帖子不再列出来：能让它往下走的那一页没了，摆着只是一行点不动的字
+  assert.match(source, /row\.source !== "post" \|\| row\.status === "ready"/);
   /// 视频分区绝不掺 post 行
   assert.match(source, /row\.status === "ready" && !isPost\(row\)/);
+  /// 只给视频行算详情链接
+  assert.match(source, /row\.source === "batch" \? `\/app\/batches\/\$\{row\.batchId\}` : `\/app\/library\/\$\{row\.id\}`/);
 });
 
-test("🔴 详情页：post- 前缀的老链接 redirect 回本周内容，不 404", () => {
+test("🔴 详情页：post- 前缀的老链接 redirect 回成品库，不 404", () => {
   const source = readFileSync(
     path.join(process.cwd(), "src/app/(platform)/app/library/[id]/page.tsx"),
     "utf8",
   );
-  assert.match(source, /id\.startsWith\("post-"\)\s*\)?\s*redirect\("\/app\/plan"\)/);
+  assert.match(source, /id\.startsWith\("post-"\)\s*\)?\s*redirect\("\/app\/library"\)/);
 });
 
 test("全局 404 不再引用旧代运营入口（交付单列表 /orders）", () => {
@@ -75,16 +77,7 @@ test("全局 404 不再引用旧代运营入口（交付单列表 /orders）", (
   assert.match(source, /href="\/"/, "回 / 由角色路由决定去处");
 });
 
-test("中英文案都有 viewPost，且与 view 不同", () => {
-  const source = readFileSync(
-    path.join(process.cwd(), "src/i18n/platform-copy.ts"),
-    "utf8",
-  );
-  assert.match(source, /viewPost: "查看内容"/);
-  assert.match(source, /viewPost: "View content"/);
-});
-
-test("铁律 #7：产品图有取消入口，语义为清幂等键、保留素材", () => {
+test("铁律 #7：产品图的取消语义为清幂等键、保留素材（接口随工作台 2026-11-16 删除，服务函数还在）", () => {
   const service = readFileSync(
     path.join(process.cwd(), "src/lib/services/product-image-service.ts"),
     "utf8",
@@ -100,11 +93,4 @@ test("铁律 #7：产品图有取消入口，语义为清幂等键、保留素�
   assert.doesNotMatch(block, /delete|Delete/);
   /// owner 校验进查询条件。
   assert.match(block, /id: args\.jobId, userId: args\.userId/);
-
-  const route = readFileSync(
-    path.join(process.cwd(), "src/app/api/product-images/[id]/cancel/route.ts"),
-    "utf8",
-  );
-  assert.match(route, /requireAuth\(\)/);
-  assert.match(route, /取消不计费|永远免费/);
 });

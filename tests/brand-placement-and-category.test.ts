@@ -1,6 +1,4 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import test from "node:test";
 import {
   categoryLockProfile,
@@ -49,13 +47,4 @@ test("B4：未知品类返回 null 而不是猜一个", () => {
   assert.equal(categoryLockProfile(null), null);
   assert.equal(isProductCategoryId("window_shutters"), true);
   assert.equal(isProductCategoryId("随便"), false);
-});
-
-test("B3：Brand Kit 视觉配方进的是 imagePrompt，不碰文案", () => {
-  const source = readFileSync(
-    path.join(process.cwd(), "src/lib/services/content-plan-service.ts"),
-    "utf8",
-  );
-  assert.match(source, /apply to EVERY imagePrompt/);
-  assert.match(source, /They do not affect the copy/);
 });

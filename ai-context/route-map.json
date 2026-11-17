@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T01:03:51.285Z",
+  "generatedAt": "2026-11-17T01:08:17.762Z",
   "routes": [
     {
       "routePath": "/",
@@ -215,36 +215,6 @@
       "isDynamic": false
     },
     {
-      "routePath": "/api/content-plans",
-      "filePath": "src/app/api/content-plans/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "GET",
-        "POST"
-      ],
-      "isDynamic": false
-    },
-    {
-      "routePath": "/api/content-plans/[id]/posts/[postId]/render",
-      "filePath": "src/app/api/content-plans/[id]/posts/[postId]/render/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "GET",
-        "POST",
-        "DELETE"
-      ],
-      "isDynamic": true
-    },
-    {
-      "routePath": "/api/content-plans/[id]/posts/[postId]/render/cancel",
-      "filePath": "src/app/api/content-plans/[id]/posts/[postId]/render/cancel/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
-    },
-    {
       "routePath": "/api/cron/capability-probe",
       "filePath": "src/app/api/cron/capability-probe/route.ts",
       "kind": "api",
@@ -299,15 +269,6 @@
       "kind": "api",
       "httpMethods": [
         "GET",
-        "POST"
-      ],
-      "isDynamic": false
-    },
-    {
-      "routePath": "/api/demo/real-footage-ads/waitlist",
-      "filePath": "src/app/api/demo/real-footage-ads/waitlist/route.ts",
-      "kind": "api",
-      "httpMethods": [
         "POST"
       ],
       "isDynamic": false
@@ -532,43 +493,6 @@
       "isDynamic": false
     },
     {
-      "routePath": "/api/product-images",
-      "filePath": "src/app/api/product-images/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "GET",
-        "POST"
-      ],
-      "isDynamic": false
-    },
-    {
-      "routePath": "/api/product-images/[id]",
-      "filePath": "src/app/api/product-images/[id]/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "GET"
-      ],
-      "isDynamic": true
-    },
-    {
-      "routePath": "/api/product-images/[id]/cancel",
-      "filePath": "src/app/api/product-images/[id]/cancel/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
-    },
-    {
-      "routePath": "/api/product-images/tasks/[taskId]/retry",
-      "filePath": "src/app/api/product-images/tasks/[taskId]/retry/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
-    },
-    {
       "routePath": "/api/products",
       "filePath": "src/app/api/products/route.ts",
       "kind": "api",
@@ -622,42 +546,6 @@
         "POST"
       ],
       "isDynamic": false
-    },
-    {
-      "routePath": "/api/racing",
-      "filePath": "src/app/api/racing/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "GET"
-      ],
-      "isDynamic": false
-    },
-    {
-      "routePath": "/api/racing/rounds/[id]/analyze",
-      "filePath": "src/app/api/racing/rounds/[id]/analyze/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
-    },
-    {
-      "routePath": "/api/racing/rounds/[id]/metrics",
-      "filePath": "src/app/api/racing/rounds/[id]/metrics/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
-    },
-    {
-      "routePath": "/api/racing/rounds/[id]/next",
-      "filePath": "src/app/api/racing/rounds/[id]/next/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
     },
     {
       "routePath": "/api/reports",
@@ -940,27 +828,6 @@
       "isDynamic": false
     },
     {
-      "routePath": "/app/create/images",
-      "filePath": "src/app/(platform)/app/create/images/error.tsx",
-      "kind": "error",
-      "group": "platform",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/app/create/images",
-      "filePath": "src/app/(platform)/app/create/images/loading.tsx",
-      "kind": "loading",
-      "group": "platform",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/app/create/images",
-      "filePath": "src/app/(platform)/app/create/images/page.tsx",
-      "kind": "page",
-      "group": "platform",
-      "isDynamic": false
-    },
-    {
       "routePath": "/app/guide",
       "filePath": "src/app/(platform)/app/guide/page.tsx",
       "kind": "page",
@@ -1045,50 +912,8 @@
       "isDynamic": true
     },
     {
-      "routePath": "/app/plan",
-      "filePath": "src/app/(platform)/app/plan/error.tsx",
-      "kind": "error",
-      "group": "platform",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/app/plan",
-      "filePath": "src/app/(platform)/app/plan/loading.tsx",
-      "kind": "loading",
-      "group": "platform",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/app/plan",
-      "filePath": "src/app/(platform)/app/plan/page.tsx",
-      "kind": "page",
-      "group": "platform",
-      "isDynamic": false
-    },
-    {
       "routePath": "/app/products",
       "filePath": "src/app/(platform)/app/products/page.tsx",
-      "kind": "page",
-      "group": "platform",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/app/racing",
-      "filePath": "src/app/(platform)/app/racing/error.tsx",
-      "kind": "error",
-      "group": "platform",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/app/racing",
-      "filePath": "src/app/(platform)/app/racing/loading.tsx",
-      "kind": "loading",
-      "group": "platform",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/app/racing",
-      "filePath": "src/app/(platform)/app/racing/page.tsx",
       "kind": "page",
       "group": "platform",
       "isDynamic": false
@@ -1138,27 +963,6 @@
     {
       "routePath": "/app/welcome",
       "filePath": "src/app/(platform)/app/welcome/page.tsx",
-      "kind": "page",
-      "group": "platform",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/app/wins",
-      "filePath": "src/app/(platform)/app/wins/error.tsx",
-      "kind": "error",
-      "group": "platform",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/app/wins",
-      "filePath": "src/app/(platform)/app/wins/loading.tsx",
-      "kind": "loading",
-      "group": "platform",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/app/wins",
-      "filePath": "src/app/(platform)/app/wins/page.tsx",
       "kind": "page",
       "group": "platform",
       "isDynamic": false

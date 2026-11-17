@@ -532,7 +532,7 @@ function collectFiles(): CollectedFile[] {
 
 function deriveRoutePath(relPath: string): { route: string; group?: string; isDynamic: boolean } {
   // 例：src/app/(internal)/internal/metrics/page.tsx → /internal/metrics
-  // 例：src/app/api/demo/real-footage-ads/waitlist/route.ts → /api/demo/real-footage-ads/waitlist
+  // 例：src/app/api/batches/[id]/cancel/route.ts → /api/batches/[id]/cancel
   const after = relPath.replace(/^src\/app\//, "");
   const segments = after.split("/");
   segments.pop(); // 去掉文件名

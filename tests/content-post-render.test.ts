@@ -63,16 +63,3 @@ test("越权防护：owner 校验在查询条件里，不靠调用方比对", ()
     "读与写都要带 owner 条件",
   );
 });
-
-test("出图路由：供应商故障可重试，格式问题不可重试", () => {
-  const route = readFileSync(
-    path.join(
-      process.cwd(),
-      "src/app/api/content-plans/[id]/posts/[postId]/render/route.ts",
-    ),
-    "utf8",
-  );
-  assert.match(route, /retryable: err\.reason === "provider"/);
-  /// 铁律：失败不能只给重试，必须有取消入口。
-  assert.match(route, /export async function DELETE/);
-});

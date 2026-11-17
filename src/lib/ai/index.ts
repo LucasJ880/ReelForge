@@ -75,7 +75,7 @@ export function chatJsonByTier<T = unknown>(
 }
 
 /**
- * 视觉分析。位置参数保持兼容（frame-qa / storyboard-gacha / visual-reference 都这样调），
+ * 视觉分析。位置参数保持兼容（storyboard-gacha / visual-reference 都这样调），
  * 第四个参数透传 detail / maxTokens（P01-A：帧质检要能调精度与输出上限，不再写死在 provider 里）。
  */
 export function analyzeImages(

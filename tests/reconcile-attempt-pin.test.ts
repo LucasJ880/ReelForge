@@ -2,28 +2,16 @@ import assert from "node:assert/strict";
 import test, { type TestContext } from "node:test";
 import { ProviderSubmissionState, VideoJobStatus, VideoProvider } from "@prisma/client";
 import { db } from "../src/lib/db";
-import {
-  CRON_FRAME_QA_BUDGET,
-  FRAME_QA_CHECKING,
-  __test__ as gateTest,
-  decideFrameQaGate,
-  frameQaBudgetUsage,
-  frameQaClaimWhere,
-  runWithFrameQaBudget,
-  type FrameQaGateDeps,
-} from "../src/lib/services/frame-qa-gate";
 import { reconcileVideoJob, __test__ as videoSvcTest } from "../src/lib/services/video-service";
-import type { FrameQaVerdict } from "../src/lib/video-generation/frame-qa";
 
 /**
- * runtime LENS-3：重叠的 cron 调用各有一份质检预算——
- *  1. 同一段只许一个调用在质检（frameQaStatus=CHECKING 占位 + 租期），别的调用 defer、把预算名额还回去；
- *  2. 旧尝试的结论不许写到新一轮上：终态 CAS 钉住 externalJobId + providerRequestKey。
+ * runtime LENS-3：旧尝试的结论不许写到新一轮上——终态 CAS 钉住 externalJobId + providerRequestKey。
  *
- * 全部内存实现：不跑 ffmpeg、不调 vision、不连数据库、不调供应商。
+ * 2026-11-16 成片画面质检整套删除：供应商「已完成」不再经过任何门禁，reconcile 直接转成功，
+ * 质检那三列（frameQaStatus / frameQaCheckedAt / frameQaDetail）不读也不写；旧行上的值原样留着。
+ *
+ * 全部内存实现：不连数据库、不调供应商。
  */
-
-process.env.FRAME_QA_DISABLED = "true";
 
 type Row = Record<string, unknown>;
 
@@ -64,105 +52,6 @@ function patch(t: TestContext, model: Record<string, unknown>, patches: Record<s
   });
 }
 
-const PASS: FrameQaVerdict = { ok: true, checked: true, frameCount: 6, issues: [], summary: "帧质检通过" };
-const NOW = new Date("2026-10-25T08:00:00.000Z");
-
-function completedRow(overrides: Row = {}): Row {
-  return {
-    id: "seg-1",
-    status: VideoJobStatus.RUNNING,
-    externalJobId: "ext-attempt-1",
-    providerRequestKey: "seg-1:attempt:1",
-    frameQaStatus: null,
-    frameQaCheckedAt: null,
-    ...overrides,
-  };
-}
-
-/// 默认占位实现跑在内存行上（与生产同一份 where）
-function installClaimRows(t: TestContext, rows: Row[]) {
-  patch(t, db.videoJob as unknown as Record<string, unknown>, {
-    updateMany: async (args: { where: Row; data: Row }) => {
-      let count = 0;
-      for (const row of rows) {
-        if (!matches(row, args.where)) continue;
-        Object.assign(row, args.data);
-        count += 1;
-      }
-      return { count };
-    },
-  });
-}
-
-function gateDeps(qaCalls: { n: number }, now: Date): FrameQaGateDeps {
-  return {
-    isFrameQaEnabled: () => true,
-    runFrameTextQa: async () => {
-      qaCalls.n += 1;
-      return PASS;
-    },
-    loadPriorDetail: async () => null,
-    now: () => now,
-  };
-}
-
-test("runtime LENS-3：两次重叠的 cron 调用同一段只质检一次，后来者 defer 并把预算名额还回去", async (t) => {
-  const row = completedRow();
-  installClaimRows(t, [row]);
-  const qaCalls = { n: 0 };
-  const attempt = { externalJobId: "ext-attempt-1", providerRequestKey: "seg-1:attempt:1" };
-
-  /// 调用 #1 占位后正在质检（这里在占位之后、结论落库之前插入调用 #2）
-  let second: Awaited<ReturnType<typeof decideFrameQaGate>> | null = null;
-  let secondUsage: ReturnType<typeof frameQaBudgetUsage> = null;
-  const first = await runWithFrameQaBudget({ label: "cron:poll-videos#1", ...CRON_FRAME_QA_BUDGET }, () =>
-    decideFrameQaGate(
-      { jobId: "seg-1", provider: VideoProvider.SEEDANCE_T2V, videoUrl: "https://x/seg-1.mp4", priorFrameQaDetail: null, attempt },
-      {
-        ...gateDeps(qaCalls, NOW),
-        runFrameTextQa: async () => {
-          qaCalls.n += 1;
-          assert.equal(row.frameQaStatus, FRAME_QA_CHECKING, "真跑质检前已经占位");
-          await runWithFrameQaBudget({ label: "cron:poll-videos#2", ...CRON_FRAME_QA_BUDGET }, async () => {
-            second = await decideFrameQaGate(
-              { jobId: "seg-1", provider: VideoProvider.SEEDANCE_T2V, videoUrl: "https://x/seg-1.mp4", priorFrameQaDetail: null, attempt },
-              gateDeps(qaCalls, new Date(NOW.getTime() + 20_000)),
-            );
-            secondUsage = frameQaBudgetUsage();
-          });
-          return PASS;
-        },
-      },
-    ),
-  );
-
-  assert.equal(first.action, "pass");
-  assert.equal(qaCalls.n, 1, "同一段的视频只下载、抽帧、调 vision 一次");
-  assert.deepEqual(second, { action: "defer", reason: "frame_qa_claimed_elsewhere" });
-  assert.equal(secondUsage!.used, 0, "没真跑就不占预算，名额留给别的段");
-  assert.equal(secondUsage!.deferred, 1);
-});
-
-test("runtime LENS-3：占位有租期——持有者被平台杀掉后别的调用能接手；已被重试换掉的尝试占不到", () => {
-  const attempt = { externalJobId: "ext-attempt-1", providerRequestKey: "seg-1:attempt:1" };
-  const lease = gateTest.FRAME_QA_CLAIM_LEASE_MS;
-  assert.ok(lease > gateTest.PER_CHECK_RESERVE_MS, "租期远大于单次检查的最坏耗时");
-
-  const fresh = completedRow({ frameQaStatus: FRAME_QA_CHECKING, frameQaCheckedAt: new Date(NOW.getTime() - 30_000) });
-  const abandoned = completedRow({ frameQaStatus: FRAME_QA_CHECKING, frameQaCheckedAt: new Date(NOW.getTime() - lease - 1) });
-  const blockedBefore = completedRow({ frameQaStatus: "BLOCKED", frameQaCheckedAt: new Date(NOW.getTime() - 1_000) });
-  const where = frameQaClaimWhere("seg-1", attempt, NOW);
-  assert.equal(matches(fresh, where), false, "别人的占位还没过期");
-  assert.equal(matches(abandoned, where), true, "占位过期可以接手");
-  assert.equal(matches(completedRow(), where), true, "从未质检过");
-  assert.equal(matches(blockedBefore, where), true, "上一轮的结论不是占位");
-
-  /// 单条重试已经换了提交幂等键 / 批量重试已经清空任务号：旧尝试不再质检
-  assert.equal(matches(completedRow({ providerRequestKey: "seg-1:attempt:2" }), where), false);
-  assert.equal(matches(completedRow({ externalJobId: null }), where), false);
-  assert.equal(matches(completedRow({ status: VideoJobStatus.FAILED }), where), false);
-});
-
 /// ---------- 终态 CAS 钉住这一次尝试 ----------
 
 function installReconcileRow(t: TestContext, row: Row) {
@@ -202,6 +91,8 @@ function reconcileRow(overrides: Row = {}): Row {
     outputVideoUrl: null,
     outputThumbUrl: null,
     finalVideoId: null,
+    frameQaStatus: null,
+    frameQaCheckedAt: null,
     frameQaDetail: null,
     dispatchQuarantineDecision: null,
     createdAt: new Date(Date.now() - 60_000),
@@ -262,3 +153,66 @@ test("runtime LENS-3：同一次尝试照常写终态（钉住的是尝试，不
   assert.equal(row.status, VideoJobStatus.SUCCEEDED);
   assert.equal(row.outputVideoUrl, "https://x/seg-1.mp4");
 });
+
+test("供应商已完成 → 直接转成功：不等 cron、不分生产 / 本机、不写质检列", async (t) => {
+  const env = process.env as Record<string, string | undefined>;
+  const previous = { NODE_ENV: env.NODE_ENV, FRAME_QA_ENABLED: env.FRAME_QA_ENABLED };
+  /// 当年的门禁在这两个条件下会 defer（生产 + 不在 cron 预算上下文里）；现在没有这条路
+  env.NODE_ENV = "production";
+  env.FRAME_QA_ENABLED = "on";
+  t.after(() => {
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) delete env[key];
+      else env[key] = value;
+    }
+  });
+  const row = reconcileRow();
+  const writes: Row[] = [];
+  installReconcileRow(t, row);
+  const model = db.videoJob as unknown as { updateMany: (args: { where: Row; data: Row }) => Promise<{ count: number }> };
+  const inner = model.updateMany;
+  model.updateMany = async (args) => {
+    writes.push(args.data);
+    return inner(args);
+  };
+  injectFetcher(t, async () => ({
+    jobId: "ext-attempt-1",
+    status: "completed",
+    rawProviderStatus: "succeeded",
+    videoUrl: "https://x/seg-1.mp4",
+  }));
+
+  await reconcileVideoJob("seg-1");
+
+  assert.equal(row.status, VideoJobStatus.SUCCEEDED);
+  assert.equal(row.outputVideoUrl, "https://x/seg-1.mp4");
+  assert.equal(writes.length, 1, "一次 CAS 写入就到终态");
+  for (const column of ["frameQaStatus", "frameQaCheckedAt", "frameQaDetail"]) {
+    assert.equal(column in writes[0], false, `${column} 不再写`);
+  }
+  assert.equal(row.frameQaStatus, null);
+});
+
+for (const stale of [
+  { frameQaStatus: "CHECKING", frameQaCheckedAt: new Date(), frameQaDetail: null },
+  { frameQaStatus: "BLOCKED", frameQaCheckedAt: new Date(Date.now() - 60_000), frameQaDetail: { v: 1, status: "BLOCKED", blockCount: 2 } },
+  { frameQaStatus: "UNVERIFIED", frameQaCheckedAt: new Date(Date.now() - 60_000), frameQaDetail: { v: 1, status: "UNVERIFIED", blockCount: 0 } },
+]) {
+  test(`读旧记录：带着当年质检标记（${stale.frameQaStatus}）的在途行照样收割成成功，标记原样`, async (t) => {
+    const row = reconcileRow(stale);
+    installReconcileRow(t, row);
+    injectFetcher(t, async () => ({
+      jobId: "ext-attempt-1",
+      status: "completed",
+      rawProviderStatus: "succeeded",
+      videoUrl: "https://x/seg-1.mp4",
+    }));
+
+    await reconcileVideoJob("seg-1");
+
+    assert.equal(row.status, VideoJobStatus.SUCCEEDED);
+    assert.equal(row.outputVideoUrl, "https://x/seg-1.mp4");
+    assert.equal(row.frameQaStatus, stale.frameQaStatus, "旧标记不动");
+    assert.deepEqual(row.frameQaDetail, stale.frameQaDetail);
+  });
+}

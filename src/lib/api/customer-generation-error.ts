@@ -15,6 +15,13 @@ export interface CustomerGenerationError {
   action: CustomerRecoveryAction;
 }
 
+/**
+ * 读旧记录用：成片画面质检（2026-11-16 整套删除）拦下一段时写进 VideoJob.errorMessage 的前缀。
+ * 现在没有任何代码再写它；库里带这个前缀的失败行仍按「产物已判废、重试就是重新生成」处理
+ *（本文件的报错文案、video-service 的单条重试、batch-service 的批量重试）。
+ */
+export const FRAME_QA_ERROR_PREFIX = "[frame-qa]";
+
 export class SubmissionReconciliationRequiredError extends Error {
   readonly code = "SUBMISSION_ACK_UNKNOWN" as const;
 
@@ -61,12 +68,11 @@ export function classifyCustomerGenerationError(args: {
       action: "contact_support",
     };
   }
-  /// 帧质检拦截（errorMessage 以 video-generation/frame-qa 的 FRAME_QA_ERROR_PREFIX 开头）：
+  /// 读旧记录：被已删除的成片画面质检拦下的段（errorMessage 以 FRAME_QA_ERROR_PREFIX 开头）。
   /// 供应商已确认完成、产物被判废，结果是确定的。不能落到下面「生成结果尚未确认」那句——
   /// 那是在说计费状态不明，对被质检拦下的段是错误的原因；也排在素材判据之前，
-  /// 质检摘要里的画面文字不能被误认成「素材失效」。这里不 import frame-qa
-  ///（它带 ffmpeg / vision 依赖），用同一字面量前缀识别。
-  if (/^\[frame-qa\]/.test(args.errorMessage ?? "")) {
+  /// 质检摘要里的画面文字不能被误认成「素材失效」。
+  if ((args.errorMessage ?? "").startsWith(FRAME_QA_ERROR_PREFIX)) {
     const retryable = args.billingSafeToRetry !== false;
     return {
       code: "PROVIDER_ERROR",

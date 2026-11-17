@@ -29,8 +29,6 @@ import type { SeedanceJobResult } from "../src/lib/providers/seedance";
  *   3. generating 阶段进度随轮询严格递增（真实 provider progress 驱动）
  */
 
-process.env.FRAME_QA_DISABLED = "true";
-
 const RANK: Record<BusinessVideoStatus, number> = {
   planning: 0,
   generating: 1,

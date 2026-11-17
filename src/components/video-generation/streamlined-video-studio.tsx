@@ -177,10 +177,8 @@ const ZH_COPY = {
   uploaded: "已添加 {count} 个素材",
   uploadFailed: "素材上传未完成，请检查文件后重试。",
   quickHint: "系统自动完成镜头与质量检查",
-  /// C4：能力暂停时这句说明要诚实——写作暂停 = 镜头按模板规划；看图暂停 = 画面质检跳过、成片照常
-  quickHintNoQa: "系统自动完成镜头规划；画面质检暂停，成片照常生成",
+  /// C4：能力暂停时这句说明要诚实——写作暂停 = 镜头按模板规划
   quickHintTemplateShots: "镜头先按模板规划，系统照常做质量检查",
-  quickHintTemplateShotsNoQa: "镜头先按模板规划；画面质检暂停，成片照常生成",
   route: "生成线路",
   referenceMode: "参考方式",
   referenceAll: "全能参考",
@@ -323,9 +321,7 @@ const EN_COPY: StudioCopy = {
   uploaded: "Added {count} assets",
   uploadFailed: "The upload did not finish. Check the files and try again.",
   quickHint: "Automatic shot planning and quality checks",
-  quickHintNoQa: "Automatic shot planning; frame checks are paused, videos still render",
   quickHintTemplateShots: "Shots are planned from templates for now; quality checks still run",
-  quickHintTemplateShotsNoQa: "Shots are planned from templates and frame checks are paused; videos still render",
   route: "Generation route",
   referenceMode: "Reference mode",
   referenceAll: "Use all references",
@@ -487,17 +483,10 @@ export function StreamlinedVideoStudio({
   const { locale } = useTranslation();
   const english = locale === "en-US";
   const copy = english ? EN_COPY : ZH_COPY;
-  /// C4 · 能力闸门：口播稿起草与镜头规划要写作；画面质检要看图。
+  /// C4 · 能力闸门：口播稿起草与镜头规划要写作。
   const narrationFromTemplate = featureGate(capabilities, "narrationDraft").status === "blocked";
   const shotsFromTemplate = featureGate(capabilities, "scriptWriting").status === "blocked";
-  const frameQaPaused = featureGate(capabilities, "frameQa").status === "blocked";
-  const quickModeHint = shotsFromTemplate && frameQaPaused
-    ? copy.quickHintTemplateShotsNoQa
-    : frameQaPaused
-      ? copy.quickHintNoQa
-      : shotsFromTemplate
-        ? copy.quickHintTemplateShots
-        : copy.quickHint;
+  const quickModeHint = shotsFromTemplate ? copy.quickHintTemplateShots : copy.quickHint;
   const initialProductAssets = initialAssets
     .filter((asset) => asset.type === "IMAGE")
     .slice(0, MAX_PRODUCT_IMAGES)
@@ -1750,8 +1739,8 @@ export function StreamlinedVideoStudio({
       ? [{ value: activeStyleTemplateId, label: legacyTemplateLabel(activeStyleTemplateId, copy) }]
       : []),
   ];
-  /// 写作 / 看图能力暂停时，在卡下明说镜头怎么规划、质检是否照常（C4 · 诚实说明）
-  const capabilityDegraded = shotsFromTemplate || frameQaPaused;
+  /// 写作能力暂停时，在卡下明说镜头怎么规划（C4 · 诚实说明）
+  const capabilityDegraded = shotsFromTemplate;
   /// 选了配乐就在「更多设置」的摘要里写出是哪一首：收起来也看得见这条片会带音乐
   const bgmTrack = bgmTrackId === "none" ? null : BGM_CATALOG.find((track) => track.id === bgmTrackId) ?? null;
   const moreSummary = `${copy.summaryVoiceover} ${voiceoverEnabled ? copy.on : copy.off} · ${copy.summaryCaptions} ${captionsEnabled ? copy.on : copy.off}${bgmTrack ? ` · ${copy.summaryBgm} ${bgmTrack[english ? "en" : "zh"]}` : ""}${signoffEnabled ? ` · ${copy.summarySignoff} ${copy.on}` : ""}`;

@@ -1,18 +1,11 @@
 {
-  "generatedAt": "2026-11-17T00:44:25.770Z",
+  "generatedAt": "2026-11-17T01:03:51.285Z",
   "routes": [
     {
       "routePath": "/",
       "filePath": "src/app/(auth)/error.tsx",
       "kind": "error",
       "group": "auth",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/",
-      "filePath": "src/app/(internal)/error.tsx",
-      "kind": "error",
-      "group": "internal",
       "isDynamic": false
     },
     {
@@ -37,13 +30,6 @@
     },
     {
       "routePath": "/",
-      "filePath": "src/app/(internal)/layout.tsx",
-      "kind": "layout",
-      "group": "internal",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/",
       "filePath": "src/app/(public)/layout.tsx",
       "kind": "layout",
       "group": "public",
@@ -60,13 +46,6 @@
       "filePath": "src/app/(auth)/loading.tsx",
       "kind": "loading",
       "group": "auth",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/",
-      "filePath": "src/app/(internal)/loading.tsx",
-      "kind": "loading",
-      "group": "internal",
       "isDynamic": false
     },
     {
@@ -1189,13 +1168,6 @@
       "filePath": "src/app/(auth)/forgot-password/page.tsx",
       "kind": "page",
       "group": "auth",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/internal/frame-qa",
-      "filePath": "src/app/(internal)/internal/frame-qa/page.tsx",
-      "kind": "page",
-      "group": "internal",
       "isDynamic": false
     },
     {

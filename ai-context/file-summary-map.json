@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T00:44:25.765Z",
+  "generatedAt": "2026-11-17T01:03:51.280Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -9457,7 +9457,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 0,
-      "sizeBytes": 15311,
+      "sizeBytes": 14344,
       "notes": "area=config"
     },
     {
@@ -9468,7 +9468,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 0,
-      "sizeBytes": 3213,
+      "sizeBytes": 2980,
       "notes": "area=config"
     },
     {
@@ -9805,8 +9805,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 128,
-      "sizeBytes": 12504,
+      "lineCount": 126,
+      "sizeBytes": 12245,
       "notes": "Documentation"
     },
     {
@@ -11097,8 +11097,8 @@
         "runtimeTracingExcludes",
         "default"
       ],
-      "lineCount": 162,
-      "sizeBytes": 8905,
+      "lineCount": 158,
+      "sizeBytes": 8584,
       "notes": "Build / runtime config; area=media-processing"
     },
     {
@@ -11108,8 +11108,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 85,
-      "sizeBytes": 3803,
+      "lineCount": 84,
+      "sizeBytes": 3760,
       "notes": "Build / runtime config; area=config"
     },
     {
@@ -13555,27 +13555,6 @@
       "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
     },
     {
-      "path": "scripts/drift-calibrate.ts",
-      "type": "script",
-      "area": "media-processing",
-      "exports": [],
-      "imports": [
-        "node:fs",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "../src/lib/video-generation/frame-drift",
-        "./lib/drift-calibration",
-        "@next/env",
-        "../src/lib/media/ffmpeg-bin",
-        "../src/lib/ai"
-      ],
-      "importantSymbols": [],
-      "lineCount": 397,
-      "sizeBytes": 17463,
-      "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
-    },
-    {
       "path": "scripts/eval/build-arm-prompts.ts",
       "type": "script",
       "area": "scripts",
@@ -13676,20 +13655,6 @@
       "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
     },
     {
-      "path": "scripts/frame-qa.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "../src/lib/video-generation/frame-qa"
-      ],
-      "importantSymbols": [],
-      "lineCount": 140,
-      "sizeBytes": 4893,
-      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
       "path": "scripts/generate-design-tokens.ts",
       "type": "script",
       "area": "scripts",
@@ -13771,48 +13736,6 @@
       "lineCount": 949,
       "sizeBytes": 53042,
       "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
-      "path": "scripts/lib/drift-calibration.ts",
-      "type": "script",
-      "area": "media-processing",
-      "exports": [
-        "PRODUCTION_DRIFT_MODULES",
-        "ProductionDriftJudge",
-        "DriftJudgeResolution",
-        "resolveProductionDriftJudge",
-        "neutralDriftUserPrompt",
-        "normalizeDriftDecision",
-        "DriftSplit",
-        "DriftLabel",
-        "parseDriftLabelsCsv",
-        "ConfusionMetrics",
-        "wilsonLowerBound",
-        "confusion",
-        "confusionBySplit",
-        "cosineSimilarity",
-        "embeddingFromOutput",
-        "IMAGENET_MEAN",
-        "IMAGENET_STD",
-        "rgb24ToNchw",
-        "videoSimilarityScore",
-        "thresholdSweep",
-        "evenlySpacedTimestamps"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "PRODUCTION_DRIFT_MODULES",
-        "ProductionDriftJudge",
-        "DriftJudgeResolution",
-        "DriftSplit",
-        "DriftLabel",
-        "ConfusionMetrics",
-        "IMAGENET_MEAN",
-        "IMAGENET_STD"
-      ],
-      "lineCount": 280,
-      "sizeBytes": 11789,
-      "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
     },
     {
       "path": "scripts/lib/experiment-budget.ts",
@@ -14382,91 +14305,6 @@
       "notes": "Next.js App Router page; area=auth"
     },
     {
-      "path": "src/app/(internal)/error.tsx",
-      "type": "page",
-      "area": "admin",
-      "exports": [
-        "ErrorBoundary",
-        "default"
-      ],
-      "imports": [
-        "@/components/layout/surface-route-error"
-      ],
-      "importantSymbols": [
-        "ErrorBoundary",
-        "default"
-      ],
-      "lineCount": 14,
-      "sizeBytes": 298,
-      "notes": "Next.js App Router page; client component; area=admin"
-    },
-    {
-      "path": "src/app/(internal)/internal/frame-qa/page.tsx",
-      "type": "page",
-      "area": "media-processing",
-      "exports": [
-        "dynamic",
-        "InternalFrameQaPage",
-        "default"
-      ],
-      "imports": [
-        "next/link",
-        "@/lib/api-auth",
-        "@/components/exchange/local-time",
-        "@/components/exchange/quote-header",
-        "@/components/exchange/section-head",
-        "@/lib/services/frame-qa-report-service",
-        "@/lib/utils"
-      ],
-      "importantSymbols": [
-        "InternalFrameQaPage",
-        "dynamic",
-        "default"
-      ],
-      "lineCount": 313,
-      "sizeBytes": 14461,
-      "notes": "Next.js App Router page; area=media-processing"
-    },
-    {
-      "path": "src/app/(internal)/layout.tsx",
-      "type": "layout",
-      "area": "admin",
-      "exports": [
-        "InternalLayout",
-        "default"
-      ],
-      "imports": [
-        "@/components/layout/internal-sidebar",
-        "@/lib/api-auth"
-      ],
-      "importantSymbols": [
-        "InternalLayout",
-        "default"
-      ],
-      "lineCount": 19,
-      "sizeBytes": 539,
-      "notes": "Next.js App Router layout; area=admin"
-    },
-    {
-      "path": "src/app/(internal)/loading.tsx",
-      "type": "page",
-      "area": "admin",
-      "exports": [
-        "Loading",
-        "default"
-      ],
-      "imports": [
-        "@/components/layout/surface-route-loading"
-      ],
-      "importantSymbols": [
-        "Loading",
-        "default"
-      ],
-      "lineCount": 6,
-      "sizeBytes": 170,
-      "notes": "Next.js App Router page; area=admin"
-    },
-    {
       "path": "src/app/(platform)/app/batches/[id]/error.tsx",
       "type": "page",
       "area": "unknown",
@@ -14891,7 +14729,7 @@
         "default"
       ],
       "lineCount": 258,
-      "sizeBytes": 12024,
+      "sizeBytes": 12027,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -16425,14 +16263,12 @@
         "next/server",
         "@/lib/machine-auth",
         "@/lib/scheduler-heartbeat",
-        "@/lib/services/frame-qa-gate",
+        "@/lib/services/vision-budget-context",
         "@/lib/services/video-service",
         "@/lib/services/product-image-service",
         "@/lib/services/content-post-image-job-service",
         "@/lib/services/sweep-service",
         "@/lib/video-generation/storyboard-service",
-        "@/lib/services/final-frame-qa-service",
-        "@/lib/services/frame-qa-recheck-service",
         "@/lib/services/ops-alert-service"
       ],
       "importantSymbols": [
@@ -16442,8 +16278,8 @@
         "maxDuration",
         "createPollVideosHandler"
       ],
-      "lineCount": 213,
-      "sizeBytes": 9955,
+      "lineCount": 164,
+      "sizeBytes": 7433,
       "notes": "Next.js API route handler"
     },
     {
@@ -16460,15 +16296,15 @@
         "@/lib/machine-auth",
         "@/lib/scheduler-heartbeat",
         "@/lib/services/batch-service",
-        "@/lib/services/frame-qa-gate"
+        "@/lib/services/vision-budget-context"
       ],
       "importantSymbols": [
         "GET",
         "POST",
         "maxDuration"
       ],
-      "lineCount": 71,
-      "sizeBytes": 2218,
+      "lineCount": 65,
+      "sizeBytes": 2123,
       "notes": "Next.js API route handler"
     },
     {
@@ -18101,8 +17937,8 @@
         "generateMetadata",
         "default"
       ],
-      "lineCount": 47,
-      "sizeBytes": 1709,
+      "lineCount": 44,
+      "sizeBytes": 1651,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -19048,33 +18884,6 @@
       "lineCount": 224,
       "sizeBytes": 9349,
       "notes": "React component"
-    },
-    {
-      "path": "src/components/layout/internal-sidebar.tsx",
-      "type": "component",
-      "area": "shared",
-      "exports": [
-        "InternalSidebar"
-      ],
-      "imports": [
-        "next/link",
-        "next/navigation",
-        "next-auth/react",
-        "lucide-react",
-        "@/components/ui/logo",
-        "@/components/layout/language-switcher",
-        "@/components/ui/button",
-        "@/components/ui/dialog",
-        "@/i18n/I18nProvider",
-        "@/i18n/types",
-        "@/lib/utils"
-      ],
-      "importantSymbols": [
-        "InternalSidebar"
-      ],
-      "lineCount": 207,
-      "sizeBytes": 7656,
-      "notes": "React component; NextAuth session check; client component"
     },
     {
       "path": "src/components/layout/language-switcher.tsx",
@@ -20876,8 +20685,8 @@
         "StudioReadings",
         "StreamlinedVideoStudio"
       ],
-      "lineCount": 2936,
-      "sizeBytes": 131886,
+      "lineCount": 2925,
+      "sizeBytes": 131139,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -21038,8 +20847,8 @@
         "enUS",
         "default"
       ],
-      "lineCount": 906,
-      "sizeBytes": 34059,
+      "lineCount": 904,
+      "sizeBytes": 34001,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -21080,8 +20889,8 @@
         "zhCN",
         "default"
       ],
-      "lineCount": 877,
-      "sizeBytes": 34080,
+      "lineCount": 875,
+      "sizeBytes": 34021,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -21358,8 +21167,8 @@
         "DotPath",
         "TranslationKey"
       ],
-      "lineCount": 771,
-      "sizeBytes": 18430,
+      "lineCount": 769,
+      "sizeBytes": 18384,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -21412,7 +21221,7 @@
         "chatJson"
       ],
       "lineCount": 92,
-      "sizeBytes": 2925,
+      "sizeBytes": 2914,
       "notes": "Utility / helper module"
     },
     {
@@ -21573,10 +21382,11 @@
     {
       "path": "src/lib/api/customer-generation-error.ts",
       "type": "util",
-      "area": "media-processing",
+      "area": "shared",
       "exports": [
         "CustomerGenerationErrorCode",
         "CustomerGenerationError",
+        "FRAME_QA_ERROR_PREFIX",
         "SubmissionReconciliationRequiredError",
         "classifyCustomerGenerationError",
         "customerApiError"
@@ -21587,13 +21397,14 @@
       "importantSymbols": [
         "CustomerGenerationErrorCode",
         "CustomerGenerationError",
+        "FRAME_QA_ERROR_PREFIX",
         "SubmissionReconciliationRequiredError",
         "classifyCustomerGenerationError",
         "customerApiError"
       ],
-      "lineCount": 115,
-      "sizeBytes": 4353,
-      "notes": "Utility / helper module; area=media-processing"
+      "lineCount": 121,
+      "sizeBytes": 4698,
+      "notes": "Utility / helper module"
     },
     {
       "path": "src/lib/api/customer-video-dispatch-recovery.ts",
@@ -21861,7 +21672,6 @@
         "CapabilityKey",
         "RETIRED_CAPABILITY_KEYS",
         "isRetiredCapability",
-        "RETIRED_FEATURE_KEYS",
         "CAPABILITY_STATUSES",
         "CapabilityStatus",
         "CAPABILITY_REASONS",
@@ -21886,21 +21696,22 @@
         "nextCapabilityRecord",
         "PublicCapability",
         "PublicCapabilities",
-        "resolveCapabilities"
+        "resolveCapabilities",
+        "withoutRetiredCapabilities"
       ],
       "imports": [],
       "importantSymbols": [
         "CAPABILITY_KEYS",
         "CapabilityKey",
         "RETIRED_CAPABILITY_KEYS",
-        "RETIRED_FEATURE_KEYS",
         "CAPABILITY_STATUSES",
         "CapabilityStatus",
         "CAPABILITY_REASONS",
-        "CapabilityReason"
+        "CapabilityReason",
+        "CapabilitySource"
       ],
-      "lineCount": 678,
-      "sizeBytes": 28880,
+      "lineCount": 662,
+      "sizeBytes": 28121,
       "notes": "Utility / helper module"
     },
     {
@@ -23321,38 +23132,6 @@
       "notes": "Utility / helper module; FFmpeg / audio loudness pipeline; area=ffmpeg"
     },
     {
-      "path": "src/lib/media/frame-qa-shadow.ts",
-      "type": "util",
-      "area": "media-processing",
-      "exports": [
-        "BLACK_BAR_RATIO_THRESHOLD",
-        "NEAR_STATIC_RATIO_THRESHOLD",
-        "BlackBarsShadow",
-        "NearStaticShadow",
-        "FrameQaShadowResult",
-        "parseCropdetect",
-        "parseFreezedetect",
-        "shadowFilterChain",
-        "runFrameQaShadowChecks"
-      ],
-      "imports": [
-        "./ffmpeg-bin"
-      ],
-      "importantSymbols": [
-        "BLACK_BAR_RATIO_THRESHOLD",
-        "NEAR_STATIC_RATIO_THRESHOLD",
-        "BlackBarsShadow",
-        "NearStaticShadow",
-        "FrameQaShadowResult",
-        "parseCropdetect",
-        "parseFreezedetect",
-        "shadowFilterChain"
-      ],
-      "lineCount": 178,
-      "sizeBytes": 5716,
-      "notes": "Utility / helper module; area=media-processing"
-    },
-    {
       "path": "src/lib/media/frame-rate.ts",
       "type": "util",
       "area": "media-processing",
@@ -23739,7 +23518,7 @@
         "VISION_DEFAULT_DETAIL"
       ],
       "lineCount": 636,
-      "sizeBytes": 25726,
+      "sizeBytes": 25717,
       "notes": "External API provider wrapper; uses OpenAI SDK; area=ai-providers"
     },
     {
@@ -24306,7 +24085,6 @@
         "@/lib/video-generation/video-route-selection",
         "@/lib/providers/shuyu",
         "@/lib/video-generation/video-route-cost",
-        "@/lib/video-generation/frame-qa",
         "@/lib/video-generation/batch-reference-manifest",
         "@/lib/video-generation/creative-recipe",
         "@/lib/video-generation/storyboard-service",
@@ -24322,8 +24100,8 @@
         "BatchDispatchNotAuthorizedError",
         "CreateBatchInput"
       ],
-      "lineCount": 2715,
-      "sizeBytes": 96496,
+      "lineCount": 2713,
+      "sizeBytes": 96190,
       "notes": "Business logic service; hits Prisma DB; NextAuth session check"
     },
     {
@@ -24833,51 +24611,6 @@
       "notes": "Business logic service; hits Prisma DB"
     },
     {
-      "path": "src/lib/services/final-frame-qa-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "FINAL_FRAME_QA_BATCH",
-        "FINAL_FRAME_QA_MAX_ATTEMPTS",
-        "FINAL_FRAME_QA_CLAIM_LEASE_MS",
-        "FinalFrameQaMode",
-        "finalFrameQaMode",
-        "PendingFinalFrameQaRow",
-        "FinalFrameQaClaim",
-        "FinalFrameQaSweep",
-        "FinalFrameQaWrite",
-        "FinalFrameQaServiceDeps",
-        "pendingFinalFrameQaWhere",
-        "referenceImageFromPlan",
-        "finalVideoUrlOf",
-        "buildFinalFrameQaWrite",
-        "runPendingFinalFrameQa"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/services/frame-qa-gate",
-        "@/lib/services/qa-review-merge",
-        "@/lib/services/qa-review-write",
-        "@/lib/video-generation/final-frame-qa-mark",
-        "@/lib/video-generation/final-frame-qa",
-        "@/lib/video-generation/frame-qa"
-      ],
-      "importantSymbols": [
-        "FINAL_FRAME_QA_BATCH",
-        "FINAL_FRAME_QA_MAX_ATTEMPTS",
-        "FINAL_FRAME_QA_CLAIM_LEASE_MS",
-        "FinalFrameQaMode",
-        "PendingFinalFrameQaRow",
-        "FinalFrameQaClaim",
-        "FinalFrameQaSweep",
-        "FinalFrameQaWrite"
-      ],
-      "lineCount": 345,
-      "sizeBytes": 13795,
-      "notes": "Business logic service; hits Prisma DB"
-    },
-    {
       "path": "src/lib/services/first-pass-rate-service.ts",
       "type": "service",
       "area": "shared",
@@ -24900,144 +24633,6 @@
       "lineCount": 94,
       "sizeBytes": 3806,
       "notes": "Business logic service"
-    },
-    {
-      "path": "src/lib/services/frame-qa-gate.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "FrameQaGateDecision",
-        "FRAME_QA_STATUS",
-        "FrameQaStatus",
-        "FRAME_QA_FREE_RETRY_CAP",
-        "FRAME_QA_CHECKING",
-        "FRAME_QA_BLOCK_USER_ERROR",
-        "CRON_FRAME_QA_BUDGET",
-        "frameQaBudgetUsage",
-        "noteFrameQaVisionFailure",
-        "isFrameQaInfraFailure",
-        "reserveFrameQaBudgetSlot",
-        "releaseFrameQaBudgetSlot",
-        "FrameQaAttemptPin",
-        "frameQaClaimWhere",
-        "FrameQaDetail",
-        "readFrameQaBlockCount",
-        "decideFromVerdict",
-        "FrameQaDriftSource",
-        "loadFrameDriftReferences",
-        "FrameQaGateDeps",
-        "decideFrameQaGate",
-        "__test__",
-        "reserveStoryboardReviewBudget",
-        "runWithFrameQaBudget",
-        "STORYBOARD_REVIEW_OUTSIDE_BUDGET"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/video-generation/frame-qa",
-        "@/lib/video-generation/frame-drift",
-        "@/lib/services/vision-budget-context",
-        "@/lib/services/ops-alert-service"
-      ],
-      "importantSymbols": [
-        "FrameQaGateDecision",
-        "FRAME_QA_STATUS",
-        "FrameQaStatus",
-        "FRAME_QA_FREE_RETRY_CAP",
-        "FRAME_QA_CHECKING",
-        "FRAME_QA_BLOCK_USER_ERROR",
-        "CRON_FRAME_QA_BUDGET",
-        "FrameQaAttemptPin"
-      ],
-      "lineCount": 588,
-      "sizeBytes": 22943,
-      "notes": "Business logic service; hits Prisma DB"
-    },
-    {
-      "path": "src/lib/services/frame-qa-recheck-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "FRAME_QA_RECHECK_BATCH",
-        "FRAME_QA_RECHECK_WINDOW_MS",
-        "FRAME_QA_RECHECK_MIN_INTERVAL_MS",
-        "FRAME_QA_RECHECK_MAX_ATTEMPTS",
-        "FrameQaRecheckRow",
-        "FrameQaRecheckSweep",
-        "FrameQaRecheckDeps",
-        "decideFrameQaRecheck",
-        "frameQaRecheckWhere",
-        "runPendingFrameQaRechecks"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/services/frame-qa-gate",
-        "@/lib/video-generation/frame-qa",
-        "@/lib/services/ops-alert-service"
-      ],
-      "importantSymbols": [
-        "FRAME_QA_RECHECK_BATCH",
-        "FRAME_QA_RECHECK_WINDOW_MS",
-        "FRAME_QA_RECHECK_MIN_INTERVAL_MS",
-        "FRAME_QA_RECHECK_MAX_ATTEMPTS",
-        "FrameQaRecheckRow",
-        "FrameQaRecheckSweep",
-        "FrameQaRecheckDeps",
-        "decideFrameQaRecheck"
-      ],
-      "lineCount": 258,
-      "sizeBytes": 10458,
-      "notes": "Business logic service; hits Prisma DB"
-    },
-    {
-      "path": "src/lib/services/frame-qa-report-service.ts",
-      "type": "service",
-      "area": "media-processing",
-      "exports": [
-        "FRAME_QA_BUCKETS",
-        "FrameQaBucket",
-        "FrameQaReportRow",
-        "FrameQaBucketCount",
-        "FrameQaReasonCount",
-        "FrameQaBlockEvents",
-        "FrameQaShadowStat",
-        "FrameQaShadowSummary",
-        "FrameQaWouldBlockItem",
-        "FrameQaDriftSummary",
-        "FrameQaReport",
-        "FrameQaStatusCount",
-        "bucketOf",
-        "normalizeSkipReason",
-        "summarizeFrameQa",
-        "FRAME_QA_REPORT_WINDOWS",
-        "FrameQaReportWindow",
-        "clampFrameQaWindow",
-        "FRAME_QA_REPORT_MAX_DETAIL_ROWS",
-        "frameQaReportWhere",
-        "frameQaDetailWhere",
-        "FRAME_QA_REPORT_ORDER_BY",
-        "getFrameQaReport"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/services/frame-qa-gate"
-      ],
-      "importantSymbols": [
-        "FRAME_QA_BUCKETS",
-        "FrameQaBucket",
-        "FrameQaReportRow",
-        "FrameQaBucketCount",
-        "FrameQaReasonCount",
-        "FrameQaBlockEvents",
-        "FrameQaShadowStat",
-        "FrameQaShadowSummary"
-      ],
-      "lineCount": 431,
-      "sizeBytes": 15773,
-      "notes": "Business logic service; hits Prisma DB; area=media-processing"
     },
     {
       "path": "src/lib/services/historical-dispatch-quarantine.ts",
@@ -25502,8 +25097,8 @@
         "OPS_ALERT_BUCKET_PREFIX",
         "DEFAULT_SHUYU_MIN_VIDEOS"
       ],
-      "lineCount": 291,
-      "sizeBytes": 12288,
+      "lineCount": 289,
+      "sizeBytes": 12134,
       "notes": "Business logic service"
     },
     {
@@ -25837,50 +25432,6 @@
       "lineCount": 445,
       "sizeBytes": 15692,
       "notes": "Business logic service; hits Prisma DB; area=publishing"
-    },
-    {
-      "path": "src/lib/services/qa-review-merge.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "FINAL_FRAME_QA_ISSUE_PREFIX",
-        "isFinalFrameQaIssue",
-        "prefixFinalFrameQaIssue",
-        "mergeAiQaReview",
-        "mergeFinalFrameQaReview"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/video-generation/final-frame-qa-mark"
-      ],
-      "importantSymbols": [
-        "FINAL_FRAME_QA_ISSUE_PREFIX",
-        "isFinalFrameQaIssue",
-        "prefixFinalFrameQaIssue",
-        "mergeAiQaReview",
-        "mergeFinalFrameQaReview"
-      ],
-      "lineCount": 74,
-      "sizeBytes": 3139,
-      "notes": "Business logic service; hits Prisma DB"
-    },
-    {
-      "path": "src/lib/services/qa-review-write.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "writeQaReview"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db"
-      ],
-      "importantSymbols": [
-        "writeQaReview"
-      ],
-      "lineCount": 43,
-      "sizeBytes": 1676,
-      "notes": "Business logic service; hits Prisma DB"
     },
     {
       "path": "src/lib/services/quota-refund-service.ts",
@@ -26344,9 +25895,6 @@
         "@/lib/schemas/unified-input",
         "@/types/video-generation",
         "@/lib/video-generation/brief-delivery-state",
-        "@/lib/video-generation/final-frame-qa-mark",
-        "@/lib/services/qa-review-merge",
-        "@/lib/services/qa-review-write",
         "@/lib/media/ephemeral-url",
         "@/lib/video-generation/restitch-patch",
         "@/lib/video-generation/broll-segment-compose",
@@ -26369,8 +25917,8 @@
         "BROLL_ROUTE_RETIRED_MESSAGE",
         "StitchDecision"
       ],
-      "lineCount": 1852,
-      "sizeBytes": 71471,
+      "lineCount": 1809,
+      "sizeBytes": 69726,
       "notes": "Business logic service; hits Prisma DB; area=ffmpeg"
     },
     {
@@ -26700,14 +26248,12 @@
         "@/lib/config/env",
         "@/lib/schemas/director-plan",
         "@/lib/schemas/unified-input",
-        "@/lib/video-generation/frame-qa",
         "@/lib/video-generation/providers",
         "@/lib/video-generation/providers/types",
         "@/lib/video-generation/providers/submission-error",
         "@/lib/video-generation/video-route-registry",
         "./video-watchdog",
         "./historical-dispatch-quarantine",
-        "./frame-qa-gate",
         "./single-video-cancel-service",
         "@/lib/video-generation/brief-delivery-state",
         "next-auth",
@@ -26730,8 +26276,8 @@
         "CustomerBriefRenderSummary",
         "assertVideoRouteNotRetiredForRegeneration"
       ],
-      "lineCount": 2755,
-      "sizeBytes": 99767,
+      "lineCount": 2695,
+      "sizeBytes": 97307,
       "notes": "Business logic service; hits Prisma DB; NextAuth session check; area=media-processing"
     },
     {
@@ -26800,10 +26346,10 @@
       "type": "service",
       "area": "media-processing",
       "exports": [
-        "FrameQaBudgetOptions",
-        "FrameQaBudgetState",
-        "budgetStore",
-        "runWithFrameQaBudget",
+        "VisionBudgetOptions",
+        "CRON_VISION_BUDGET",
+        "runWithVisionBudget",
+        "visionBudgetLabel",
         "STORYBOARD_REVIEW_OUTSIDE_BUDGET",
         "StoryboardReviewReservation",
         "reserveStoryboardReviewBudget"
@@ -26812,16 +26358,16 @@
         "node:async_hooks"
       ],
       "importantSymbols": [
-        "FrameQaBudgetOptions",
-        "FrameQaBudgetState",
+        "VisionBudgetOptions",
+        "CRON_VISION_BUDGET",
         "STORYBOARD_REVIEW_OUTSIDE_BUDGET",
         "StoryboardReviewReservation",
-        "budgetStore",
-        "runWithFrameQaBudget",
+        "runWithVisionBudget",
+        "visionBudgetLabel",
         "reserveStoryboardReviewBudget"
       ],
-      "lineCount": 90,
-      "sizeBytes": 3393,
+      "lineCount": 92,
+      "sizeBytes": 3313,
       "notes": "Business logic service; area=media-processing"
     },
     {
@@ -27993,161 +27539,6 @@
       "notes": "Utility / helper module; area=video-generation"
     },
     {
-      "path": "src/lib/video-generation/final-frame-qa-mark.ts",
-      "type": "util",
-      "area": "media-processing",
-      "exports": [
-        "FINAL_FRAME_QA_KEY",
-        "FinalFrameQaStatus",
-        "FinalFrameQaIssue",
-        "FinalFrameQaMark",
-        "newPendingFinalFrameQa",
-        "pendingFinalFrameQaMark",
-        "readFinalFrameQaMark"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "FINAL_FRAME_QA_KEY",
-        "FinalFrameQaStatus",
-        "FinalFrameQaIssue",
-        "FinalFrameQaMark",
-        "newPendingFinalFrameQa",
-        "pendingFinalFrameQaMark",
-        "readFinalFrameQaMark"
-      ],
-      "lineCount": 52,
-      "sizeBytes": 2179,
-      "notes": "Utility / helper module; area=media-processing"
-    },
-    {
-      "path": "src/lib/video-generation/final-frame-qa.ts",
-      "type": "util",
-      "area": "media-processing",
-      "exports": [
-        "FINAL_FRAME_QA_MAX_BYTES",
-        "FinalFrameQaResult",
-        "FINAL_FRAME_QA_SYSTEM",
-        "RawFinalFrameFinding",
-        "decideFinalFrameVerdict",
-        "skippedFinalFrameVerdict",
-        "FinalFrameQaDeps",
-        "runFinalFrameQa",
-        "finalFrameQaMarkFromResult"
-      ],
-      "imports": [
-        "node:fs",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "@/lib/ai",
-        "@/lib/media/ffmpeg-bin",
-        "@/lib/storage/trusted-media-url",
-        "@/lib/video-generation/frame-qa",
-        "@/lib/video-generation/final-frame-qa-mark"
-      ],
-      "importantSymbols": [
-        "FINAL_FRAME_QA_MAX_BYTES",
-        "FinalFrameQaResult",
-        "FINAL_FRAME_QA_SYSTEM",
-        "RawFinalFrameFinding",
-        "FinalFrameQaDeps",
-        "decideFinalFrameVerdict",
-        "skippedFinalFrameVerdict",
-        "runFinalFrameQa"
-      ],
-      "lineCount": 228,
-      "sizeBytes": 10246,
-      "notes": "Utility / helper module; area=media-processing"
-    },
-    {
-      "path": "src/lib/video-generation/frame-drift.ts",
-      "type": "util",
-      "area": "video-generation",
-      "exports": [
-        "FrameDriftMode",
-        "frameDriftMode",
-        "FRAME_DRIFT_TIMEOUT_MS",
-        "FRAME_DRIFT_MAX_PRODUCT_REFS",
-        "FRAME_DRIFT_SCORE_FLOOR",
-        "FRAME_DRIFT_VISION_OPTIONS",
-        "FRAME_DRIFT_SYSTEM",
-        "buildDriftUserPrompt",
-        "FrameDriftReferenceSource",
-        "FrameDriftReferences",
-        "unavailableDriftReferences",
-        "batchDriftReferences",
-        "briefDriftReferences",
-        "FrameDriftFinding",
-        "FrameDriftResult",
-        "skipDriftResult",
-        "decideDriftVerdict",
-        "DriftVisionCall",
-        "runFrameDriftCheck"
-      ],
-      "imports": [
-        "@/lib/video-generation/storyboard-beats",
-        "@/lib/video-generation/storyboard-gacha"
-      ],
-      "importantSymbols": [
-        "FrameDriftMode",
-        "FRAME_DRIFT_TIMEOUT_MS",
-        "FRAME_DRIFT_MAX_PRODUCT_REFS",
-        "FRAME_DRIFT_SCORE_FLOOR",
-        "FRAME_DRIFT_VISION_OPTIONS",
-        "FRAME_DRIFT_SYSTEM",
-        "FrameDriftReferenceSource",
-        "FrameDriftReferences"
-      ],
-      "lineCount": 301,
-      "sizeBytes": 13918,
-      "notes": "Utility / helper module; area=video-generation"
-    },
-    {
-      "path": "src/lib/video-generation/frame-qa.ts",
-      "type": "util",
-      "area": "media-processing",
-      "exports": [
-        "FRAME_QA_GATE_TIMEOUT_MS",
-        "FrameQaIssue",
-        "FrameQaVerdict",
-        "FrameDriftRequest",
-        "isFrameQaEnabled",
-        "decideVerdict",
-        "extractFrames",
-        "framesToDataUrls",
-        "raceGateWithDrift",
-        "runFrameTextQa",
-        "FRAME_QA_ERROR_PREFIX",
-        "__test__",
-        "FRAME_DRIFT_SYSTEM",
-        "buildDriftUserPrompt",
-        "decideDriftVerdict"
-      ],
-      "imports": [
-        "node:fs",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "@/lib/ai",
-        "@/lib/media/ffmpeg-bin",
-        "@/lib/media/frame-qa-shadow",
-        "@/lib/video-generation/frame-drift"
-      ],
-      "importantSymbols": [
-        "FRAME_QA_GATE_TIMEOUT_MS",
-        "FrameQaIssue",
-        "FrameQaVerdict",
-        "FrameDriftRequest",
-        "FRAME_QA_ERROR_PREFIX",
-        "FRAME_DRIFT_SYSTEM",
-        "isFrameQaEnabled",
-        "decideVerdict"
-      ],
-      "lineCount": 356,
-      "sizeBytes": 15283,
-      "notes": "Utility / helper module; area=media-processing"
-    },
-    {
       "path": "src/lib/video-generation/generation-supervisor.ts",
       "type": "util",
       "area": "video-generation",
@@ -29029,7 +28420,7 @@
         "StoryboardReferenceLayout"
       ],
       "lineCount": 602,
-      "sizeBytes": 34331,
+      "sizeBytes": 34283,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -29083,7 +28474,6 @@
       "area": "video-generation",
       "exports": [
         "GachaJudgeVerdict",
-        "STORYBOARD_RUBRIC_IDENTITY_PENALTIES",
         "genericJudgeSystem",
         "judgeStoryboardCandidates",
         "gachaCandidateCount",
@@ -29102,16 +28492,16 @@
       ],
       "importantSymbols": [
         "GachaJudgeVerdict",
-        "STORYBOARD_RUBRIC_IDENTITY_PENALTIES",
         "StoryboardFrameReviewItem",
         "StoryboardFrameReviewResult",
         "STORYBOARD_REVIEW_TIMEOUT_MS",
         "STORYBOARD_REVIEW_PASS_SCORE",
         "genericJudgeSystem",
-        "judgeStoryboardCandidates"
+        "judgeStoryboardCandidates",
+        "gachaCandidateCount"
       ],
       "lineCount": 352,
-      "sizeBytes": 14477,
+      "sizeBytes": 14485,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -29264,7 +28654,7 @@
         "PendingStoryboardSummary"
       ],
       "lineCount": 2689,
-      "sizeBytes": 108118,
+      "sizeBytes": 108106,
       "notes": "Utility / helper module; hits Prisma DB; area=video-generation"
     },
     {
@@ -30360,13 +29750,11 @@
         "../src/lib/db",
         "../src/lib/api/customer-generation-error",
         "../src/lib/services/batch-service",
-        "../src/lib/services/frame-qa-gate",
-        "../src/lib/video-generation/frame-qa",
         "../src/lib/video-generation/providers/types"
       ],
       "importantSymbols": [],
-      "lineCount": 478,
-      "sizeBytes": 17001,
+      "lineCount": 447,
+      "sizeBytes": 15909,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
@@ -30955,8 +30343,8 @@
         "../src/lib/exchange/state-vocab"
       ],
       "importantSymbols": [],
-      "lineCount": 456,
-      "sizeBytes": 22974,
+      "lineCount": 455,
+      "sizeBytes": 22915,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -30986,8 +30374,8 @@
       "importantSymbols": [
         "GET"
       ],
-      "lineCount": 295,
-      "sizeBytes": 15981,
+      "lineCount": 294,
+      "sizeBytes": 15945,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -31235,8 +30623,8 @@
         "./helpers/content-post-image-fake-db"
       ],
       "importantSymbols": [],
-      "lineCount": 975,
-      "sizeBytes": 46207,
+      "lineCount": 974,
+      "sizeBytes": 46066,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -31569,8 +30957,8 @@
       "importantSymbols": [
         "TickGlyph"
       ],
-      "lineCount": 105,
-      "sizeBytes": 5523,
+      "lineCount": 103,
+      "sizeBytes": 5328,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -31700,25 +31088,6 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
-      "path": "tests/drift-calibration.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../scripts/lib/drift-calibration",
-        "../src/lib/video-generation/frame-drift",
-        "../src/lib/video-generation/frame-qa",
-        "node:fs/promises",
-        "\\.\\.\\/src\\/lib\\/video-generation\\/frame-drift"
-      ],
-      "importantSymbols": [],
-      "lineCount": 189,
-      "sizeBytes": 8791,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/dropzone-hydration-guard.test.ts",
       "type": "test",
       "area": "tests",
@@ -31745,12 +31114,11 @@
         "../src/lib/providers/seedance",
         "../src/lib/providers/openai",
         "../src/lib/providers/openai-image",
-        "../src/lib/providers/shuyu-image-provider",
-        "../src/lib/video-generation/frame-qa"
+        "../src/lib/providers/shuyu-image-provider"
       ],
       "importantSymbols": [],
-      "lineCount": 152,
-      "sizeBytes": 5493,
+      "lineCount": 139,
+      "sizeBytes": 5083,
       "notes": "Unit / integration test; calls Seedance video generator; area=tests"
     },
     {
@@ -31873,31 +31241,6 @@
       "notes": "Unit / integration test; NextAuth session check; area=tests"
     },
     {
-      "path": "tests/final-frame-qa.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test",
-        "next/server",
-        "../src/lib/db",
-        "../src/lib/services/frame-qa-gate",
-        "../src/lib/services/final-frame-qa-service",
-        "../src/lib/services/qa-review-merge",
-        "../src/lib/video-generation/final-frame-qa",
-        "../src/lib/video-generation/final-frame-qa-mark",
-        "../src/lib/services/stitch-service",
-        "../src/app/api/cron/poll-videos/route",
-        "./helpers/qa-review-cas-store"
-      ],
-      "importantSymbols": [],
-      "lineCount": 502,
-      "sizeBytes": 25140,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/first-pass-rate.test.ts",
       "type": "test",
       "area": "tests",
@@ -32012,131 +31355,6 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
-      "path": "tests/frame-qa-drift.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test",
-        "@prisma/client",
-        "../src/lib/db",
-        "../src/lib/services/frame-qa-gate",
-        "../src/lib/services/frame-qa-report-service",
-        "../src/lib/video-generation/frame-drift",
-        "../src/lib/video-generation/frame-qa",
-        "../src/lib/video-generation/storyboard-gacha"
-      ],
-      "importantSymbols": [],
-      "lineCount": 481,
-      "sizeBytes": 20399,
-      "notes": "Unit / integration test; hits Prisma DB; area=tests"
-    },
-    {
-      "path": "tests/frame-qa-gate-budget.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "@prisma/client",
-        "../src/lib/services/frame-qa-gate",
-        "../src/lib/video-generation/frame-qa"
-      ],
-      "importantSymbols": [],
-      "lineCount": 381,
-      "sizeBytes": 14658,
-      "notes": "Unit / integration test; hits Prisma DB; area=tests"
-    },
-    {
-      "path": "tests/frame-qa-gate.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/video-generation/frame-qa"
-      ],
-      "importantSymbols": [],
-      "lineCount": 163,
-      "sizeBytes": 5722,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/frame-qa-overlap-claim.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "@prisma/client",
-        "../src/lib/db",
-        "../src/lib/services/frame-qa-gate",
-        "../src/lib/services/video-service",
-        "../src/lib/video-generation/frame-qa"
-      ],
-      "importantSymbols": [],
-      "lineCount": 265,
-      "sizeBytes": 10834,
-      "notes": "Unit / integration test; hits Prisma DB; area=tests"
-    },
-    {
-      "path": "tests/frame-qa-recheck.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "@prisma/client",
-        "../src/lib/services/frame-qa-gate",
-        "../src/lib/services/frame-qa-recheck-service",
-        "../src/lib/video-generation/frame-qa"
-      ],
-      "importantSymbols": [],
-      "lineCount": 186,
-      "sizeBytes": 8626,
-      "notes": "Unit / integration test; hits Prisma DB; area=tests"
-    },
-    {
-      "path": "tests/frame-qa-report.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/frame-qa-report-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 336,
-      "sizeBytes": 16464,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/frame-qa-shadow.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:os",
-        "node:path",
-        "node:test",
-        "../src/lib/media/ffmpeg-bin",
-        "../src/lib/media/frame-qa-shadow"
-      ],
-      "importantSymbols": [],
-      "lineCount": 126,
-      "sizeBytes": 5015,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/generation-status-sequence.integration.test.ts",
       "type": "test",
       "area": "tests",
@@ -32152,8 +31370,8 @@
         "../src/lib/providers/seedance"
       ],
       "importantSymbols": [],
-      "lineCount": 230,
-      "sizeBytes": 7861,
+      "lineCount": 228,
+      "sizeBytes": 7820,
       "notes": "Unit / integration test; hits Prisma DB; calls Seedance video generator; area=tests"
     },
     {
@@ -32225,8 +31443,8 @@
         "../src/i18n/growth-copy"
       ],
       "importantSymbols": [],
-      "lineCount": 256,
-      "sizeBytes": 12714,
+      "lineCount": 258,
+      "sizeBytes": 12848,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -32441,26 +31659,6 @@
       ],
       "lineCount": 143,
       "sizeBytes": 6525,
-      "notes": "Unit / integration test; hits Prisma DB; area=tests"
-    },
-    {
-      "path": "tests/helpers/qa-review-cas-store.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [
-        "mockQaReviewCasStore"
-      ],
-      "imports": [
-        "node:util",
-        "node:test",
-        "@prisma/client",
-        "../../src/lib/db"
-      ],
-      "importantSymbols": [
-        "mockQaReviewCasStore"
-      ],
-      "lineCount": 38,
-      "sizeBytes": 1711,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
@@ -32844,7 +32042,7 @@
         "../next.config",
         "../src/lib/media/media-fonts",
         "../src/lib/video-generation/audio-post-production",
-        "../src/lib/services/frame-qa-gate",
+        "../src/lib/services/vision-budget-context",
         "../src/lib/video-generation/brand-end-card-renderer",
         "../src/app/api/cron/poll-videos/route",
         "../src/app/api/cron/process-batches/route",
@@ -32853,8 +32051,8 @@
         "../src/lib/media/ffmpeg-bin"
       ],
       "importantSymbols": [],
-      "lineCount": 302,
-      "sizeBytes": 14506,
+      "lineCount": 301,
+      "sizeBytes": 14475,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -33141,8 +32339,8 @@
         "node:test"
       ],
       "importantSymbols": [],
-      "lineCount": 41,
-      "sizeBytes": 1908,
+      "lineCount": 25,
+      "sizeBytes": 1054,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -33157,8 +32355,8 @@
         "../src/lib/services/sweep-service"
       ],
       "importantSymbols": [],
-      "lineCount": 216,
-      "sizeBytes": 10660,
+      "lineCount": 217,
+      "sizeBytes": 10645,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -33445,7 +32643,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 104,
-      "sizeBytes": 5084,
+      "sizeBytes": 5043,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
@@ -33482,8 +32680,8 @@
         "../src/lib/services/product-image-service"
       ],
       "importantSymbols": [],
-      "lineCount": 551,
-      "sizeBytes": 22451,
+      "lineCount": 550,
+      "sizeBytes": 22310,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
@@ -33779,21 +32977,6 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
-      "path": "tests/qa-service-merge.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/qa-review-merge"
-      ],
-      "importantSymbols": [],
-      "lineCount": 57,
-      "sizeBytes": 3073,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/quota-envelope-contract.test.ts",
       "type": "test",
       "area": "tests",
@@ -33952,6 +33135,23 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
+      "path": "tests/reconcile-attempt-pin.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/db",
+        "../src/lib/services/video-service"
+      ],
+      "importantSymbols": [],
+      "lineCount": 219,
+      "sizeBytes": 8668,
+      "notes": "Unit / integration test; hits Prisma DB; area=tests"
+    },
+    {
       "path": "tests/reconcile-watchdog-fault-injection.test.ts",
       "type": "test",
       "area": "tests",
@@ -33966,8 +33166,8 @@
         "../src/lib/providers/seedance"
       ],
       "importantSymbols": [],
-      "lineCount": 376,
-      "sizeBytes": 13165,
+      "lineCount": 374,
+      "sizeBytes": 13124,
       "notes": "Unit / integration test; hits Prisma DB; calls Seedance video generator; area=tests"
     },
     {
@@ -34011,13 +33211,13 @@
         "../src/lib/services/stitch-service",
         "../src/lib/services/single-video-cancel-service",
         "../src/lib/services/unified-library-service",
-        "../src/lib/video-generation/frame-qa",
+        "../src/lib/api/customer-generation-error",
         "../src/lib/video-generation/segment-redo",
         "./helpers/quota-fake-db"
       ],
       "importantSymbols": [],
-      "lineCount": 926,
-      "sizeBytes": 39150,
+      "lineCount": 925,
+      "sizeBytes": 39238,
       "notes": "Unit / integration test; hits Prisma DB; NextAuth session check; area=tests"
     },
     {
@@ -34059,14 +33259,12 @@
         "../src/lib/video-generation/restitch-patch",
         "../src/app/api/briefs/[id]/render-retry/route",
         "../src/lib/video-generation/bgm-attribution",
-        "../src/lib/video-generation/final-frame-qa-mark",
         "../src/types/video-generation",
-        "./helpers/qa-review-cas-store",
         "next-auth/next"
       ],
       "importantSymbols": [],
-      "lineCount": 787,
-      "sizeBytes": 42301,
+      "lineCount": 805,
+      "sizeBytes": 42866,
       "notes": "Unit / integration test; hits Prisma DB; NextAuth session check; area=tests"
     },
     {
@@ -34085,8 +33283,8 @@
         "../src/lib/services/ops-alert-service"
       ],
       "importantSymbols": [],
-      "lineCount": 240,
-      "sizeBytes": 11332,
+      "lineCount": 239,
+      "sizeBytes": 11326,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -34894,12 +34092,11 @@
         "../src/lib/services/stitch-composer",
         "../src/lib/services/stitch-service",
         "../src/types/video-generation",
-        "./helpers/qa-review-cas-store",
         "./helpers/synthetic-media"
       ],
       "importantSymbols": [],
-      "lineCount": 384,
-      "sizeBytes": 17260,
+      "lineCount": 382,
+      "sizeBytes": 17134,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
@@ -35174,7 +34371,7 @@
         "node:fs/promises",
         "node:test",
         "../src/lib/db",
-        "../src/lib/services/frame-qa-gate",
+        "../src/lib/services/vision-budget-context",
         "../src/lib/video-generation/storyboard-ai-review",
         "../src/lib/video-generation/storyboard-gacha",
         "../src/lib/video-generation/storyboard-service"
@@ -35184,7 +34381,7 @@
         "pollPendingStoryboardRuns"
       ],
       "lineCount": 711,
-      "sizeBytes": 30638,
+      "sizeBytes": 30660,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -35376,8 +34573,8 @@
         "node:test"
       ],
       "importantSymbols": [],
-      "lineCount": 35,
-      "sizeBytes": 1582,
+      "lineCount": 29,
+      "sizeBytes": 1160,
       "notes": "Unit / integration test; area=tests"
     },
     {

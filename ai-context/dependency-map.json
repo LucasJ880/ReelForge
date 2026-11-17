@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T00:44:25.770Z",
+  "generatedAt": "2026-11-17T01:03:51.285Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -4305,33 +4305,6 @@
       ]
     },
     {
-      "file": "scripts/drift-calibrate.ts",
-      "imports": [
-        "node:fs",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "../src/lib/video-generation/frame-drift",
-        "./lib/drift-calibration",
-        "@next/env",
-        "../src/lib/media/ffmpeg-bin",
-        "../src/lib/ai"
-      ],
-      "localImports": [
-        "../src/lib/video-generation/frame-drift",
-        "./lib/drift-calibration",
-        "../src/lib/media/ffmpeg-bin",
-        "../src/lib/ai"
-      ],
-      "externalImports": [
-        "node:fs",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "@next/env"
-      ]
-    },
-    {
       "file": "scripts/eval/build-arm-prompts.ts",
       "imports": [
         "node:fs",
@@ -4424,19 +4397,6 @@
         "node:path",
         "@next/env",
         "sharp"
-      ]
-    },
-    {
-      "file": "scripts/frame-qa.ts",
-      "imports": [
-        "@next/env",
-        "../src/lib/video-generation/frame-qa"
-      ],
-      "localImports": [
-        "../src/lib/video-generation/frame-qa"
-      ],
-      "externalImports": [
-        "@next/env"
       ]
     },
     {
@@ -4844,61 +4804,6 @@
       "externalImports": [
         "next"
       ]
-    },
-    {
-      "file": "src/app/(internal)/error.tsx",
-      "imports": [
-        "@/components/layout/surface-route-error"
-      ],
-      "localImports": [
-        "@/components/layout/surface-route-error"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/app/(internal)/internal/frame-qa/page.tsx",
-      "imports": [
-        "next/link",
-        "@/lib/api-auth",
-        "@/components/exchange/local-time",
-        "@/components/exchange/quote-header",
-        "@/components/exchange/section-head",
-        "@/lib/services/frame-qa-report-service",
-        "@/lib/utils"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/components/exchange/local-time",
-        "@/components/exchange/quote-header",
-        "@/components/exchange/section-head",
-        "@/lib/services/frame-qa-report-service",
-        "@/lib/utils"
-      ],
-      "externalImports": [
-        "next/link"
-      ]
-    },
-    {
-      "file": "src/app/(internal)/layout.tsx",
-      "imports": [
-        "@/components/layout/internal-sidebar",
-        "@/lib/api-auth"
-      ],
-      "localImports": [
-        "@/components/layout/internal-sidebar",
-        "@/lib/api-auth"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/app/(internal)/loading.tsx",
-      "imports": [
-        "@/components/layout/surface-route-loading"
-      ],
-      "localImports": [
-        "@/components/layout/surface-route-loading"
-      ],
-      "externalImports": []
     },
     {
       "file": "src/app/(platform)/app/batches/[id]/error.tsx",
@@ -6565,27 +6470,23 @@
         "next/server",
         "@/lib/machine-auth",
         "@/lib/scheduler-heartbeat",
-        "@/lib/services/frame-qa-gate",
+        "@/lib/services/vision-budget-context",
         "@/lib/services/video-service",
         "@/lib/services/product-image-service",
         "@/lib/services/content-post-image-job-service",
         "@/lib/services/sweep-service",
         "@/lib/video-generation/storyboard-service",
-        "@/lib/services/final-frame-qa-service",
-        "@/lib/services/frame-qa-recheck-service",
         "@/lib/services/ops-alert-service"
       ],
       "localImports": [
         "@/lib/machine-auth",
         "@/lib/scheduler-heartbeat",
-        "@/lib/services/frame-qa-gate",
+        "@/lib/services/vision-budget-context",
         "@/lib/services/video-service",
         "@/lib/services/product-image-service",
         "@/lib/services/content-post-image-job-service",
         "@/lib/services/sweep-service",
         "@/lib/video-generation/storyboard-service",
-        "@/lib/services/final-frame-qa-service",
-        "@/lib/services/frame-qa-recheck-service",
         "@/lib/services/ops-alert-service"
       ],
       "externalImports": [
@@ -6599,13 +6500,13 @@
         "@/lib/machine-auth",
         "@/lib/scheduler-heartbeat",
         "@/lib/services/batch-service",
-        "@/lib/services/frame-qa-gate"
+        "@/lib/services/vision-budget-context"
       ],
       "localImports": [
         "@/lib/machine-auth",
         "@/lib/scheduler-heartbeat",
         "@/lib/services/batch-service",
-        "@/lib/services/frame-qa-gate"
+        "@/lib/services/vision-budget-context"
       ],
       "externalImports": [
         "next/server"
@@ -8659,37 +8560,6 @@
       ],
       "externalImports": [
         "next/link"
-      ]
-    },
-    {
-      "file": "src/components/layout/internal-sidebar.tsx",
-      "imports": [
-        "next/link",
-        "next/navigation",
-        "next-auth/react",
-        "lucide-react",
-        "@/components/ui/logo",
-        "@/components/layout/language-switcher",
-        "@/components/ui/button",
-        "@/components/ui/dialog",
-        "@/i18n/I18nProvider",
-        "@/i18n/types",
-        "@/lib/utils"
-      ],
-      "localImports": [
-        "@/components/ui/logo",
-        "@/components/layout/language-switcher",
-        "@/components/ui/button",
-        "@/components/ui/dialog",
-        "@/i18n/I18nProvider",
-        "@/i18n/types",
-        "@/lib/utils"
-      ],
-      "externalImports": [
-        "next/link",
-        "next/navigation",
-        "next-auth/react",
-        "lucide-react"
       ]
     },
     {
@@ -11040,16 +10910,6 @@
       ]
     },
     {
-      "file": "src/lib/media/frame-qa-shadow.ts",
-      "imports": [
-        "./ffmpeg-bin"
-      ],
-      "localImports": [
-        "./ffmpeg-bin"
-      ],
-      "externalImports": []
-    },
-    {
       "file": "src/lib/media/media-fonts.ts",
       "imports": [
         "node:fs",
@@ -11379,7 +11239,6 @@
         "@/lib/video-generation/video-route-selection",
         "@/lib/providers/shuyu",
         "@/lib/video-generation/video-route-cost",
-        "@/lib/video-generation/frame-qa",
         "@/lib/video-generation/batch-reference-manifest",
         "@/lib/video-generation/creative-recipe",
         "@/lib/video-generation/storyboard-service",
@@ -11407,7 +11266,6 @@
         "@/lib/video-generation/video-route-selection",
         "@/lib/providers/shuyu",
         "@/lib/video-generation/video-route-cost",
-        "@/lib/video-generation/frame-qa",
         "@/lib/video-generation/batch-reference-manifest",
         "@/lib/video-generation/creative-recipe",
         "@/lib/video-generation/storyboard-service",
@@ -11717,31 +11575,6 @@
       ]
     },
     {
-      "file": "src/lib/services/final-frame-qa-service.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/services/frame-qa-gate",
-        "@/lib/services/qa-review-merge",
-        "@/lib/services/qa-review-write",
-        "@/lib/video-generation/final-frame-qa-mark",
-        "@/lib/video-generation/final-frame-qa",
-        "@/lib/video-generation/frame-qa"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/services/frame-qa-gate",
-        "@/lib/services/qa-review-merge",
-        "@/lib/services/qa-review-write",
-        "@/lib/video-generation/final-frame-qa-mark",
-        "@/lib/video-generation/final-frame-qa",
-        "@/lib/video-generation/frame-qa"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
       "file": "src/lib/services/first-pass-rate-service.ts",
       "imports": [
         "@/lib/db",
@@ -11752,61 +11585,6 @@
         "@/lib/experiments/run-key"
       ],
       "externalImports": []
-    },
-    {
-      "file": "src/lib/services/frame-qa-gate.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/video-generation/frame-qa",
-        "@/lib/video-generation/frame-drift",
-        "@/lib/services/vision-budget-context",
-        "@/lib/services/ops-alert-service"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/video-generation/frame-qa",
-        "@/lib/video-generation/frame-drift",
-        "@/lib/services/vision-budget-context",
-        "@/lib/services/ops-alert-service"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "src/lib/services/frame-qa-recheck-service.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/services/frame-qa-gate",
-        "@/lib/video-generation/frame-qa",
-        "@/lib/services/ops-alert-service"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/services/frame-qa-gate",
-        "@/lib/video-generation/frame-qa",
-        "@/lib/services/ops-alert-service"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "src/lib/services/frame-qa-report-service.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/services/frame-qa-gate"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/services/frame-qa-gate"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
     },
     {
       "file": "src/lib/services/historical-dispatch-quarantine.ts",
@@ -12167,32 +11945,6 @@
       ]
     },
     {
-      "file": "src/lib/services/qa-review-merge.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/video-generation/final-frame-qa-mark"
-      ],
-      "localImports": [
-        "@/lib/video-generation/final-frame-qa-mark"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "src/lib/services/qa-review-write.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db"
-      ],
-      "localImports": [
-        "@/lib/db"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
       "file": "src/lib/services/quota-refund-service.ts",
       "imports": [
         "@prisma/client",
@@ -12383,9 +12135,6 @@
         "@/lib/schemas/unified-input",
         "@/types/video-generation",
         "@/lib/video-generation/brief-delivery-state",
-        "@/lib/video-generation/final-frame-qa-mark",
-        "@/lib/services/qa-review-merge",
-        "@/lib/services/qa-review-write",
         "@/lib/media/ephemeral-url",
         "@/lib/video-generation/restitch-patch",
         "@/lib/video-generation/broll-segment-compose",
@@ -12404,9 +12153,6 @@
         "@/lib/schemas/unified-input",
         "@/types/video-generation",
         "@/lib/video-generation/brief-delivery-state",
-        "@/lib/video-generation/final-frame-qa-mark",
-        "@/lib/services/qa-review-merge",
-        "@/lib/services/qa-review-write",
         "@/lib/media/ephemeral-url",
         "@/lib/video-generation/restitch-patch",
         "@/lib/video-generation/broll-segment-compose",
@@ -12608,14 +12354,12 @@
         "@/lib/config/env",
         "@/lib/schemas/director-plan",
         "@/lib/schemas/unified-input",
-        "@/lib/video-generation/frame-qa",
         "@/lib/video-generation/providers",
         "@/lib/video-generation/providers/types",
         "@/lib/video-generation/providers/submission-error",
         "@/lib/video-generation/video-route-registry",
         "./video-watchdog",
         "./historical-dispatch-quarantine",
-        "./frame-qa-gate",
         "./single-video-cancel-service",
         "@/lib/video-generation/brief-delivery-state",
         "next-auth",
@@ -12636,14 +12380,12 @@
         "@/lib/config/env",
         "@/lib/schemas/director-plan",
         "@/lib/schemas/unified-input",
-        "@/lib/video-generation/frame-qa",
         "@/lib/video-generation/providers",
         "@/lib/video-generation/providers/types",
         "@/lib/video-generation/providers/submission-error",
         "@/lib/video-generation/video-route-registry",
         "./video-watchdog",
         "./historical-dispatch-quarantine",
-        "./frame-qa-gate",
         "./single-video-cancel-service",
         "@/lib/video-generation/brief-delivery-state",
         "@/lib/demo-account",
@@ -13144,70 +12886,6 @@
       ],
       "externalImports": [
         "sharp"
-      ]
-    },
-    {
-      "file": "src/lib/video-generation/final-frame-qa.ts",
-      "imports": [
-        "node:fs",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "@/lib/ai",
-        "@/lib/media/ffmpeg-bin",
-        "@/lib/storage/trusted-media-url",
-        "@/lib/video-generation/frame-qa",
-        "@/lib/video-generation/final-frame-qa-mark"
-      ],
-      "localImports": [
-        "@/lib/ai",
-        "@/lib/media/ffmpeg-bin",
-        "@/lib/storage/trusted-media-url",
-        "@/lib/video-generation/frame-qa",
-        "@/lib/video-generation/final-frame-qa-mark"
-      ],
-      "externalImports": [
-        "node:fs",
-        "node:fs/promises",
-        "node:os",
-        "node:path"
-      ]
-    },
-    {
-      "file": "src/lib/video-generation/frame-drift.ts",
-      "imports": [
-        "@/lib/video-generation/storyboard-beats",
-        "@/lib/video-generation/storyboard-gacha"
-      ],
-      "localImports": [
-        "@/lib/video-generation/storyboard-beats",
-        "@/lib/video-generation/storyboard-gacha"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/lib/video-generation/frame-qa.ts",
-      "imports": [
-        "node:fs",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "@/lib/ai",
-        "@/lib/media/ffmpeg-bin",
-        "@/lib/media/frame-qa-shadow",
-        "@/lib/video-generation/frame-drift"
-      ],
-      "localImports": [
-        "@/lib/ai",
-        "@/lib/media/ffmpeg-bin",
-        "@/lib/media/frame-qa-shadow",
-        "@/lib/video-generation/frame-drift"
-      ],
-      "externalImports": [
-        "node:fs",
-        "node:fs/promises",
-        "node:os",
-        "node:path"
       ]
     },
     {
@@ -14421,16 +14099,12 @@
         "../src/lib/db",
         "../src/lib/api/customer-generation-error",
         "../src/lib/services/batch-service",
-        "../src/lib/services/frame-qa-gate",
-        "../src/lib/video-generation/frame-qa",
         "../src/lib/video-generation/providers/types"
       ],
       "localImports": [
         "../src/lib/db",
         "../src/lib/api/customer-generation-error",
         "../src/lib/services/batch-service",
-        "../src/lib/services/frame-qa-gate",
-        "../src/lib/video-generation/frame-qa",
         "../src/lib/video-generation/providers/types"
       ],
       "externalImports": [
@@ -15934,29 +15608,6 @@
       ]
     },
     {
-      "file": "tests/drift-calibration.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../scripts/lib/drift-calibration",
-        "../src/lib/video-generation/frame-drift",
-        "../src/lib/video-generation/frame-qa",
-        "node:fs/promises",
-        "\\.\\.\\/src\\/lib\\/video-generation\\/frame-drift"
-      ],
-      "localImports": [
-        "../scripts/lib/drift-calibration",
-        "../src/lib/video-generation/frame-drift",
-        "../src/lib/video-generation/frame-qa"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test",
-        "node:fs/promises",
-        "\\.\\.\\/src\\/lib\\/video-generation\\/frame-drift"
-      ]
-    },
-    {
       "file": "tests/dropzone-hydration-guard.test.ts",
       "imports": [
         "node:assert/strict",
@@ -15979,16 +15630,14 @@
         "../src/lib/providers/seedance",
         "../src/lib/providers/openai",
         "../src/lib/providers/openai-image",
-        "../src/lib/providers/shuyu-image-provider",
-        "../src/lib/video-generation/frame-qa"
+        "../src/lib/providers/shuyu-image-provider"
       ],
       "localImports": [
         "../src/lib/config/dry-run",
         "../src/lib/providers/seedance",
         "../src/lib/providers/openai",
         "../src/lib/providers/openai-image",
-        "../src/lib/providers/shuyu-image-provider",
-        "../src/lib/video-generation/frame-qa"
+        "../src/lib/providers/shuyu-image-provider"
       ],
       "externalImports": [
         "node:assert/strict",
@@ -16098,41 +15747,6 @@
       ]
     },
     {
-      "file": "tests/final-frame-qa.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test",
-        "next/server",
-        "../src/lib/db",
-        "../src/lib/services/frame-qa-gate",
-        "../src/lib/services/final-frame-qa-service",
-        "../src/lib/services/qa-review-merge",
-        "../src/lib/video-generation/final-frame-qa",
-        "../src/lib/video-generation/final-frame-qa-mark",
-        "../src/lib/services/stitch-service",
-        "../src/app/api/cron/poll-videos/route",
-        "./helpers/qa-review-cas-store"
-      ],
-      "localImports": [
-        "../src/lib/db",
-        "../src/lib/services/frame-qa-gate",
-        "../src/lib/services/final-frame-qa-service",
-        "../src/lib/services/qa-review-merge",
-        "../src/lib/video-generation/final-frame-qa",
-        "../src/lib/video-generation/final-frame-qa-mark",
-        "../src/lib/services/stitch-service",
-        "../src/app/api/cron/poll-videos/route",
-        "./helpers/qa-review-cas-store"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test",
-        "next/server"
-      ]
-    },
-    {
       "file": "tests/first-pass-rate.test.ts",
       "imports": [
         "node:assert/strict",
@@ -16192,151 +15806,6 @@
       ],
       "externalImports": [
         "node:crypto"
-      ]
-    },
-    {
-      "file": "tests/frame-qa-drift.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test",
-        "@prisma/client",
-        "../src/lib/db",
-        "../src/lib/services/frame-qa-gate",
-        "../src/lib/services/frame-qa-report-service",
-        "../src/lib/video-generation/frame-drift",
-        "../src/lib/video-generation/frame-qa",
-        "../src/lib/video-generation/storyboard-gacha"
-      ],
-      "localImports": [
-        "../src/lib/db",
-        "../src/lib/services/frame-qa-gate",
-        "../src/lib/services/frame-qa-report-service",
-        "../src/lib/video-generation/frame-drift",
-        "../src/lib/video-generation/frame-qa",
-        "../src/lib/video-generation/storyboard-gacha"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "tests/frame-qa-gate-budget.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "@prisma/client",
-        "../src/lib/services/frame-qa-gate",
-        "../src/lib/video-generation/frame-qa"
-      ],
-      "localImports": [
-        "../src/lib/services/frame-qa-gate",
-        "../src/lib/video-generation/frame-qa"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "tests/frame-qa-gate.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/video-generation/frame-qa"
-      ],
-      "localImports": [
-        "../src/lib/video-generation/frame-qa"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/frame-qa-overlap-claim.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "@prisma/client",
-        "../src/lib/db",
-        "../src/lib/services/frame-qa-gate",
-        "../src/lib/services/video-service",
-        "../src/lib/video-generation/frame-qa"
-      ],
-      "localImports": [
-        "../src/lib/db",
-        "../src/lib/services/frame-qa-gate",
-        "../src/lib/services/video-service",
-        "../src/lib/video-generation/frame-qa"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "tests/frame-qa-recheck.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "@prisma/client",
-        "../src/lib/services/frame-qa-gate",
-        "../src/lib/services/frame-qa-recheck-service",
-        "../src/lib/video-generation/frame-qa"
-      ],
-      "localImports": [
-        "../src/lib/services/frame-qa-gate",
-        "../src/lib/services/frame-qa-recheck-service",
-        "../src/lib/video-generation/frame-qa"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "tests/frame-qa-report.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/frame-qa-report-service"
-      ],
-      "localImports": [
-        "../src/lib/services/frame-qa-report-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/frame-qa-shadow.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:os",
-        "node:path",
-        "node:test",
-        "../src/lib/media/ffmpeg-bin",
-        "../src/lib/media/frame-qa-shadow"
-      ],
-      "localImports": [
-        "../src/lib/media/ffmpeg-bin",
-        "../src/lib/media/frame-qa-shadow"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:os",
-        "node:path",
-        "node:test"
       ]
     },
     {
@@ -16657,23 +16126,6 @@
         "../../src/lib/video-generation/platform-safe-zone"
       ],
       "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "tests/helpers/qa-review-cas-store.ts",
-      "imports": [
-        "node:util",
-        "node:test",
-        "@prisma/client",
-        "../../src/lib/db"
-      ],
-      "localImports": [
-        "../../src/lib/db"
-      ],
-      "externalImports": [
-        "node:util",
-        "node:test",
         "@prisma/client"
       ]
     },
@@ -17057,7 +16509,7 @@
         "../next.config",
         "../src/lib/media/media-fonts",
         "../src/lib/video-generation/audio-post-production",
-        "../src/lib/services/frame-qa-gate",
+        "../src/lib/services/vision-budget-context",
         "../src/lib/video-generation/brand-end-card-renderer",
         "../src/app/api/cron/poll-videos/route",
         "../src/app/api/cron/process-batches/route",
@@ -17069,7 +16521,7 @@
         "../next.config",
         "../src/lib/media/media-fonts",
         "../src/lib/video-generation/audio-post-production",
-        "../src/lib/services/frame-qa-gate",
+        "../src/lib/services/vision-budget-context",
         "../src/lib/video-generation/brand-end-card-renderer",
         "../src/app/api/cron/poll-videos/route",
         "../src/app/api/cron/process-batches/route",
@@ -18085,21 +17537,6 @@
       ]
     },
     {
-      "file": "tests/qa-service-merge.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/qa-review-merge"
-      ],
-      "localImports": [
-        "../src/lib/services/qa-review-merge"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/quota-envelope-contract.test.ts",
       "imports": [
         "node:assert/strict",
@@ -18288,6 +17725,25 @@
       ]
     },
     {
+      "file": "tests/reconcile-attempt-pin.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/db",
+        "../src/lib/services/video-service"
+      ],
+      "localImports": [
+        "../src/lib/db",
+        "../src/lib/services/video-service"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client"
+      ]
+    },
+    {
       "file": "tests/reconcile-watchdog-fault-injection.test.ts",
       "imports": [
         "node:assert/strict",
@@ -18354,7 +17810,7 @@
         "../src/lib/services/stitch-service",
         "../src/lib/services/single-video-cancel-service",
         "../src/lib/services/unified-library-service",
-        "../src/lib/video-generation/frame-qa",
+        "../src/lib/api/customer-generation-error",
         "../src/lib/video-generation/segment-redo",
         "./helpers/quota-fake-db"
       ],
@@ -18368,7 +17824,7 @@
         "../src/lib/services/stitch-service",
         "../src/lib/services/single-video-cancel-service",
         "../src/lib/services/unified-library-service",
-        "../src/lib/video-generation/frame-qa",
+        "../src/lib/api/customer-generation-error",
         "../src/lib/video-generation/segment-redo",
         "./helpers/quota-fake-db"
       ],
@@ -18418,9 +17874,7 @@
         "../src/lib/video-generation/restitch-patch",
         "../src/app/api/briefs/[id]/render-retry/route",
         "../src/lib/video-generation/bgm-attribution",
-        "../src/lib/video-generation/final-frame-qa-mark",
         "../src/types/video-generation",
-        "./helpers/qa-review-cas-store",
         "next-auth/next"
       ],
       "localImports": [
@@ -18434,9 +17888,7 @@
         "../src/lib/video-generation/restitch-patch",
         "../src/app/api/briefs/[id]/render-retry/route",
         "../src/lib/video-generation/bgm-attribution",
-        "../src/lib/video-generation/final-frame-qa-mark",
-        "../src/types/video-generation",
-        "./helpers/qa-review-cas-store"
+        "../src/types/video-generation"
       ],
       "externalImports": [
         "node:assert/strict",
@@ -19384,7 +18836,6 @@
         "../src/lib/services/stitch-composer",
         "../src/lib/services/stitch-service",
         "../src/types/video-generation",
-        "./helpers/qa-review-cas-store",
         "./helpers/synthetic-media"
       ],
       "localImports": [
@@ -19394,7 +18845,6 @@
         "../src/lib/services/stitch-composer",
         "../src/lib/services/stitch-service",
         "../src/types/video-generation",
-        "./helpers/qa-review-cas-store",
         "./helpers/synthetic-media"
       ],
       "externalImports": [
@@ -19712,14 +19162,14 @@
         "node:fs/promises",
         "node:test",
         "../src/lib/db",
-        "../src/lib/services/frame-qa-gate",
+        "../src/lib/services/vision-budget-context",
         "../src/lib/video-generation/storyboard-ai-review",
         "../src/lib/video-generation/storyboard-gacha",
         "../src/lib/video-generation/storyboard-service"
       ],
       "localImports": [
         "../src/lib/db",
-        "../src/lib/services/frame-qa-gate",
+        "../src/lib/services/vision-budget-context",
         "../src/lib/video-generation/storyboard-ai-review",
         "../src/lib/video-generation/storyboard-gacha",
         "../src/lib/video-generation/storyboard-service"

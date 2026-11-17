@@ -7,15 +7,15 @@ import {
   type VideoJob,
 } from "@prisma/client";
 import { db } from "../src/lib/db";
-import { classifyCustomerGenerationError } from "../src/lib/api/customer-generation-error";
-import { __test__ as batchTest, retryFailedBatchJob } from "../src/lib/services/batch-service";
 import {
-  FRAME_QA_BLOCK_USER_ERROR,
-  FRAME_QA_STATUS,
-  decideFromVerdict,
-  readFrameQaBlockCount,
-} from "../src/lib/services/frame-qa-gate";
-import { FRAME_QA_ERROR_PREFIX } from "../src/lib/video-generation/frame-qa";
+  classifyCustomerGenerationError,
+  FRAME_QA_ERROR_PREFIX,
+} from "../src/lib/api/customer-generation-error";
+import { __test__ as batchTest, retryFailedBatchJob } from "../src/lib/services/batch-service";
+
+/// 成片画面质检 2026-11-16 整套删除；这是它当年写进被拦段 userSafeError 的那句（库里的旧行还带着）
+const FRAME_QA_BLOCK_USER_ERROR =
+  "画面质检未通过（检测到异常文字），已自动拦截。点击「重试」可重新生成本段。";
 import type {
   CreateVideoJobOptions,
   CreateVideoJobResult,
@@ -320,8 +320,8 @@ test("RF-033: paid-provider retry requires proof that no external job exists", (
     }),
     false,
   );
-  /// runtime LENS-1：帧质检拦截的段，供应商任务已确认完成——重试是一次新的生成，
-  /// 不是「其实还在跑」的歧义重提；免费重抽次数由 frameQaDetail.blockCount 封顶。
+  /// runtime LENS-1（读旧记录）：当年被帧质检拦下的段，供应商任务已确认完成——重试是一次新的生成，
+  /// 不是「其实还在跑」的歧义重提。质检删了以后这些存量行照样能重试。
   assert.equal(
     batchTest.isBillingSafeManualRetry({
       ...base,
@@ -353,14 +353,14 @@ test("RF-033: paid-provider retry requires proof that no external job exists", (
   );
 });
 
-test("runtime LENS-1：帧质检拦截的批量段可以重试，界面给出质检原因而不是「生成结果尚未确认」", async (t) => {
+test("runtime LENS-1（读旧记录）：当年被帧质检拦下的批量段照样可以重试，界面给出质检原因而不是「生成结果尚未确认」", async (t) => {
   installProvider(
     t,
     provider(async () => {
       throw new Error("retry must only requeue; the batch tick submits later");
     }),
   );
-  /// 一条被质检拦下的段（reconcile 写的 FAILED：保留任务号、ACCEPTED、累计拦截 1 次）
+  /// 一条当年被质检拦下的段（reconcile 写的 FAILED：保留任务号、ACCEPTED、累计拦截 1 次）
   const row: Record<string, unknown> = {
     id: "job-frame-qa",
     batchJobId: "batch-1",
@@ -432,44 +432,13 @@ test("runtime LENS-1：帧质检拦截的批量段可以重试，界面给出质
   assert.match(String(blocked?.message), /画面质检未通过/);
   assert.doesNotMatch(String(blocked?.message), /尚未确认/);
 
-  /// 拦截 → 重试 → 再拦截 → 再重试 → 第 3 次检出按 WOULD_BLOCK 放行
+  /// 重试 = 排回队列从零提交；质检列是旧数据，重试不碰
   assert.deepEqual(await retryFailedBatchJob("batch-1", "job-frame-qa"), { outcome: "retried" });
   assert.equal(row.status, VideoJobStatus.QUEUED);
   assert.equal(row.externalJobId, null, "新一轮从零提交");
-  assert.deepEqual(row.frameQaDetail, { v: 1, status: "BLOCKED", blockCount: 1 }, "累计拦截次数随行保留");
-
-  const BLOCK = {
-    ok: false,
-    checked: true,
-    frameCount: 6,
-    issues: [{ frameIndex: 3, detail: "检测到画面叠加文字" }],
-    summary: "帧质检拦截：第4帧 检测到画面叠加文字",
-  };
-  const second = decideFromVerdict({
-    verdict: BLOCK,
-    priorBlockCount: readFrameQaBlockCount(row.frameQaDetail),
-    checkedAt: new Date(),
-  });
-  assert.equal(second.action, "block");
-  if (second.action !== "block") return;
-  /// 第二次拦截：reconcile 按 failureData 写回 FAILED（新任务号、ACCEPTED）
-  Object.assign(row, second.failureData, {
-    status: VideoJobStatus.FAILED,
-    submissionState: ProviderSubmissionState.ACCEPTED,
-    externalJobId: "shuyu-task-2",
-  });
-  assert.equal(readFrameQaBlockCount(row.frameQaDetail), 2);
-
-  assert.deepEqual(await retryFailedBatchJob("batch-1", "job-frame-qa"), { outcome: "retried" });
-  const third = decideFromVerdict({
-    verdict: BLOCK,
-    priorBlockCount: readFrameQaBlockCount(row.frameQaDetail),
-    checkedAt: new Date(),
-  });
-  assert.equal(third.action, "pass", "免费重抽用满后放行，不会无限重抽");
-  if (third.action !== "pass") return;
-  assert.equal(third.successData.frameQaStatus, FRAME_QA_STATUS.WOULD_BLOCK);
-  assert.equal(row.retryCount, 2);
+  assert.equal(row.retryCount, 1);
+  assert.equal(row.frameQaStatus, "BLOCKED");
+  assert.deepEqual(row.frameQaDetail, { v: 1, status: "BLOCKED", blockCount: 1 });
   assert.ok(
     casWheres.every((where) => where.status === VideoJobStatus.FAILED),
     "重试只翻 FAILED 行（CAS）",

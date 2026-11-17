@@ -1,24 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { machineAuthFailure } from "@/lib/machine-auth";
 import { startSchedulerHeartbeat } from "@/lib/scheduler-heartbeat";
-import {
-  CRON_FRAME_QA_BUDGET,
-  frameQaBudgetUsage,
-  runWithFrameQaBudget,
-} from "@/lib/services/frame-qa-gate";
+import { CRON_VISION_BUDGET, runWithVisionBudget } from "@/lib/services/vision-budget-context";
 import { pollRunningJobs } from "@/lib/services/video-service";
 import { pollPendingProductImageJobs } from "@/lib/services/product-image-service";
 import { pollPendingContentPostRenders } from "@/lib/services/content-post-image-job-service";
 import { sweepStuckTasks } from "@/lib/services/sweep-service";
 import { pollPendingStoryboardRuns } from "@/lib/video-generation/storyboard-service";
-import {
-  FINAL_FRAME_QA_BATCH,
-  runPendingFinalFrameQa,
-} from "@/lib/services/final-frame-qa-service";
-import {
-  FRAME_QA_RECHECK_BATCH,
-  runPendingFrameQaRechecks,
-} from "@/lib/services/frame-qa-recheck-service";
 import { sendOpsAlert } from "@/lib/services/ops-alert-service";
 
 /**
@@ -28,17 +16,14 @@ import { sendOpsAlert } from "@/lib/services/ops-alert-service";
  * 顺带执行孤儿/超时清扫（sweep-service）：超时任务转为用户可见的失败状态，
  * 保证「任何任务都不会永远处于进行中」。清扫失败不影响 poll 主流程。
  *
- * D2：整次调用跑在帧质检预算上下文里（条数 + 时长上限）。用户面轮询遇到
- * 「供应商已完成」只 defer，由这里（或 process-batches）真正跑质检并收尾。
+ * 整次调用跑在看图预算上下文里（vision-budget-context）：故事板 AI 审帧只在 cron 里预约得到时长。
  *
  * C2：图文帖的 Shuyu 配图也在这里推进（商家关了页面，在途的图照样收回、这一轮照样收尾）。
  *
- * P01-E（影子）：成片级复检在同一份帧质检预算里跟在轮询 / 清扫之后跑，每次最多 2 条，
- * 由 FINAL_FRAME_QA_MODE=shadow 打开，默认 off；结论只记进 QAReview，不拦任何东西。
+ * 整轮超过 CRON_OVERRUN_ALERT_MS 发运维告警——清扫与退款都挂在这条 cron 的尾部，
+ * 被平台在 300 秒掐掉就是整轮丢失。
  *
- * 2026-11-09：交付后补检（frame-qa-recheck-service）跟在清扫之后、成片级复检之前，每轮最多 2 条，
- * 把质检坏掉期间「没检成就交付」的成片补上结论。整轮超过 CRON_OVERRUN_ALERT_MS 发运维告警——
- * 清扫与退款都挂在这条 cron 的尾部，被平台在 300 秒掐掉就是整轮丢失。
+ * 2026-11-16：成片画面质检整套删除，这里不再跑交付后补检与成片级复检（两者在开关关着时本来就是空转）。
  */
 export const maxDuration = 300;
 /** 单轮耗时告警线：离 maxDuration 还有 60 秒余量 */
@@ -52,8 +37,6 @@ interface PollVideosDependencies {
   pollPendingStoryboardRuns: typeof pollPendingStoryboardRuns;
   pollPendingContentPostRenders: typeof pollPendingContentPostRenders;
   sweepStuckTasks: typeof sweepStuckTasks;
-  runPendingFinalFrameQa: typeof runPendingFinalFrameQa;
-  runPendingFrameQaRechecks: typeof runPendingFrameQaRechecks;
   sendOpsAlert: typeof sendOpsAlert;
   nowMs: () => number;
 }
@@ -66,8 +49,6 @@ const defaultDependencies: PollVideosDependencies = {
   pollPendingStoryboardRuns,
   pollPendingContentPostRenders,
   sweepStuckTasks,
-  runPendingFinalFrameQa,
-  runPendingFrameQaRechecks,
   sendOpsAlert,
   nowMs: () => Date.now(),
 };
@@ -92,21 +73,11 @@ export function createPollVideosHandler(
       dependencies.pollPendingContentPostRenders(20),
     ] as const);
     const [sweepResult] = await Promise.allSettled([dependencies.sweepStuckTasks()]);
-    /// 交付后补检：段级门禁先用预算，补检吃剩下的；排在成片级复检（影子）之前
-    const [frameQaRecheckResult] = await Promise.allSettled([
-      dependencies.runPendingFrameQaRechecks(FRAME_QA_RECHECK_BATCH),
-    ]);
-    /// 成片级复检排在最后：段级门禁先用预算，复检吃剩下的（都在同一个 runWithFrameQaBudget 里）
-    const [finalFrameQaResult] = await Promise.allSettled([
-      dependencies.runPendingFinalFrameQa(FINAL_FRAME_QA_BATCH),
-    ]);
 
     const imageFailed = imageResult.status === "rejected";
     const storyboardFailed = storyboardResult.status === "rejected";
     const contentPostFailed = contentPostResult.status === "rejected";
     const sweepFailed = sweepResult.status === "rejected";
-    const finalFrameQaFailed = finalFrameQaResult.status === "rejected";
-    const frameQaRecheckFailed = frameQaRecheckResult.status === "rejected";
     const elapsedMs = dependencies.nowMs() - startedAtMs;
     if (elapsedMs >= CRON_OVERRUN_ALERT_MS) {
       await dependencies.sendOpsAlert({
@@ -115,12 +86,9 @@ export function createPollVideosHandler(
         title: "poll-videos 单轮接近 300 秒上限",
         lines: [
           `本轮耗时 ${Math.round(elapsedMs / 1000)} 秒`,
-          "清扫、退款、补检都在这条 cron 的尾部；被平台掐掉就是整轮丢失",
+          "清扫、退款都在这条 cron 的尾部；被平台掐掉就是整轮丢失",
         ],
       });
-    }
-    if (frameQaRecheckFailed) {
-      console.warn("[cron/poll-videos] frame qa recheck failed:", errorMessage(frameQaRecheckResult));
     }
     if (imageFailed) {
       console.warn("[cron/poll-videos] image poll failed:", errorMessage(imageResult));
@@ -133,9 +101,6 @@ export function createPollVideosHandler(
     }
     if (sweepFailed) {
       console.warn("[cron/poll-videos] sweep failed:", errorMessage(sweepResult));
-    }
-    if (finalFrameQaFailed) {
-      console.warn("[cron/poll-videos] final-frame qa failed:", errorMessage(finalFrameQaResult));
     }
 
     if (videoResult.status === "rejected") {
@@ -155,22 +120,13 @@ export function createPollVideosHandler(
           storyboardError: storyboardFailed ? errorMessage(storyboardResult) : null,
           contentPostError: contentPostFailed ? errorMessage(contentPostResult) : null,
           sweep: sweepResult.status === "fulfilled" ? sweepResult.value : null,
-          finalFrameQa: finalFrameQaResult.status === "fulfilled" ? finalFrameQaResult.value : null,
-          finalFrameQaError: finalFrameQaFailed ? errorMessage(finalFrameQaResult) : null,
-          frameQaRecheck: frameQaRecheckResult.status === "fulfilled" ? frameQaRecheckResult.value : null,
           heartbeat: heartbeatEvent,
         },
         { status: 500 },
       );
     }
 
-    const degraded =
-      imageFailed ||
-      storyboardFailed ||
-      contentPostFailed ||
-      sweepFailed ||
-      finalFrameQaFailed ||
-      frameQaRecheckFailed;
+    const degraded = imageFailed || storyboardFailed || contentPostFailed || sweepFailed;
     const heartbeatEvent = heartbeat.finish(degraded ? "degraded" : "ok", {
       polled: videoResult.value.polled,
       imagePolled: imageResult.status === "fulfilled" ? imageResult.value.polled : 0,
@@ -187,19 +143,14 @@ export function createPollVideosHandler(
       contentPostPolled: contentPostResult.status === "fulfilled" ? contentPostResult.value : 0,
       contentPostError: contentPostFailed ? errorMessage(contentPostResult) : null,
       sweep: sweepResult.status === "fulfilled" ? sweepResult.value : null,
-      finalFrameQa: finalFrameQaResult.status === "fulfilled" ? finalFrameQaResult.value : null,
-      finalFrameQaError: finalFrameQaFailed ? errorMessage(finalFrameQaResult) : null,
-      frameQaRecheck: frameQaRecheckResult.status === "fulfilled" ? frameQaRecheckResult.value : null,
-      frameQaRecheckError: frameQaRecheckFailed ? errorMessage(frameQaRecheckResult) : null,
       elapsedMs,
       degraded,
-      frameQa: frameQaBudgetUsage(),
       heartbeat: heartbeatEvent,
     });
   }
   return (req: NextRequest) =>
-    runWithFrameQaBudget(
-      { label: "cron:poll-videos", ...CRON_FRAME_QA_BUDGET },
+    runWithVisionBudget(
+      { label: "cron:poll-videos", ...CRON_VISION_BUDGET },
       () => pollVideosHandler(req),
     );
 }

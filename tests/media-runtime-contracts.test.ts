@@ -3,7 +3,7 @@
  * - 4.1 ffmpeg 调用只走 src/lib/media/ffmpeg-bin；函数运行时不再依赖 ffprobe；
  *   GitHub Actions 拼接 runner 的依赖图里没有 ffmpeg-bin / ffmpeg-static。
  * - 4.1/4.2 二进制、中文字体、BGM 只精确打进需要的 5 个函数（C3 加上 stitch-dispatch 合成函数）。
- * - 4.3 两个 cron 设 maxDuration 并在帧质检预算上下文里跑。
+ * - 4.3 两个 cron 设 maxDuration 并在看图预算上下文里跑（故事板 AI 审帧只在这里预约得到时长）。
  * - 4.5 两处拼接不再强转 30fps。
  * - 尾卡：生产默认（inprocess）当场渲染；只有回滚模式 external 才延迟给 runner；
  *   品牌封装 forceLocal 任何模式都内联。
@@ -16,7 +16,7 @@ import { NextRequest } from "next/server";
 import nextConfig, { mediaRuntimeTracingIncludes } from "../next.config";
 import { BUNDLED_CJK_FONT_CANDIDATES } from "../src/lib/media/media-fonts";
 import { BGM_TRACKS } from "../src/lib/video-generation/audio-post-production";
-import { frameQaBudgetUsage } from "../src/lib/services/frame-qa-gate";
+import { visionBudgetLabel } from "../src/lib/services/vision-budget-context";
 import { renderBrandEndCard } from "../src/lib/video-generation/brand-end-card-renderer";
 import * as pollVideosRoute from "../src/app/api/cron/poll-videos/route";
 import * as processBatchesRoute from "../src/app/api/cron/process-batches/route";
@@ -35,7 +35,6 @@ function code(rel: string): string {
 }
 
 const MEDIA_FILES = [
-  "src/lib/video-generation/frame-qa.ts",
   "src/lib/video-generation/tail-trim.ts",
   "src/lib/video-generation/brand-end-card-renderer.ts",
   "src/lib/video-generation/brand-overlay-renderer.ts",
@@ -43,7 +42,6 @@ const MEDIA_FILES = [
   "src/lib/services/stitch-service.ts",
   "src/lib/services/stitch-composer.ts",
   "src/lib/media/stitch-pipeline.ts",
-  "src/lib/media/frame-qa-shadow.ts",
   "src/lib/media/media-health.ts",
 ];
 
@@ -173,7 +171,7 @@ test("[media-runtime] tracing：二进制 / 字体 / BGM 只进 5 个函数，�
   assert.ok(nextConfig.serverExternalPackages?.includes("ffmpeg-static"));
 
   const binary = "./node_modules/ffmpeg-static/ffmpeg";
-  /// cron 只做帧质检：只要二进制，不背字体与配乐
+  /// cron 两个函数只带二进制，不背字体与配乐（帧质检删除后先原样保留，见 next.config.ts 的说明）
   assert.deepEqual(mediaRuntimeTracingIncludes["/api/cron/poll-videos"], [binary]);
   assert.deepEqual(mediaRuntimeTracingIncludes["/api/cron/process-batches"], [binary]);
   /// 2026-11-10 曲库扩到 8 首：最早那一首按文件名列，其余在 public/audio/bgm 下用一条通配（只这一个目录，不是整包通配）
@@ -201,10 +199,10 @@ test("[media-runtime] 4.3 两个 cron 设 maxDuration=300（C3：stitch-dispatch
   assert.equal(stitchDispatchRoute.maxDuration, 300);
   assert.equal(stitchDispatchRoute.maxDuration, STITCH_DISPATCH_MAX_DURATION_SEC);
   assert.equal(stitchDispatchRoute.runtime, "nodejs");
-  assert.match(code("src/app/api/cron/process-batches/route.ts"), /runWithFrameQaBudget\(/);
+  assert.match(code("src/app/api/cron/process-batches/route.ts"), /runWithVisionBudget\(/);
 });
 
-test("[media-runtime] 4.3 poll-videos 的轮询 / 清扫跑在帧质检预算上下文里，响应回显用量", async (t: TestContext) => {
+test("[media-runtime] 4.3 poll-videos 的轮询 / 清扫跑在看图预算上下文里；响应不再带已删的帧质检字段", async (t: TestContext) => {
   const previous = process.env.CRON_SECRET;
   process.env.CRON_SECRET = "machine-secret";
   t.after(() => {
@@ -217,17 +215,16 @@ test("[media-runtime] 4.3 poll-videos 的轮询 / 清扫跑在帧质检预算上
       finish: () => ({ status: "ok" }),
     })) as never,
     pollRunningJobs: async () => {
-      seen.push(frameQaBudgetUsage()?.label ?? null);
+      seen.push(visionBudgetLabel());
       return { polled: 0, updated: 0 };
     },
     pollPendingProductImageJobs: async () => ({ polled: 0, recovered: 0 }) as never,
     pollPendingStoryboardRuns: async () => 0 as never,
     pollPendingContentPostRenders: async () => 0 as never,
     sweepStuckTasks: async () => {
-      seen.push(frameQaBudgetUsage()?.label ?? null);
+      seen.push(visionBudgetLabel());
       return {} as never;
     },
-    runPendingFinalFrameQa: async () => ({ mode: "off" as const, scanned: 0, checked: 0, issues: 0, skipped: 0, deferred: 0, requeued: 0 }),
   });
   const response = await handler(
     new NextRequest("http://localhost/api/cron/poll-videos", {
@@ -236,11 +233,13 @@ test("[media-runtime] 4.3 poll-videos 的轮询 / 清扫跑在帧质检预算上
   );
   assert.equal(response.status, 200);
   assert.deepEqual(seen, ["cron:poll-videos", "cron:poll-videos"]);
-  const body = (await response.json()) as { frameQa?: { label: string; used: number } };
-  assert.equal(body.frameQa?.label, "cron:poll-videos");
-  assert.equal(body.frameQa?.used, 0);
+  const body = (await response.json()) as Record<string, unknown>;
+  for (const gone of ["frameQa", "finalFrameQa", "finalFrameQaError", "frameQaRecheck", "frameQaRecheckError"]) {
+    assert.equal(gone in body, false, gone);
+  }
+  assert.equal(body.degraded, false);
   /// 上下文随请求结束
-  assert.equal(frameQaBudgetUsage(), null);
+  assert.equal(visionBudgetLabel(), null);
 });
 
 test("[media-runtime] 尾卡：生产默认 inprocess 当场渲染、external（回滚）才延迟；forceLocal 任何模式都内联", async (t: TestContext) => {

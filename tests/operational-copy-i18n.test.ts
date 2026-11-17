@@ -16,22 +16,6 @@ test("RF-013 customer operational labels resolve through platform copy", async (
   assert.match(templates, /copy\.lockedCount/);
 });
 
-test("RF-013 internal navigation has no hardcoded English operational labels", async () => {
-  const source = await readFile(
-    path.join(ROOT, "src/components/layout/internal-sidebar.tsx"),
-    "utf8",
-  );
-  for (const hardcoded of ["Content reports", "Internal Ops", "Projects (legacy)", "Videos (legacy)"]) {
-    assert.doesNotMatch(source, new RegExp(hardcoded.replace(/[()]/g, "\\$&")));
-  }
-  /// 旧中台 2026-10-28 只留帧质检：内容举报等入口随页面删除
-  for (const key of ["nav.frameQa", "nav.internalOps"]) {
-    assert.match(source, new RegExp(key.replace(".", "\\.")));
-  }
-  /// 2026-11-16：指向不存在页面的链接（/projects、/videos、/internal）拿掉，「旧版入口」一组连同文案键一起删
-  assert.doesNotMatch(source, /nav\.legacy|href="\/projects"|href="\/videos"|href="\/internal"/);
-});
-
 test("RF-013 technical-token exemptions stay explicit and narrow", async () => {
   const source = await readFile(path.join(ROOT, "qa/evidence/phase34/rf013-technical-token-exemptions.md"), "utf8");
   assert.match(source, /JOB ID/);

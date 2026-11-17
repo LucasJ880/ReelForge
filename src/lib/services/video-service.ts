@@ -15,6 +15,7 @@ import {
 import { db } from "@/lib/db";
 import {
   classifyCustomerGenerationError,
+  FRAME_QA_ERROR_PREFIX,
   SubmissionReconciliationRequiredError,
   type CustomerGenerationError,
 } from "@/lib/api/customer-generation-error";
@@ -25,9 +26,6 @@ import {
   type SegmentPlan,
 } from "@/lib/schemas/director-plan";
 import { postProductionPlanSchema } from "@/lib/schemas/unified-input";
-import {
-  FRAME_QA_ERROR_PREFIX,
-} from "@/lib/video-generation/frame-qa";
 import {
   createVideoProviderByRouteSnapshot,
 } from "@/lib/video-generation/providers";
@@ -58,7 +56,6 @@ import {
   watchdogGraceMin,
 } from "./video-watchdog";
 import { isHistoricalDispatchQuarantined } from "./historical-dispatch-quarantine";
-import { decideFrameQaGate, type FrameQaAttemptPin } from "./frame-qa-gate";
 import { CUSTOMER_CANCELLED_CLASS } from "./single-video-cancel-service";
 import { isDeliveredBriefStatus } from "@/lib/video-generation/brief-delivery-state";
 import type { Session } from "next-auth";
@@ -70,7 +67,6 @@ import {
   SegmentRedoRejectedError,
   segmentRedoLogicalJobKey,
 } from "@/lib/video-generation/segment-redo";
-import { readFrameQaBlockCount } from "./frame-qa-gate";
 import {
   currentUsagePeriodKey,
   isQuotaEnforced,
@@ -492,7 +488,7 @@ export async function dispatchVideoForBrief(
     /// 写回 brief：分段重试读同一份，首发与重试同参。
     /// 提示词按已确认的故事板改写（商家原话 + 帧序），写回 directorPlan——重试读同一份。
     /// P02-F(v)：参考图按 实拍 → 切片 → 主播 → 帧 分组，帧序号跳过切片与主播；
-    /// 各组张数与上限写进 directorPlan.referenceLayout，重试 / 重做 / 帧质检按它对齐。
+    /// 各组张数与上限写进 directorPlan.referenceLayout，重试 / 重做按它对齐。
     /// P02-F2：显式覆盖 > 线路适配器上限（Shuyu 9）> 历史 / 未知线路缺省 8；写进 referenceLayout 后重试沿用。
     const routeRead = readVideoRouteSnapshot(brief);
     const referenceImageLimit = segmentReferenceImageLimit(
@@ -1147,9 +1143,9 @@ export async function dispatchVideoGeneration(briefId: string) {
 }
 
 /**
- * reconcile 读到的「这一次尝试」：供应商任务号 + 提交幂等键。终态 CAS 与质检占位都钉住它。
+ * reconcile 读到的「这一次尝试」：供应商任务号 + 提交幂等键。终态 CAS 钉住它。
  *
- * 只比状态不够：一次 reconcile（尤其是跑 45s 帧质检的那次）进行期间，用户可能已经点了
+ * 只比状态不够：一次 reconcile 进行期间，用户可能已经点了
  * 重试——单条重试先把行翻回 RUNNING 并换 providerRequestKey、再写新任务号；批量重试
  * 清空 externalJobId 再重新提交。旧尝试的结论若只按「仍在 RUNNING/QUEUED」写回，
  * 会把新一轮直接判成 FAILED / SUCCEEDED（还带着旧产物）。两项任一变了就落空。
@@ -1157,7 +1153,7 @@ export async function dispatchVideoGeneration(briefId: string) {
 function attemptPin(job: {
   externalJobId: string | null;
   providerRequestKey: string | null;
-}): FrameQaAttemptPin {
+}): { externalJobId: string | null; providerRequestKey: string | null } {
   return {
     externalJobId: job.externalJobId,
     providerRequestKey: job.providerRequestKey,
@@ -1287,49 +1283,6 @@ export async function reconcileVideoJob(jobId: string) {
   }
 
   if (result.status === "completed") {
-    /// 发片前帧质检门禁：策略全在 frame-qa-gate，这里只按决定迁移状态。
-    const gate = await decideFrameQaGate({
-      jobId,
-      provider: job.provider,
-      videoUrl: result.videoUrl,
-      /// 历史拦截次数随行带入（免费重抽上限按段累计，重试复用同一行）
-      priorFrameQaDetail: job.frameQaDetail,
-      /// 真跑质检前按这次尝试占位：重叠的 cron 调用不重复质检同一段
-      attempt: attemptPin(job),
-      /// 漂移影子的参考图按行类型取：批量行 assignedAssets，单条段行 brief 的参考图布局
-      driftSource: { assignedAssets: job.assignedAssets, videoBriefId: job.videoBriefId },
-    });
-    if (gate.action === "defer") {
-      return db.videoJob.findUnique({ where: { id: jobId } });
-    }
-    if (gate.action === "block") {
-      logStatusTransition({
-        taskId: job.id,
-        from: job.status,
-        to: VideoJobStatus.FAILED,
-        reason: `frame_qa_rejected: ${gate.summary}`,
-      });
-      /// CAS：仍在 RUNNING/QUEUED、且仍是这一次尝试才写终态（INV-6）
-      await db.videoJob.updateMany({
-        where: {
-          id: jobId,
-          status: { in: [VideoJobStatus.RUNNING, VideoJobStatus.QUEUED] },
-          ...attemptPin(job),
-        },
-        data: {
-          ...gate.failureData,
-          status: VideoJobStatus.FAILED,
-          outputVideoUrl: result.videoUrl,
-          outputThumbUrl: result.thumbnailUrl ?? null,
-          finishedAt: new Date(),
-          lastCheckedAt: new Date(),
-          lastProviderStatus: result.rawProviderStatus,
-          pollErrors: 0,
-        },
-      });
-      return db.videoJob.findUnique({ where: { id: jobId } });
-    }
-
     logStatusTransition({
       taskId: job.id,
       from: job.status,
@@ -1345,7 +1298,6 @@ export async function reconcileVideoJob(jobId: string) {
         ...attemptPin(job),
       },
       data: {
-        ...gate.successData,
         status: VideoJobStatus.SUCCEEDED,
         outputVideoUrl: result.videoUrl ?? null,
         outputThumbUrl: result.thumbnailUrl ?? null,
@@ -1538,7 +1490,7 @@ export async function retryFailedVideoJob(jobId: string) {
   const jobRouteSnapshot = requiredJobVideoRouteSnapshot(job);
   const videoBriefId = job.videoBriefId;
 
-  /// frame-qa 拦截的段：Provider 端是 completed，但产物已被判废 →
+  /// 读旧记录：成片画面质检（2026-11-16 整套删除）当年拦下的段，Provider 端是 completed，但产物已被判废 →
   /// 跳过下方「查状态发现已成功就直接翻回 SUCCEEDED」的捷径，必须重新生成
   const failedByFrameQa = !!job.errorMessage?.startsWith(FRAME_QA_ERROR_PREFIX);
   let providerConfirmedFailed = failedByFrameQa;
@@ -1937,7 +1889,6 @@ export interface PreparedSegmentRedo {
   segmentIndex: number;
   replacesJobId: string;
   segmentDurationSec: number | null;
-  priorFrameQaBlockCount: number;
   note: string | null;
   routeSnapshot: VideoRouteSnapshot;
   brief: SegmentSubmitBrief;
@@ -1995,7 +1946,6 @@ export async function prepareSegmentRedo(
     segmentIndex,
     replacesJobId: stitch.replacedJob.id,
     segmentDurationSec: stitch.replacedJob.segmentDurationSec,
-    priorFrameQaBlockCount: readFrameQaBlockCount(stitch.replacedJob.frameQaDetail),
     note,
     routeSnapshot: requiredVideoRouteSnapshot(brief),
     brief,
@@ -2013,8 +1963,7 @@ export interface CommitSegmentRedoOptions {
  *
  *   - 事务内再查一次「没有未了结的候选」与「旧行仍挂在成片上」（预检之后可能被并发请求改了）；
  *   - logicalJobKey = `${briefId}:segment:${i}:redo:${n}`，n = 这一段历史候选数 + 1：
- *     双击的两个请求算出同一个 n，唯一约束让后到的那个冲突，重放事务时被上一条拦下 → 只扣一次；
- *   - frameQa 的累计拦截次数从旧行继承（免费重抽上限按段累计，重做不重置）。
+ *     双击的两个请求算出同一个 n，唯一约束让后到的那个冲突，重放事务时被上一条拦下 → 只扣一次。
  */
 export async function commitSegmentRedo(
   prepared: PreparedSegmentRedo,
@@ -2099,15 +2048,6 @@ export async function commitSegmentRedo(
           replacesJobId: prepared.replacesJobId,
           /// 候选行自己的说明（null = 按计划原样重做）；重试同一候选行时与计划重新组装
           promptText: prepared.note,
-          ...(prepared.priorFrameQaBlockCount > 0
-            ? {
-                frameQaDetail: {
-                  v: 1,
-                  inheritedFromJobId: prepared.replacesJobId,
-                  blockCount: prepared.priorFrameQaBlockCount,
-                } as Prisma.InputJsonValue,
-              }
-            : {}),
           ...prepared.routeSnapshot,
           ...costSnapshot,
           ...briefCreativeRecipe(prepared.brief.aspectRatio),

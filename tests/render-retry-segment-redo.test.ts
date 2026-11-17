@@ -36,7 +36,7 @@ import {
   SEGMENT_REDO_CANCELLED_CLASS,
 } from "../src/lib/services/single-video-cancel-service";
 import { toUnifiedLibraryRow } from "../src/lib/services/unified-library-service";
-import { FRAME_QA_ERROR_PREFIX } from "../src/lib/video-generation/frame-qa";
+import { FRAME_QA_ERROR_PREFIX } from "../src/lib/api/customer-generation-error";
 import {
   composeSegmentRedoPrompt,
   isCurrentSegmentJob,
@@ -347,7 +347,6 @@ function prepared(overrides: Partial<PreparedSegmentRedo> = {}): PreparedSegment
     segmentIndex: 0,
     replacesJobId: "seg-0",
     segmentDurationSec: null,
-    priorFrameQaBlockCount: 1,
     note: "别出现文字",
     routeSnapshot: BYTEPLUS_ROUTE,
     brief: {
@@ -481,7 +480,7 @@ test("双击只扣一次：两个并发重做只建一条候选行、只扣 1 �
   assert.equal(candidate.submissionState, ProviderSubmissionState.ACCEPTED);
   assert.equal(candidate.externalJobId, "ext-redo-1");
   assert.equal(candidate.promptText, "别出现文字", "候选行只存说明，提示词每次从计划重组");
-  assert.deepEqual(candidate.frameQaDetail, { v: 1, inheritedFromJobId: "seg-0", blockCount: 1 }, "帧质检拦截次数从旧行继承");
+  assert.equal(candidate.frameQaDetail ?? null, null, "旧行的帧质检拦截次数不再带给候选行（质检已删，没有代码读它）");
   assert.equal(prompts.length, 1, "供应商只被调用一次");
 
   assert.equal(meterAmount(store, USER, periodKey(), "SEEDANCE_SEGMENT"), 1);
@@ -572,10 +571,10 @@ test("重做失败后再重做同一段：新候选行 redo:2、再扣 1 段；�
 });
 
 // ---------------------------------------------------------------------------
-// 帧质检拦截的候选行重试；已退额的候选行重试要补扣
+// 读旧记录：当年被帧质检拦截的候选行重试；已退额的候选行重试要补扣
 // ---------------------------------------------------------------------------
 
-test("候选行被帧质检拦截后重试：按计划 + 自己的说明重提，不重置成片，拦截次数保留", async (t) => {
+test("读旧记录：当年被帧质检拦截的候选行重试——按计划 + 自己的说明重提（不走「供应商已完成就翻回成功」的捷径），不重置成片，质检列不碰", async (t) => {
   const prompts = installRuntime(t, async () => ({ jobId: "ext-redo-retry" }));
   const store = redoStore();
   const stats = installRedoDb(t, store);

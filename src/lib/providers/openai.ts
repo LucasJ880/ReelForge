@@ -507,7 +507,7 @@ export const VISION_DEFAULT_MAX_TOKENS = 1200;
 const VISION_MAX_IMAGES = 8;
 
 /**
- * 视觉分析：参考图理解 / 帧质检 / 故事板抽卡评审都走这里。
+ * 视觉分析：参考图理解 / 故事板抽卡评审都走这里。
  *
  * P01-A（2026-10-26）：
  * - detail / maxTokens 由调用方决定，不再写死在请求里（默认值保持 low / 1200，行为不变）。
@@ -547,7 +547,7 @@ export async function analyzeImages(
           `[openai] stage=vision tier=${tier} model=${candidate} fallback=true (preferred=${chain[0]})`,
         );
       }
-      /// C4 · 「AI 看图」实时回写（画面质检、参考图理解都走这里）。
+      /// C4 · 「AI 看图」实时回写（参考图理解、故事板评审都走这里）。
       await markCapability("vision", "success", { detail: { provider: "openai", model: candidate } });
       return { ...result, fallbackUsed };
     } catch (err) {

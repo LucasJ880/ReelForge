@@ -21,8 +21,6 @@ import type { SeedanceJobResult } from "../src/lib/providers/seedance";
  * Provider 状态查询通过 __setStatusFetcherForTests 注入，零真实调用、零计费。
  */
 
-process.env.FRAME_QA_DISABLED = "true";
-
 const NOW_MS = Date.now();
 const MIN = 60_000;
 

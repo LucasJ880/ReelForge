@@ -22,7 +22,6 @@ npm run context:find -- "关键词1 关键词2"   # 0.3s，给 top 10 文件 + �
 | 位置 | 内容 |
 |---|---|
 | `src/app/(platform)/` | 客户自助面 —— 新定位的主战场 |
-| `src/app/(internal)/` | 只剩帧质检运维页 `/internal/frame-qa`（旧代运营中台 16 页 2026-10-28 已删），别加新功能 |
 | `src/app/page.tsx` · `(public)/` · `(auth)/` · `(wall)/` | 公开首页「展厅」/ 法务页（/persona、/showcase 2026-10-28 已删）/ 登录注册 / 行情大屏 `/wall` |
 | `src/app/l/[slug]` · `src/app/t/[code]` | 商家询盘页（匿名可访问）/ 追踪链接跳转（`route.ts`） |
 | `src/app/api/` | 路由只做鉴权 + 参数校验，业务委托 `src/lib/services/` |
@@ -66,7 +65,6 @@ npm run context:find -- "..."
 | 开关（Vercel 环境变量） | 缺省 | 作用 |
 |---|---|---|
 | `PLANNING_FULL_LLM=on` | 关 | 出方案退回完整模型链路（缺省是精简版：一条片最多 7 次模型调用） |
-| `FRAME_QA_ENABLED=on` | 关 | 成片画面质检（依赖 OpenAI 看图）。20 条真跑 0 次拦截后缺省关 |
 | `CAPTION_SPEECH_ALIGN=on` | 关 | 合成时把 AI 段人声交给 OpenAI `whisper-1` 识别，字幕跟着人声走。要求这把 `OPENAI_API_KEY` 有 whisper-1 权限（11-10 实查没有，需在 OpenAI 项目里开通）；识别不到就照旧按字数摊，不影响出片 |
 | `OPS_ALERT_WEBHOOK_URL` | 未配 | 运维告警的群机器人地址；没配只进日志（`[ops-alert]`） |
 | `PROGRESS_SEGMENT_EXPECTED_MIN` | 10 | 进度条估算用的出片典型分钟数（实测中位数） |

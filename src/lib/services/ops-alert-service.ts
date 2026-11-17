@@ -26,7 +26,6 @@ import { RETIRED_CAPABILITY_KEYS } from "@/lib/capabilities/registry";
 export const OPS_ALERT_KINDS = [
   "capability_down",
   "capability_recovered",
-  "frame_qa_unverified",
   "job_kept_alive",
   "stitch_failed",
   "submit_ack_unknown",
@@ -208,7 +207,7 @@ export async function sendOpsAlert(alert: OpsAlert, overrides: Partial<OpsAlertD
 
 const CAPABILITY_LABELS: Record<string, string> = {
   text: "写作（文本模型）",
-  vision: "看图（帧质检 / 出方案看商品图）",
+  vision: "看图（出方案看商品图）",
   image: "出图",
   graphics: "图文",
   video: "出片",
@@ -240,7 +239,6 @@ export function capabilityTransitionAlert(
         `原因：${next.reason}${next.detail?.httpStatus ? `（HTTP ${next.detail.httpStatus}）` : ""}`,
         ...(next.detail?.provider ? [`供应商：${next.detail.provider}`] : []),
         ...(next.detail?.note ? [`备注：${next.detail.note}`] : []),
-        ...(next.key === "vision" ? ["影响：帧质检会没检成，成片标「未质检」直接交付"] : []),
       ],
     };
   }

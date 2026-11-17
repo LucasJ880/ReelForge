@@ -85,10 +85,8 @@ test("旧玻璃世界零残留：没有品牌橙、没有毛玻璃（视频之�
 });
 
 test("客户面不用 ✨ 图标：主行动用说清动作的图标（研究禁用项）", () => {
-  // (internal) 旧代运营中台按 CLAUDE.md #8 A→B→C 下线中，不在客户面，跳过。
   const offenders = walk("src")
     .filter((file) => /\.tsx$/.test(file))
-    .filter((file) => !file.includes("(internal)") && !file.endsWith("internal-sidebar.tsx"))
     .filter((file) => /\b(?:Sparkles|WandSparkles)\b/.test(readFileSync(file, "utf8")));
   assert.deepEqual(offenders, []);
 });

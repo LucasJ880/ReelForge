@@ -191,17 +191,17 @@ test("写作暂停：照抄验收口径——脚本与周计划先用模板生�
       assert.doesNotMatch(message["en-US"], /stock|voiceover|link import|cutout/i, `${key}.${status}`);
     }
   }
-  // 画面质检暂停：成片照常生成
+  // 看图暂停：成片照常生成
   assert.match(CAPABILITY_COPY.vision.messages.unavailable["zh-CN"], /成片照常生成/);
 });
 
-test("看图文案只写现在真在用的事：出方案时看商品图；成片画面质检缺省关了就不再承诺（2026-11-10）", () => {
+test("看图文案只写现在真在用的事：出方案时看商品图；成片画面质检已删（2026-11-16），不再承诺", () => {
   for (const status of CAPABILITY_STATUSES) {
     const zh = CAPABILITY_COPY.vision.messages[status]["zh-CN"];
     const en = CAPABILITY_COPY.vision.messages[status]["en-US"];
     assert.doesNotMatch(zh, /一致性/, status);
     assert.doesNotMatch(en, /consistency/i, status);
-    /// 质检缺省关着：状态页不能再说「成片会自动检查错字与水印」
+    /// 质检已删：状态页不能再说「成片会自动检查错字与水印」
     assert.doesNotMatch(zh, /质检|错字|水印/, status);
     assert.doesNotMatch(en, /frame check|burned-in|watermark/i, status);
     assert.match(zh, /商品图/, status);
@@ -233,8 +233,8 @@ test("P03-K：视频「不稳定」不承诺备用线路（生产没有可切的
   }
 });
 
-test("功能依赖写在一处：周计划 / 口播稿 = 写作；图文配图 = Shuyu 图像、Logo = OpenAI 图像；画面质检 = 看图；已删线路的功能不在表里", () => {
-  for (const gone of ["broll", "linkImport", "productCutout"]) {
+test("功能依赖写在一处：周计划 / 口播稿 = 写作；图文配图 = Shuyu 图像、Logo = OpenAI 图像；故事板审帧 = 看图；已删线路的功能不在表里", () => {
+  for (const gone of ["broll", "linkImport", "productCutout", "frameQa"]) {
     assert.equal((FEATURE_KEYS as readonly string[]).includes(gone), false, gone);
   }
   for (const feature of FEATURE_KEYS) {
@@ -252,8 +252,7 @@ test("功能依赖写在一处：周计划 / 口播稿 = 写作；图文配图 =
   assert.deepEqual([...FEATURES.storyboardReview.needs], ["vision"]);
   assert.equal(FEATURES.storyboardReview.whenBlocked["zh-CN"], "故事板跳过 AI 审帧，照常生成。");
   assert.deepEqual([...FEATURES.videoGeneration.needs], ["video"]);
-  assert.deepEqual([...FEATURES.frameQa.needs], ["vision"]);
-  assert.deepEqual(featuresForCapability("vision"), ["storyboardReview", "frameQa"]);
+  assert.deepEqual(featuresForCapability("vision"), ["storyboardReview"]);
   for (const feature of FEATURE_KEYS) {
     assert.doesNotMatch(FEATURES[feature].whenBlocked["en-US"], CJK, feature);
     assert.match(FEATURES[feature].whenBlocked["zh-CN"], CJK, feature);
@@ -436,10 +435,10 @@ test("闸门：未开通与暂停分开说；不稳定只提示可能变慢、�
     configured: ALL_CONFIGURED,
     now: NOW,
   });
-  const qa = featureGate(unstable, "frameQa");
-  assert.equal(qa.status, "degraded");
-  assert.equal(qa.message?.["zh-CN"], "画面质检可能变慢：AI 看图不稳定。");
-  assert.equal(qa.message?.["en-US"], "Frame checks may be slow (unstable: AI vision).");
+  const review = featureGate(unstable, "storyboardReview");
+  assert.equal(review.status, "degraded");
+  assert.match(review.message?.["zh-CN"] ?? "", /可能变慢：AI 看图不稳定。$/);
+  assert.match(review.message?.["en-US"] ?? "", /may be slow \(unstable: AI vision\)\.$/);
 });
 
 test("中文拼接：拉丁字母结尾的名字后补空格（「配图与 Logo 暂不可用」），汉字结尾不补", () => {

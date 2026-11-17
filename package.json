@@ -28,7 +28,6 @@
     "context:find": "tsx scripts/context-router.ts",
     "context:video": "tsx scripts/context-router.ts video generation ffmpeg demo blob",
     "tokens:generate": "tsx scripts/generate-design-tokens.ts",
-    "frame:qa": "tsx scripts/frame-qa.ts",
     "eval:video": "tsx scripts/eval/video-golden-set.ts",
     "director": "tsx scripts/director/run.ts",
     "eval:shot-cards": "tsx --env-file=.env.local scripts/eval/shot-card-latency.ts",

@@ -20,8 +20,8 @@ export type GachaJudgeVerdict = {
   note: string;
 };
 
-/// 身份与几何两条扣分条目：段级漂移判据（frame-drift.FRAME_DRIFT_SYSTEM）只复用这两条，信封自己写。
-export const STORYBOARD_RUBRIC_IDENTITY_PENALTIES = [
+/// 身份与几何两条扣分条目（单独成组是历史原因：已删的段级漂移判据曾只复用这两条；文字一个字没动）。
+const STORYBOARD_RUBRIC_IDENTITY_PENALTIES = [
   "- product identity, room, camera, or cast drift vs the CONTEXT images",
   "- invented or warped product geometry, controls, parts, labels, accessories, packaging, or unsupported states",
 ] as const;

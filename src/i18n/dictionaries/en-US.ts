@@ -47,11 +47,9 @@ export const enUS: Dictionary = {
     distillation: "Distillation",
     demoLeads: "Leads",
     aiUsage: "AI usage",
-    frameQa: "Frame QA",
     settings: "Settings",
     classicWizard: "Wizard (legacy)",
     contentReports: "Content reports",
-    internalOps: "Internal Ops",
   },
   role: {
     superAdmin: "Super admin",

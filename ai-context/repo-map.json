@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T00:44:25.763Z",
+  "generatedAt": "2026-11-17T01:03:51.277Z",
   "package": {
     "name": "aivora",
     "version": "0.2.0"
@@ -36,7 +36,7 @@
     "bcryptjs (^3.0.3)"
   ],
   "fileTotals": {
-    "total": 1877,
+    "total": 1848,
     "byType": {
       "unknown": 418,
       "doc": 430,
@@ -45,52 +45,52 @@
       "config": 9,
       "schema": 62,
       "prisma": 1,
-      "script": 33,
-      "page": 67,
-      "layout": 5,
+      "script": 30,
+      "page": 64,
+      "layout": 4,
       "api": 81,
-      "component": 118,
+      "component": 117,
       "i18n": 17,
-      "util": 179,
+      "util": 174,
       "provider": 11,
-      "service": 74,
+      "service": 68,
       "type": 2,
-      "test": 357
+      "test": 347
     },
     "byArea": {
       "unknown": 847,
-      "media-processing": 70,
+      "media-processing": 61,
       "config": 11,
-      "shared": 312,
+      "shared": 307,
       "prisma": 59,
       "auth": 25,
       "payments": 1,
       "upload": 7,
-      "scripts": 21,
+      "scripts": 20,
       "ffmpeg": 15,
-      "admin": 5,
       "marketing-site": 5,
       "real-footage-ads": 1,
+      "admin": 2,
       "metrics": 2,
       "blob-storage": 8,
-      "video-generation": 85,
+      "video-generation": 84,
       "shared-ui": 15,
       "wizard": 1,
       "i18n": 17,
       "demo": 1,
       "ai-providers": 11,
       "publishing": 1,
-      "tests": 357
+      "tests": 347
     }
   },
   "routes": {
-    "total": 154,
+    "total": 150,
     "byKind": {
-      "error": 18,
-      "layout": 5,
-      "loading": 17,
+      "error": 17,
+      "layout": 4,
+      "loading": 16,
       "not-found": 2,
-      "page": 30,
+      "page": 29,
       "api": 82
     }
   },
@@ -179,7 +179,6 @@
     "context:find": "tsx scripts/context-router.ts",
     "context:video": "tsx scripts/context-router.ts video generation ffmpeg demo blob",
     "tokens:generate": "tsx scripts/generate-design-tokens.ts",
-    "frame:qa": "tsx scripts/frame-qa.ts",
     "eval:video": "tsx scripts/eval/video-golden-set.ts",
     "director": "tsx scripts/director/run.ts",
     "eval:shot-cards": "tsx --env-file=.env.local scripts/eval/shot-card-latency.ts",

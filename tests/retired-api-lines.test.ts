@@ -17,7 +17,6 @@ import {
   CAPABILITY_KEYS,
   FEATURE_KEYS,
   RETIRED_CAPABILITY_KEYS,
-  RETIRED_FEATURE_KEYS,
   isCapabilityKey,
   isRetiredCapability,
   resolveCapabilities,
@@ -227,13 +226,13 @@ test("运维告警：没在用的审核翻转不叫醒人；出片、看图照�
   );
 });
 
-test("画面质检缺省关之后：状态页「影响哪些功能」不再列画面质检；看图这项能力本身还在（出方案看商品图）", () => {
-  assert.deepEqual([...RETIRED_FEATURE_KEYS], ["frameQa"]);
+test("画面质检整套删除之后：功能表里没有它，状态页「影响哪些功能」不列；看图这项能力本身还在（出方案看商品图）", () => {
+  assert.equal((FEATURE_KEYS as readonly string[]).includes("frameQa"), false);
   const full = resolveCapabilities({ records: [record("vision", "available", "ok")], configured: ALL_CONFIGURED, now: NOW });
   const fullVision = full.items.find((item) => item.key === "vision");
-  assert.ok(fullVision?.features.includes("frameQa"), "完整视图不变");
+  assert.deepEqual(fullVision?.features, ["storyboardReview"]);
   const vision = withoutRetiredCapabilities(full).items.find((item) => item.key === "vision");
   assert.ok(vision, "看图能力仍在客户视图里");
-  assert.equal(vision.features.includes("frameQa"), false);
+  assert.deepEqual(vision.features, ["storyboardReview"]);
   assert.match(vision.message["zh-CN"], /商品图/);
 });

@@ -23,10 +23,10 @@ import { keptAliveOverdueMinutes, KEPT_ALIVE_ALERT_MIN } from "../src/lib/servic
 
 const NOW = new Date("2026-11-09T21:45:35.000Z");
 const ALERT: OpsAlert = {
-  kind: "frame_qa_unverified",
-  dedupeKey: "frame-qa-unverified",
-  title: "帧质检没检成，成片未质检直接交付",
-  lines: ["任务 job_1", "原因：门禁执行异常：429 You have no credits remaining."],
+  kind: "stitch_failed",
+  dedupeKey: "stitch-failed",
+  title: "成片合成失败",
+  lines: ["成片 fv_1", "原因：ffmpeg exit 1"],
 };
 
 function harness(overrides: Partial<OpsAlertDeps> = {}) {
@@ -77,7 +77,7 @@ test("外发开关：单测子进程与本地 dev 不发；线上 Next 服务端
 
 test("报文：按机器人域名选形状，认不出的发通用 JSON", () => {
   const text = opsAlertText(ALERT);
-  assert.ok(text.startsWith("【Aivora 运维】帧质检没检成"));
+  assert.ok(text.startsWith("【Aivora 运维】成片合成失败"));
   assert.deepEqual(opsAlertRequestBody("https://open.feishu.cn/open-apis/bot/v2/hook/x", ALERT), {
     msg_type: "text",
     content: { text },
@@ -92,7 +92,7 @@ test("报文：按机器人域名选形状，认不出的发通用 JSON", () => 
   });
   assert.deepEqual(opsAlertRequestBody("https://hooks.slack.com/services/T/B/x", ALERT), { text });
   const generic = opsAlertRequestBody("https://alerts.example.com/in", ALERT);
-  assert.equal(generic.kind, "frame_qa_unverified");
+  assert.equal(generic.kind, "stitch_failed");
   assert.equal(generic.text, text);
 });
 
@@ -113,7 +113,7 @@ test("去重：同一个 dedupeKey 一个窗口只发第一条；窗口键按小
   assert.deepEqual(await sendOpsAlert(ALERT, deps), { outcome: "sent" });
   assert.deepEqual(await sendOpsAlert(ALERT, deps), { outcome: "duplicate" });
   assert.equal(posts.length, 1);
-  assert.deepEqual(claims[0], [`${OPS_ALERT_BUCKET_PREFIX}frame-qa-unverified`, "2026-11-09T21"]);
+  assert.deepEqual(claims[0], [`${OPS_ALERT_BUCKET_PREFIX}stitch-failed`, "2026-11-09T21"]);
   assert.equal(opsAlertWindowKey("day", NOW), "2026-11-09");
 
   await sendOpsAlert({ ...ALERT, dedupeKey: "job-kept-alive:job_1", window: "day" }, deps);
@@ -126,7 +126,7 @@ test("没配 webhook：照样去重，告警写进错误日志（Vercel 日志�
   assert.deepEqual(await sendOpsAlert(ALERT, deps), { outcome: "duplicate" });
   assert.equal(posts.length, 0);
   assert.equal(logs.length, 1);
-  assert.match(logs[0] ?? "", /^\[ops-alert\] \(未配置 OPS_ALERT_WEBHOOK_URL\) frame_qa_unverified /);
+  assert.match(logs[0] ?? "", /^\[ops-alert\] \(未配置 OPS_ALERT_WEBHOOK_URL\) stitch_failed /);
 });
 
 test("非线上环境：不占闩锁、不外发，只打日志", async () => {
@@ -167,7 +167,8 @@ test("能力状态翻转：正常→暂停 报；暂停→正常 报恢复；同
   );
   assert.equal(down?.kind, "capability_down");
   assert.equal(down?.dedupeKey, "capability:vision:unavailable");
-  assert.ok(down?.lines?.some((line) => line.includes("帧质检")), "看图能力停了要点明质检会失明");
+  assert.equal(down?.title, "看图（出方案看商品图）已暂停");
+  assert.equal(down?.lines?.some((line) => line.includes("质检")), false, "成片画面质检已删，告警里不再提它");
   assert.ok(down?.lines?.some((line) => line.includes("HTTP 429")));
 
   assert.equal(

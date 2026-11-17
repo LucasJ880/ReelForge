@@ -57,7 +57,10 @@ import {
   isRealVideoDispatchMode,
   QUARANTINE_RELEASED,
 } from "./historical-dispatch-quarantine";
-import { classifyCustomerGenerationError } from "@/lib/api/customer-generation-error";
+import {
+  classifyCustomerGenerationError,
+  FRAME_QA_ERROR_PREFIX,
+} from "@/lib/api/customer-generation-error";
 import { hashVideoDispatchRequest } from "./video-dispatch-idempotency";
 import type { BatchPostProductionInput } from "@/lib/schemas/unified-input";
 import { evaluateVoiceoverDrive } from "@/lib/services/voiceover-drive-service";
@@ -77,7 +80,6 @@ import {
   shuyuVideoPlanPointsForDuration,
 } from "@/lib/providers/shuyu";
 import { resolveVideoRouteCostSnapshot } from "@/lib/video-generation/video-route-cost";
-import { FRAME_QA_ERROR_PREFIX } from "@/lib/video-generation/frame-qa";
 import { withBatchReferenceManifest } from "@/lib/video-generation/batch-reference-manifest";
 import {
   creativeRecipeSnapshot,
@@ -850,7 +852,7 @@ export async function syncBatchCounts(batchId: string): Promise<BatchJob> {
  * （CLAUDE.md §4.1）——改用 BatchJob.tickLeaseUntil/tickLeaseOwner 做 CAS 抢占。
  *
  * 同一批次同一时刻只有一个 tick 在做供应商对账与派发：每多开一个批次详情页，
- * 不再多出一份供应商查询与帧质检。抢不到就跳过本次 tick（另一个 tick 正在做
+ * 不再多出一份供应商查询。抢不到就跳过本次 tick（另一个 tick 正在做
  * 同样的事），持有者在 finally 里释放。
  *
  * 时长按「函数被平台杀掉后多久可以接手」取 2 分钟；tick 在故事板阶段之后、派发
@@ -1739,12 +1741,10 @@ function isBillingSafeManualRetry(job: {
   // rehearsal adapter is zero-cost and deterministically succeeds on retry;
   // real adapters continue through the conservative billing-evidence checks.
   if (providerForJob(job).manualRetryBillingRisk === "none") return true;
-  /// 帧质检拦截：reconcile 拿到了供应商「已完成」并下载了产物才判废，供应商任务是
-  /// 确认终态的，不存在「其实还在跑、重提会双扣」的歧义。重试就是一次新的生成：
-  /// 客户额度照 D1 记（已返还的条目由 requeueRefundedBatchJob 先补扣），平台承担的
-  /// 重抽由 frameQaDetail.blockCount 封顶（batchRetryResetData 不清它，第 3 次检出按
-  /// WOULD_BLOCK 放行）。此前这里一律拒绝：门禁真正生效后，被拦的批量条目永远不能重试，
-  /// 界面还说「生成结果尚未确认」。
+  /// 读旧记录：被成片画面质检（2026-11-16 整套删除）拦下的条目。当年 reconcile 拿到了供应商
+  /// 「已完成」并下载了产物才判废，供应商任务是确认终态的，不存在「其实还在跑、重提会双扣」
+  /// 的歧义。重试就是一次新的生成：客户额度照 D1 记（已返还的条目由 requeueRefundedBatchJob
+  /// 先补扣）。不放行的话，这些存量条目永远不能重试，界面还说「生成结果尚未确认」。
   if (
     job.errorMessage?.startsWith(FRAME_QA_ERROR_PREFIX) &&
     job.submissionState === ProviderSubmissionState.ACCEPTED &&
@@ -1887,7 +1887,7 @@ async function applyBreaker(
 
 /// cron（process-batches）每次推进的批次上限，与此前一致：函数时长不因选法变化而变长。
 export const CRON_BATCH_TICK_LIMIT = 20;
-/// 其中最多这么多个名额优先给「有段久未被查过」的批次（帧质检等着它们）。
+/// 其中最多这么多个名额优先给「有段久未被查过」的批次。
 const CRON_STALE_JOB_BATCH_LIMIT = 5;
 
 /** cron 推进的批次：运行 / 暂停，或已授权仍在拆单的。 */
@@ -1904,13 +1904,11 @@ function cronActiveBatchWhere(): Prisma.BatchJobWhereInput {
  * process-batches 这一分钟推进哪些批次。
  *
  * 只按 BatchJob.updatedAt 升序取前 20 会饿死有人在看的批次：详情页每 15s 一次
- * processBatchTick，租约抢放与计数同步都刷新 updatedAt，它永远排不进 cron 的前 20；
- * 而用户面 tick 在预算之外，「供应商已完成」的段只 defer、留给 cron 质检收尾——
- * 这些段就一直停在「生成中」占着供应商槽位。
+ * processBatchTick，租约抢放与计数同步都刷新 updatedAt，它永远排不进 cron 的前 20。
  *
- * 先取「有已提交、最久没被查过的 RUNNING 段」的批次：defer 不写 lastCheckedAt，
- * 等着质检的段自然排在最前；还在渲染的段每次 tick 都会刷新 lastCheckedAt，不会挤占。
- * 再按 updatedAt 升序补满，总数不超过 CRON_BATCH_TICK_LIMIT。
+ * 先取「有已提交、最久没被查过的 RUNNING 段」的批次（还在渲染的段每次 tick 都会刷新
+ * lastCheckedAt，不会挤占），再按 updatedAt 升序补满，总数不超过 CRON_BATCH_TICK_LIMIT。
+ * 这个选法当初是为成片画面质检（已删）排队的段定的；选法本身没变，仍保证久没被查的段先被查。
  */
 export async function selectCronBatchIds(
   limit = CRON_BATCH_TICK_LIMIT,

@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
  *    次行动「看样片」/「申请 30 天陪跑」→ 本页锚点
  *  - userType=BUSINESS → /business
  *  - userType=PERSONAL → /personal
- *  - userType=OPERATOR / SUPER_ADMIN → /internal/frame-qa（旧中台 2026-10-28 删除，只留帧质检）
+ *  - userType=OPERATOR / SUPER_ADMIN → /app（旧中台 2026-10-28 删除；最后一页帧质检运维页 2026-11-16 随质检一起删）
  *  - userType=null（罕见，迁移后存量账号）→ /app
  */
 export default async function HomePage() {
@@ -33,9 +33,6 @@ export default async function HomePage() {
         redirect("/business");
       case "PERSONAL":
         redirect("/personal");
-      case "OPERATOR":
-      case "SUPER_ADMIN":
-        redirect("/internal/frame-qa");
       default:
         redirect("/app");
     }

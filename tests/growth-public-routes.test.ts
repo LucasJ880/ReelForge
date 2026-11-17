@@ -214,9 +214,11 @@ test("首页：未登录渲染展厅首页、已登录仍按身份直达工作�
   /// 不再读模板库计数（Taste DNA：The hero speaks once, at the bottom），也就不再查库。
   assert.match(page, /<ShowroomLanding locale=\{locale\} fallbackEmail=\{contactEmail\(\)\} \/>/);
   assert.doesNotMatch(page, /listActiveStyleTemplates|PilotLanding/);
-  for (const target of ['redirect("/business")', 'redirect("/personal")', 'redirect("/internal/frame-qa")', 'redirect("/app")']) {
+  for (const target of ['redirect("/business")', 'redirect("/personal")', 'redirect("/app")']) {
     assert.ok(page.includes(target), target);
   }
+  /// 运营 / 超管随默认分支进工作台：最后一个内部页（帧质检运维页）2026-11-16 已删
+  assert.doesNotMatch(page, /redirect\("\/internal/);
   assert.doesNotMatch(page, /redirect\("\/login"\)/, "anonymous visitors get the landing page, not the login gate");
 });
 

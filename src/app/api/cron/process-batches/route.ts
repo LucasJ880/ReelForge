@@ -2,21 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { machineAuthFailure } from "@/lib/machine-auth";
 import { startSchedulerHeartbeat } from "@/lib/scheduler-heartbeat";
 import { processBatchTick, selectCronBatchIds } from "@/lib/services/batch-service";
-import {
-  CRON_FRAME_QA_BUDGET,
-  frameQaBudgetUsage,
-  runWithFrameQaBudget,
-} from "@/lib/services/frame-qa-gate";
+import { CRON_VISION_BUDGET, runWithVisionBudget } from "@/lib/services/vision-budget-context";
 
-/// D2：批次 tick 里 reconcile 到「供应商已完成」的段在这里跑帧质检（有预算上限），
-/// 质检最坏 45s/次，函数时长放到 300s。
+/// 整次调用跑在看图预算上下文里：批次里的故事板 AI 审帧只在这里（和 poll-videos）预约得到时长。
 export const maxDuration = 300;
 
 export async function GET(req: NextRequest) {
   const authFailure = machineAuthFailure(req);
   if (authFailure) return authFailure;
-  return runWithFrameQaBudget(
-    { label: "cron:process-batches", ...CRON_FRAME_QA_BUDGET },
+  return runWithVisionBudget(
+    { label: "cron:process-batches", ...CRON_VISION_BUDGET },
     processBatches,
   );
 }
@@ -24,7 +19,7 @@ export async function GET(req: NextRequest) {
 async function processBatches() {
   const heartbeat = startSchedulerHeartbeat("process-batches");
   try {
-    /// 选批次在 batch-service：有段等着质检的批次优先，不会被前端轮询饿死（runtime LENS-5）
+    /// 选批次在 batch-service：有段久没被查的批次优先，不会被前端轮询饿死（runtime LENS-5）
     const batches = (await selectCronBatchIds()).map((id) => ({ id }));
     const results = [];
     for (const batch of batches) {
@@ -48,7 +43,6 @@ async function processBatches() {
     return NextResponse.json({
       processed: results.length,
       results,
-      frameQa: frameQaBudgetUsage(),
       heartbeat: heartbeatEvent,
     });
   } catch (error) {

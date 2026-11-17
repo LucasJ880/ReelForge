@@ -1850,7 +1850,7 @@ export const SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT = 8;
 /**
  * P02-F2 · 参考图上限按线路适配器取：Shuyu（buddy）按 E1 实测的视频档 input_images_max = 9 给满
  * （适配器提交前还会按选中套餐的上限截断，从队尾的帧开始丢，实拍不受影响）；其它适配器与
- * 历史行沿用 8。首派把它写进 directorPlan.referenceLayout.limit，重试 / 重做 / 帧质检按同一个数对齐。
+ * 历史行沿用 8。首派把它写进 directorPlan.referenceLayout.limit，重试 / 重做按同一个数对齐。
  */
 export function singleVideoReferenceImageLimitForAdapter(
   adapter: VideoProviderAdapterSnapshot | null | undefined,

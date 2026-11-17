@@ -54,7 +54,7 @@ export default async function PlatformCreatePage({
   const [brandPackages, readings, capabilities, finishedCount] = await Promise.all([
     listWorkspaceBrandPackagesForUser(session.user.id),
     loadCreateReadings(session.user.id, routeState === "empty"),
-    /// C4：能力状态（纯 DTO）交给客户端——口播稿起草与画面质检说明据此诚实显示。永不抛出。
+    /// C4：能力状态（纯 DTO）交给客户端——口播稿起草与镜头规划的说明据此诚实显示。永不抛出。
     getCapabilities(),
     /// 出过成片的账号不再被当成新人弹首启引导（只看本地记号时，换台电脑就又弹一次）
     routeState === "empty" ? Promise.resolve(0) : countFinished(session.user.id).catch(() => 0),

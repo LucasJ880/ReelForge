@@ -15,16 +15,8 @@ import { postProductionPlanSchema } from "@/lib/schemas/unified-input";
 import type { PostProductionPlan } from "@/types/video-generation";
 import {
   canRestitchBriefStatus,
-  isDeliveredBriefStatus,
   isPreDeliveryBriefStatus,
 } from "@/lib/video-generation/brief-delivery-state";
-import {
-  newPendingFinalFrameQa,
-  pendingFinalFrameQaMark,
-  readFinalFrameQaMark,
-} from "@/lib/video-generation/final-frame-qa-mark";
-import { mergeFinalFrameQaReview } from "@/lib/services/qa-review-merge";
-import { writeQaReview } from "@/lib/services/qa-review-write";
 import { isEphemeralSignedUrl } from "@/lib/media/ephemeral-url";
 
 /// 原本定义在这里；抽成轻模块后原样再导出，调用方（scripts / tests）不用改。
@@ -1127,7 +1119,7 @@ export async function prepareSegmentRedoStitch(
   segmentIndex: number,
 ): Promise<{
   finalVideoId: string;
-  replacedJob: { id: string; segmentDurationSec: number | null; frameQaDetail: unknown };
+  replacedJob: { id: string; segmentDurationSec: number | null };
 }> {
   const fv = await db.finalVideo.findUnique({
     where: { id: finalVideoId },
@@ -1197,7 +1189,6 @@ export async function prepareSegmentRedoStitch(
     replacedJob: {
       id: replaced.id,
       segmentDurationSec: replaced.segmentDurationSec,
-      frameQaDetail: replaced.frameQaDetail,
     },
   };
 }
@@ -1417,9 +1408,9 @@ async function reviewGeneratedVideo(
 /**
  * 成片就位 → brief 同步（#16 审查 item 6 改成白名单）。
  *   - 交付前渲染态（RENDER_QUEUED / RENDERING / RENDER_SUCCEEDED / RENDER_FAILED / QA_PENDING / QA_REJECTED）：
- *     brief → QA_PENDING + 成片 / 缩略图 URL，建 QA 桩（挂成片级复检标记）。
+ *     brief → QA_PENDING + 成片 / 缩略图 URL，建 QA 桩。
  *   - 已交付（QA_APPROVED / PUBLISH_PENDING / PUBLISHED / METRICS_COLLECTING / SCORED）：状态不动、不建 QA 桩，
- *     只刷新 URL；复检标记挂到最近一条 QAReview 上（item 12）。
+ *     只刷新 URL。
  *   - 其它（ARCHIVED / DROPPED / 更早阶段）：只刷新 URL，状态一律不动。
  *   - 已有品牌封装成片（brandedVideoUrl）的：封装的是旧片，**保留指针**只记日志「需要重新品牌封装」
  *     （item 9；brandedAt 也不动）。
@@ -1445,57 +1436,23 @@ async function markBriefReady(briefId: string) {
       finalThumbnailUrl: brief.finalVideo.thumbnailUrl,
     },
   });
-  if (preDelivery) {
-    await ensureQAPendingStub(briefId);
-    return;
-  }
-  if (isDeliveredBriefStatus(brief.status)) {
-    await stampFinalFrameQaOnLatestReview(briefId);
-  }
+  if (preDelivery) await ensureQAPendingStub(briefId);
 }
 
 /**
- * QA 桩 + 成片级复检标记（P01-E 影子）：成片就位时在 aiScoreBreakdown 上挂
- * finalFrameQa = { status: "pending", requestedAt }，由 poll-videos cron 在帧质检预算内消费。
- * 已有 PENDING 桩（只重拼换了成片）就整体覆盖 finalFrameQa 对象并清掉上一版成片的「[成片复检]」问题，
- * 8 维打分与别人的问题原样（按归属合并，见 qa-review-merge）。
- * video-service.ts 里旧单段路径的同名副本不在此改（留给 C4）。
+ * QA 桩：成片就位时保证这条 brief 有一条 PENDING 的 QAReview（已有就不动）。
+ * 2026-11-16 之前这里还会在 aiScoreBreakdown 上挂成片级复检标记（finalFrameQa），随成片画面质检一起删了；
+ * 旧行上的标记与「[成片复检]」问题留在库里，没有代码再读写。
  */
 async function ensureQAPendingStub(briefId: string) {
   const existing = await db.qAReview.findFirst({
     where: { videoBriefId: briefId, status: "PENDING" },
+    select: { id: true },
   });
-  if (existing) {
-    /// 已经在排队复检就不重复写（避免每次刷新都刷 updatedAt）
-    if (readFinalFrameQaMark(existing.aiScoreBreakdown)?.status === "pending") return;
-    await stampFinalFrameQa(existing.id);
-    return;
-  }
+  if (existing) return;
   await db.qAReview.create({
-    data: {
-      videoBriefId: briefId,
-      status: "PENDING",
-      aiScoreBreakdown: pendingFinalFrameQaMark() as unknown as Prisma.InputJsonValue,
-    },
+    data: { videoBriefId: briefId, status: "PENDING" },
   });
-}
-
-/** 已交付 brief 只重拼成功：复检标记挂到最近一条 QAReview（不新建 PENDING 桩，不进审核队列）。 */
-async function stampFinalFrameQaOnLatestReview(briefId: string) {
-  const latest = await db.qAReview.findFirst({
-    where: { videoBriefId: briefId },
-    orderBy: { createdAt: "desc" },
-  });
-  if (!latest) return;
-  await stampFinalFrameQa(latest.id);
-}
-
-async function stampFinalFrameQa(reviewId: string) {
-  const mark = newPendingFinalFrameQa();
-  await writeQaReview(
-    (tx) => tx.qAReview.findUnique({ where: { id: reviewId } }),
-    (fresh) => ({ data: mergeFinalFrameQaReview(fresh, { mark, issues: [] }), result: true }),
-  );
 }
 
 /** 运行时模式（唯一判定见 src/lib/media/stitch-runtime.ts） */

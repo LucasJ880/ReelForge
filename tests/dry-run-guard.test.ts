@@ -136,16 +136,3 @@ test("dry-run：Shuyu Image 2 提交、轮询与输出下载全程走本地 mock
   assert.equal(output.mimeType, "image/png");
   assert.ok(output.bytes.length > 0);
 });
-
-test("dry-run：frame-qa 门禁自动禁用（不发 vision 请求）", async (t) => {
-  withEnv(t, {
-    AIVORA_DRY_RUN: "1",
-    OPENAI_API_KEY: "sk-fake",
-    FRAME_QA_DISABLED: undefined,
-    VIDEO_ENGINE_MOCK: undefined,
-  });
-  const { isFrameQaEnabled } = await import(
-    "../src/lib/video-generation/frame-qa"
-  );
-  assert.equal(isFrameQaEnabled(), false, "dry-run 下 frame-qa 必须禁用");
-});

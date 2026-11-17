@@ -2,7 +2,7 @@
  * C4 · 能力注册表：一份表回答「哪些 AI 能力现在在工作、哪些暂停、暂停时系统改用什么」。
  *
  * 背景（1025 真机验收）：OpenAI 账户 429「no credits」时，写作静默退回模板、
- * 画面质检被跳过、Logo 失败——客户一个都看不见。现在每个能力一条状态，
+ * Logo 失败——客户一个都看不见。现在每个能力一条状态，
  * 由每小时探测 + 生产调用实时回写（capability-status-service / capability-probe-service）维护，
  * 界面只从这里取词与判定。
  *
@@ -43,12 +43,6 @@ export const RETIRED_CAPABILITY_KEYS: readonly CapabilityKey[] = ["moderation"];
 export function isRetiredCapability(key: CapabilityKey): boolean {
   return RETIRED_CAPABILITY_KEYS.includes(key);
 }
-
-/**
- * 入口已撤、但所依赖的能力还在用的功能：不在客户的状态页「影响哪些功能」里列出来。
- * frameQa：成片画面质检 2026-11-10 起缺省关（frame-qa.ts 的 isFrameQaEnabled）；看图这项能力本身还在出方案里用。
- */
-export const RETIRED_FEATURE_KEYS: readonly string[] = ["frameQa"];
 
 export const CAPABILITY_STATUSES = ["available", "degraded", "unavailable", "not_configured"] as const;
 export type CapabilityStatus = (typeof CAPABILITY_STATUSES)[number];
@@ -165,7 +159,7 @@ export const CAPABILITY_COPY: Record<CapabilityKey, CapabilityCopy> = {
   vision: {
     label: b("AI 看图", "AI vision"),
     messages: {
-      /// 只写现在真在用的事。2026-11-10 起成片的画面质检缺省关（frame-qa.ts 的 isFrameQaEnabled），
+      /// 只写现在真在用的事。成片画面质检 2026-11-16 整套删除，
       /// 看图这项能力现在用在出方案时看商品图：把商品的样子写进提示词与镜头卡。
       available: b(
         "AI 看图正常：出方案时会看你的商品图，把商品的样子写进镜头安排。",
@@ -289,7 +283,6 @@ export const FEATURE_KEYS = [
   "storyboardFrames",
   "storyboardReview",
   "videoGeneration",
-  "frameQa",
   "uploadReview",
   "leadEmail",
 ] as const;
@@ -378,14 +371,6 @@ export const FEATURES: Record<FeatureKey, FeatureSpec> = {
     whenBlocked: b(
       "暂时无法提交新视频；已完成的成片不受影响。",
       "New videos can't be submitted right now; finished videos are unaffected.",
-    ),
-  },
-  frameQa: {
-    needs: ["vision"],
-    label: b("画面质检", "Frame checks"),
-    whenBlocked: b(
-      "成片照常生成，但暂不自动检查画面里的错字与水印。",
-      "Videos still render, but burned-in text and watermarks aren't checked automatically.",
     ),
   },
   uploadReview: {
@@ -570,8 +555,7 @@ export function resolveCapabilities(input: {
  */
 export function withoutRetiredCapabilities(capabilities: PublicCapabilities): PublicCapabilities {
   /// 「影响哪些功能」里也去掉入口已撤的功能（依赖任何一条已下线线路的，如上传审核）
-  const retiredFeature = (feature: FeatureKey) =>
-    RETIRED_FEATURE_KEYS.includes(feature) || FEATURES[feature].needs.some(isRetiredCapability);
+  const retiredFeature = (feature: FeatureKey) => FEATURES[feature].needs.some(isRetiredCapability);
   const items = capabilities.items
     .filter((item) => !isRetiredCapability(item.key))
     .map((item) => ({ ...item, features: item.features.filter((feature) => !retiredFeature(feature)) }));

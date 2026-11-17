@@ -25,9 +25,7 @@ import {
 } from "../src/lib/video-generation/restitch-patch";
 import { POST as renderRetry } from "../src/app/api/briefs/[id]/render-retry/route";
 import { bgmAttributionFor } from "../src/lib/video-generation/bgm-attribution";
-import { readFinalFrameQaMark } from "../src/lib/video-generation/final-frame-qa-mark";
 import type { PostProductionPlan } from "../src/types/video-generation";
-import { mockQaReviewCasStore } from "./helpers/qa-review-cas-store";
 
 /**
  * P05-B（链 T）只重拼：READY 成片换字幕样式 / BGM。
@@ -413,17 +411,12 @@ test("成功：finishStitchTask 写新 URL 并清空 previousStitchedVideoUrl；
     }),
     update: async (args: { data: Record<string, unknown> }) => { briefUpdates.push(args); return {}; },
   });
-  /// 已交付：不建 PENDING 桩；复检标记挂到最近一条（已 APPROVED 的）QAReview 上（#16 item 12）
-  const reviewFinds: Array<Record<string, unknown>> = [];
-  const approved = { id: "qa-approved", status: "APPROVED", aiScoreBreakdown: { hook_quality: 9, finalFrameQa: { status: "ok", checkedAt: "t1" } }, aiIssues: ["[成片复检] 旧片问题", "人工备注"] };
+  /// 已交付：不建 PENDING 桩，也不再碰任何 QAReview——成片级复检标记 2026-11-16 随画面质检一起删了，
+  /// 旧行上的 finalFrameQa 与「[成片复检]」问题原样留在库里
   patchModel(t, db.qAReview, {
-    findFirst: async (args: Record<string, unknown>) => {
-      reviewFinds.push(args);
-      return approved;
-    },
+    findFirst: async () => { throw new Error("已交付 brief 不该碰 QAReview"); },
     create: async () => { throw new Error("已交付 brief 不该建 QA 桩"); },
   });
-  const reviewStore = mockQaReviewCasStore(t, approved);
   const warned: unknown[][] = [];
   t.mock.method(console, "warn", (...args: unknown[]) => { warned.push(args); });
 
@@ -439,14 +432,6 @@ test("成功：finishStitchTask 写新 URL 并清空 previousStitchedVideoUrl；
   assert.equal(briefUpdates[0].data.finalVideoUrl, NEW_URL);
   assert.equal("brandedVideoUrl" in briefUpdates[0].data, false, "品牌封装指针保留（#16 item 9），只记日志");
   assert.ok(warned.some((args) => /需要重新品牌封装/.test(String(args[0]))), "日志提示需重新封装");
-  assert.deepEqual((reviewFinds[0] as { orderBy?: unknown }).orderBy, { createdAt: "desc" }, "挂到最近一条 QAReview");
-  assert.equal(reviewStore.writes.length, 1);
-  assert.equal((reviewStore.writes[0].where as unknown as { id: string }).id, "qa-approved");
-  const stampedRow = reviewStore.get();
-  const stamped = stampedRow.aiScoreBreakdown as Record<string, unknown>;
-  assert.equal((stamped.finalFrameQa as { status: string }).status, "pending");
-  assert.equal(stamped.hook_quality, 9, "打分不动");
-  assert.deepEqual(stampedRow.aiIssues, ["人工备注"], "旧片的复检问题清掉，别人的保留");
 });
 
 test("成功：ARCHIVED brief 只刷新 URL，状态不动、不建桩、不挂标记（#16 item 6 白名单）", async (t) => {
@@ -480,17 +465,50 @@ test("成功：未交付（QA_PENDING）brief 仍走 QA_PENDING + QA 桩（原�
     }),
     update: async (args: { data: Record<string, unknown> }) => { briefUpdates.push(args); return {}; },
   });
-  const stub = { id: "qa-1", aiScoreBreakdown: null, aiIssues: null };
+  /// 已有桩（带着当年的成片级复检标记）：不再新建，也不改写它
+  const stub = {
+    id: "qa-1",
+    aiScoreBreakdown: { hook_quality: 8, finalFrameQa: { status: "issues", checkedAt: "t1" } },
+    aiIssues: ["[成片复检] 第1帧 假字", "人工备注"],
+  };
+  const before = structuredClone(stub);
+  const client = db as unknown as Record<string, unknown>;
+  const originalTransaction = client.$transaction;
+  client.$transaction = async () => { throw new Error("已有 PENDING 桩不该被改写"); };
+  t.after(() => { client.$transaction = originalTransaction; });
   patchModel(t, db.qAReview, {
     findFirst: async () => { stubChecked = true; return stub; },
     create: async () => { throw new Error("已有 PENDING 桩不该再建"); },
+    update: async () => { throw new Error("已有 PENDING 桩不该被改写"); },
+    updateMany: async () => { throw new Error("已有 PENDING 桩不该被改写"); },
   });
-  const stubStore = mockQaReviewCasStore(t, stub);
   await finishStitchTask({ finalVideoId: "fv-1", attemptToken: "attempt-3", stitchedVideoUrl: NEW_URL });
   assert.equal(briefUpdates[0]?.data.status, VideoBriefStatus.QA_PENDING);
   assert.equal("brandedVideoUrl" in (briefUpdates[0]?.data ?? {}), false, "没封装过就不碰 brandedVideoUrl");
   assert.equal(stubChecked, true);
-  assert.equal(readFinalFrameQaMark(stubStore.get().aiScoreBreakdown)?.status, "pending", "已有桩挂上待复检");
+  assert.deepEqual(stub, before, "旧标记与旧问题原样");
+});
+
+test("成功：未交付 brief 还没有 QA 桩 → 建一条只有 PENDING 的桩，不挂任何质检标记", async (t) => {
+  const state = restitchingRow(FinalVideoStatus.STITCHING, "attempt-4");
+  stateMachine(t, state, { brief: { id: "brief-1" } });
+  patchModel(t, db.videoBrief, {
+    findUnique: async () => ({
+      finalVideoId: "fv-1",
+      status: VideoBriefStatus.RENDERING,
+      brandedVideoUrl: null,
+      finalVideo: { stitchedVideoUrl: state.stitchedVideoUrl, thumbnailUrl: null },
+    }),
+    update: async () => ({}),
+  });
+  const created: Array<Record<string, unknown>> = [];
+  patchModel(t, db.qAReview, {
+    findFirst: async () => null,
+    create: async (args: { data: Record<string, unknown> }) => { created.push(args.data); return {}; },
+  });
+  const result = await finishStitchTask({ finalVideoId: "fv-1", attemptToken: "attempt-4", stitchedVideoUrl: NEW_URL });
+  assert.equal(result.ok, true);
+  assert.deepEqual(created, [{ videoBriefId: "brief-1", status: "PENDING" }]);
 });
 
 function emptySweepResult(): SweepResult {

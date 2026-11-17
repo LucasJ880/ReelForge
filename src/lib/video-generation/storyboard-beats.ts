@@ -88,7 +88,7 @@ function beatWithoutTime(beat: string): string {
 /**
  * 单条视频参考图的分组布局（P02-F(v)）：brief.referenceImageUrls 按 实拍 → 切片 → 主播 → 帧 排，
  * 各组张数 + 派发时用的张数上限随 directorPlan 写回（`referenceLayout`）。
- * 重试 / 重做按同一个上限截断，帧质检按它切出实拍与故事板首帧——不靠位置猜。
+ * 重试 / 重做按同一个上限截断——不靠位置猜。
  */
 export interface StoryboardReferenceLayout {
   productPhotoCount: number;

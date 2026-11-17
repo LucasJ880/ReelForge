@@ -4,11 +4,11 @@ import test, { type TestContext } from "node:test";
 
 import { db } from "../src/lib/db";
 import {
-  CRON_FRAME_QA_BUDGET,
+  CRON_VISION_BUDGET,
   reserveStoryboardReviewBudget,
-  runWithFrameQaBudget,
-  type FrameQaBudgetOptions,
-} from "../src/lib/services/frame-qa-gate";
+  runWithVisionBudget,
+  type VisionBudgetOptions,
+} from "../src/lib/services/vision-budget-context";
 import {
   aiReviewRegenerationDirection,
   readAiReviewSummary,
@@ -264,8 +264,8 @@ function installRuntime(
   return { calls, submitted };
 }
 
-const inCronBudget = <T>(fn: () => Promise<T>, overrides: Partial<FrameQaBudgetOptions> = {}) =>
-  runWithFrameQaBudget({ label: "test:cron", ...CRON_FRAME_QA_BUDGET, ...overrides }, fn);
+const inCronBudget = <T>(fn: () => Promise<T>, overrides: Partial<VisionBudgetOptions> = {}) =>
+  runWithVisionBudget({ label: "test:cron", ...CRON_VISION_BUDGET, ...overrides }, fn);
 
 // ---------------------------------------------------------------------------
 // 纯函数
@@ -358,7 +358,7 @@ test("P01-D：reviewStoryboardFrames——vision 不可用不调用；回包不�
   assert.equal(!slow.checked && slow.reason, "timeout");
 });
 
-test("P01-D：审帧预算——上下文外不给；审帧 ≤60s/tick；与帧质检共用总窗口；settle 归还多占", async () => {
+test("P01-D：审帧预算——上下文外不给；审帧 ≤60s/tick；总窗口 200s（帧质检删除后两个数没变）；settle 归还多占", async () => {
   assert.equal(reserveStoryboardReviewBudget(30_000).ok, false);
   await inCronBudget(async () => {
     const first = reserveStoryboardReviewBudget(30_000);
@@ -375,8 +375,8 @@ test("P01-D：审帧预算——上下文外不给；审帧 ≤60s/tick；与帧
     },
     { totalBudgetMs: 10_000 },
   );
-  assert.equal(CRON_FRAME_QA_BUDGET.totalBudgetMs, 200_000);
-  assert.equal(CRON_FRAME_QA_BUDGET.storyboardReviewBudgetMs, 60_000);
+  assert.equal(CRON_VISION_BUDGET.totalBudgetMs, 200_000);
+  assert.equal(CRON_VISION_BUDGET.storyboardReviewBudgetMs, 60_000);
 });
 
 test("P01-D：审帧重抽不占供应商尝试数；进度只在 block 的审帧中 / 重抽中露出", () => {

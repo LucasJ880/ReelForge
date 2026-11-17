@@ -57,7 +57,8 @@ export const legacyPlatformRedirects = [
  *   生成到 /tmp（src/lib/media/media-fonts.ts），不需要随包。
  * - BGM：字幕 / 混音后期引用的授权配乐（BGM_TRACKS）。
  *
- * cron 两个函数只做帧质检（抽帧 + 影子检查），只要二进制；品牌封装、健康探针与
+ * cron 两个函数当初为帧质检（抽帧 + 影子检查）带二进制；质检 2026-11-16 整套删除，二进制先原样留着——
+ * 它们还走得到 stitch-service，没逐条核实「再也不会在这两个函数里起 ffmpeg」之前不摘。品牌封装、健康探针与
  * 成片合成（C3：/api/cron/stitch-dispatch 在 STITCH_RUNTIME=inprocess 下就是生产合成器）
  * 要烧字幕、渲染尾卡、混 BGM，才带字体与配乐。
  */
@@ -128,21 +129,16 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       ...legacyPlatformRedirects,
-      // 旧代运营中台 2026-10-28 删除（只留帧质检运维页）：旧入口一律落到 /internal/frame-qa
-      { source: "/internal", destination: "/internal/frame-qa", permanent: false },
+      // 旧代运营中台 2026-10-28 删除，最后一页（帧质检运维页）2026-11-16 随成片画面质检一起删：
+      // 旧入口与 /internal 下的任何页面一律落到工作台（/api/internal/* 是接口，不在这条规则里）
+      { source: "/internal", destination: "/app", permanent: false },
+      { source: "/internal/:path*", destination: "/app", permanent: false },
       ...["/orders", "/rounds", "/briefs", "/qa", "/publish", "/metrics", "/distillation", "/demo-leads", "/admin", "/settings"].flatMap(
         (path) => [
-          { source: path, destination: "/internal/frame-qa", permanent: false },
-          { source: `${path}/:path*`, destination: "/internal/frame-qa", permanent: false },
-          { source: `/internal${path}`, destination: "/internal/frame-qa", permanent: false },
-          { source: `/internal${path}/:path*`, destination: "/internal/frame-qa", permanent: false },
+          { source: path, destination: "/app", permanent: false },
+          { source: `${path}/:path*`, destination: "/app", permanent: false },
         ],
       ),
-      { source: "/internal/ai-usage/:path*", destination: "/internal/frame-qa", permanent: false },
-      { source: "/internal/ai-usage", destination: "/internal/frame-qa", permanent: false },
-      { source: "/internal/reports/:path*", destination: "/internal/frame-qa", permanent: false },
-      { source: "/internal/reports", destination: "/internal/frame-qa", permanent: false },
-      { source: "/internal/videos", destination: "/internal/frame-qa", permanent: false },
       // 公开旧页 /persona、/showcase 2026-10-28 删除
       { source: "/persona", destination: "/app", permanent: false },
       { source: "/showcase", destination: "/", permanent: false },

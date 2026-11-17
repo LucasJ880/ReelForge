@@ -159,7 +159,7 @@ const ZH_COPY = {
   uploadFailed: "素材上传未完成，请检查文件后重试。",
   quickHint: "系统自动完成镜头与质量检查",
   /// C4：能力暂停时这句说明要诚实——写作暂停 = 镜头按模板规划
-  quickHintTemplateShots: "镜头先按模板规划，系统照常做质量检查",
+  quickHintTemplateShots: "AI 写作暂停：现在写不了镜头脚本，故事板先生成不了；恢复后自动启用。",
   aspect: "画幅",
   duration: "时长",
   vertical: "9:16 竖屏",
@@ -291,7 +291,7 @@ const EN_COPY: StudioCopy = {
   uploaded: "Added {count} assets",
   uploadFailed: "The upload did not finish. Check the files and try again.",
   quickHint: "Automatic shot planning and quality checks",
-  quickHintTemplateShots: "Shots are planned from templates for now; quality checks still run",
+  quickHintTemplateShots: "AI writing is paused: the shot script can't be written right now, so storyboards can't be generated; it resumes automatically.",
   aspect: "Format",
   duration: "Length",
   vertical: "9:16 vertical",

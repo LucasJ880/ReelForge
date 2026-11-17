@@ -102,7 +102,8 @@ test("成片详情：只对本人的已成片给评价与「再做一条」；�
   assert.doesNotMatch(panel, /@\/lib\/services\//, "客户端组件只引契约，不引服务端模块");
 });
 
-test("成品库：手机上成片墙也是两列", async () => {
+test("成品库：成片按商品分栏，一栏一条横排（手机上左右划），不再是一张平铺的大网格", async () => {
   const list = await readFile("src/app/(platform)/app/library/page.tsx", "utf8");
-  assert.match(list, /<ul className="grid min-w-0 grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" aria-label=\{copy\.listLabel\}>/);
+  assert.match(list, /<ul className="grid min-w-0 items-start gap-3 xl:grid-cols-2" aria-label=\{copy\.listLabel\}>/);
+  assert.match(list, /<ul className="flex min-w-0 snap-x gap-3 overflow-x-auto px-4 pb-4 pt-1 \[scrollbar-width:thin\]">/);
 });

@@ -1,9 +1,10 @@
 import { libraryHeadline } from "@/lib/library/display-title";
+import { groupLibraryRows } from "@/lib/library/group-rows";
 import Link from "next/link";
 import Image from "next/image";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { ArrowRight, Music, Plus } from "lucide-react";
+import { ArrowRight, ChevronDown, Music, Plus } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { loadUnifiedLibrary, type UnifiedLibraryRow } from "@/lib/services/unified-library-service";
 import {
@@ -40,6 +41,9 @@ import { contactEmail } from "@/lib/config/contact";
 import { workspaceNavTitle } from "@/components/exchange/workspace-page";
 
 export const dynamic = "force-dynamic";
+
+/// 成品库默认展开最前面的几栏（最近做过的商品），其余收成一行
+const OPEN_GROUPS = 3;
 
 /// 只给视频行用。图文帖没有详情页（「本周内容」2026-11-16 删了），它的卡片直接打开配图。
 /// 以前做的批量成片也没有详情页了（批量生产 2026-11-17 下线）：卡片直接打开成片文件，照常能看、能下载。
@@ -130,6 +134,8 @@ export default async function PlatformLibraryPage({
   const readyVideoRows = rows.filter(
     (row) => (row.status === "ready" && !isPost(row)) || (row.status === "failed" && !isPost(row) && Boolean(row.videoUrl)),
   );
+  /// 成片按商品分栏：最近做过的商品在最上面，样片栏放最后
+  const productGroups = groupLibraryRows(readyVideoRows);
   const readyPostRows = rows.filter((row) => row.status === "ready" && isPost(row));
   const nothing = rows.length === 0 && failures.length === 0;
 
@@ -328,85 +334,133 @@ export default async function PlatformLibraryPage({
           ) : null}
 
           {readyVideoRows.length > 0 ? (
-            <section aria-label={copy.sectionReady} className="space-y-3">
-              <SectionHead title={copy.sectionReady} count={readyVideoRows.length} />
-              {/* 成片是舞台：竖版 9:16 原比例展示，不裁成横版缩略图 */}
-              {/* 手机上也是两列：竖版封面一列一条时，29 条成片要划 27 屏才到底 */}
-              <ul className="grid min-w-0 grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" aria-label={copy.listLabel}>
-                {readyVideoRows.map((row) => {
-                  const href = detailHref(row);
+            <section aria-label={copy.sectionReady} className="space-y-4">
+              <SectionHead
+                title={copy.sectionReady}
+                count={readyVideoRows.length}
+                hint={copy.sectionReadyHint.replace("{n}", String(productGroups.length))}
+              />
+              {/* 按商品分栏（2026-11-17）：同一件商品的几条片排在一栏里，最近做过的商品在最上面。
+                  之前是一张平铺的大网格——同名的卡片分不出谁是谁，做多了往前翻全是重复。 */}
+              <ul className="grid min-w-0 items-start gap-3 xl:grid-cols-2" aria-label={copy.listLabel}>
+                {productGroups.map((group, groupIndex) => {
+                  const newest = group.rows[0];
+                  const retryId = newest && newest.source === "order" && !group.isShowcase ? newest.id : null;
+                  /// 默认展开：排在最前的三栏（最近做过的商品），以及带着 ?highlight 进来要看的那一栏；
+                  /// 更早的收成一行（缩略图还在），点开再看——做得多了不会一屏屏往下翻
+                  const open = groupIndex < OPEN_GROUPS || group.rows.some((row) => row.id === highlight);
+                  const thumbs = group.rows.map((row) => row.thumbnailUrl).filter((url): url is string => Boolean(url)).slice(0, 3);
                   return (
-                    <li key={row.id} className="min-w-0" data-library-row={row.id}>
-                      <article
-                        data-highlighted={isHighlighted(row.id)}
-                        className="group min-w-0 overflow-hidden rounded-(--radius-lg) border border-border bg-card transition-colors hover:border-accent-line"
-                      >
-                        <Link href={href} {...detailLinkProps(row)} className="block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-                          <div className={cn("relative overflow-hidden bg-sunken", row.aspectRatio === "16:9" ? "aspect-video" : "aspect-[9/16]")}>
-                            {row.videoUrl ? (
-                              <HoverPreviewVideo
-                                src={row.videoUrl}
-                                poster={row.thumbnailUrl ?? undefined}
-                                ariaLabel={`${row.title} ${copy.view}`}
-                              />
-                            ) : row.thumbnailUrl ? (
-                              <Image src={row.thumbnailUrl} alt="" fill unoptimized sizes="(min-width: 1280px) 22vw, (min-width: 768px) 33vw, 50vw" className="object-cover" />
-                            ) : (
-                              <div className="flex size-full items-center justify-center px-6 text-center">
-                                <span className="text-meta text-muted-foreground">{copy.statuses[row.status]}</span>
-                              </div>
-                            )}
-                            <div className="pointer-events-none absolute inset-0 bg-(image:--scrim)" aria-hidden />
-                            {row.durationSec ? (
-                              <span className="absolute right-2 top-2 rounded-(--radius-sm) bg-sunken/90 px-1.5 py-0.5 font-mono text-data tabular-nums">{row.durationSec}s</span>
-                            ) : null}
-                            {row.isShowcase ? <Badge variant="secondary" className="absolute left-2 top-2 rounded-(--radius-sm) bg-sunken/90 px-1.5 py-0.5" title={copy.showcaseHint}>{copy.showcaseBadge}</Badge> : null}
-                            <AiGeneratedLabel className="absolute bottom-2 left-2" compact />
-                          </div>
-                        </Link>
-                        <div className="space-y-2 p-3">
-                          {/* 卡片标题只放第一小句（商品名 / 这条片讲什么），整段描述留在悬停提示里 */}
-                          <h3 className="min-w-0 truncate text-body font-medium" title={row.title}>{libraryHeadline(row.title)}</h3>
-                          <p className="flex items-center justify-between gap-2 font-mono text-data tabular-nums text-muted-foreground">
-                            {row.status === "failed" ? (
-                              <StatusTick entity="item" state="failed" locale={locale} />
-                            ) : (
-                              <span>{row.aspectRatio ?? copy.aspectPending}</span>
-                            )}
-                            {/* 带上钟点：同一个商品连出几条时标题一模一样，只写「今天」分不清哪条是哪条 */}
-                            <LocalTime iso={row.updatedAt.toISOString()} locale={locale} variant="datetime" />
-                          </p>
-                          {row.bgmAttribution ? (
-                            /* CC BY 配乐：署名随交付给客户（截断显示，选中复制得到全文） */
-                            <p className="flex min-w-0 items-center gap-1.5 text-micro text-tertiary" title={row.bgmAttribution}>
-                              <Music className="size-3 shrink-0" aria-label={copy.musicCredit} />
-                              <span className="truncate">{row.bgmAttribution}</span>
-                            </p>
+                    <li key={group.key} className="min-w-0" data-testid="library-product-group">
+                      <details className="group/product x-panel min-w-0 overflow-hidden" open={open}>
+                        <summary className="flex min-w-0 cursor-pointer list-none items-center gap-3 px-4 py-3 transition-colors hover:bg-raised focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+                          {/* 收起时靠这一小叠封面认出是哪件商品；展开后下面就是大图，这一叠不再重复出现 */}
+                          {thumbs.length > 0 ? (
+                            <span className="flex shrink-0 -space-x-3 group-open/product:hidden" aria-hidden>
+                              {thumbs.map((url, index) => (
+                                <span key={url} className="relative block h-12 w-[1.6875rem] overflow-hidden rounded-(--radius-sm) border border-border bg-sunken" style={{ zIndex: 3 - index }}>
+                                  <Image src={url} alt="" fill unoptimized sizes="27px" className="object-cover" />
+                                </span>
+                              ))}
+                            </span>
                           ) : null}
-                          <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                            {row.videoUrl && !row.isShowcase ? (
-                              <BrandPackageButton
-                                videoJobId={row.videoJobId}
-                                briefId={row.briefId}
-                                /// 封装入口随品牌尾卡 A 级下线：不给包就只剩「下载已封装成片」，以前封装过的照旧能下
-                                brandPackageId={BRAND_END_CARD_ENTRY_ENABLED ? preferredBrandPackage?.id ?? null : null}
-                                brandedVideoUrl={row.brandedVideoUrl}
-                                aspectRatio={row.aspectRatio}
-                                copy={{
-                                  package: copy.brandPackage,
-                                  packaging: copy.brandPackaging,
-                                  packaged: copy.brandPackaged,
-                                  download: copy.downloadDelivery,
-                                  failed: copy.brandPackageFailed,
-                                }}
-                              />
-                            ) : null}
-                            <Button render={<Link href={href} {...detailLinkProps(row)} />} variant="ghost" size="sm" className="ml-auto">
-                              {copy.view}<ArrowRight aria-hidden />
-                            </Button>
-                          </div>
-                        </div>
-                      </article>
+                          <span className="min-w-0 flex-1">
+                            <span className="flex min-w-0 items-center gap-2">
+                              <h3 className="truncate text-body font-medium" title={newest?.title}>{group.name}</h3>
+                              {group.isShowcase ? (
+                                <Badge variant="secondary" className="shrink-0" title={copy.showcaseHint}>{copy.showcaseBadge}</Badge>
+                              ) : null}
+                            </span>
+                            <span className="block font-mono text-data tabular-nums text-muted-foreground">
+                              {copy.groupCount.replace("{n}", String(group.rows.length))}
+                              {" · "}
+                              {copy.groupLatest}{" "}
+                              <LocalTime iso={group.latest.toISOString()} locale={locale} variant="relative" />
+                            </span>
+                          </span>
+                          <ChevronDown className="size-4 shrink-0 text-tertiary transition-transform group-open/product:rotate-180" aria-hidden />
+                        </summary>
+                      {/* 一栏一条横排：手机上左右划，桌面上放得下就一排看完。竖版 9:16 原比例，不裁成横版缩略图 */}
+                      <ul className="flex min-w-0 snap-x gap-3 overflow-x-auto px-4 pb-4 pt-1 [scrollbar-width:thin]">
+                        {group.rows.map((row) => {
+                          const href = detailHref(row);
+                          return (
+                            <li key={row.id} className="w-36 shrink-0 snap-start sm:w-40" data-library-row={row.id}>
+                              <Link
+                                href={href}
+                                {...detailLinkProps(row)}
+                                data-highlighted={isHighlighted(row.id)}
+                                aria-label={`${group.name} ${row.hook ?? ""} ${copy.view}`}
+                                className="group block rounded-(--radius-lg) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                              >
+                                <div
+                                  className={cn(
+                                    "relative overflow-hidden rounded-(--radius-lg) border border-border bg-sunken transition-colors group-hover:border-accent-line",
+                                    row.aspectRatio === "16:9" ? "aspect-video" : row.aspectRatio === "1:1" ? "aspect-square" : "aspect-[9/16]",
+                                  )}
+                                >
+                                  {row.videoUrl ? (
+                                    <HoverPreviewVideo src={row.videoUrl} poster={row.thumbnailUrl ?? undefined} ariaLabel={`${row.title} ${copy.view}`} />
+                                  ) : row.thumbnailUrl ? (
+                                    <Image src={row.thumbnailUrl} alt="" fill unoptimized sizes="160px" className="object-cover" />
+                                  ) : (
+                                    <div className="flex size-full items-center justify-center px-3 text-center">
+                                      <span className="text-meta text-muted-foreground">{copy.statuses[row.status]}</span>
+                                    </div>
+                                  )}
+                                  {row.durationSec ? (
+                                    <span className="absolute right-1.5 top-1.5 rounded-(--radius-sm) bg-sunken/90 px-1.5 py-0.5 font-mono text-data tabular-nums">{row.durationSec}s</span>
+                                  ) : null}
+                                  <AiGeneratedLabel className="absolute bottom-1.5 left-1.5" compact />
+                                </div>
+                                {/* 同一件商品的几条片靠开头那句台词区分；没有台词的老片写画幅 */}
+                                <p className="mt-2 truncate text-meta text-foreground" title={row.hook ?? row.title}>
+                                  {row.hook ? `「${row.hook}」` : row.aspectRatio ?? copy.aspectPending}
+                                </p>
+                                <p className="flex items-center gap-1.5 font-mono text-data tabular-nums text-muted-foreground">
+                                  <LocalTime iso={row.updatedAt.toISOString()} locale={locale} variant="datetime" />
+                                  {row.bgmAttribution ? (
+                                    /* CC BY 配乐：署名随交付给客户（悬停 / 读屏拿到全文；详情页有完整一行可复制） */
+                                    <span title={row.bgmAttribution} className="inline-flex">
+                                      <Music className="size-3 shrink-0" aria-label={`${copy.musicCredit} ${row.bgmAttribution}`} />
+                                    </span>
+                                  ) : null}
+                                </p>
+                              </Link>
+                              {row.brandedVideoUrl && !row.isShowcase ? (
+                                /// 以前封装过品牌尾卡的成片照旧能下（封装入口随品牌尾卡 A 级下线）
+                                <BrandPackageButton
+                                  videoJobId={row.videoJobId}
+                                  briefId={row.briefId}
+                                  brandPackageId={BRAND_END_CARD_ENTRY_ENABLED ? preferredBrandPackage?.id ?? null : null}
+                                  brandedVideoUrl={row.brandedVideoUrl}
+                                  aspectRatio={row.aspectRatio}
+                                  copy={{
+                                    package: copy.brandPackage,
+                                    packaging: copy.brandPackaging,
+                                    packaged: copy.brandPackaged,
+                                    download: copy.downloadDelivery,
+                                    failed: copy.brandPackageFailed,
+                                  }}
+                                />
+                              ) : null}
+                            </li>
+                          );
+                        })}
+                        {retryId ? (
+                          /* 这一栏的最后一格：用同样的素材再做一条（换个开头、换种风格都从这里进） */
+                          <li className="w-36 shrink-0 snap-start sm:w-40">
+                            <Link
+                              href={`/app/create?retry=${encodeURIComponent(retryId)}`}
+                              className="flex aspect-[9/16] flex-col items-center justify-center gap-2 rounded-(--radius-lg) border border-dashed border-border text-meta text-muted-foreground transition-colors hover:border-accent-line hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                            >
+                              <Plus className="size-5" aria-hidden />
+                              {copy.groupMakeAnother}
+                            </Link>
+                          </li>
+                        ) : null}
+                      </ul>
+                      </details>
                     </li>
                   );
                 })}

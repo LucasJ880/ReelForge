@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T20:30:43.579Z",
+  "generatedAt": "2026-11-17T22:14:37.196Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -4217,6 +4217,7 @@
       "imports": [
         "node:child_process",
         "@/lib/video-generation/director-line-policy",
+        "@/lib/video-generation/director-style-briefs",
         "node:crypto",
         "node:fs",
         "node:path",
@@ -4239,6 +4240,7 @@
       ],
       "localImports": [
         "@/lib/video-generation/director-line-policy",
+        "@/lib/video-generation/director-style-briefs",
         "../lib/director-plan",
         "../../src/lib/video-generation/director-writer",
         "../lib/experiment-budget",
@@ -4962,6 +4964,7 @@
       "file": "src/app/(platform)/app/library/page.tsx",
       "imports": [
         "@/lib/library/display-title",
+        "@/lib/library/group-rows",
         "next/link",
         "next/image",
         "next-auth",
@@ -4989,11 +4992,11 @@
         "@/components/exchange/status-tick",
         "@/i18n/platform-copy",
         "@/i18n/server",
-        "@/lib/exchange/readings-registry",
-        "@/lib/exchange/state-vocab"
+        "@/lib/exchange/readings-registry"
       ],
       "localImports": [
         "@/lib/library/display-title",
+        "@/lib/library/group-rows",
         "@/lib/auth",
         "@/lib/services/unified-library-service",
         "@/lib/services/exchange-readings",
@@ -5016,8 +5019,7 @@
         "@/components/exchange/status-tick",
         "@/i18n/platform-copy",
         "@/i18n/server",
-        "@/lib/exchange/readings-registry",
-        "@/lib/exchange/state-vocab"
+        "@/lib/exchange/readings-registry"
       ],
       "externalImports": [
         "next/link",
@@ -6430,6 +6432,7 @@
       "imports": [
         "next/server",
         "zod",
+        "@/lib/video-generation/director-line-policy",
         "@/lib/api-auth",
         "@/lib/auth-role-policy",
         "@/lib/video-generation/storyboard-service",
@@ -6437,6 +6440,7 @@
         "@/lib/video-generation/storyboard-person-refs"
       ],
       "localImports": [
+        "@/lib/video-generation/director-line-policy",
         "@/lib/api-auth",
         "@/lib/auth-role-policy",
         "@/lib/video-generation/storyboard-service",
@@ -8870,6 +8874,16 @@
       "externalImports": []
     },
     {
+      "file": "src/lib/library/group-rows.ts",
+      "imports": [
+        "@/lib/library/display-title"
+      ],
+      "localImports": [
+        "@/lib/library/display-title"
+      ],
+      "externalImports": []
+    },
+    {
       "file": "src/lib/machine-auth.ts",
       "imports": [
         "node:crypto",
@@ -9825,6 +9839,8 @@
         "@/lib/contracts/unified-library",
         "@/lib/video-generation/segment-redo",
         "@/lib/library/batch-post-production",
+        "@/lib/library/group-rows",
+        "@/lib/video-generation/director-line",
         "@/lib/config/showcase-allowlist",
         "@/lib/services/showcase-library",
         "@/lib/video-generation/bgm-attribution",
@@ -9841,6 +9857,8 @@
         "@/lib/contracts/unified-library",
         "@/lib/video-generation/segment-redo",
         "@/lib/library/batch-post-production",
+        "@/lib/library/group-rows",
+        "@/lib/video-generation/director-line",
         "@/lib/config/showcase-allowlist",
         "@/lib/services/showcase-library",
         "@/lib/video-generation/bgm-attribution",
@@ -10359,12 +10377,14 @@
       "imports": [
         "@/lib/video-generation/director-plan",
         "@/lib/video-generation/director-writer",
-        "@/lib/video-generation/director-line-policy"
+        "@/lib/video-generation/director-line-policy",
+        "@/lib/video-generation/director-style-briefs"
       ],
       "localImports": [
         "@/lib/video-generation/director-plan",
         "@/lib/video-generation/director-writer",
-        "@/lib/video-generation/director-line-policy"
+        "@/lib/video-generation/director-line-policy",
+        "@/lib/video-generation/director-style-briefs"
       ],
       "externalImports": []
     },
@@ -10384,6 +10404,16 @@
         "node:crypto",
         "zod"
       ]
+    },
+    {
+      "file": "src/lib/video-generation/director-style-briefs.ts",
+      "imports": [
+        "@/lib/video-generation/director-line-policy"
+      ],
+      "localImports": [
+        "@/lib/video-generation/director-line-policy"
+      ],
+      "externalImports": []
     },
     {
       "file": "src/lib/video-generation/director-writer-openai.ts",
@@ -12381,6 +12411,7 @@
         "node:test",
         "../src/lib/video-generation/director-line",
         "../src/lib/video-generation/director-line-policy",
+        "../src/lib/video-generation/director-style-briefs",
         "../src/lib/video-generation/director-plan",
         "../src/lib/video-generation/generation-supervisor",
         "../src/lib/video-generation/plan-to-director",
@@ -12397,6 +12428,7 @@
       "localImports": [
         "../src/lib/video-generation/director-line",
         "../src/lib/video-generation/director-line-policy",
+        "../src/lib/video-generation/director-style-briefs",
         "../src/lib/video-generation/director-plan",
         "../src/lib/video-generation/generation-supervisor",
         "../src/lib/video-generation/plan-to-director",
@@ -13175,6 +13207,23 @@
         "node:assert/strict",
         "node:fs",
         "node:path",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/library-product-groups.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "../src/lib/library/group-rows"
+      ],
+      "localImports": [
+        "../src/lib/library/group-rows"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs",
         "node:test"
       ]
     },

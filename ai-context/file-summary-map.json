@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T20:30:43.575Z",
+  "generatedAt": "2026-11-17T22:14:37.189Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -52,8 +52,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 388,
-      "sizeBytes": 37238,
+      "lineCount": 392,
+      "sizeBytes": 37863,
       "notes": "Documentation"
     },
     {
@@ -9795,7 +9795,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 138,
-      "sizeBytes": 16269,
+      "sizeBytes": 16323,
       "notes": "Documentation"
     },
     {
@@ -10683,14 +10683,25 @@
       "notes": "Documentation"
     },
     {
+      "path": "docs/roadmap/2026-11-17-delivery-review.md",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 73,
+      "sizeBytes": 7446,
+      "notes": "Documentation"
+    },
+    {
       "path": "docs/roadmap/2026-11-17-handoff.md",
       "type": "doc",
       "area": "shared",
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 200,
-      "sizeBytes": 20473,
+      "lineCount": 201,
+      "sizeBytes": 20590,
       "notes": "Documentation"
     },
     {
@@ -13443,6 +13454,7 @@
       "imports": [
         "node:child_process",
         "@/lib/video-generation/director-line-policy",
+        "@/lib/video-generation/director-style-briefs",
         "node:crypto",
         "node:fs",
         "node:path",
@@ -13464,8 +13476,8 @@
         "@/lib/providers/openai-vision-inline"
       ],
       "importantSymbols": [],
-      "lineCount": 956,
-      "sizeBytes": 54208,
+      "lineCount": 957,
+      "sizeBytes": 54321,
       "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
     },
     {
@@ -14032,8 +14044,8 @@
         "generateMetadata",
         "default"
       ],
-      "lineCount": 92,
-      "sizeBytes": 3894,
+      "lineCount": 91,
+      "sizeBytes": 3803,
       "notes": "Next.js App Router page"
     },
     {
@@ -14269,8 +14281,8 @@
         "generateMetadata",
         "default"
       ],
-      "lineCount": 398,
-      "sizeBytes": 23062,
+      "lineCount": 404,
+      "sizeBytes": 23347,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -14323,6 +14335,7 @@
       ],
       "imports": [
         "@/lib/library/display-title",
+        "@/lib/library/group-rows",
         "next/link",
         "next/image",
         "next-auth",
@@ -14350,8 +14363,7 @@
         "@/components/exchange/status-tick",
         "@/i18n/platform-copy",
         "@/i18n/server",
-        "@/lib/exchange/readings-registry",
-        "@/lib/exchange/state-vocab"
+        "@/lib/exchange/readings-registry"
       ],
       "importantSymbols": [
         "PlatformLibraryPage",
@@ -14359,8 +14371,8 @@
         "generateMetadata",
         "default"
       ],
-      "lineCount": 454,
-      "sizeBytes": 27171,
+      "lineCount": 508,
+      "sizeBytes": 31464,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -14616,7 +14628,7 @@
         "default"
       ],
       "lineCount": 77,
-      "sizeBytes": 2815,
+      "sizeBytes": 2816,
       "notes": "Next.js App Router page; area=marketing-site"
     },
     {
@@ -14643,7 +14655,7 @@
         "default"
       ],
       "lineCount": 62,
-      "sizeBytes": 2106,
+      "sizeBytes": 2107,
       "notes": "Next.js App Router page; area=marketing-site"
     },
     {
@@ -16123,6 +16135,7 @@
       "imports": [
         "next/server",
         "zod",
+        "@/lib/video-generation/director-line-policy",
         "@/lib/api-auth",
         "@/lib/auth-role-policy",
         "@/lib/video-generation/storyboard-service",
@@ -16135,8 +16148,8 @@
         "createStoryboardPostHandler",
         "maxDuration"
       ],
-      "lineCount": 166,
-      "sizeBytes": 6767,
+      "lineCount": 168,
+      "sizeBytes": 6969,
       "notes": "Next.js API route handler; area=video-generation"
     },
     {
@@ -16605,8 +16618,8 @@
         "CapabilityBoard",
         "orderCapabilities"
       ],
-      "lineCount": 131,
-      "sizeBytes": 5173,
+      "lineCount": 140,
+      "sizeBytes": 5959,
       "notes": "React component"
     },
     {
@@ -18223,8 +18236,8 @@
         "captionStyleOptions",
         "captionStyleSelectValue"
       ],
-      "lineCount": 218,
-      "sizeBytes": 9733,
+      "lineCount": 231,
+      "sizeBytes": 10549,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -18274,7 +18287,7 @@
       "area": "video-generation",
       "exports": [
         "StoryboardFrameView",
-        "STORYBOARD_SLOW_AFTER_MS",
+        "STORYBOARD_SLOW_AFTER_SEC",
         "slowestPendingFrameMinutes",
         "StoryboardRunView",
         "storyboardFrameTarget",
@@ -18300,7 +18313,7 @@
       ],
       "importantSymbols": [
         "StoryboardFrameView",
-        "STORYBOARD_SLOW_AFTER_MS",
+        "STORYBOARD_SLOW_AFTER_SEC",
         "StoryboardRunView",
         "StoryboardReferenceOption",
         "StoryboardFrameRegenerateOptions",
@@ -18308,8 +18321,8 @@
         "slowestPendingFrameMinutes",
         "storyboardFrameTarget"
       ],
-      "lineCount": 536,
-      "sizeBytes": 27573,
+      "lineCount": 523,
+      "sizeBytes": 27094,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -18356,8 +18369,8 @@
         "StudioReadings",
         "StreamlinedVideoStudio"
       ],
-      "lineCount": 2528,
-      "sizeBytes": 118077,
+      "lineCount": 2535,
+      "sizeBytes": 118595,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -18645,8 +18658,8 @@
         "PlatformCopy",
         "getPlatformCopy"
       ],
-      "lineCount": 779,
-      "sizeBytes": 52299,
+      "lineCount": 783,
+      "sizeBytes": 52732,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -18664,8 +18677,8 @@
         "PUBLIC_PAGE_COPY",
         "getPublicPageCopy"
       ],
-      "lineCount": 251,
-      "sizeBytes": 14885,
+      "lineCount": 253,
+      "sizeBytes": 17195,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -19227,8 +19240,8 @@
         "CapabilitySource",
         "Bilingual"
       ],
-      "lineCount": 569,
-      "sizeBytes": 24470,
+      "lineCount": 563,
+      "sizeBytes": 24644,
       "notes": "Utility / helper module"
     },
     {
@@ -19744,8 +19757,8 @@
         "unifiedLibrarySegmentSchema",
         "unifiedLibraryRowSchema"
       ],
-      "lineCount": 93,
-      "sizeBytes": 5056,
+      "lineCount": 95,
+      "sizeBytes": 5231,
       "notes": "Utility / helper module"
     },
     {
@@ -20163,8 +20176,8 @@
         "guideArticles",
         "guideArticle"
       ],
-      "lineCount": 437,
-      "sizeBytes": 25856,
+      "lineCount": 432,
+      "sizeBytes": 25624,
       "notes": "Utility / helper module"
     },
     {
@@ -20233,6 +20246,31 @@
       ],
       "lineCount": 32,
       "sizeBytes": 1633,
+      "notes": "Utility / helper module"
+    },
+    {
+      "path": "src/lib/library/group-rows.ts",
+      "type": "util",
+      "area": "shared",
+      "exports": [
+        "GroupableLibraryRow",
+        "LibraryProductGroup",
+        "libraryGroupName",
+        "groupLibraryRows",
+        "firstSpokenLine"
+      ],
+      "imports": [
+        "@/lib/library/display-title"
+      ],
+      "importantSymbols": [
+        "GroupableLibraryRow",
+        "LibraryProductGroup",
+        "libraryGroupName",
+        "groupLibraryRows",
+        "firstSpokenLine"
+      ],
+      "lineCount": 71,
+      "sizeBytes": 3279,
       "notes": "Utility / helper module"
     },
     {
@@ -22394,6 +22432,8 @@
         "@/lib/contracts/unified-library",
         "@/lib/video-generation/segment-redo",
         "@/lib/library/batch-post-production",
+        "@/lib/library/group-rows",
+        "@/lib/video-generation/director-line",
         "@/lib/config/showcase-allowlist",
         "@/lib/services/showcase-library",
         "@/lib/video-generation/bgm-attribution",
@@ -22412,8 +22452,8 @@
         "isCancelledOrderJobs",
         "deriveMakingProcess"
       ],
-      "lineCount": 951,
-      "sizeBytes": 36018,
+      "lineCount": 961,
+      "sizeBytes": 36703,
       "notes": "Business logic service; hits Prisma DB"
     },
     {
@@ -23628,8 +23668,8 @@
         "DIRECTOR_LINE_DURATIONS",
         "DirectorLineRequest"
       ],
-      "lineCount": 363,
-      "sizeBytes": 24557,
+      "lineCount": 321,
+      "sizeBytes": 13275,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -23660,7 +23700,8 @@
       "imports": [
         "@/lib/video-generation/director-plan",
         "@/lib/video-generation/director-writer",
-        "@/lib/video-generation/director-line-policy"
+        "@/lib/video-generation/director-line-policy",
+        "@/lib/video-generation/director-style-briefs"
       ],
       "importantSymbols": [
         "DIRECTOR_SCRIPT_KIND",
@@ -23672,8 +23713,8 @@
         "DirectorLineWriteResult",
         "DirectorLineWriteDeps"
       ],
-      "lineCount": 305,
-      "sizeBytes": 13514,
+      "lineCount": 306,
+      "sizeBytes": 13627,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -23730,6 +23771,25 @@
       ],
       "lineCount": 959,
       "sizeBytes": 54083,
+      "notes": "Utility / helper module; area=video-generation"
+    },
+    {
+      "path": "src/lib/video-generation/director-style-briefs.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "DIRECTOR_STYLE_BRIEFS",
+        "directorStyleBrief"
+      ],
+      "imports": [
+        "@/lib/video-generation/director-line-policy"
+      ],
+      "importantSymbols": [
+        "DIRECTOR_STYLE_BRIEFS",
+        "directorStyleBrief"
+      ],
+      "lineCount": 58,
+      "sizeBytes": 12563,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -23803,7 +23863,7 @@
         "DIRECTOR_WRITER_PHOTOS_MAX"
       ],
       "lineCount": 871,
-      "sizeBytes": 48764,
+      "sizeBytes": 48776,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -23875,8 +23935,8 @@
         "buildPlan",
         "__test__"
       ],
-      "lineCount": 311,
-      "sizeBytes": 12650,
+      "lineCount": 317,
+      "sizeBytes": 12983,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -24727,8 +24787,8 @@
         "STORYBOARD_RETIRED_PROVIDER_FRAME_MESSAGE",
         "PendingStoryboardSummary"
       ],
-      "lineCount": 2342,
-      "sizeBytes": 96575,
+      "lineCount": 2355,
+      "sizeBytes": 97305,
       "notes": "Utility / helper module; hits Prisma DB; area=video-generation"
     },
     {
@@ -25539,7 +25599,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 127,
-      "sizeBytes": 5664,
+      "sizeBytes": 5666,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -25581,7 +25641,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 281,
-      "sizeBytes": 16486,
+      "sizeBytes": 16491,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -25957,8 +26017,8 @@
         "../src/lib/exchange/state-vocab"
       ],
       "importantSymbols": [],
-      "lineCount": 472,
-      "sizeBytes": 24071,
+      "lineCount": 473,
+      "sizeBytes": 24469,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -25985,8 +26045,8 @@
       "importantSymbols": [
         "GET"
       ],
-      "lineCount": 217,
-      "sizeBytes": 12400,
+      "lineCount": 220,
+      "sizeBytes": 12664,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -26210,7 +26270,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 144,
-      "sizeBytes": 7906,
+      "sizeBytes": 7931,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -26530,6 +26590,7 @@
         "node:test",
         "../src/lib/video-generation/director-line",
         "../src/lib/video-generation/director-line-policy",
+        "../src/lib/video-generation/director-style-briefs",
         "../src/lib/video-generation/director-plan",
         "../src/lib/video-generation/generation-supervisor",
         "../src/lib/video-generation/plan-to-director",
@@ -26546,8 +26607,8 @@
       "importantSymbols": [
         "expectedStoryboardFrameCount"
       ],
-      "lineCount": 593,
-      "sizeBytes": 31832,
+      "lineCount": 613,
+      "sizeBytes": 33525,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -26599,7 +26660,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 1110,
-      "sizeBytes": 64439,
+      "sizeBytes": 64451,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -27339,6 +27400,22 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
+      "path": "tests/library-product-groups.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "../src/lib/library/group-rows"
+      ],
+      "importantSymbols": [],
+      "lineCount": 66,
+      "sizeBytes": 4407,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
       "path": "tests/library-video-loading.test.ts",
       "type": "test",
       "area": "tests",
@@ -27927,8 +28004,8 @@
         "BRAND_END_CARD_ENTRY_ENABLED",
         "countPublishRegistered"
       ],
-      "lineCount": 40,
-      "sizeBytes": 2504,
+      "lineCount": 42,
+      "sizeBytes": 2703,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -28488,8 +28565,8 @@
       "importantSymbols": [
         "toContentPostLibraryRow"
       ],
-      "lineCount": 340,
-      "sizeBytes": 17332,
+      "lineCount": 341,
+      "sizeBytes": 17411,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -28561,8 +28638,8 @@
         "../src/components/leads/lead-milestone"
       ],
       "importantSymbols": [],
-      "lineCount": 182,
-      "sizeBytes": 11655,
+      "lineCount": 183,
+      "sizeBytes": 11738,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -29784,8 +29861,8 @@
       "importantSymbols": [
         "getUnifiedLibraryItem"
       ],
-      "lineCount": 197,
-      "sizeBytes": 7378,
+      "lineCount": 199,
+      "sizeBytes": 7514,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -29993,8 +30070,8 @@
         "@/lib/contracts/video-feedback"
       ],
       "importantSymbols": [],
-      "lineCount": 109,
-      "sizeBytes": 6070,
+      "lineCount": 110,
+      "sizeBytes": 6235,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -30229,8 +30306,8 @@
         "../src/lib/video-generation/voiceover-budget"
       ],
       "importantSymbols": [],
-      "lineCount": 93,
-      "sizeBytes": 5605,
+      "lineCount": 95,
+      "sizeBytes": 5931,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -30284,8 +30361,8 @@
         "../src/components/video-generation/storyboard-workflow-panel"
       ],
       "importantSymbols": [],
-      "lineCount": 152,
-      "sizeBytes": 9165,
+      "lineCount": 153,
+      "sizeBytes": 9192,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {

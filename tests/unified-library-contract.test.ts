@@ -67,6 +67,8 @@ test("RF-029: list and detail share one runtime-validated SSR DTO mapper", () =>
     /// 2026-11-10：还在生成时已经等了几分钟（从 0 起），等待页写「已等 N 分钟」；其余为 null。
     "elapsedMinutes",
     "failedSceneCount",
+    /// 2026-11-17：这条片开头说的那句话，成品库按商品分栏后用它区分同一件商品的几条片。
+    "hook",
     "id",
     /// PRD §4.3：素材库要收纳图文帖与轮播，因此多了 imageUrls 与 planId。
     "imageUrls",

@@ -167,18 +167,20 @@ test("状态页：六项能力各一格；看图那一格照常显示、但没�
   const rows = [...html.matchAll(/<li[^>]*data-capability="([a-z]+)"[^>]*>([\s\S]*?)<\/li>/g)];
   assert.deepEqual(
     rows.map((row) => row[1]).sort(),
-    ["email", "graphics", "image", "text", "video", "vision"],
+    /// 没开通的邮件通知不摆给商家（询盘入口不在导航里）；开通了才有这一格
+    ["graphics", "image", "text", "video", "vision"],
   );
   const cell = (key: string) => rows.find((row) => row[1] === key)?.[2] ?? "";
   /// 看图跟着同一个账户暂停：这一格的一句话照常写，只是没有功能再依赖它
-  assert.match(cell("vision"), /AI 看图暂停：出方案时不看商品图/);
-  assert.doesNotMatch(cell("vision"), /影响/);
+  assert.match(cell("vision"), /AI 看图暂停：写镜头脚本要先看商品图/);
+  /// 写脚本是「看图 + 写作」一次调用：看图这一格也影响镜头脚本
+  assert.match(cell("vision"), /影响[\s\S]*镜头脚本/);
   /// 其余各格的「影响」照列
-  assert.match(cell("text"), /影响[\s\S]*口播稿起草、脚本与镜头规划/);
+  assert.match(cell("text"), /影响[\s\S]*镜头脚本/);
+  assert.doesNotMatch(html, /口播稿起草|按模板/, "口播稿起草已删；写不成没有模板退路，不许再这么说");
   assert.match(cell("image"), /影响[\s\S]*故事板/);
   assert.match(cell("video"), /影响[\s\S]*视频生成/);
   assert.match(cell("graphics"), /影响[\s\S]*Logo 生成/);
-  assert.match(cell("email"), /影响[\s\S]*询盘邮件提醒/);
 });
 
 test("状态页：行情头读数（零就写零）+ 每个能力一格（StatusTick 记号与颜色成对、一句人话、影响哪些功能）", () => {
@@ -193,11 +195,12 @@ test("状态页：行情头读数（零就写零）+ 每个能力一格（Status
   assert.match(html, /<h1 class="studio-title">能力状态<\/h1>/);
   assert.match(html, /x-wall/);
   // 读数墙四格：正常 / 不稳定 / 暂停 / 未开通（状态词从词典取）
-  for (const word of ["正常", "不稳定", "暂停", "未开通"]) assert.match(html, new RegExp(`>${word}<`));
+  /// 读数：「正常」永远在，其余是零就不占格（2026-11-17）
+  assert.match(html, />正常</);
   assert.match(html, /data-state="unavailable"/);
-  assert.match(html, /AI 写作暂停：脚本与口播稿先用模板生成，恢复后自动启用。/);
+  assert.match(html, /AI 写作暂停：现在写不了镜头脚本，故事板先生成不了；恢复后自动启用。/);
   assert.match(html, /影响/);
-  assert.match(html, /口播稿起草/);
+  assert.match(html, /镜头脚本/);
   assert.doesNotMatch(html, /实拍图库|AI 配音|图库素材|链接抓取|产品抠图/, "已删的线路不再出现在状态页");
   assert.doesNotMatch(html, /周计划|图文配图|产品图|配图与 Logo/, "已删的功能（周计划 / 图文配图 / 产品图）不再出现在状态页");
   assert.match(html, /tabular-nums/);

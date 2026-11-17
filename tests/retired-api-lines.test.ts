@@ -235,13 +235,14 @@ test("举报内容是独立功能（商家举报 → ContentReport 行），不�
   assert.match(read("prisma/schema.prisma"), /^model ContentReport \{/m);
 });
 
-test("画面质检与故事板 AI 审帧删除之后：功能表里没有它们，状态页「影响哪些功能」不列；看图这项能力本身还在（出方案看商品图）", () => {
+test("画面质检与故事板 AI 审帧删除之后：功能表里没有它们，状态页「影响哪些功能」不列；看图这项能力本身还在（写镜头脚本时看商品图）", () => {
   assert.equal((FEATURE_KEYS as readonly string[]).includes("frameQa"), false);
   assert.equal((FEATURE_KEYS as readonly string[]).includes("storyboardReview"), false);
   const full = resolveCapabilities({ records: [record("vision", "available", "ok")], configured: ALL_CONFIGURED, now: NOW });
   const vision = full.items.find((item) => item.key === "vision");
   assert.ok(vision, "看图能力仍在客户视图里");
-  assert.deepEqual(vision.features, [], "没有功能再依赖看图：状态页这一行不显示「影响」");
+  /// 2026-11-17：写镜头脚本要看商品图，看图这一行影响的是「镜头脚本」；质检、审帧仍然不在
+  assert.deepEqual(vision.features, ["scriptWriting"]);
   assert.match(vision.message["zh-CN"], /商品图/);
 });
 

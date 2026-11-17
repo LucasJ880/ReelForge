@@ -62,6 +62,8 @@ export const unifiedLibraryRowSchema = z.object({
   /// true = 他人（样片账号）的只读客户样片，非访问者本人成片。
   isShowcase: z.boolean().default(false),
   title: z.string().min(1),
+  /// 这条片开头说的那句话（成品库里同一件商品的几条片靠它区分）；没有口播就是 null。
+  hook: z.string().min(1).nullable().default(null),
   updatedAt: z.date(),
   status: unifiedLibraryStatusSchema,
   label: z.string().min(1),

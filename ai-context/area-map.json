@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T20:30:43.582Z",
+  "generatedAt": "2026-11-17T22:14:37.198Z",
   "areas": {
     "unknown": [
       ".claude/launch.json",
@@ -951,6 +951,7 @@
       "docs/roadmap/2026-10-29-kelin-workflow-lessons.md",
       "docs/roadmap/2026-11-10-autonomous-round-log.md",
       "docs/roadmap/2026-11-16-slimming-plan.md",
+      "docs/roadmap/2026-11-17-delivery-review.md",
       "docs/roadmap/2026-11-17-handoff.md",
       "docs/s5-ceo-video-confirmation-table.md",
       "docs/superpowers/plans/2026-07-22-shuyu-creation-workflows.md",
@@ -1072,6 +1073,7 @@
       "src/lib/library/concurrent-wait.ts",
       "src/lib/library/display-title.ts",
       "src/lib/library/feedback-next-steps.ts",
+      "src/lib/library/group-rows.ts",
       "src/lib/machine-video-auth.ts",
       "src/lib/onboarding/industries.ts",
       "src/lib/onboarding/steps.ts",
@@ -1302,6 +1304,7 @@
       "src/lib/video-generation/director-line-policy.ts",
       "src/lib/video-generation/director-line.ts",
       "src/lib/video-generation/director-plan.ts",
+      "src/lib/video-generation/director-style-briefs.ts",
       "src/lib/video-generation/director-writer-openai.ts",
       "src/lib/video-generation/director-writer.ts",
       "src/lib/video-generation/douyin-cover-compositor.ts",
@@ -1507,6 +1510,7 @@
       "tests/legacy-platform-redirects.test.ts",
       "tests/library-display-title.test.ts",
       "tests/library-post-row.test.ts",
+      "tests/library-product-groups.test.ts",
       "tests/library-video-loading.test.ts",
       "tests/logo-generation-mock.test.ts",
       "tests/machine-endpoint-auth.test.ts",

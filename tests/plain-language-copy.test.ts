@@ -5,7 +5,9 @@ import { getPlatformCopy } from "@/i18n/platform-copy";
 
 test("品牌页不再承诺已经停用的片尾品牌卡会用在每条视频上", async () => {
   const copy = getPlatformCopy("zh-CN");
-  assert.match(copy.brands.subtitle, /片尾品牌卡暂时停用/);
+  /// 2026-11-17：副标题只说现在能做的事（右上角 Logo、片尾落款），不提已经停用的片尾品牌卡
+  assert.match(copy.brands.subtitle, /右上角 Logo.*片尾落款/);
+  assert.doesNotMatch(copy.brands.subtitle, /停用|片尾品牌卡/);
   assert.doesNotMatch(copy.brands.subtitle, /让单条与批量生产保持同一套品牌表达/);
   const manager = await readFile("src/components/brand/brand-package-manager.tsx", "utf8");
   assert.doesNotMatch(manager, /每条视频都能直接套用/);

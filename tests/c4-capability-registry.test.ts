@@ -175,9 +175,12 @@ test("每个能力 × 每种状态都有中英一句人话：中文有中文、�
   }
 });
 
-test("写作暂停：脚本与口播稿先用模板生成，恢复后自动启用（周计划 2026-11-16 随本周内容删除，不再提）", () => {
-  assert.equal(CAPABILITY_COPY.text.messages.unavailable["zh-CN"], "AI 写作暂停：脚本与口播稿先用模板生成，恢复后自动启用。");
-  assert.match(CAPABILITY_COPY.text.messages.unavailable["en-US"], /templates/);
+test("写作暂停：如实说现在写不了镜头脚本、故事板先生成不了，恢复后自动启用（2026-11-17 起没有模板退路）", () => {
+  assert.equal(CAPABILITY_COPY.text.messages.unavailable["zh-CN"], "AI 写作暂停：现在写不了镜头脚本，故事板先生成不了；恢复后自动启用。");
+  assert.match(CAPABILITY_COPY.text.messages.unavailable["en-US"], /resumes automatically/);
+  for (const status of ["degraded", "unavailable", "not_configured"] as const) {
+    assert.doesNotMatch(CAPABILITY_COPY.text.messages[status]["zh-CN"], /模板/, `${status}：写不成没有模板退路，不许再这么说`);
+  }
   // 暂停文案都要说「恢复后」怎么办或改用什么，不能只说「不可用」
   for (const key of ["text", "vision", "image", "graphics", "video"] as const) {
     assert.match(CAPABILITY_COPY[key].messages.unavailable["zh-CN"], /恢复后|照常|保留|不受影响/, key);
@@ -195,8 +198,8 @@ test("写作暂停：脚本与口播稿先用模板生成，恢复后自动启�
   assert.equal(CAPABILITY_COPY.image.label["zh-CN"], "开场画面出图（GPT Image 2）");
   assert.equal(CAPABILITY_COPY.video.label["zh-CN"], "视频生成（Seedance 2.5）");
   assert.equal(CAPABILITY_COPY.graphics.label["zh-CN"], "Logo");
-  // 看图暂停：成片照常生成
-  assert.match(CAPABILITY_COPY.vision.messages.unavailable["zh-CN"], /成片照常生成/);
+  // 看图暂停：如实说故事板先生成不了，做好的成片不受影响
+  assert.match(CAPABILITY_COPY.vision.messages.unavailable["zh-CN"], /故事板先生成不了.*已经做好的成片不受影响/);
 });
 
 test("看图文案只写现在真在用的事：出方案时看商品图；成片画面质检已删（2026-11-16），不再承诺", () => {
@@ -209,7 +212,7 @@ test("看图文案只写现在真在用的事：出方案时看商品图；成�
     assert.doesNotMatch(zh, /质检|错字|水印/, status);
     assert.doesNotMatch(en, /frame check|burned-in|watermark/i, status);
     assert.match(zh, /商品图/, status);
-    assert.match(zh, /成片照常生成|写进每个镜头/, status);
+    assert.match(zh, /镜头脚本|写进每个镜头/, status);
   }
   assert.equal(CAPABILITY_COPY.vision.messages.available["zh-CN"], "AI 看图正常：写镜头脚本时会看你的商品图，把商品的样子写进每个镜头。");
 });
@@ -238,7 +241,7 @@ test("P03-K：视频「不稳定」不承诺备用线路（生产没有可切的
 });
 
 test("功能依赖写在一处：口播稿 / 脚本 = 写作；故事板 = Shuyu 图像、Logo = OpenAI 图像；已删功能（含故事板审帧、上传审核）不在表里", () => {
-  assert.deepEqual([...FEATURE_KEYS], ["narrationDraft", "scriptWriting", "logo", "storyboardFrames", "videoGeneration", "leadEmail"]);
+  assert.deepEqual([...FEATURE_KEYS], ["scriptWriting", "logo", "storyboardFrames", "videoGeneration", "leadEmail"]);
   for (const gone of [
     "broll",
     "linkImport",
@@ -255,14 +258,14 @@ test("功能依赖写在一处：口播稿 / 脚本 = 写作；故事板 = Shuyu
   for (const feature of FEATURE_KEYS) {
     for (const need of FEATURES[feature].needs) assert.ok(isCapabilityKey(need), `${feature} 依赖的 ${need} 必须是现存的能力键`);
   }
-  assert.deepEqual([...FEATURES.narrationDraft.needs], ["text"]);
-  assert.deepEqual([...FEATURES.scriptWriting.needs], ["text"]);
+  /// 写脚本是「看图 + 写作」一次调用：两样缺一样都写不成
+  assert.deepEqual([...FEATURES.scriptWriting.needs], ["text", "vision"]);
   assert.deepEqual([...FEATURES.logo.needs], ["graphics"]);
   assert.deepEqual([...FEATURES.storyboardFrames.needs], ["image"]);
   assert.deepEqual([...FEATURES.videoGeneration.needs], ["video"]);
   assert.deepEqual([...FEATURES.leadEmail.needs], ["email"]);
-  /// 故事板 AI 审帧 2026-11-17 删除后没有功能再依赖看图：看图只在出方案时看商品图，暂停了也不挡任何功能
-  assert.deepEqual(featuresForCapability("vision"), []);
+  /// 写镜头脚本要看商品图：看图暂停就写不了脚本
+  assert.deepEqual(featuresForCapability("vision"), ["scriptWriting"]);
   for (const feature of FEATURE_KEYS) {
     assert.doesNotMatch(FEATURES[feature].whenBlocked["en-US"], CJK, feature);
     assert.match(FEATURES[feature].whenBlocked["zh-CN"], CJK, feature);
@@ -271,7 +274,7 @@ test("功能依赖写在一处：口播稿 / 脚本 = 写作；故事板 = Shuyu
   assert.deepEqual(featuresForCapability("email"), ["leadEmail"]);
   assert.deepEqual(featuresForCapability("graphics"), ["logo"]);
   assert.deepEqual(featuresForCapability("image"), ["storyboardFrames"]);
-  assert.deepEqual(featuresForCapability("text"), ["narrationDraft", "scriptWriting"]);
+  assert.deepEqual(featuresForCapability("text"), ["scriptWriting"]);
 });
 
 test("状态词典有 capability 一行：记号与颜色成对（暂停 = 失败记号，未开通 = 叉）", () => {
@@ -413,18 +416,16 @@ test("闸门：没有能力视图一律放行（我们自己的状态表故障�
 
 test("闸门：依赖暂停即被挡，原因写清楚是哪一项、改用什么", () => {
   const view = resolveCapabilities({
-    records: [record("text", { status: "unavailable", reason: "quota", checkedAt: NOW.toISOString() })],
+    records: [record("text", { status: "unavailable", reason: "quota", checkedAt: NOW.toISOString() }), record("vision")],
     configured: ALL_CONFIGURED,
     now: NOW,
   });
   const gate = featureGate(view, "scriptWriting");
   assert.equal(gate.status, "blocked");
-  assert.deepEqual(gate.blockedBy, ["text"]);
-  assert.equal(gate.message?.["zh-CN"], "脚本与镜头规划暂停：AI 写作暂不可用。脚本与镜头先按模板规划，成片照常生成。");
-  assert.equal(
-    gate.message?.["en-US"],
-    "Script and shot planning paused (unavailable: AI writing). Scripts and shots are planned from templates for now; videos still render.",
-  );
+  /// 写作和看图用同一个账户：写作因额度暂停时看图跟着暂停，两项都列出来
+  assert.deepEqual(gate.blockedBy, ["text", "vision"]);
+  assert.match(gate.message?.["zh-CN"] ?? "", /^镜头脚本暂停：AI 写作、AI 看图暂不可用。暂时生成不了新的故事板；恢复后自动启用，已经做好的成片不受影响。$/);
+  assert.match(gate.message?.["en-US"] ?? "", /^Shot script paused \(unavailable: AI writing, AI vision\)\./);
   assert.equal(featureGate(view, "storyboardFrames").status, "available", "故事板出图走另一家供应商，不受影响");
 });
 
@@ -435,8 +436,6 @@ test("闸门：未开通与暂停分开说；不稳定只提示可能变慢、�
     now: NOW,
   });
   // 暂停说「暂不可用」，没配 key 说「尚未开通」
-  assert.match(featureGate(view, "narrationDraft").message?.["zh-CN"] ?? "", /AI 写作暂不可用/);
-  assert.match(featureGate(view, "narrationDraft").message?.["en-US"] ?? "", /\(unavailable: AI writing\)/);
   const email = featureGate(view, "leadEmail");
   assert.equal(email.status, "blocked");
   assert.match(email.message?.["zh-CN"] ?? "", /邮件通知尚未开通/);
@@ -452,8 +451,10 @@ test("闸门：未开通与暂停分开说；不稳定只提示可能变慢、�
   assert.deepEqual(frames.degradedBy, ["image"]);
   assert.equal(frames.message?.["zh-CN"], "故事板可能变慢：开场画面出图（GPT Image 2）不稳定。");
   assert.equal(frames.message?.["en-US"], "Storyboards may be slow (unstable: Opening frame (GPT Image 2)).");
-  /// 看图不稳定不牵连任何功能（没有功能再依赖它）
-  for (const feature of FEATURE_KEYS.filter((key) => key !== "storyboardFrames")) {
+  /// 看图不稳定：镜头脚本跟着标成可能变慢（写脚本要看商品图），别的功能不受牵连
+  assert.equal(featureGate(unstable, "scriptWriting").status, "degraded");
+  assert.deepEqual(featureGate(unstable, "scriptWriting").degradedBy, ["vision"]);
+  for (const feature of FEATURE_KEYS.filter((key) => key !== "storyboardFrames" && key !== "scriptWriting")) {
     assert.equal(featureGate(unstable, feature).status, "available", feature);
   }
 });

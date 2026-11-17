@@ -78,7 +78,7 @@ test("B2.1 一级区页面都用 WorkspacePage 开场，口号进副标题", () 
   }
   // 口号挪进副标题：「可复用品牌包」不再是标题
   const zh = getPlatformCopy("zh-CN");
-  assert.match(zh.brands.subtitle, /^可复用品牌包/);
+  assert.match(zh.brands.subtitle, /^存一次你的 Logo/);
   /// 创作页 2026-10-28 晚改成对话框优先（上线审核 §4，学 Runway 首页）：不再用行情头，
   /// 标题是一句轻问句，读数退成一行；「生成视频 / 产品图片」切换随产品图工作台 2026-11-16 删除
   const studio = read("src/components/video-generation/streamlined-video-studio.tsx");

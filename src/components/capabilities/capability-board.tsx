@@ -33,8 +33,15 @@ export function orderCapabilities(items: PublicCapability[]): PublicCapability[]
  */
 export function CapabilityBoard({ capabilities, locale }: { capabilities: PublicCapabilities; locale: Locale }) {
   const copy = getPlatformCopy(locale).status;
-  const { counts } = capabilities;
-  const readings: QuoteStat[] = [
+  /// 没开通的邮件通知不摆给商家看：那是询盘提醒用的，询盘入口现在不在导航里，摆一张「未开通」只会让人以为哪里坏了。
+  const items = capabilities.items.filter((item) => !(item.key === "email" && item.status === "not_configured"));
+  const counts = {
+    available: items.filter((item) => item.status === "available").length,
+    degraded: items.filter((item) => item.status === "degraded").length,
+    unavailable: items.filter((item) => item.status === "unavailable").length,
+    not_configured: items.filter((item) => item.status === "not_configured").length,
+  };
+  const allReadings: QuoteStat[] = [
     {
       label: stateWord("capability", "available", locale),
       value: counts.available,
@@ -59,6 +66,8 @@ export function CapabilityBoard({ capabilities, locale }: { capabilities: Public
       caption: copy.notSetUpCaption,
     },
   ];
+  /// 「正常」永远在；其余三格是零就不占格（读数规则：零不能让人接着做什么的不摆）
+  const readings = allReadings.filter((reading, index) => index === 0 || Number(reading.value) > 0);
   const separator = locale === "en-US" ? ", " : "、";
 
   return (
@@ -71,7 +80,7 @@ export function CapabilityBoard({ capabilities, locale }: { capabilities: Public
         readingsLabel={copy.readingsLabel}
         scope={
           <>
-            {copy.scope.replace("{count}", String(capabilities.items.length))}
+            {copy.scope.replace("{count}", String(items.length))}
             {capabilities.lastCheckedAt ? (
               <>
                 {" · "}
@@ -86,7 +95,7 @@ export function CapabilityBoard({ capabilities, locale }: { capabilities: Public
         aria-label={copy.listLabel}
         className="x-wall grid-cols-1 lg:grid-cols-2 lg:[&>*:last-child:nth-child(odd)]:col-span-2"
       >
-        {orderCapabilities(capabilities.items).map((item) => (
+        {orderCapabilities(items).map((item) => (
           <li
             key={item.key}
             data-capability={item.key}

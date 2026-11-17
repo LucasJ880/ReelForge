@@ -4,7 +4,7 @@
  * 纯数据、无服务端依赖：服务端页面与客户端组件都能引用。用词与界面按钮逐字一致
  *（「生成 AI 故事板」「生成视频」「重拍整条」「换字幕 / BGM / 片尾落款」「下载成片」
  * 「换个开头」「用同样的素材再做一条」），
- * 界面改名时同步改这里。封面只用仓库里已公开的样片 / 故事板静帧，不放客户素材。
+ * 界面改名时同步改这里。封面是我们自己的测试片（毛毯）的画面拼的三联：商品图、开场画面、成片镜头，在 public/guide/；不放客户素材。
  */
 import type { Locale } from "@/i18n/config";
 
@@ -39,13 +39,11 @@ type ArticleSource = {
   copy: Localized<Omit<GuideArticle, "slug" | "minutes" | "cover" | "href">>;
 };
 
-const LANDING = "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/marketing/landing-1025";
-
 const ARTICLES: readonly ArticleSource[] = [
   {
     slug: "quick-start",
     minutes: 5,
-    cover: `${LANDING}/hero-blinds.jpg`,
+    cover: "/guide/quick-start.jpg",
     /// 带 guide=open：进创作页时重开页内的新手指引
     href: "/app/create?guide=open",
     copy: {
@@ -116,7 +114,7 @@ const ARTICLES: readonly ArticleSource[] = [
   {
     slug: "storyboard",
     minutes: 3,
-    cover: `${LANDING}/hero-kitchen.jpg`,
+    cover: "/guide/storyboard.jpg",
     href: "/app/create",
     copy: {
       "zh-CN": {
@@ -166,7 +164,7 @@ const ARTICLES: readonly ArticleSource[] = [
   {
     slug: "templates",
     minutes: 3,
-    cover: "/template-previews/commerce-outdoor-rugged.jpg",
+    cover: "/guide/styles.jpg",
     href: "/app/create",
     copy: {
       "zh-CN": {
@@ -228,7 +226,7 @@ const ARTICLES: readonly ArticleSource[] = [
   {
     slug: "brand",
     minutes: 3,
-    cover: `${LANDING}/hero-garden.jpg`,
+    cover: "/guide/brand.jpg",
     href: "/app/create",
     copy: {
       "zh-CN": {
@@ -276,7 +274,7 @@ const ARTICLES: readonly ArticleSource[] = [
   {
     slug: "library",
     minutes: 3,
-    cover: "/template-previews/commerce-beauty-texture.jpg",
+    cover: "/guide/library.jpg",
     href: "/app/library",
     copy: {
       "zh-CN": {
@@ -318,7 +316,7 @@ const ARTICLES: readonly ArticleSource[] = [
   {
     slug: "billing",
     minutes: 2,
-    cover: `${LANDING}/hero-inquiry.jpg`,
+    cover: "/guide/billing.jpg",
     href: "/app/create",
     copy: {
       "zh-CN": {
@@ -350,7 +348,7 @@ const ARTICLES: readonly ArticleSource[] = [
   {
     slug: "photo-tips",
     minutes: 3,
-    cover: "/template-previews/commerce-macro-texture-asmr.jpg",
+    cover: "/guide/photo-tips.jpg",
     href: "/app/create",
     copy: {
       "zh-CN": {
@@ -400,7 +398,6 @@ export function guideArticle(slug: string, locale: Locale): GuideArticle | null 
 export const GUIDE_PAGE_COPY: Localized<{
   title: string;
   subtitle: string;
-  featured: string;
   all: string;
   read: string;
   minutes: string;
@@ -412,7 +409,6 @@ export const GUIDE_PAGE_COPY: Localized<{
   "zh-CN": {
     title: "使用指南",
     subtitle: "10 分钟上手 Aivora：从一张商品图，到一条可以直接发的成片。",
-    featured: "从这里开始",
     all: "全部教程",
     read: "开始阅读",
     minutes: "阅读 {n} 分钟",
@@ -424,7 +420,6 @@ export const GUIDE_PAGE_COPY: Localized<{
   "en-US": {
     title: "User guide",
     subtitle: "Get going with Aivora in 10 minutes: from one product photo to a video you can post.",
-    featured: "Start here",
     all: "All guides",
     read: "Read",
     minutes: "{n} min read",

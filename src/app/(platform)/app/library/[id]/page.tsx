@@ -298,7 +298,6 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
                 {item.status !== "ready" || item.canRetry ? (
                   <VideoActions briefId={item.briefId} failedSceneCount={item.failedSceneCount} canRetry={item.canRetry} showRefresh={item.status !== "ready"} contactEmail={contactEmail()} />
                 ) : null}
-                <ReportContentButton briefId={item.briefId} />
               </div>
             ) : null}
             {canRate && item.briefId ? (
@@ -392,6 +391,13 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
       ) : null}
 
       <MakingProcessTimeline steps={item.makingProcess} english={locale === "en-US"} />
+
+      {/* 举报入口放在页面最底：它是合规入口，不是做片流程里的一步（之前夹在下载和评价中间，单占一行） */}
+      {canAct && item.briefId ? (
+        <div className="flex justify-end" data-testid="library-report">
+          <ReportContentButton briefId={item.briefId} />
+        </div>
+      ) : null}
     </div>
   );
 }

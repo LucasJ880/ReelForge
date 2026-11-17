@@ -21,6 +21,8 @@ import {
 } from "@/lib/contracts/unified-library";
 import { isCurrentSegmentJob, isSegmentRedoCandidate } from "@/lib/video-generation/segment-redo";
 import { readBatchPostProductionFromSnapshot } from "@/lib/library/batch-post-production";
+import { firstSpokenLine } from "@/lib/library/group-rows";
+import { isStoredDirectorScript } from "@/lib/video-generation/director-line";
 import { SHOWCASE_SAMPLES, type ShowcaseSample } from "@/lib/config/showcase-allowlist";
 import { resolveShowcaseFor, type ShowcaseAllowlist } from "@/lib/services/showcase-library";
 import { bgmAttributionFor } from "@/lib/video-generation/bgm-attribution";
@@ -103,6 +105,8 @@ const unifiedLibraryOrderSelect = {
               createdAt: true,
               storyboardRun: {
                 select: {
+                  /// 只为判断这条片是不是导演线路出的（音轨是不是模型原生的）
+                  visualReference: true,
                   status: true,
                   createdAt: true,
                   approvedAt: true,
@@ -412,6 +416,7 @@ export function toUnifiedLibraryRow(
     brandedVideoUrl: customerSafeFinalVideoUrl(brief?.brandedVideoUrl ?? null),
     bgmAttribution: bgmAttributionFor(finalVideo?.postProduction ?? null),
     title: order.title,
+    hook: firstSpokenLine(finalVideo?.postProduction ?? null),
     updatedAt: order.updatedAt,
     status,
     label: derived.label,
@@ -503,7 +508,7 @@ function redoStateOf(status: VideoJobStatus | undefined): UnifiedLibrarySegment[
 }
 
 /** 只重拼表单的初值：当前成片的字幕 / 配乐设置（快照读不懂就不给表单）。 */
-export function restitchDefaultsFor(postProduction: unknown) {
+export function restitchDefaultsFor(postProduction: unknown, options: { directorLine?: boolean } = {}) {
   const parsed = postProductionPlanSchema.safeParse(postProduction);
   if (!parsed.success) return null;
   return {
@@ -511,7 +516,7 @@ export function restitchDefaultsFor(postProduction: unknown) {
     bgm: parsed.data.audio.bgm,
     signoff: parsed.data.signoff ?? null,
     /// 这条片自带模型原生配的音乐（导演线路）：表单不再摆曲库
-    nativeMusic: parsed.data.audio.nativeMusic === true,
+    nativeMusic: parsed.data.audio.nativeMusic === true || options.directorLine === true,
   };
 }
 
@@ -528,7 +533,12 @@ function toUnifiedLibraryDetail(
     subtitleFileUrl: customerSafeFinalVideoUrl(
       finalVideo?.subtitleFileUrl ?? null,
     ),
-    restitchDefaults: row.canRestitch ? restitchDefaultsFor(finalVideo?.postProduction ?? null) : null,
+    restitchDefaults: row.canRestitch
+      ? restitchDefaultsFor(finalVideo?.postProduction ?? null, {
+          /// 11-17 加 nativeMusic 标记之前出的导演线路成片：快照里没有这个标记，按「故事板带着镜头脚本」来认
+          directorLine: isStoredDirectorScript(brief?.storyboardRun?.visualReference),
+        })
+      : null,
     makingProcess: deriveMakingProcess({
       orderCreatedAt: order.createdAt,
       briefCreatedAt: brief?.createdAt,

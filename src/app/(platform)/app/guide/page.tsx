@@ -11,7 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /**
  * 使用指南首页（2026-10-28，CEO 要的 user guide；学 LibTV「学院」）：
- * 一张「从这里开始」主卡 + 全部教程卡片墙，每张卡写阅读时长与涉及功能。
+ * 一张上手主卡 + 全部教程卡片墙，每张卡写阅读时长与涉及功能。
  */
 export default async function GuidePage() {
   const locale = await getServerLocale();
@@ -38,7 +38,6 @@ export default async function GuidePage() {
             <img src={featured.cover} alt="" className="absolute inset-0 size-full object-cover" />
           </span>
           <div className="flex min-w-0 flex-col gap-4 p-6 md:p-8">
-            <span className="studio-chip self-start">{copy.featured}</span>
             <h2 className="text-title font-semibold leading-snug">{featured.title}</h2>
             <p className="text-body leading-relaxed text-muted-foreground">{featured.summary}</p>
             <ArticleMeta article={featured} copy={copy} />

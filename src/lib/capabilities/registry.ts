@@ -140,16 +140,16 @@ export const CAPABILITY_COPY: Record<CapabilityKey, CapabilityCopy> = {
         "AI writing is on: shot scripts are written by the AI director.",
       ),
       degraded: b(
-        "AI 写作不稳定：可能变慢；单次失败会先用模板顶上，不会卡住。",
-        "AI writing is unstable: it may be slow, and a failed call falls back to a template instead of blocking you.",
+        "AI 写作不稳定：写镜头脚本可能变慢或偶尔写不成；写不成不扣额度，再点一次就行。",
+        "AI writing is unstable: the shot script may be slow or occasionally fail. A failed attempt uses no credit; just try again.",
       ),
       unavailable: b(
-        "AI 写作暂停：脚本与口播稿先用模板生成，恢复后自动启用。",
-        "AI writing is paused: scripts and narration drafts use templates for now and switch back automatically once it recovers.",
+        "AI 写作暂停：现在写不了镜头脚本，故事板先生成不了；恢复后自动启用。",
+        "AI writing is paused: the shot script can't be written right now, so storyboards can't be generated; it resumes automatically.",
       ),
       not_configured: b(
-        "AI 写作尚未开通：脚本与口播稿使用模板生成。",
-        "AI writing isn't set up yet: scripts and narration drafts use templates.",
+        "AI 写作尚未开通：还写不了镜头脚本。",
+        "AI writing isn't set up yet: shot scripts can't be written.",
       ),
     },
   },
@@ -163,16 +163,16 @@ export const CAPABILITY_COPY: Record<CapabilityKey, CapabilityCopy> = {
         "AI vision is on: your product photos are looked at while the shot script is written, so every shot describes the product as it really looks.",
       ),
       degraded: b(
-        "AI 看图不稳定：个别时候看不成商品图，商品按你的文字描述来；成片照常生成。",
-        "AI vision is unstable: sometimes your product photos can't be looked at and the product follows your written description; videos still render.",
+        "AI 看图不稳定：写镜头脚本时偶尔看不成商品图，脚本可能写不成；写不成不扣额度，再点一次就行。",
+        "AI vision is unstable: sometimes your product photos can't be looked at and the shot script may fail. A failed attempt uses no credit; just try again.",
       ),
       unavailable: b(
-        "AI 看图暂停：出方案时不看商品图，商品按你的文字描述来；成片照常生成，恢复后自动启用。",
-        "AI vision is paused: planning doesn't look at your product photos and the product follows your written description. Videos still render, and it resumes once it recovers.",
+        "AI 看图暂停：写镜头脚本要先看商品图，故事板先生成不了；恢复后自动启用，已经做好的成片不受影响。",
+        "AI vision is paused: the shot script is written from your product photos, so storyboards can't be generated right now. It resumes automatically, and finished videos are unaffected.",
       ),
       not_configured: b(
-        "AI 看图未开通：出方案时不看商品图，成片照常生成。",
-        "AI vision isn't set up: planning doesn't look at your product photos; videos still render.",
+        "AI 看图未开通：写镜头脚本要先看商品图，现在还写不了。",
+        "AI vision isn't set up: shot scripts can't be written.",
       ),
     },
   },
@@ -256,7 +256,6 @@ export function capabilityMessage(key: CapabilityKey, status: CapabilityStatus, 
 /* ── 功能依赖 ───────────────────────────────────────────────────────── */
 
 export const FEATURE_KEYS = [
-  "narrationDraft",
   "scriptWriting",
   "logo",
   "storyboardFrames",
@@ -278,20 +277,15 @@ type FeatureSpec = {
  * 周计划撰写、图文配图、产品图三项随页面一起删了（2026-11-16），状态页「影响哪些功能」不再列它们。
  */
 export const FEATURES: Record<FeatureKey, FeatureSpec> = {
-  narrationDraft: {
-    needs: ["text"],
-    label: b("口播稿起草", "Voiceover drafting"),
-    whenBlocked: b(
-      "口播稿按模板起稿，请按你的产品改一改再生成。",
-      "This draft comes from a template, so tailor it to your product before generating.",
-    ),
-  },
+  /// 2026-11-17：导演线路是唯一的出片方式，镜头脚本只能由 AI 写——写不了就生成不了故事板，没有「按模板规划」这条退路了。
+  /// 「口播稿起草」这一项随功能一起删了（台词写在镜头脚本里）。
   scriptWriting: {
-    needs: ["text"],
-    label: b("脚本与镜头规划", "Script and shot planning"),
+    /// 写脚本是一次「看图 + 写作」的调用：两样缺一样都写不成
+    needs: ["text", "vision"],
+    label: b("镜头脚本", "Shot script"),
     whenBlocked: b(
-      "脚本与镜头先按模板规划，成片照常生成。",
-      "Scripts and shots are planned from templates for now; videos still render.",
+      "暂时生成不了新的故事板；恢复后自动启用，已经做好的成片不受影响。",
+      "New storyboards can't be generated right now; this resumes automatically, and finished videos are unaffected.",
     ),
   },
   logo: {

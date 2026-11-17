@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   __resetAppEnvForTests,
+  getAppEnv,
 } from "../src/lib/config/env";
 import {
   __resetAiProviderForTests,
@@ -13,15 +14,16 @@ import {
   createStorageProvider,
 } from "../src/lib/storage";
 import {
-  __resetVideoProviderForTests,
-  createVideoProvider,
+  createVideoProviderByRouteSnapshot,
   normalizeStatusBuiltin,
+  RetiredVideoRouteError,
 } from "../src/lib/video-generation/providers";
+import { MockVideoProvider } from "../src/lib/video-generation/providers/mock-video-provider";
+import { ShuyuVideoProvider } from "../src/lib/video-generation/providers/shuyu-video-provider";
 import {
-  __resetContentReviewProviderForTests,
-  createContentReviewProvider,
-} from "../src/lib/content-review";
-import { BytePlusVideoProvider } from "../src/lib/video-generation/providers/byteplus-video-provider";
+  createVideoRouteSnapshot,
+  type VideoRouteSnapshot,
+} from "../src/lib/video-generation/video-route-registry";
 
 function withEnv<T>(
   patches: Record<string, string | undefined>,
@@ -36,8 +38,6 @@ function withEnv<T>(
   __resetAppEnvForTests();
   __resetAiProviderForTests();
   __resetStorageProviderForTests();
-  __resetVideoProviderForTests();
-  __resetContentReviewProviderForTests();
   try {
     return fn();
   } finally {
@@ -48,8 +48,6 @@ function withEnv<T>(
     __resetAppEnvForTests();
     __resetAiProviderForTests();
     __resetStorageProviderForTests();
-    __resetVideoProviderForTests();
-    __resetContentReviewProviderForTests();
   }
 }
 
@@ -89,18 +87,67 @@ test("Provider 选择：已退役的 REGION 不再影响任何 provider", () => 
   withEnv({ REGION: "future", AI_PROVIDER: undefined, STORAGE_PROVIDER: undefined }, () => {
     assert.equal(createAiProvider().id, "openai");
     assert.equal(createStorageProvider().id, "vercel_blob");
-    assert.equal(createVideoProvider().id, "byteplus");
+    assert.equal(getAppEnv().videoProvider, "shuyu");
   });
 });
 
-test("Video provider：默认 BytePlus 国际 Seedance", () => {
-  withEnv({ REGION: undefined }, () => {
-    const v = createVideoProvider();
-    assert.equal(v.id, "byteplus");
+test("Video provider：默认运行时是 Shuyu；写 shuyu、残留旧值 byteplus 都一样，mock 只在显式写时", () => {
+  for (const value of [undefined, "shuyu", "byteplus"]) {
+    withEnv({ REGION: undefined, VIDEO_PROVIDER: value }, () => {
+      assert.equal(getAppEnv().videoProvider, "shuyu", String(value));
+    });
+  }
+  withEnv({ VIDEO_PROVIDER: "mock" }, () => {
+    assert.equal(getAppEnv().videoProvider, "mock");
   });
 });
 
-test("Video provider 状态归一：覆盖所有 Seedance 原始状态", () => {
+test("Video provider 工厂：适配器只由持久化的线路快照决定——buddy → Shuyu、mock → mock；与 VIDEO_PROVIDER 无关", () => {
+  for (const value of [undefined, "shuyu", "byteplus", "mock"]) {
+    withEnv({ VIDEO_PROVIDER: value }, () => {
+      const shuyu = createVideoProviderByRouteSnapshot(createVideoRouteSnapshot("buddy"));
+      assert.ok(shuyu instanceof ShuyuVideoProvider, String(value));
+      assert.equal(shuyu.id, "shuyu");
+      const mock = createVideoProviderByRouteSnapshot(createVideoRouteSnapshot("mock"));
+      assert.ok(mock instanceof MockVideoProvider, String(value));
+      assert.equal(mock.id, "mock");
+    });
+  }
+});
+
+test("Video provider 工厂：线路与适配器名对不上的快照拒绝；已下线线路的快照（runway、两条直连）抛 RetiredVideoRouteError", () => {
+  assert.throws(
+    () =>
+      createVideoProviderByRouteSnapshot({
+        videoRouteSnapshot: "buddy",
+        videoModelSnapshot: "studio-video",
+        videoProviderAdapterSnapshot: "mock",
+      } as VideoRouteSnapshot),
+    /Shuyu route snapshot has an incompatible adapter/,
+  );
+  assert.throws(
+    () =>
+      createVideoProviderByRouteSnapshot({
+        videoRouteSnapshot: "mock",
+        videoModelSnapshot: "aivora-deterministic-mock-v1",
+        videoProviderAdapterSnapshot: "shuyu",
+      } as VideoRouteSnapshot),
+    /Mock route snapshot has an incompatible adapter/,
+  );
+  for (const retired of [
+    { videoRouteSnapshot: "byteplus_international", videoModelSnapshot: "dreamina-seedance-2-0-260128", videoProviderAdapterSnapshot: "byteplus" },
+    { videoRouteSnapshot: "volcengine_cn_legacy", videoModelSnapshot: "doubao-seedance-2-0-260128", videoProviderAdapterSnapshot: "byteplus" },
+    { videoRouteSnapshot: "runway", videoModelSnapshot: "klingO3_pro", videoProviderAdapterSnapshot: "runway" },
+  ]) {
+    assert.throws(
+      () => createVideoProviderByRouteSnapshot(retired as VideoRouteSnapshot),
+      (error: unknown) => error instanceof RetiredVideoRouteError && error.routeId === retired.videoRouteSnapshot,
+      retired.videoRouteSnapshot,
+    );
+  }
+});
+
+test("Video provider 状态归一（内置表，mock 适配器用）：覆盖所有原始状态", () => {
   assert.equal(normalizeStatusBuiltin("succeeded"), "succeeded");
   assert.equal(normalizeStatusBuiltin("success"), "succeeded");
   assert.equal(normalizeStatusBuiltin("completed"), "succeeded");
@@ -117,55 +164,21 @@ test("Video provider 状态归一：覆盖所有 Seedance 原始状态", () => {
   assert.equal(normalizeStatusBuiltin("WhoKnows"), "unknown");
 });
 
-test("BytePlusVideoProvider.normalizeProviderStatus 大小写不敏感", () => {
-  const p = new BytePlusVideoProvider();
-  assert.equal(p.normalizeProviderStatus("SUCCEEDED"), "succeeded");
-  assert.equal(p.normalizeProviderStatus(" Running "), "processing");
+test("ShuyuVideoProvider.normalizeProviderStatus 大小写与首尾空白不敏感；认不得的状态是 unknown", () => {
+  const p = new ShuyuVideoProvider("studio-video", { env: {} });
+  assert.equal(p.normalizeProviderStatus("COMPLETED"), "succeeded");
+  assert.equal(p.normalizeProviderStatus(" Processing "), "processing");
+  assert.equal(p.normalizeProviderStatus("Queued"), "queued");
+  assert.equal(p.normalizeProviderStatus("WhoKnows"), "unknown");
 });
 
-test("BytePlusVideoProvider.cancelVideoJob 当前 unsupported", async () => {
-  const p = new BytePlusVideoProvider();
+test("ShuyuVideoProvider.cancelVideoJob 当前 unsupported（不发请求）", async () => {
+  const p = new ShuyuVideoProvider("studio-video", {
+    env: {},
+    fetchImpl: (async () => {
+      throw new Error("取消不该发任何请求");
+    }) as unknown as typeof fetch,
+  });
   const r = await p.cancelVideoJob("any-job-id");
   assert.equal(r.supported, false);
-});
-
-test("Content review provider：CONTENT_REVIEW_ENABLED=false 始终 noop", () => {
-  withEnv(
-    {
-      CONTENT_REVIEW_ENABLED: "false",
-      CONTENT_REVIEW_PROVIDER: "noop",
-    },
-    () => {
-      const p = createContentReviewProvider();
-      assert.equal(p.id, "noop");
-    },
-  );
-});
-
-test("Content review provider：已归档的 volcengine 配置被拒绝", () => {
-  assert.throws(
-    () => withEnv({ CONTENT_REVIEW_PROVIDER: "volcengine" }, createContentReviewProvider),
-    /CONTENT_REVIEW_PROVIDER="volcengine"/,
-  );
-});
-
-test("Noop review provider 始终返回 approved", async () => {
-  withEnv(
-    { CONTENT_REVIEW_ENABLED: "false" },
-    async () => {
-      const p = createContentReviewProvider();
-      const r = await p.reviewText({
-        kind: "generation_prompt",
-        text: "this is sensitive",
-      });
-      assert.equal(r.verdict, "approved");
-      assert.ok(r.reviewId?.startsWith("noop_"));
-    },
-  );
-});
-
-test("Content review provider：ENABLED=true + noop 明确保持 noop", () => {
-  withEnv({ CONTENT_REVIEW_ENABLED: "true", CONTENT_REVIEW_PROVIDER: "noop" }, () => {
-    assert.equal(createContentReviewProvider().id, "noop");
-  });
 });

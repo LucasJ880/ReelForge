@@ -401,11 +401,6 @@ export async function stitchFinalVideo(
     case "reuse_single_segment":
     case "reuse_first_segment_demo": {
       const first = fv.segments[0];
-      await reviewGeneratedVideo(
-        first.outputVideoUrl as string,
-        first.outputThumbUrl,
-        finalVideoId,
-      );
       await db.finalVideo.update({
         where: { id: fv.id },
         data: {
@@ -579,7 +574,7 @@ async function alertStitchFailed(finalVideoId: string, failure: string): Promise
 
 /**
  * 唯一的成功写入点（外部 runner 回调与进程内 / 本地合成共用）：
- *   - 成功：内容审核 → 写 stitchedVideoUrl + thumbnailUrl + subtitleFileUrl + status=READY
+ *   - 成功：写 stitchedVideoUrl + thumbnailUrl + subtitleFileUrl + status=READY
  *           → brief QA_PENDING + finalVideoUrl / finalThumbnailUrl（markBriefReady）
  *   - 失败：写 ffmpegError + status=FAILED（stitchAttempts++）
  *   - 两者都对 STITCHING + attemptToken 做 CAS：取消 / 清扫收回 / 重新认领之后的旧回调一律 409。
@@ -615,7 +610,7 @@ export async function finishStitchTask(args: {
 
   /// attempt token 是这一次 STITCHING 的所有权凭证。
   /// 先快速拒绝明显 stale 回调；最终写入仍会再做一次 CAS，
-  /// 防止内容审核期间 sweep/reclaim 导致的 TOCTOU 竞态。
+  /// 防止这期间 sweep/reclaim 导致的 TOCTOU 竞态。
   const expectedAttemptToken = attemptToken ?? null;
   if (
     fv.status !== FinalVideoStatus.STITCHING ||
@@ -669,12 +664,6 @@ export async function finishStitchTask(args: {
       error: failure,
     };
   }
-
-  await reviewGeneratedVideo(
-    stitchedVideoUrl,
-    thumbnailUrl ?? fv.thumbnailUrl,
-    finalVideoId,
-  );
 
   const finished = await db.finalVideo.updateMany({
     where: {
@@ -900,7 +889,7 @@ export async function runClaimedStitchAttempt(args: {
     if (result.conflict) return { kind: "lost", result };
     return { kind: result.ok ? "succeeded" : "failed", result };
   } catch (err) {
-    /// 成功写入抛错（内容审核拒绝 / 审核不可用 / 数据库抖动）：成片已在 Blob，
+    /// 成功写入抛错（数据库抖动等）：成片已在 Blob，
     /// 记一次失败让 UI 暴露重试，而不是让行卡在 STITCHING 等 30 分钟清扫。
     const message = `completion_failed: ${stitchFailureMessage(err)}`.slice(0, 500);
     console.error("[stitch] completion failed", { finalVideoId, error: message });
@@ -1386,23 +1375,6 @@ export async function rollbackRestitch(
     console.warn("[stitch] restitch rolled back to previous video", { finalVideoId, reason });
   }
   return { rolledBack, stitchedVideoUrl: previous };
-}
-
-async function reviewGeneratedVideo(
-  videoUrl: string,
-  thumbnailUrl: string | null,
-  finalVideoId: string,
-) {
-  const { reviewMediaOrThrow } = await import("@/lib/content-review");
-  return reviewMediaOrThrow({
-    kind: "generated_video",
-    mediaUrl: videoUrl,
-    mediaType: "video",
-    context: {
-      finalVideoId,
-      ...(thumbnailUrl ? { previewImageUrl: thumbnailUrl } : {}),
-    },
-  });
 }
 
 /**

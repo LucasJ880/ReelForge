@@ -147,9 +147,9 @@ test("没有任何 'use client' 文件传递地引到能力状态 / 探测 servi
 
 /* ── 能力与文案 ─────────────────────────────────────────────────────── */
 
-test("能力键齐全：文本 / 看图 / 产品图 / 配图 / 视频 / 审核 / 邮件（配音、图库、抓取、抠图 2026-11-16 随线路删除）", () => {
-  assert.deepEqual([...CAPABILITY_KEYS], ["text", "vision", "image", "graphics", "video", "moderation", "email"]);
-  for (const gone of ["voice", "stock", "scrape", "cutout"]) {
+test("能力键齐全：文本 / 看图 / 产品图 / 配图 / 视频 / 邮件（配音、图库、抓取、抠图 2026-11-16、内容审核 2026-11-17 随线路删除）", () => {
+  assert.deepEqual([...CAPABILITY_KEYS], ["text", "vision", "image", "graphics", "video", "email"]);
+  for (const gone of ["voice", "stock", "scrape", "cutout", "moderation"]) {
     assert.equal(isCapabilityKey(gone), false, `${gone} 不再是能力键：库里的旧行读的时候被过滤掉`);
   }
   assert.deepEqual([...CAPABILITY_STATUSES], ["available", "degraded", "unavailable", "not_configured"]);
@@ -236,8 +236,19 @@ test("P03-K：视频「不稳定」不承诺备用线路（生产没有可切的
   }
 });
 
-test("功能依赖写在一处：口播稿 / 脚本 = 写作；故事板 = Shuyu 图像、Logo = OpenAI 图像；故事板审帧 = 看图；已删功能不在表里", () => {
-  for (const gone of ["broll", "linkImport", "productCutout", "frameQa", "contentPlanWriting", "imagePosts", "productImages"]) {
+test("功能依赖写在一处：口播稿 / 脚本 = 写作；故事板 = Shuyu 图像、Logo = OpenAI 图像；已删功能（含故事板审帧、上传审核）不在表里", () => {
+  assert.deepEqual([...FEATURE_KEYS], ["narrationDraft", "scriptWriting", "logo", "storyboardFrames", "videoGeneration", "leadEmail"]);
+  for (const gone of [
+    "broll",
+    "linkImport",
+    "productCutout",
+    "frameQa",
+    "contentPlanWriting",
+    "imagePosts",
+    "productImages",
+    "storyboardReview",
+    "uploadReview",
+  ]) {
     assert.equal((FEATURE_KEYS as readonly string[]).includes(gone), false, gone);
   }
   for (const feature of FEATURE_KEYS) {
@@ -247,16 +258,16 @@ test("功能依赖写在一处：口播稿 / 脚本 = 写作；故事板 = Shuyu
   assert.deepEqual([...FEATURES.scriptWriting.needs], ["text"]);
   assert.deepEqual([...FEATURES.logo.needs], ["graphics"]);
   assert.deepEqual([...FEATURES.storyboardFrames.needs], ["image"]);
-  /// P01-F：故事板抽卡评审靠看图；看图暂停时跳过评审、照常生成（fail-open）
-  assert.deepEqual([...FEATURES.storyboardReview.needs], ["vision"]);
-  assert.equal(FEATURES.storyboardReview.whenBlocked["zh-CN"], "故事板跳过 AI 审帧，照常生成。");
   assert.deepEqual([...FEATURES.videoGeneration.needs], ["video"]);
-  assert.deepEqual(featuresForCapability("vision"), ["storyboardReview"]);
+  assert.deepEqual([...FEATURES.leadEmail.needs], ["email"]);
+  /// 故事板 AI 审帧 2026-11-17 删除后没有功能再依赖看图：看图只在出方案时看商品图，暂停了也不挡任何功能
+  assert.deepEqual(featuresForCapability("vision"), []);
   for (const feature of FEATURE_KEYS) {
     assert.doesNotMatch(FEATURES[feature].whenBlocked["en-US"], CJK, feature);
     assert.match(FEATURES[feature].whenBlocked["zh-CN"], CJK, feature);
   }
-  assert.deepEqual(featuresForCapability("moderation"), ["uploadReview"]);
+  assert.deepEqual(featuresForCapability("video"), ["videoGeneration"]);
+  assert.deepEqual(featuresForCapability("email"), ["leadEmail"]);
   assert.deepEqual(featuresForCapability("graphics"), ["logo"]);
   assert.deepEqual(featuresForCapability("image"), ["storyboardFrames"]);
   assert.deepEqual(featuresForCapability("text"), ["narrationDraft", "scriptWriting"]);
@@ -307,12 +318,12 @@ test("failingSince：进入异常记当刻、持续异常保留最早那刻、�
 
 test("视图：配置以运行时为准（撤掉 key 即未开通）；从没检测过 = 正常但标「未检测」", () => {
   const view = resolveCapabilities({
-    records: [record("moderation", { status: "available" })],
-    configured: { ...ALL_CONFIGURED, moderation: false, email: false },
+    records: [record("graphics", { status: "available" })],
+    configured: { ...ALL_CONFIGURED, graphics: false, email: false },
     now: NOW,
   });
-  const moderation = view.items.find((item) => item.key === "moderation")!;
-  assert.equal(moderation.status, "not_configured");
+  const graphics = view.items.find((item) => item.key === "graphics")!;
+  assert.equal(graphics.status, "not_configured", "上次探测「正常」也按未开通显示");
   const image = view.items.find((item) => item.key === "image")!;
   assert.equal(image.status, "available");
   assert.equal(image.reason, "unchecked");
@@ -323,8 +334,8 @@ test("视图：配置以运行时为准（撤掉 key 即未开通）；从没检
   assert.ok(view.items.every((item) => item.message["zh-CN"] === CAPABILITY_COPY[item.key].messages[item.status]["zh-CN"]));
 });
 
-test("视图：库里已删线路的旧行（voice / stock / scrape / cutout）不进视图、不计数、不点亮暂停", () => {
-  const stale = (["voice", "stock", "scrape", "cutout"] as const).map(
+test("视图：库里已删线路的旧行（voice / stock / scrape / cutout / moderation）不进视图、不计数、不点亮暂停", () => {
+  const stale = (["voice", "stock", "scrape", "cutout", "moderation"] as const).map(
     (key) => ({ ...record("text", { status: "unavailable", reason: "permission" }), key }) as unknown as CapabilityRecord,
   );
   const view = resolveCapabilities({ records: stale, configured: ALL_CONFIGURED, now: NOW });
@@ -334,7 +345,7 @@ test("视图：库里已删线路的旧行（voice / stock / scrape / cutout）�
   assert.equal(view.counts.available, CAPABILITY_KEYS.length);
 });
 
-test("视图：OpenAI 账户没额度（文本 quota 且更新）→ 看图 / 配图一起显示暂停；审核端点免费不受影响", () => {
+test("视图：OpenAI 账户没额度（文本 quota 且更新）→ 看图 / 配图一起显示暂停；走别家的出图、出片不受影响", () => {
   const view = resolveCapabilities({
     records: [
       record("text", {
@@ -344,7 +355,7 @@ test("视图：OpenAI 账户没额度（文本 quota 且更新）→ 看图 / �
         failingSince: new Date(NOW.getTime() - 60 * MINUTE).toISOString(),
       }),
       record("graphics", { status: "available", checkedAt: new Date(NOW.getTime() - 30 * MINUTE).toISOString() }),
-      record("moderation", { status: "available" }),
+      record("video", { status: "available" }),
     ],
     configured: ALL_CONFIGURED,
     now: NOW,
@@ -355,7 +366,7 @@ test("视图：OpenAI 账户没额度（文本 quota 且更新）→ 看图 / �
     assert.equal(byKey.get(key)?.reason, "quota", key);
     assert.equal(byKey.get(key)?.failingSince, new Date(NOW.getTime() - 60 * MINUTE).toISOString(), key);
   }
-  assert.equal(byKey.get("moderation")?.status, "available");
+  for (const key of ["video", "image"] as const) assert.equal(byKey.get(key)?.status, "available", key);
   assert.equal(view.paused, true);
   assert.equal(view.counts.unavailable, 3);
 });
@@ -431,14 +442,19 @@ test("闸门：未开通与暂停分开说；不稳定只提示可能变慢、�
   assert.match(email.message?.["en-US"] ?? "", /\(not set up: Email alerts\)/);
 
   const unstable = resolveCapabilities({
-    records: [record("vision", { status: "degraded", reason: "upstream" })],
+    records: [record("image", { status: "degraded", reason: "upstream" }), record("vision", { status: "degraded", reason: "upstream" })],
     configured: ALL_CONFIGURED,
     now: NOW,
   });
-  const review = featureGate(unstable, "storyboardReview");
-  assert.equal(review.status, "degraded");
-  assert.match(review.message?.["zh-CN"] ?? "", /可能变慢：AI 看图不稳定。$/);
-  assert.match(review.message?.["en-US"] ?? "", /may be slow \(unstable: AI vision\)\.$/);
+  const frames = featureGate(unstable, "storyboardFrames");
+  assert.equal(frames.status, "degraded");
+  assert.deepEqual(frames.degradedBy, ["image"]);
+  assert.equal(frames.message?.["zh-CN"], "故事板可能变慢：故事板出图不稳定。");
+  assert.equal(frames.message?.["en-US"], "Storyboards may be slow (unstable: Storyboard images).");
+  /// 看图不稳定不牵连任何功能（没有功能再依赖它）
+  for (const feature of FEATURE_KEYS.filter((key) => key !== "storyboardFrames")) {
+    assert.equal(featureGate(unstable, feature).status, "available", feature);
+  }
 });
 
 test("中文拼接：拉丁字母结尾的名字后补空格（「Logo 暂不可用」），汉字结尾不补", () => {

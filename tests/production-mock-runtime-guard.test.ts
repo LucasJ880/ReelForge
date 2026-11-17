@@ -37,19 +37,29 @@ test("production runtime: MockVideoProvider 拒绝创建任务", async (t) => {
   );
 });
 
-test("production runtime: BytePlus mock 分支拒绝 legacy Seedance 提交", async (t) => {
+test("production runtime: 残留的旧值 VIDEO_PROVIDER=byteplus（按 shuyu 处理）也打不开 mock——就绪检查与 mock 闸门都拒绝", async (t) => {
   withEnv(t, {
     VERCEL_ENV: "production",
     NODE_ENV: "production",
     AIVORA_DRY_RUN: "1",
     VIDEO_PROVIDER: "byteplus",
     VIDEO_ENGINE_MOCK: "true",
-    BYTEPLUS_ARK_API_KEY: "",
+    SHUYU_API_KEY: "configured",
   });
 
-  const { submitSeedanceJob } = await import("../src/lib/providers/seedance");
+  const { assertMockVideoRuntimeAllowed, isMockVideoRuntime, videoGenerationRuntimeReadiness } = await import(
+    "../src/lib/config/env"
+  );
+  assert.equal(isMockVideoRuntime(), true);
+  assert.deepEqual(videoGenerationRuntimeReadiness(), { ok: false, reason: "production_mock_forbidden" });
+  assert.throws(() => assertMockVideoRuntimeAllowed(), /production.*mock/i);
+  /// 线路落到 mock 快照，但 mock 适配器在生产一律拒绝建任务
+  const { selectVideoRouteSnapshot } = await import("../src/lib/video-generation/video-route-selection");
+  const { createVideoProviderByRouteSnapshot } = await import("../src/lib/video-generation/providers");
+  const provider = createVideoProviderByRouteSnapshot(selectVideoRouteSnapshot({ isInternalStaff: false }));
+  assert.equal(provider.id, "mock");
   await assert.rejects(
-    () => submitSeedanceJob({ prompt: "must never become a mock job" }),
+    () => provider.createVideoJob({ prompt: "must never become a mock job" }),
     /production.*mock/i,
   );
 });

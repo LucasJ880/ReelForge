@@ -39,6 +39,7 @@ import {
 } from "@/lib/video-generation/providers/submission-error";
 import {
   createVideoRouteSnapshot,
+  isRetiredVideoProviderAdapter,
   isRetiredVideoRouteId,
   readVideoRouteSnapshot,
   type PersistedVideoRouteSnapshotInput,
@@ -91,7 +92,6 @@ import {
   shuyuOpeningFramePromptEnabled,
   type StoryboardReferenceLayout,
 } from "@/lib/video-generation/storyboard-beats";
-const I2V_MODEL_OVERRIDE = process.env.ARK_VIDEO_I2V_MODEL || undefined;
 
 /// Provider 状态查询的可注入 seam；null 时按 VideoJob.provider 路由。
 /// 故障注入测试（AC-1/AC-3/AC-6）通过 __setStatusFetcherForTests 替换。
@@ -120,7 +120,7 @@ type DirectSubmitterOverride = (
  * 供应商受理结果：任务号 + 「本次实际使用的套餐」。
  * Shuyu 有提交级降级（默认套餐被拒 → 换下一档），实际套餐可能与创建行时按
  * 默认套餐估的 providerUnitPoints 不同；不透传这两个字段，成本快照就停留在估价。
- * byteplus / mock 适配器不返回它们（undefined），回写时按「没值不覆盖」处理。
+ * mock 适配器不返回它们（undefined），回写时按「没值不覆盖」处理。
  */
 type AcceptedSubmission = {
   jobId: string;
@@ -155,7 +155,10 @@ export const RETIRED_VIDEO_ROUTE_REGENERATION_MESSAGE =
 export function assertVideoRouteNotRetiredForRegeneration(
   input: Pick<PersistedVideoRouteSnapshotInput, "videoRouteSnapshot" | "videoProviderAdapterSnapshot">,
 ): void {
-  if (isRetiredVideoRouteId(input.videoRouteSnapshot) || input.videoProviderAdapterSnapshot === "runway") {
+  if (
+    isRetiredVideoRouteId(input.videoRouteSnapshot) ||
+    isRetiredVideoProviderAdapter(input.videoProviderAdapterSnapshot)
+  ) {
     throw new SegmentRedoRejectedError("INVALID_STATE", RETIRED_VIDEO_ROUTE_REGENERATION_MESSAGE);
   }
 }
@@ -174,7 +177,7 @@ function requiredVideoRouteSnapshot(
         : "持久化视频线路尚未启用，拒绝 provider 调用",
     );
   }
-  /// 适配器名以线路登记为准（mock → mock、buddy → shuyu、两条直连 → byteplus）
+  /// 适配器名以线路登记为准（mock → mock、buddy → shuyu）
   const expectedAdapter = read.route.providerAdapter;
   if (read.videoProviderAdapterSnapshot !== expectedAdapter) {
     throw new Error("持久化视频线路与 adapter 快照不一致，拒绝 provider 调用");
@@ -1041,15 +1044,7 @@ export async function dispatchVideoGeneration(briefId: string) {
       const id = randomUUID();
       const providerRequestKey = `${id}:attempt:1`;
       const submittedAt = new Date();
-      const routeSnapshot: VideoRouteSnapshot =
-        briefRouteSnapshot.videoProviderAdapterSnapshot === "byteplus" &&
-        prompt.provider === VideoProvider.SEEDANCE_I2V &&
-        I2V_MODEL_OVERRIDE
-          ? {
-              ...briefRouteSnapshot,
-              videoModelSnapshot: I2V_MODEL_OVERRIDE,
-            }
-          : briefRouteSnapshot;
+      const routeSnapshot: VideoRouteSnapshot = briefRouteSnapshot;
       let job;
       try {
         job = await db.videoJob.create({
@@ -2627,7 +2622,7 @@ function toUserSafeIfMissing(adminError: string | null): string | null {
 }
 
 function friendlySubmitError(adminMessage: string): string {
-  if (adminMessage.includes("OPENAI_API_KEY") || adminMessage.includes("BYTEPLUS_ARK_API_KEY")) {
+  if (adminMessage.includes("OPENAI_API_KEY")) {
     return "视频生成服务暂未配置完成，请联系管理员检查 API 密钥。";
   }
   if (adminMessage.includes("rate") || adminMessage.includes("429")) {

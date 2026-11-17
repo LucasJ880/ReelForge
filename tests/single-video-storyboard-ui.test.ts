@@ -30,8 +30,9 @@ test("single video creation exposes the full Aivora workflow and four-frame appr
   assert.match(studio, /<CustomerRoutePicker/);
   assert.match(await readFile("src/components/video-generation/customer-route-picker.tsx", "utf8"), /Aivora 视频通道/);
 
-  assert.match(page, /canSelectVideoRoute=\{false\}/);
-  assert.match(page, /showInternalVideoRoutes=\{false\}/);
+  /// 线路只有一条（2026-11-17 直连线路删除）：创作页没有线路选择器，也就没有这两个开关
+  assert.doesNotMatch(page, /canSelectVideoRoute|showInternalVideoRoutes/);
+  assert.doesNotMatch(studio, /VideoRouteSelector|canSelectVideoRoute/);
 });
 
 test("the studio survives refresh: resumes the active storyboard and replays idempotency keys", async () => {

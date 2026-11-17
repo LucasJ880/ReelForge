@@ -220,11 +220,28 @@ test("状态页：视频不稳定不承诺备用线路——套餐漂移 / 限�
   }
 });
 
-test("状态页：看图暂停时「影响」一栏列出故事板 AI 审帧（P01-F）；画面质检已删，不再列", () => {
+test("状态页：六项能力各一格；看图那一格照常显示、但没有「影响」一栏（故事板 AI 审帧、画面质检都删了）；审核不再有一格", () => {
   const html = renderToStaticMarkup(React.createElement(CapabilityBoard, { capabilities: PRODUCTION_1025, locale: "zh-CN" }));
-  assert.match(html, /故事板 AI 审帧/);
+  assert.doesNotMatch(html, /故事板 AI 审帧|AI 审帧/);
   assert.doesNotMatch(html, /画面质检/);
   assert.doesNotMatch(html, /一致性/, "一致性检查还没落地，文案不许先承诺");
+  assert.doesNotMatch(html, /内容审核|上传审核/, "内容审核整套删除，状态页不再有它的格子与功能");
+
+  const rows = [...html.matchAll(/<li[^>]*data-capability="([a-z]+)"[^>]*>([\s\S]*?)<\/li>/g)];
+  assert.deepEqual(
+    rows.map((row) => row[1]).sort(),
+    ["email", "graphics", "image", "text", "video", "vision"],
+  );
+  const cell = (key: string) => rows.find((row) => row[1] === key)?.[2] ?? "";
+  /// 看图跟着同一个账户暂停：这一格的一句话照常写，只是没有功能再依赖它
+  assert.match(cell("vision"), /AI 看图暂停：出方案时不看商品图/);
+  assert.doesNotMatch(cell("vision"), /影响/);
+  /// 其余各格的「影响」照列
+  assert.match(cell("text"), /影响[\s\S]*口播稿起草、脚本与镜头规划/);
+  assert.match(cell("image"), /影响[\s\S]*故事板/);
+  assert.match(cell("video"), /影响[\s\S]*视频生成/);
+  assert.match(cell("graphics"), /影响[\s\S]*Logo 生成/);
+  assert.match(cell("email"), /影响[\s\S]*询盘邮件提醒/);
 });
 
 test("状态页：行情头读数（零就写零）+ 每个能力一格（StatusTick 记号与颜色成对、一句人话、影响哪些功能）", () => {

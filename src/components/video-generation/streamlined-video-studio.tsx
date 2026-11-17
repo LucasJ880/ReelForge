@@ -46,10 +46,6 @@ import {
   type StoryboardReferenceOption,
   type StoryboardRunView,
 } from "@/components/video-generation/storyboard-workflow-panel";
-import {
-  VideoRouteSelector,
-  type VideoRouteOverride,
-} from "@/components/video-generation/video-route-selector";
 import { CustomerRoutePicker } from "@/components/video-generation/customer-route-picker";
 import { useTranslation } from "@/i18n/useTranslation";
 import { featureGate, type PublicCapabilities } from "@/lib/capabilities/registry";
@@ -241,8 +237,6 @@ const ZH_COPY = {
   cancelRound: "取消这一轮",
   cancelRoundHint: "生成服务出问题时，可以随时取消这一轮，素材和描述会保留。",
   finishingEditableHint: "画面已经定了。口播稿、字幕、配乐、片尾落款和出片线路，在点「生成视频」之前都还能在「更多设置」里改。",
-  routeCheckingHint: "正在检查所选生成线路，请稍候。",
-  routeUnavailableHint: "所选线路当前不可用，请在线路菜单中更换后再提交。",
   quotaHint: "提交时预占 1 条额度，失败与取消自动返还：本月已用 {used} / {limit} 条。",
   previewFailed: "暂时无法准备生成方案，请稍后重试。",
   dispatchFailed: "暂时无法提交视频，请稍后重试。",
@@ -383,8 +377,6 @@ const EN_COPY: StudioCopy = {
   cancelRound: "Cancel this round",
   cancelRoundHint: "If generation is having trouble, cancel this round anytime — your uploads and direction are kept.",
   finishingEditableHint: "The shots are set. You can still change the script, captions, music, sign-off and video route under More settings until you generate the video.",
-  routeCheckingHint: "Checking the selected generation route…",
-  routeUnavailableHint: "The selected route is unavailable. Choose another route before submitting.",
   quotaHint: "Reserves 1 video at submission, refunded automatically on failure or cancel: {used} / {limit} used this month.",
   previewFailed: "The generation plan is temporarily unavailable. Try again shortly.",
   dispatchFailed: "The video could not be submitted right now. Try again shortly.",
@@ -435,8 +427,6 @@ export function StreamlinedVideoStudio({
   retryOfOrderId = null,
   loadedProductName = null,
   brandPackages = [],
-  canSelectVideoRoute,
-  showInternalVideoRoutes = false,
   forceOnboarding = false,
   returningUser = false,
   capabilities = null,
@@ -462,8 +452,6 @@ export function StreamlinedVideoStudio({
   /** 从商品档案带着商品图进来（/app/create?product=…）时那件商品的名字：只用来把「已载入」那句话说对。 */
   loadedProductName?: string | null;
   brandPackages?: WorkspaceBrandPackageView[];
-  canSelectVideoRoute: boolean;
-  showInternalVideoRoutes?: boolean;
   forceOnboarding?: boolean;
   /**
    * 这个账号已经出过成片：不再自动弹「5 步出第一条成片」、也不挂「第一次使用」引导条。
@@ -516,10 +504,6 @@ export function StreamlinedVideoStudio({
   /// 默认出干净视频。1028 闭环轮曾改成默认选中品牌包，保温杯片尾因此冒出窗帘厂尾卡，当天撤回；
   /// 尾卡入口也已 A 级下线（BRAND_END_CARD_ENTRY_ENABLED），入口关着时这里恒为 null。
   const [selectedBrandPackageId, setSelectedBrandPackageId] = useState<string | null>(null);
-  const [selectedVideoRouteId, setSelectedVideoRouteId] = useState<VideoRouteOverride>("");
-  const [selectedRouteAvailable, setSelectedRouteAvailable] = useState<
-    boolean | null
-  >(true);
   const [rawPrompt, setRawPrompt] = useState(initialPrompt);
   const [audioCaptionSettings, setAudioCaptionSettings] =
     useState<AudioCaptionControlValue>(() => ({
@@ -1024,21 +1008,6 @@ export function StreamlinedVideoStudio({
     };
   }, [copy.storyboardFailed, storyboard]);
 
-  const handleVideoRouteChange = useCallback(
-    (routeId: VideoRouteOverride) => {
-      setSelectedVideoRouteId(routeId);
-      invalidatePlan();
-    },
-    [invalidatePlan],
-  );
-
-  const handleSelectedRouteAvailabilityChange = useCallback(
-    (available: boolean | null) => {
-      setSelectedRouteAvailable(available);
-    },
-    [],
-  );
-
   function dismissGuide() {
     setShowGuide(false);
     try {
@@ -1521,7 +1490,6 @@ export function StreamlinedVideoStudio({
       const dispatchBody = {
         request,
         storyboardRunId: storyboard.id,
-        ...(canSelectVideoRoute && selectedVideoRouteId ? { videoRouteId: selectedVideoRouteId } : {}),
       };
       const dispatchFingerprint = JSON.stringify(dispatchBody);
       if (dispatchAttemptRef.current?.fingerprint !== dispatchFingerprint) {
@@ -1573,8 +1541,7 @@ export function StreamlinedVideoStudio({
     rawPrompt.trim().length > 0
     && busy === null
     && uploadingTarget === null
-    && !draftingPrompt
-    && selectedRouteAvailable === true;
+    && !draftingPrompt;
   const configurationLocked = Boolean(storyboard);
   const locked = busy !== null || configurationLocked;
   /// 不改画面的设置（口播稿、声音、字幕、配乐、片尾落款、出片线路）派发那一刻才取值：
@@ -1638,21 +1605,16 @@ export function StreamlinedVideoStudio({
     : needsStoryboard || storyboardNeedsApproval
       ? GalleryHorizontalEnd
       : Clapperboard;
-  const routeNeedsAttention = selectedRouteAvailable !== true;
   /// 本月额度已经用完：提交前就把真实下一步摆出来，不让人做完方案和故事板才在派发时撞墙（审计 A7）。
   const quotaExhausted = Boolean(readings && readings.quotaLimit > 0 && readings.quotaUsed >= readings.quotaLimit);
   const showingQuotaError = quotaError !== null && error === quotaError;
   /// 商家的成本是「成片条数」（本月额度，失败与取消返还），不是供应商积分：
   /// 之前这里给同行线路写死「900 积分/支」——供应商价目早已换成 700 分与按秒计费，客户也从没买过积分。
-  const statusHint = selectedRouteAvailable === null
-    ? copy.routeCheckingHint
-    : selectedRouteAvailable === false
-      ? copy.routeUnavailableHint
-      : readings
-        ? copy.quotaHint
-            .replace("{used}", String(readings.quotaUsed))
-            .replace("{limit}", String(readings.quotaLimit))
-        : copy.readyHint;
+  const statusHint = readings
+    ? copy.quotaHint
+        .replace("{used}", String(readings.quotaUsed))
+        .replace("{limit}", String(readings.quotaLimit))
+    : copy.readyHint;
   const attachDisabled = busy !== null || configurationLocked || uploadingTarget !== null || draftingPrompt;
   const productSlotsFull = productAssets.length >= MAX_PRODUCT_IMAGES
     || productAssets.length + referenceAssets.length >= MAX_ATTACHMENTS;
@@ -2273,23 +2235,11 @@ export function StreamlinedVideoStudio({
           data-testid="streamlined-more-settings"
         >
           <TicketRow label={copy.route}>
-            {canSelectVideoRoute ? (
-              <VideoRouteSelector
-                canSelectVideoRoute={canSelectVideoRoute}
-                showInternalRoutes={showInternalVideoRoutes}
-                durationSeconds={selectedDuration}
-                value={selectedVideoRouteId}
-                disabled={locked}
-                onChange={handleVideoRouteChange}
-                onSelectedAvailabilityChange={handleSelectedRouteAvailabilityChange}
-              />
-            ) : (
-              <CustomerRoutePicker
-                disabled={finishingLocked}
-                active={moreOpen}
-                english={english}
-              />
-            )}
+            <CustomerRoutePicker
+              disabled={finishingLocked}
+              active={moreOpen}
+              english={english}
+            />
           </TicketRow>
           <TicketRow label={copy.referenceMode}>
             <p className="text-meta text-muted-foreground">{copy.referenceModeHint}</p>
@@ -2453,7 +2403,7 @@ export function StreamlinedVideoStudio({
           <p className="text-center text-meta text-gold" data-testid="create-capability-notice">{quickModeHint}</p>
         ) : null}
         {!storyboard ? (
-          <p className={cn("text-center text-meta", routeNeedsAttention ? "text-gold" : "text-tertiary")}>
+          <p className="text-center text-meta text-tertiary">
             {statusHint}
           </p>
         ) : (
@@ -2524,7 +2474,7 @@ export function StreamlinedVideoStudio({
                     .replace("{ratio}", ratioLabel)
                     .replace("{duration}", String(selectedDuration))}
                 </p>
-                <p className={cn("mt-0.5 truncate text-meta", routeNeedsAttention ? "text-gold" : "text-muted-foreground")}>
+                <p className="mt-0.5 truncate text-meta text-muted-foreground">
                   {statusHint}
                 </p>
               </div>

@@ -60,7 +60,7 @@ test("dispatch claim persists the exact route/model/adapter snapshot", async (t)
       };
     },
   });
-  const snapshot = createVideoRouteSnapshot("volcengine_cn_legacy");
+  const snapshot = createVideoRouteSnapshot("buddy");
   const claim = await claimVideoDispatchRequest({
     userId: "staff-1",
     idempotencyKey: "route-aware",
@@ -70,9 +70,10 @@ test("dispatch claim persists the exact route/model/adapter snapshot", async (t)
   assert.equal(claim.outcome, "acquired");
   assert.ok(createdData);
   const persisted = createdData as unknown as Record<string, unknown>;
-  assert.equal(persisted.videoRouteSnapshot, "volcengine_cn_legacy");
+  assert.equal(persisted.videoRouteSnapshot, "buddy");
+  assert.equal(persisted.videoModelSnapshot, "studio-video");
   assert.equal(persisted.videoModelSnapshot, snapshot.videoModelSnapshot);
-  assert.equal(persisted.videoProviderAdapterSnapshot, "byteplus");
+  assert.equal(persisted.videoProviderAdapterSnapshot, "shuyu");
 });
 
 test("RF-003 concurrent duplicate dispatch claims have one winner and no duplicate quota owner", async (t) => {

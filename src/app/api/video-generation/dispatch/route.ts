@@ -43,7 +43,6 @@ import {
 import { z } from "zod";
 import { videoGenerationRuntimeReadiness } from "@/lib/config/env";
 import {
-  canVideoRouteOverrideDefaultRuntimeFailure,
   getVideoRouteSnapshotRuntimeAvailability,
   selectVideoRouteSnapshot,
   VideoRouteSelectionError,
@@ -282,13 +281,7 @@ export async function POST(req: NextRequest) {
   const requestHash = hashVideoDispatchRequest(body, videoRouteSnapshot);
 
   const runtimeReadiness = videoGenerationRuntimeReadiness();
-  const overrideMayIgnoreGlobalRouteFailure =
-    !runtimeReadiness.ok &&
-    canVideoRouteOverrideDefaultRuntimeFailure(
-      videoRouteSnapshot,
-      runtimeReadiness.reason,
-    );
-  if (!runtimeReadiness.ok && !overrideMayIgnoreGlobalRouteFailure) {
+  if (!runtimeReadiness.ok) {
     console.error("[dispatch] video runtime unavailable", {
       reason: runtimeReadiness.reason,
     });

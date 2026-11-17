@@ -6,10 +6,7 @@ process.env.LLM_FORCE_MOCK = "true";
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  buildVideoSegments,
-  __test__ as promptIntelTestUtils,
-} from "../src/lib/video-generation/prompt-intelligence";
+import { buildVideoSegments } from "../src/lib/video-generation/prompt-intelligence";
 import { planUnifiedSegments } from "../src/lib/video-generation/segment-planner-adapter";
 import type {
   CreativeBrief,
@@ -87,17 +84,6 @@ test("[unified-prompt-intelligence] heuristic prompts NEVER mention literal bran
     assert.doesNotMatch(seg.prompt!, /\bbuy\s+now\b/i);
     assert.doesNotMatch(seg.prompt!, /\bswipe\s+up\b/i);
   }
-});
-
-test("[unified-prompt-intelligence] appendBrandGuard adds suffix if missing", () => {
-  const before = "low quality, blurry";
-  const after = promptIntelTestUtils.appendBrandGuard(before);
-  assert.ok(after.includes("no logo"));
-  assert.ok(after.includes("no QR codes"));
-
-  /// idempotent
-  const again = promptIntelTestUtils.appendBrandGuard(after);
-  assert.equal(again, after);
 });
 
 test("[unified-prompt-intelligence] uploaded clip slot produces uploaded_clip segment with no prompt", async () => {

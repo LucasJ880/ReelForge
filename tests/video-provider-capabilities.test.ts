@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { SHUYU_MAX_REFERENCE_IMAGES } from "../src/lib/providers/shuyu";
-import { BytePlusVideoProvider } from "../src/lib/video-generation/providers/byteplus-video-provider";
 import { MockVideoProvider } from "../src/lib/video-generation/providers/mock-video-provider";
 import { ShuyuVideoProvider } from "../src/lib/video-generation/providers/shuyu-video-provider";
 import type { VideoProvider } from "../src/lib/video-generation/providers/types";
@@ -13,7 +12,6 @@ import type { VideoProvider } from "../src/lib/video-generation/providers/types"
  */
 const ADAPTERS: VideoProvider[] = [
   new ShuyuVideoProvider("studio-video", { env: {} }),
-  new BytePlusVideoProvider(),
   new MockVideoProvider(),
 ];
 
@@ -27,18 +25,17 @@ test("所有现有适配器显式声明能力位;未接 wire 的参考音频一�
 
 test("参考图硬顶与各自 wire 层一致", () => {
   const byId = new Map(ADAPTERS.map((adapter) => [adapter.id, adapter]));
+  assert.deepEqual([...byId.keys()], ["shuyu", "mock"], "还在的适配器只有这两个");
   assert.equal(byId.get("shuyu")?.maxReferenceImages, SHUYU_MAX_REFERENCE_IMAGES);
-  /// seedance.ts 的 Omni-Reference 分支按 9 张截断
-  assert.equal(byId.get("byteplus")?.maxReferenceImages, 9);
   assert.equal(byId.get("mock")?.maxReferenceImages, SHUYU_MAX_REFERENCE_IMAGES);
 });
 
-test("本轮不启用 fal / 阿里线路 id(D-2 / D-8)", async () => {
+test("适配器 id 只有 shuyu / mock：不启用 fal / 阿里(D-2 / D-8)，runway 与直连 Seedance 的适配器已删", async () => {
   const source = await readFile(
     "src/lib/video-generation/providers/types.ts",
     "utf8",
   );
-  /// 2026-11-16 Runway 适配器已删；fal / 阿里仍不启用
-  assert.match(source, /readonly id: "byteplus" \| "shuyu" \| "mock";/);
-  assert.doesNotMatch(source, /alibaba_wan|"fal"|"runway"/);
+  /// 2026-11-16 Runway 适配器、2026-11-17 直连 Seedance 适配器（byteplus）已删；fal / 阿里仍不启用
+  assert.match(source, /readonly id: "shuyu" \| "mock";/);
+  assert.doesNotMatch(source, /alibaba_wan|"fal"|"runway"|"byteplus"/);
 });

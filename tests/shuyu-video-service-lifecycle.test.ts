@@ -25,7 +25,7 @@ function installEnv(t: TestContext) {
   const previous = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
   process.env.SHUYU_API_KEY = "lifecycle-secret";
   delete process.env.shuyu_api_key;
-  process.env.VIDEO_PROVIDER = "byteplus";
+  process.env.VIDEO_PROVIDER = "shuyu";
   process.env.VIDEO_ENGINE_MOCK = "false";
   process.env.VERCEL_ENV = "preview";
   __resetShuyuRuntimeProbeForTests();

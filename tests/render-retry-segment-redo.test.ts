@@ -70,10 +70,10 @@ const SEG1_URL = "https://abc.public.blob.vercel-storage.com/seg1.mp4";
 const REDO_URL = "https://abc.public.blob.vercel-storage.com/seg0-redo.mp4";
 const CREATED = new Date(Date.now() - 60 * 60_000);
 
-const BYTEPLUS_ROUTE = {
-  videoRouteSnapshot: "byteplus_international" as const,
-  videoModelSnapshot: "dreamina-seedance-2-0-260128",
-  videoProviderAdapterSnapshot: "byteplus" as const,
+const BUDDY_ROUTE = {
+  videoRouteSnapshot: "buddy" as const,
+  videoModelSnapshot: "studio-video",
+  videoProviderAdapterSnapshot: "shuyu" as const,
 };
 
 const CUSTOMER: Session = {
@@ -130,7 +130,7 @@ function withEnv(t: TestContext, next: Record<string, string | undefined>) {
 /// 真实 provider 模式 + 计量开启；所有提交走测试钩子，任何网络请求直接炸
 function installRuntime(t: TestContext, submitter: (prompt: string) => Promise<{ jobId: string }>) {
   withEnv(t, {
-    VIDEO_PROVIDER: "byteplus",
+    VIDEO_PROVIDER: "shuyu",
     VIDEO_ENGINE_MOCK: "false",
     VERCEL_ENV: "preview",
     QUOTA_ENFORCE: "true",
@@ -168,7 +168,7 @@ function segmentRow(segmentIndex: number, overrides: Row = {}): Row {
     status: VideoJobStatus.SUCCEEDED,
     submissionState: ProviderSubmissionState.ACCEPTED,
     provider: VideoProvider.SEEDANCE_T2V,
-    ...BYTEPLUS_ROUTE,
+    ...BUDDY_ROUTE,
     outputVideoUrl: segmentIndex === 0 ? SEG0_URL : SEG1_URL,
     outputThumbUrl: null,
     externalJobId: `ext-seg-${segmentIndex}`,
@@ -348,7 +348,7 @@ function prepared(overrides: Partial<PreparedSegmentRedo> = {}): PreparedSegment
     replacesJobId: "seg-0",
     segmentDurationSec: null,
     note: "别出现文字",
-    routeSnapshot: BYTEPLUS_ROUTE,
+    routeSnapshot: BUDDY_ROUTE,
     brief: {
       aspectRatio: "9:16",
       directorPlan: PLAN as unknown as Prisma.JsonValue,

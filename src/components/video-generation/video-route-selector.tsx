@@ -7,7 +7,6 @@ import {
   ChevronDown,
   CircleAlert,
   Route,
-  Server,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -23,11 +22,8 @@ import {
 import { useTranslation } from "@/i18n/useTranslation";
 import { cn } from "@/lib/utils";
 
-export type VideoRouteOverride =
-  | ""
-  | "byteplus_international"
-  | "volcengine_cn_legacy"
-  | "buddy";
+/// 线路只有 buddy 一条（直连线路 2026-11-17 删除）；这个选择器现在选的是这条线路下的套餐。
+export type VideoRouteOverride = "buddy";
 
 export interface ShuyuRouteUiStatus {
   configured: boolean;
@@ -37,25 +33,13 @@ export interface ShuyuRouteUiStatus {
 }
 
 interface VideoRouteUiStatus {
-  directAvailable: boolean;
-  directRoutes: Partial<Record<Exclude<VideoRouteOverride, "" | "buddy">, boolean>>;
   shuyu: ShuyuRouteUiStatus;
   plans: ShuyuPlanUiOption[];
-}
-
-export function parseVideoRouteOverride(value: string): VideoRouteOverride {
-  return value === "byteplus_international"
-    || value === "volcengine_cn_legacy"
-    || value === "buddy"
-    ? value
-    : "";
 }
 
 const ROUTE_COPY = {
   "zh-CN": {
     label: "视频生成接口",
-    directTitle: "火山官方接口 · Seedance 2.0",
-    directDescription: "当前生产默认线路 · 失败按平台规则处理",
     shuyuGroup: "Aivora 生成线路",
     shuyuTitle: "Aivora 视频通道 · Seedance 2.0",
     shuyuDescription: "文生 / 图片参考 · 每镜头 5–15 秒",
@@ -72,14 +56,9 @@ const ROUTE_COPY = {
     planPerSecond: "积分/秒",
     planInfoOnly: "本入口按推荐套餐提交",
     planEmpty: "价目暂不可用,提交时按实时默认套餐",
-    internalGroup: "内部诊断线路",
-    byteplus: "BytePlus 国际 · Seedance 2.0",
-    volcengine: "火山北京 · Seedance 2.0（显式锁定）",
   },
   "en-US": {
     label: "Video generation interface",
-    directTitle: "Volcengine official · Seedance 2.0",
-    directDescription: "Current production default · platform recovery rules apply",
     shuyuGroup: "Aivora generation route",
     shuyuTitle: "Aivora video route · Seedance 2.0",
     shuyuDescription: "Text / image reference · 5–15s per shot",
@@ -96,9 +75,6 @@ const ROUTE_COPY = {
     planPerSecond: "points/second",
     planInfoOnly: "This entry submits on the recommended plan",
     planEmpty: "Pricing unavailable; the live default plan applies at submit",
-    internalGroup: "Internal diagnostic routes",
-    byteplus: "BytePlus international · Seedance 2.0",
-    volcengine: "Volcengine Beijing · Seedance 2.0 (explicit)",
   },
 } as const;
 
@@ -122,7 +98,6 @@ export function shuyuPlanPointsPerVideo(
 
 export function VideoRouteSelector({
   canSelectVideoRoute,
-  showInternalRoutes = false,
   shuyuStatus = null,
   durationSeconds = 15,
   value,
@@ -135,7 +110,6 @@ export function VideoRouteSelector({
   showPlanPoints = true,
 }: {
   canSelectVideoRoute: boolean;
-  showInternalRoutes?: boolean;
   shuyuStatus?: ShuyuRouteUiStatus | null;
   durationSeconds?: number;
   value: VideoRouteOverride;
@@ -157,12 +131,6 @@ export function VideoRouteSelector({
   const copy = ROUTE_COPY[locale];
   const [plans, setPlans] = useState<ShuyuPlanUiOption[]>([]);
   const [resolvedShuyuStatus, setResolvedShuyuStatus] = useState(shuyuStatus);
-  const [resolvedDirectAvailable, setResolvedDirectAvailable] = useState<
-    boolean | null
-  >(null);
-  const [resolvedDirectRoutes, setResolvedDirectRoutes] = useState<
-    VideoRouteUiStatus["directRoutes"] | null
-  >(null);
   const [statusLoadFailed, setStatusLoadFailed] = useState(false);
 
   useEffect(() => {
@@ -171,8 +139,6 @@ export function VideoRouteSelector({
     queueMicrotask(() => {
       if (controller.signal.aborted) return;
       setResolvedShuyuStatus(null);
-      setResolvedDirectAvailable(null);
-      setResolvedDirectRoutes(null);
       setStatusLoadFailed(false);
     });
     void fetch(`/api/video-generation/routes?duration=${durationSeconds}`, {
@@ -188,8 +154,6 @@ export function VideoRouteSelector({
         const status = readVideoRouteStatus(payload);
         if (!status) throw new Error("invalid route status");
         setResolvedShuyuStatus(status.shuyu);
-        setResolvedDirectAvailable(status.directAvailable);
-        setResolvedDirectRoutes(status.directRoutes);
         setPlans(status.plans);
         setStatusLoadFailed(false);
       })
@@ -202,39 +166,24 @@ export function VideoRouteSelector({
 
   useEffect(() => {
     if (!onSelectedAvailabilityChange) return;
-    if (value === "buddy") {
-      onSelectedAvailabilityChange(
-        statusLoadFailed ? false : resolvedShuyuStatus?.available ?? null,
-      );
-      return;
-    }
-    if (value === "") {
-      onSelectedAvailabilityChange(
-        statusLoadFailed ? false : resolvedDirectAvailable,
-      );
-      return;
-    }
     onSelectedAvailabilityChange(
-      statusLoadFailed ? false : resolvedDirectRoutes?.[value] ?? null,
+      statusLoadFailed ? false : resolvedShuyuStatus?.available ?? null,
     );
   }, [
     onSelectedAvailabilityChange,
-    resolvedDirectAvailable,
-    resolvedDirectRoutes,
     resolvedShuyuStatus?.available,
     statusLoadFailed,
-    value,
   ]);
 
   /// 套餐有效性与报价回传:清单刷新后,已选套餐若已下架则回落默认并上报;
-  /// 非 buddy 线路一律回传 null(套餐只属于合作方线路)。
+  /// 清单还没拿到时回传 null。
   const selectedPlan =
-    value === "buddy" && plans.length > 0
+    plans.length > 0
       ? (plans.find((plan) => plan.planId === planValue) ?? plans[0])
       : null;
   useEffect(() => {
     if (!onPlanChange) return;
-    if (value !== "buddy" || plans.length === 0) {
+    if (plans.length === 0) {
       onPlanChange(null, null, null);
       return;
     }
@@ -245,7 +194,7 @@ export function VideoRouteSelector({
       shuyuPlanPointsPerVideo(effective, durationSeconds),
       effective,
     );
-  }, [onPlanChange, value, planValue, durationSeconds, plans]);
+  }, [onPlanChange, planValue, durationSeconds, plans]);
 
   if (!canSelectVideoRoute) return null;
 
@@ -258,19 +207,6 @@ export function VideoRouteSelector({
         : !resolvedShuyuStatus.funded || resolvedShuyuStatus.reason === "insufficient_balance"
           ? copy.insufficient
           : copy.unavailable;
-  const directLabel = resolvedDirectAvailable === null
-    ? statusLoadFailed ? copy.unavailable : copy.checking
-    : resolvedDirectAvailable ? copy.available : copy.unavailable;
-  const directRouteLabel = (
-    routeId: Exclude<VideoRouteOverride, "" | "buddy">,
-  ) => {
-    const available = resolvedDirectRoutes?.[routeId];
-    return available === undefined
-      ? statusLoadFailed ? copy.unavailable : copy.checking
-      : available ? copy.available : copy.unavailable;
-  };
-  const byteplusLabel = directRouteLabel("byteplus_international");
-  const volcengineLabel = directRouteLabel("volcengine_cn_legacy");
   /// 报价随 /prices 实时解析;拿不到就不编数字,退回无价格描述。客户面不写供应商积分。
   const shuyuDescription = selectedPlan && showPlanPoints
     ? `${copy.shuyuDescription} · ${copy.shuyuEstimate.replace(
@@ -278,20 +214,8 @@ export function VideoRouteSelector({
         shuyuPlanPointsPerVideo(selectedPlan, durationSeconds).toLocaleString(),
       )}`
     : copy.shuyuDescription;
-  const selectedTitle = value === "buddy"
-    ? copy.shuyuTitle
-    : value === "byteplus_international"
-      ? copy.byteplus
-      : value === "volcengine_cn_legacy"
-        ? copy.volcengine
-        : copy.directTitle;
-  const selectedDescription = value === "buddy"
-    ? `${shuyuDescription} · ${shuyuLabel}`
-    : `${copy.directDescription} · ${value === "byteplus_international"
-      ? byteplusLabel
-      : value === "volcengine_cn_legacy"
-        ? volcengineLabel
-        : directLabel}`;
+  const selectedTitle = copy.shuyuTitle;
+  const selectedDescription = `${shuyuDescription} · ${shuyuLabel}`;
 
   return (
     <div data-testid="video-route-selector" className="min-w-0">
@@ -315,25 +239,8 @@ export function VideoRouteSelector({
         >
           <DropdownMenuRadioGroup
             value={value}
-            onValueChange={(nextValue) => onChange(parseVideoRouteOverride(nextValue))}
+            onValueChange={() => onChange("buddy")}
           >
-            {showInternalRoutes ? (
-              <>
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel>{copy.label}</DropdownMenuLabel>
-                  <RouteRadioItem
-                    value=""
-                    icon={Server}
-                    title={copy.directTitle}
-                    description={copy.directDescription}
-                    status={directLabel}
-                    active={value === ""}
-                    warning={resolvedDirectAvailable === false || statusLoadFailed}
-                  />
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-              </>
-            ) : null}
             <DropdownMenuGroup>
               <DropdownMenuLabel>{copy.shuyuGroup}</DropdownMenuLabel>
               <RouteRadioItem
@@ -346,110 +253,78 @@ export function VideoRouteSelector({
                 warning={!resolvedShuyuStatus?.available}
               />
             </DropdownMenuGroup>
-            {showInternalRoutes ? (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel>{copy.internalGroup}</DropdownMenuLabel>
-                  <RouteRadioItem
-                    value="byteplus_international"
-                    icon={Server}
-                    title={copy.byteplus}
-                    description={copy.directDescription}
-                    status={byteplusLabel}
-                    active={value === "byteplus_international"}
-                    disabled={resolvedDirectRoutes?.byteplus_international !== true}
-                    warning={resolvedDirectRoutes?.byteplus_international !== true}
-                  />
-                  <RouteRadioItem
-                    value="volcengine_cn_legacy"
-                    icon={Server}
-                    title={copy.volcengine}
-                    description={copy.directDescription}
-                    status={volcengineLabel}
-                    active={value === "volcengine_cn_legacy"}
-                    disabled={resolvedDirectRoutes?.volcengine_cn_legacy !== true}
-                    warning={resolvedDirectRoutes?.volcengine_cn_legacy !== true}
-                  />
-                </DropdownMenuGroup>
-              </>
-            ) : null}
           </DropdownMenuRadioGroup>
-          {value === "buddy" ? (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuGroup>
-                <DropdownMenuLabel>{copy.planGroup}</DropdownMenuLabel>
-                {plans.length === 0 ? (
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>{copy.planGroup}</DropdownMenuLabel>
+            {plans.length === 0 ? (
+              <DropdownMenuItem
+                aria-disabled="true"
+                closeOnClick={false}
+                onClick={(event) => event.preventDefault()}
+                className="cursor-default items-start py-2.5 opacity-60"
+              >
+                <CircleAlert className="mt-0.5 size-4" aria-hidden />
+                <span className="text-meta text-muted-foreground">{copy.planEmpty}</span>
+              </DropdownMenuItem>
+            ) : (
+              plans.map((plan, planIndex) => {
+                const selected = selectedPlan?.planId === plan.planId;
+                const unitLabel = plan.billingUnit === "generation"
+                  ? copy.planPerVideo
+                  : copy.planPerSecond;
+                return (
                   <DropdownMenuItem
-                    aria-disabled="true"
+                    key={plan.planId}
                     closeOnClick={false}
-                    onClick={(event) => event.preventDefault()}
-                    className="cursor-default items-start py-2.5 opacity-60"
+                    aria-disabled={planSelectable ? undefined : "true"}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      if (planSelectable && onPlanChange) {
+                        onPlanChange(
+                          plan.planId,
+                          shuyuPlanPointsPerVideo(plan, durationSeconds),
+                          plan,
+                        );
+                      }
+                    }}
+                    className={cn(
+                      "items-start py-2.5",
+                      planSelectable ? "cursor-pointer" : "cursor-default",
+                      !selected && "opacity-70",
+                    )}
                   >
-                    <CircleAlert className="mt-0.5 size-4" aria-hidden />
-                    <span className="text-meta text-muted-foreground">{copy.planEmpty}</span>
+                    <CheckCircle2
+                      className={cn(
+                        "mt-0.5 size-4",
+                        selected
+                          ? "text-success"
+                          : "text-muted-foreground opacity-40",
+                      )}
+                      aria-hidden
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-body font-medium text-foreground">
+                        {/* 供应商套餐原名（「视频-Seedance2.0-720P-推荐1」）只给内部角色看 */}
+                        {showPlanPoints ? plan.displayName : copy.planCustomer.replace("{n}", String(planIndex + 1))}
+                        {plan.isDefault ? ` · ${copy.planDefault}` : ""}
+                      </span>
+                      <span className="mt-0.5 block truncate font-mono text-meta tabular-nums text-muted-foreground">
+                        {plan.resolution}
+                        {showPlanPoints ? ` · ${plan.unitSalePoints.toLocaleString()} ${unitLabel}` : ""}
+                        {showPlanPoints && plan.billingUnit === "second"
+                          ? ` · ≈${shuyuPlanPointsPerVideo(plan, durationSeconds).toLocaleString()} ${copy.planPerVideo}`
+                          : ""}
+                      </span>
+                    </span>
                   </DropdownMenuItem>
-                ) : (
-                  plans.map((plan, planIndex) => {
-                    const selected = selectedPlan?.planId === plan.planId;
-                    const unitLabel = plan.billingUnit === "generation"
-                      ? copy.planPerVideo
-                      : copy.planPerSecond;
-                    return (
-                      <DropdownMenuItem
-                        key={plan.planId}
-                        closeOnClick={false}
-                        aria-disabled={planSelectable ? undefined : "true"}
-                        onClick={(event) => {
-                          event.preventDefault();
-                          if (planSelectable && onPlanChange) {
-                            onPlanChange(
-                              plan.planId,
-                              shuyuPlanPointsPerVideo(plan, durationSeconds),
-                              plan,
-                            );
-                          }
-                        }}
-                        className={cn(
-                          "items-start py-2.5",
-                          planSelectable ? "cursor-pointer" : "cursor-default",
-                          !selected && "opacity-70",
-                        )}
-                      >
-                        <CheckCircle2
-                          className={cn(
-                            "mt-0.5 size-4",
-                            selected
-                              ? "text-success"
-                              : "text-muted-foreground opacity-40",
-                          )}
-                          aria-hidden
-                        />
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-body font-medium text-foreground">
-                            {/* 供应商套餐原名（「视频-Seedance2.0-720P-推荐1」）只给内部角色看 */}
-                            {showPlanPoints ? plan.displayName : copy.planCustomer.replace("{n}", String(planIndex + 1))}
-                            {plan.isDefault ? ` · ${copy.planDefault}` : ""}
-                          </span>
-                          <span className="mt-0.5 block truncate font-mono text-meta tabular-nums text-muted-foreground">
-                            {plan.resolution}
-                            {showPlanPoints ? ` · ${plan.unitSalePoints.toLocaleString()} ${unitLabel}` : ""}
-                            {showPlanPoints && plan.billingUnit === "second"
-                              ? ` · ≈${shuyuPlanPointsPerVideo(plan, durationSeconds).toLocaleString()} ${copy.planPerVideo}`
-                              : ""}
-                          </span>
-                        </span>
-                      </DropdownMenuItem>
-                    );
-                  })
-                )}
-                {!planSelectable && plans.length > 0 ? (
-                  <p className="px-2 pb-1 pt-1 text-meta text-muted-foreground">{copy.planInfoOnly}</p>
-                ) : null}
-              </DropdownMenuGroup>
-            </>
-          ) : null}
+                );
+              })
+            )}
+            {!planSelectable && plans.length > 0 ? (
+              <p className="px-2 pb-1 pt-1 text-meta text-muted-foreground">{copy.planInfoOnly}</p>
+            ) : null}
+          </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
@@ -462,17 +337,11 @@ function readVideoRouteStatus(payload: unknown): VideoRouteUiStatus | null {
     || typeof payload.defaultRouteId !== "string"
     || !Array.isArray(payload.routes)
   ) return null;
-  const directRoute = payload.routes.find(
-    (candidate) =>
-      isRecord(candidate) && candidate.id === payload.defaultRouteId,
-  );
   const route = payload.routes.find(
     (candidate) => isRecord(candidate) && candidate.id === "buddy",
   );
   if (
-    !isRecord(directRoute)
-    || typeof directRoute.available !== "boolean"
-    || !isRecord(route)
+    !isRecord(route)
     || typeof route.configured !== "boolean"
     || typeof route.funded !== "boolean"
     || typeof route.available !== "boolean"
@@ -481,18 +350,6 @@ function readVideoRouteStatus(payload: unknown): VideoRouteUiStatus | null {
     return null;
   }
   return {
-    directAvailable: directRoute.available,
-    directRoutes: Object.fromEntries(
-      payload.routes
-        .filter(
-          (candidate) =>
-            isRecord(candidate)
-            && (candidate.id === "byteplus_international"
-              || candidate.id === "volcengine_cn_legacy")
-            && typeof candidate.available === "boolean",
-        )
-        .map((candidate) => [candidate.id, candidate.available]),
-    ),
     shuyu: {
       configured: route.configured,
       funded: route.funded,
@@ -543,22 +400,19 @@ function RouteRadioItem({
   description,
   status,
   active,
-  disabled = false,
   warning = false,
 }: {
   value: VideoRouteOverride;
-  icon: typeof Server;
+  icon: typeof Box;
   title: string;
   description: string;
   status: string;
   active: boolean;
-  disabled?: boolean;
   warning?: boolean;
 }) {
   return (
     <DropdownMenuRadioItem
       value={value}
-      disabled={disabled}
       closeOnClick
       className={cn(
         "cursor-pointer items-start py-3 pr-9",

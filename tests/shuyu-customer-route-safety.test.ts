@@ -342,7 +342,7 @@ test("direct dispatch replays before provider checks and checks the whole batch 
   assert.match(availabilityBlock, /稍后重试；若持续发生，请联系支持/);
 });
 
-test("Shuyu adapters preserve content review and batch provider preflight boundaries", async () => {
+test("Shuyu adapter validates the request locally before submitting; batch keeps its provider preflight boundaries", async () => {
   const [providerSource, batchSource] = await Promise.all([
     readFile(
       "src/lib/video-generation/providers/shuyu-video-provider.ts",
@@ -350,9 +350,20 @@ test("Shuyu adapters preserve content review and batch provider preflight bounda
     ),
     readFile("src/lib/services/batch-service.ts", "utf8"),
   ]);
-  const reviewIndex = providerSource.indexOf("await reviewTextOrThrow");
+  /// 内容审核 2026-11-17 整套删除（生产一直关着，是空操作）：适配器里不再有审核钩子。
+  /// 留下的本地预检（提示词长度、参考图、不支持的参考音视频）仍然全部排在提交之前。
+  assert.doesNotMatch(providerSource, /content-review|reviewTextOrThrow|reviewMediaOrThrow/);
   const submitIndex = providerSource.indexOf("await createShuyuVideoTask");
-  assert.ok(reviewIndex > 0 && reviewIndex < submitIndex);
+  assert.ok(submitIndex > 0);
+  for (const preflight of [
+    "Shuyu prompt must not exceed 5000 characters after negative constraints",
+    "HTTPS reference images",
+    "Shuyu route does not support reference audio",
+    "Shuyu route does not support reference videos",
+  ]) {
+    const index = providerSource.indexOf(preflight);
+    assert.ok(index > 0 && index < submitIndex, preflight);
+  }
 
   const replayIndex = batchSource.indexOf("if (existing)");
   const availabilityIndex = batchSource.indexOf("await getVideoRouteSnapshotRuntimeAvailability");

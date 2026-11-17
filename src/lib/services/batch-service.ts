@@ -66,11 +66,12 @@ import type { BatchPostProductionInput } from "@/lib/schemas/unified-input";
 import { evaluateVoiceoverDrive } from "@/lib/services/voiceover-drive-service";
 import {
   createVideoRouteSnapshot,
+  isRetiredVideoProviderAdapter,
+  isRetiredVideoRouteId,
   readVideoRouteSnapshot,
   type VideoRouteSnapshot,
 } from "@/lib/video-generation/video-route-registry";
 import {
-  canVideoRouteOverrideDefaultRuntimeFailure,
   getVideoRouteSnapshotRuntimeAvailability,
   selectVideoRouteSnapshot,
 } from "@/lib/video-generation/video-route-selection";
@@ -93,14 +94,7 @@ import {
   reconcileStoryboardRun,
   regenerateStoryboardFrame,
   requireApprovedStoryboardForVideoJob,
-  reviewAutoStoryboardRun,
-  shadowReviewStoryboardRun,
 } from "@/lib/video-generation/storyboard-service";
-import {
-  storyboardAiReviewMode,
-  storyboardAiReviewProgress,
-  storyboardProviderAttempts,
-} from "@/lib/video-generation/storyboard-ai-review";
 
 const MAX_SUBMIT_ATTEMPTS = 3;
 const LEASE_MS = 60_000;
@@ -521,17 +515,11 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
     requestedRouteId: input.videoRouteId,
     isInternalStaff: input.isInternalStaff === true,
   });
-  // Keep production mock/content-review seals ahead of replay, while allowing
-  // an explicitly selected healthy provider to act as a fallback when only the
-  // deployment's default provider is misconfigured.
+  // Keep the production mock seal ahead of replay. Shuyu is the only real
+  // provider, so there is no other route that could stand in for a
+  // misconfigured default.
   const runtimeReadiness = videoGenerationRuntimeReadiness();
-  const selectedRouteOverridesDefaultFailure =
-    !runtimeReadiness.ok &&
-    canVideoRouteOverrideDefaultRuntimeFailure(
-      videoRouteSnapshot,
-      runtimeReadiness.reason,
-    );
-  if (!runtimeReadiness.ok && !selectedRouteOverridesDefaultFailure) {
+  if (!runtimeReadiness.ok) {
     throw new VideoGenerationRuntimeUnavailableError(runtimeReadiness.reason);
   }
   const requestHash = batchRequestHash(input, videoRouteSnapshot);
@@ -635,9 +623,7 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
         ? "shuyu_insufficient_balance"
         : videoRouteSnapshot.videoRouteSnapshot === "buddy"
           ? "shuyu_unavailable"
-          : videoRouteSnapshot.videoRouteSnapshot === "volcengine_cn_legacy"
-            ? "volcengine_legacy_key_missing"
-            : "byteplus_key_missing",
+          : "environment_invalid",
     );
   }
   const provider =
@@ -1431,7 +1417,6 @@ function batchStoryboardSpec(job: VideoJob): {
  * 因此这里代为重试。上限存在的意义是：供应商真的长时间不可用时，
  * 批次应当以失败收敛，而不是无限重投烧积分。
  */
-/// 按供应商侧尝试数算（storyboardProviderAttempts）：AI 审帧重抽（P01-D）不占这里的名额。
 const BATCH_FRAME_MAX_ATTEMPTS = 3;
 
 /**
@@ -1463,7 +1448,6 @@ async function retryRecoverableBatchFrames(batchId: string): Promise<void> {
           submissionState: true,
           lastProviderStatus: true,
           externalTaskId: true,
-          aiReview: true,
         },
       },
     },
@@ -1484,7 +1468,7 @@ async function retryRecoverableBatchFrames(batchId: string): Promise<void> {
     }
     const retryable = run.frames.filter(
       (frame) =>
-        storyboardProviderAttempts(frame) < BATCH_FRAME_MAX_ATTEMPTS &&
+        frame.attempt < BATCH_FRAME_MAX_ATTEMPTS &&
         canRegenerateStoryboardFrame(frame),
     );
     /// 存在无法安全重投的帧（计费状态未确认）时整条留给人工，不碰。
@@ -1539,61 +1523,6 @@ async function advanceBatchStoryboards(batchId: string): Promise<void> {
   });
   await retryRecoverableBatchFrames(batchId);
   await settleDeadStoryboardBatchJobs(batchId);
-  await reviewBatchStoryboards(batchId);
-}
-
-/**
- * P01-D AI 审帧（D-1）。block 档：全部出图后停在 {AWAITING_APPROVAL, AUTO} 的 run 逐条审（串行：
- * 审帧预算 ≤60s/tick，一次占 30s，最多两条真调 vision）；这一路不看开关——开关关掉后残留的 run
- * 由 reviewAutoStoryboardRun 直接批准放行。shadow 档：已批准、还没审过的 AUTO run 旁路审，不改状态。
- */
-async function reviewBatchStoryboards(batchId: string): Promise<void> {
-  const awaiting = await db.storyboardRun.findMany({
-    where: {
-      videoJob: { batchJobId: batchId, status: { in: [VideoJobStatus.QUEUED, VideoJobStatus.PAUSED] } },
-      status: "AWAITING_APPROVAL",
-      approvalPolicy: "AUTO",
-    },
-    orderBy: { updatedAt: "asc" },
-    select: { id: true },
-    take: providerConcurrency(),
-  });
-  for (const run of awaiting) {
-    const outcome = await reviewAutoStoryboardRun(run.id).catch((error) => {
-      console.warn(JSON.stringify({
-        evt: "batch_storyboard_ai_review_failed",
-        batchId,
-        runId: run.id,
-        error: (error as Error).message.slice(0, 200),
-      }));
-      return "error";
-    });
-    if (outcome !== "not_eligible" && outcome !== "busy") {
-      console.info(JSON.stringify({ evt: "batch_storyboard_ai_review", batchId, runId: run.id, outcome }));
-    }
-  }
-  if (storyboardAiReviewMode() !== "shadow") return;
-  const approved = await db.storyboardRun.findMany({
-    where: {
-      videoJob: { batchJobId: batchId },
-      status: "APPROVED",
-      approvalPolicy: "AUTO",
-      aiReviewSummary: { equals: Prisma.AnyNull },
-    },
-    orderBy: { updatedAt: "asc" },
-    select: { id: true },
-    take: 2,
-  });
-  for (const run of approved) {
-    await shadowReviewStoryboardRun(run.id).catch((error) => {
-      console.warn(JSON.stringify({
-        evt: "batch_storyboard_ai_shadow_failed",
-        batchId,
-        runId: run.id,
-        error: (error as Error).message.slice(0, 200),
-      }));
-    });
-  }
 }
 
 /**
@@ -1624,7 +1553,6 @@ async function settleDeadStoryboardBatchJobs(batchId: string): Promise<void> {
           submissionState: true,
           lastProviderStatus: true,
           externalTaskId: true,
-          aiReview: true,
         },
       },
     },
@@ -1649,7 +1577,7 @@ async function settleDeadStoryboardBatchJobs(batchId: string): Promise<void> {
     if (
       run.frames.every(
         (frame) =>
-          storyboardProviderAttempts(frame) < BATCH_FRAME_MAX_ATTEMPTS &&
+          frame.attempt < BATCH_FRAME_MAX_ATTEMPTS &&
           canRegenerateStoryboardFrame(frame),
       )
     ) {
@@ -1734,6 +1662,15 @@ function isBillingSafeManualRetry(job: {
   if (
     job.submissionState === ProviderSubmissionState.ACK_UNKNOWN ||
     job.submissionState === ProviderSubmissionState.SUBMITTING
+  ) {
+    return false;
+  }
+  /// 读旧记录：线路已下线（runway、两条直连 Seedance）的失败条目没有适配器可以重提，不能重试。
+  /// 必须在 providerForJob 之前判——那一步对停用的线路会抛，而批次详情对每条失败条目都要问这一句
+  ///（toCustomerBatchStatus），抛了整个批次就打不开。
+  if (
+    isRetiredVideoRouteId(job.videoRouteSnapshot) ||
+    isRetiredVideoProviderAdapter(job.videoProviderAdapterSnapshot)
   ) {
     return false;
   }
@@ -2474,7 +2411,6 @@ export async function getBatchStatus(batchId: string, userId?: string) {
               id: true,
               status: true,
               approvalPolicy: true,
-              aiReviewSummary: true,
               frames: {
                 where: { isCurrent: true },
                 orderBy: { ordinal: "asc" },
@@ -2540,8 +2476,6 @@ export type CustomerBatchStatus = {
       id: string;
       status: string;
       approvalPolicy: string;
-      /// P01-D block 档的审帧进度；不在审 / 不在重抽时为 null。
-      aiReview: ReturnType<typeof storyboardAiReviewProgress>;
       frames: Array<{
         id: string;
         ordinal: number;
@@ -2641,7 +2575,6 @@ export function toCustomerBatchStatus(
             id: job.storyboardRun.id,
             status: String(job.storyboardRun.status),
             approvalPolicy: String(job.storyboardRun.approvalPolicy),
-            aiReview: storyboardAiReviewProgress(job.storyboardRun.aiReviewSummary),
             frames: job.storyboardRun.frames.map((frame) => ({
               id: frame.id,
               ordinal: frame.ordinal,

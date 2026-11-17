@@ -2,8 +2,8 @@
  * 视频生成 Provider 抽象接口。
  *
  * 设计目标：
- * - 业务代码 (video-service / cron) 只 import 这里的 type + getVideoProvider()，
- *   不再直接 import 任何 seedance.ts / volcengine sdk。
+ * - 业务代码 (video-service / cron) 只 import 这里的 type + createVideoProviderByRouteSnapshot()，
+ *   不直接 import 任何供应商客户端。
  * - 不同 provider 的"原始状态"全部归一到统一 6 态（normalizeProviderStatus）。
  * - VideoJob DB 记录至少携带：provider / providerJobId / providerRawStatus /
  *   normalizedStatus / errorMessage / createdAt / updatedAt / finishedAt
@@ -110,7 +110,7 @@ export interface VideoJobStatusResult {
 }
 
 export interface VideoProvider {
-  readonly id: "byteplus" | "shuyu" | "mock";
+  readonly id: "shuyu" | "mock";
   readonly displayName: string;
   /**
    * Static billing capability of this adapter, independent of current env

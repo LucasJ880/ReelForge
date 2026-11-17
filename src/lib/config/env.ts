@@ -6,7 +6,14 @@
  *   不要再到处 `process.env.AI_PROVIDER ?? "openai"`。
  * - 加拿大 / 北美生产模式下缺关键 env 时给出清晰错误（避免运行到一半才报）。
  * - **绝不修改 process.env 本身**；只读 + 解析 + 缓存。
- * - 默认行为：openai / vercel_blob / BytePlus 国际 Seedance。
+ * - 默认行为：openai / vercel_blob / Shuyu 出片。
+ * - 直连出片线路（BytePlus / 火山 Ark）与内容审核 2026-11-17 第 4 批删除：VIDEO_PROVIDER 只认 shuyu（缺省）
+ *   与 mock（本地联调 / 测试；生产被拦）。写成别的值在解析时报错，不静默退回默认。
+ *   唯一的例外是旧值 byteplus：删这批代码时生产的 Vercel 上还明写着 VIDEO_PROVIDER=byteplus
+ *  （11-17 实查：健康接口报 byteplus、变量确实存在），直接报错会让下一次部署整站出不了片。
+ *   所以它按 shuyu 处理并在 validateDeploymentEnv 里挂一条提醒（见 LEGACY_VIDEO_PROVIDER_ALIAS）；
+ *   Vercel 上改掉之后把这个例外删了。
+ *   SEEDANCE_RUNTIME_PROFILE / ARK_* / BYTEPLUS_ARK_API_KEY / CONTENT_REVIEW_* 不再读取。
  * - 国内版部署 2026-11-16 决定不做，代码已删：AI 只有 openai、存储只有 vercel_blob。
  *   AI_PROVIDER / STORAGE_PROVIDER 写成别的值（含旧的 volcengine / volcengine_tos）一律在解析时报错，
  *   不静默退回默认。REGION / DEPLOYMENT_TARGET / SMS_LOGIN_ENABLED / PAYMENT_ENABLED 不再读取。
@@ -16,42 +23,25 @@
  * - 不在模块加载时强校验，避免本地 dev / 测试时炸全场。
  */
 
-import {
-  resolveSeedanceArkBaseUrl,
-  resolveSeedanceRuntimeProfile,
-  seedanceApiKey,
-  seedanceCredentialEnvName,
-  seedanceExpectedBaseUrl,
-  type SeedanceRuntimeProfile,
-} from "@/lib/config/seedance-runtime";
 import { shuyuApiKey } from "@/lib/providers/shuyu";
 
 export type AiProviderId = "openai";
 export type StorageProviderId = "vercel_blob";
-export type VideoProviderId = "byteplus" | "shuyu" | "mock";
-export type ContentReviewProviderId = "noop" | "openai_moderation";
+export type VideoProviderId = "shuyu" | "mock";
 
 export interface AppEnv {
   aiProvider: AiProviderId;
   storageProvider: StorageProviderId;
   videoProvider: VideoProviderId;
-  seedanceRuntimeProfile: SeedanceRuntimeProfile;
-  contentReviewProvider: ContentReviewProviderId;
-  contentReviewEnabled: boolean;
   appBaseUrl: string | null;
 }
 
 export type VideoGenerationRuntimeUnavailableReason =
   | "environment_invalid"
   | "production_mock_forbidden"
-  | "byteplus_key_missing"
-  | "byteplus_endpoint_invalid"
-  | "volcengine_legacy_key_missing"
-  | "volcengine_legacy_endpoint_invalid"
   | "shuyu_key_missing"
   | "shuyu_insufficient_balance"
-  | "shuyu_unavailable"
-  | "content_review_key_missing";
+  | "shuyu_unavailable";
 
 export type VideoGenerationRuntimeReadiness =
   | { ok: true }
@@ -69,8 +59,16 @@ export class VideoGenerationRuntimeUnavailableError extends Error {
 
 const AI_PROVIDER_VALUES: AiProviderId[] = ["openai"];
 const STORAGE_PROVIDER_VALUES: StorageProviderId[] = ["vercel_blob"];
-const VIDEO_PROVIDER_VALUES: VideoProviderId[] = ["byteplus", "shuyu", "mock"];
-const REVIEW_PROVIDER_VALUES: ContentReviewProviderId[] = ["noop", "openai_moderation"];
+const VIDEO_PROVIDER_VALUES: VideoProviderId[] = ["shuyu", "mock"];
+/**
+ * 已删除的直连线路留在线上的旧值。客户出片本来就只走 Shuyu（旧值在位时 buddy 线路照样放行），
+ * 所以它等同于 shuyu：行为与删除前对客户完全一样，只是不再有那条没配密钥的直连默认线路。
+ */
+const LEGACY_VIDEO_PROVIDER_ALIAS = "byteplus";
+
+function isLegacyVideoProviderValue(raw: string | undefined): boolean {
+  return raw?.trim().toLowerCase() === LEGACY_VIDEO_PROVIDER_ALIAS;
+}
 
 function parseEnum<T extends string>(
   raw: string | undefined,
@@ -159,47 +157,8 @@ export function videoGenerationRuntimeReadiness(
     return { ok: false, reason: "production_mock_forbidden" };
   }
 
-  if (!mock && app.videoProvider === "byteplus") {
-    if (!seedanceApiKey(app.seedanceRuntimeProfile, env)) {
-      return {
-        ok: false,
-        reason:
-          app.seedanceRuntimeProfile === "volcengine_cn_legacy"
-            ? "volcengine_legacy_key_missing"
-            : "byteplus_key_missing",
-      };
-    }
-    try {
-      resolveSeedanceArkBaseUrl(
-        env.ARK_BASE_URL,
-        app.seedanceRuntimeProfile,
-      );
-    } catch {
-      return {
-        ok: false,
-        reason:
-          app.seedanceRuntimeProfile === "volcengine_cn_legacy"
-            ? "volcengine_legacy_endpoint_invalid"
-            : "byteplus_endpoint_invalid",
-      };
-    }
-  }
-
   if (!mock && app.videoProvider === "shuyu" && !shuyuApiKey(env)) {
     return { ok: false, reason: "shuyu_key_missing" };
-  }
-
-  const moderationMock = [env.CONTENT_REVIEW_MOCK, env.LLM_FORCE_MOCK].some(
-    (value) =>
-      ["1", "true", "yes"].includes(value?.toLowerCase() ?? ""),
-  );
-  if (
-    app.contentReviewEnabled &&
-    app.contentReviewProvider === "openai_moderation" &&
-    !moderationMock &&
-    !env.OPENAI_API_KEY?.trim()
-  ) {
-    return { ok: false, reason: "content_review_key_missing" };
   }
 
   return { ok: true };
@@ -232,7 +191,7 @@ export function getAppEnv(): AppEnv {
 export function parseAppEnv(env: NodeJS.ProcessEnv | Record<string, string | undefined>): AppEnv {
   const aiDefault: AiProviderId = "openai";
   const storageDefault: StorageProviderId = "vercel_blob";
-  const videoDefault: VideoProviderId = "byteplus";
+  const videoDefault: VideoProviderId = "shuyu";
 
   const aiProvider = parseEnum<AiProviderId>(
     env.AI_PROVIDER,
@@ -247,29 +206,16 @@ export function parseAppEnv(env: NodeJS.ProcessEnv | Record<string, string | und
     "STORAGE_PROVIDER",
   );
   const videoProvider = parseEnum<VideoProviderId>(
-    env.VIDEO_PROVIDER,
+    isLegacyVideoProviderValue(env.VIDEO_PROVIDER) ? "shuyu" : env.VIDEO_PROVIDER,
     VIDEO_PROVIDER_VALUES,
     videoDefault,
     "VIDEO_PROVIDER",
-  );
-  const seedanceRuntimeProfile = resolveSeedanceRuntimeProfile(
-    env.SEEDANCE_RUNTIME_PROFILE,
-  );
-
-  const contentReviewProvider = parseEnum<ContentReviewProviderId>(
-    env.CONTENT_REVIEW_PROVIDER,
-    REVIEW_PROVIDER_VALUES,
-    "noop",
-    "CONTENT_REVIEW_PROVIDER",
   );
 
   return {
     aiProvider,
     storageProvider,
     videoProvider,
-    seedanceRuntimeProfile,
-    contentReviewProvider,
-    contentReviewEnabled: parseBool(env.CONTENT_REVIEW_ENABLED, false),
     appBaseUrl: (env.APP_BASE_URL || env.NEXT_PUBLIC_APP_URL)?.trim() || null,
   };
 }
@@ -280,16 +226,6 @@ export function parseAppEnv(env: NodeJS.ProcessEnv | Record<string, string | und
  *
  * 不抛错，由调用方决定是 throw 还是 warn 还是写 health endpoint。
  */
-/**
- * 客户出片线路是否配了凭据。只看 env、不发请求。
- * 客户线路只有 Shuyu（Runway 出片 2026-11-16 下线、代码已删）：线上残留的 RUNWAYML_API_SECRET 不算「有线路」。
- */
-function hasCustomerVideoRouteCredential(
-  env: NodeJS.ProcessEnv | Record<string, string | undefined>,
-): boolean {
-  return Boolean(shuyuApiKey(env));
-}
-
 export function validateDeploymentEnv(
   env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
 ): { ok: boolean; missing: string[]; warnings: string[] } {
@@ -303,43 +239,10 @@ export function validateDeploymentEnv(
     missing.push("APP_BASE_URL (或 NEXT_PUBLIC_APP_URL)");
   }
 
-  if (app.videoProvider === "byteplus") {
-    const credentialName = seedanceCredentialEnvName(
-      app.seedanceRuntimeProfile,
+  if (isLegacyVideoProviderValue(env.VIDEO_PROVIDER)) {
+    warnings.push(
+      "VIDEO_PROVIDER=byteplus 是已删除的直连线路的旧值，现在按 shuyu 处理；请在部署环境里删掉它或改成 shuyu",
     );
-    if (
-      !seedanceApiKey(app.seedanceRuntimeProfile, env) &&
-      !isMockVideoRuntime(env)
-    ) {
-      /// 线路精简（2026-11-09；11-16 起只剩 Shuyu）：客户出片只走 Shuyu，派发与批量在默认直连线路没配好时
-      /// 本来就放行它（canVideoRouteOverrideDefaultRuntimeFailure）。所以只要客户线路配好了，
-      /// 直连密钥缺失就只是提醒，不再让 /api/health 报 503——否则这把已欠费账户的密钥永远删不掉。
-      /// 客户线路没配时照旧 fail closed：那时真的没有任何线路能出片。
-      if (hasCustomerVideoRouteCredential(env)) {
-        warnings.push(
-          `${credentialName} 未配置：直连线路 ${app.seedanceRuntimeProfile} 不可用。客户出片走 Shuyu 不受影响；内部脚本点名直连线路会失败`,
-        );
-      } else {
-        missing.push(
-          `${credentialName}（SEEDANCE_RUNTIME_PROFILE=${app.seedanceRuntimeProfile} 且 VIDEO_ENGINE_MOCK=false 时必填；缺失会 fail closed）`,
-        );
-      }
-    }
-    try {
-      resolveSeedanceArkBaseUrl(
-        env.ARK_BASE_URL,
-        app.seedanceRuntimeProfile,
-      );
-    } catch {
-      missing.push(
-        `ARK_BASE_URL 必须为 ${app.seedanceRuntimeProfile} 的固定端点 ${seedanceExpectedBaseUrl(app.seedanceRuntimeProfile)}`,
-      );
-    }
-    if (app.seedanceRuntimeProfile === "volcengine_cn_legacy") {
-      warnings.push(
-        "SEEDANCE_RUNTIME_PROFILE=volcengine_cn_legacy 会将生成素材发送至中国区；仅用于经人工明确批准的临时兼容窗口",
-      );
-    }
   }
 
   if (
@@ -354,20 +257,6 @@ export function validateDeploymentEnv(
     missing.push(
       "production runtime 禁止 mock 视频 provider（VIDEO_PROVIDER=mock、VIDEO_ENGINE_MOCK 非 false 或 AIVORA_DRY_RUN）",
     );
-  }
-
-  if (app.contentReviewEnabled && app.contentReviewProvider === "noop") {
-    warnings.push(
-      "CONTENT_REVIEW_ENABLED=true 但 CONTENT_REVIEW_PROVIDER=noop → 等同于未启用审核",
-    );
-  }
-  if (
-    app.contentReviewEnabled &&
-    app.contentReviewProvider === "openai_moderation" &&
-    !env.OPENAI_API_KEY &&
-    !parseBool(env.CONTENT_REVIEW_MOCK, false)
-  ) {
-    missing.push("OPENAI_API_KEY（OpenAI Moderation 启用时必填）");
   }
 
   return { ok: missing.length === 0, missing, warnings };

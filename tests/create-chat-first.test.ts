@@ -36,7 +36,7 @@ test("帮我写：只送素材 id 与商家已写的字；写好才替换描述�
   assert.match(draft, /finally \{\s*setDraftingPrompt\(false\);/);
   /// 写的过程中输入框与主按钮都锁住
   assert.match(studio, /disabled=\{locked \|\| draftingPrompt\}/);
-  assert.match(studio, /&& uploadingTarget === null\s*&& !draftingPrompt\s*&& selectedRouteAvailable === true;/);
+  assert.match(studio, /&& uploadingTarget === null\s*&& !draftingPrompt;/);
   assert.match(studio, /helpPolish: "帮我润色"/);
 });
 

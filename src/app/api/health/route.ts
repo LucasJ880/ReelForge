@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import {
   getAppEnv,
+  isMockVideoRuntime,
   validateDeploymentEnv,
 } from "@/lib/config/env";
 import { getAiProvider } from "@/lib/ai";
 import { getStorageProvider } from "@/lib/storage";
-import { getVideoProvider } from "@/lib/video-generation/providers";
+import { shuyuApiKey } from "@/lib/providers/shuyu";
 import {
   deploymentRelease,
   expectedMigrations,
@@ -81,7 +82,9 @@ async function resolveHealth(req: NextRequest): Promise<HealthResponse> {
 
   const ai = getAiProvider();
   const storage = getStorageProvider();
-  const video = getVideoProvider();
+  /// 出片只有 Shuyu 一家（mock 只在本地联调 / 测试，生产被 validateDeploymentEnv 拦着）：
+  /// 报的就是客户真在用的那条线路配没配好。
+  const videoMock = isMockVideoRuntime(process.env);
 
   const shouldPingStorage =
     req.nextUrl.searchParams.get("storage") === "ping" ||
@@ -105,10 +108,7 @@ async function resolveHealth(req: NextRequest): Promise<HealthResponse> {
     ok: dbResult.status === "connected" && validation.ok,
     aiProvider: ai.id,
     storageProvider: storage.id,
-    videoProvider: video.id,
-    seedanceRuntimeProfile: env.seedanceRuntimeProfile,
-    contentReviewProvider: env.contentReviewProvider,
-    contentReviewEnabled: env.contentReviewEnabled,
+    videoProvider: env.videoProvider,
 
     database: dbResult.status,
     ...(dbResult.status === "failed"
@@ -117,9 +117,9 @@ async function resolveHealth(req: NextRequest): Promise<HealthResponse> {
 
     aiProviderStatus: ai.isConfigured() ? "configured" : "not_configured",
     storageProviderStatus: storage.isConfigured() ? "configured" : "not_configured",
-    videoProviderStatus: video.isMockMode()
+    videoProviderStatus: videoMock
       ? "mock"
-      : video.isConfigured()
+      : shuyuApiKey(process.env)
         ? "configured"
         : "not_configured",
 

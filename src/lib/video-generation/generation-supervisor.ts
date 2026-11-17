@@ -6,11 +6,12 @@
  * 编排（按顺序）：
  *   1. classifyInput        → InputClassification
  *   2. classifyAssets       → 把 attachments 跑一遍 asset-classifier 拿 inferredRole（若 UI 已分类则跳过）
- *   3. buildCreativeBrief   → CreativeBrief（LLM 或 heuristic）
+ *   3. buildCreativeBrief ‖ analyzeVisualReferences → CreativeBrief + 看商品图（出方案只有这两步调模型，并行）
  *   4. buildBrandPackaging  → BrandPackagingPlan
  *   5. buildClipPlacement   → ClipPlacementPlan
  *   6. planUnifiedSegments  → UnifiedSegmentSlot[]
- *   7. buildVideoSegments   → VideoSegment[]（LLM prompts）
+ *   6.5 heuristicBible      → ConsistencyBible（确定性，不调模型）
+ *   7. buildVideoSegments   → VideoSegment[]（模板镜头表 + 固定负面提示词，不调模型）
  *   8. buildAssemblyPlan    → AssemblyPlan
  *   9. buildQualityReview   → QualityReview
  *   10. buildPlanPreview    → PlanPreview
@@ -19,6 +20,11 @@
  *
  * 各步 AI 调用失败都有兜底，方案照常出；哪几步退回了兜底记在 plan.planningDegradations（2026-10-29），
  * 同时进质量评审的 warning（商家看得到）并打一行运维日志。
+ *
+ * 一致性设定与段提示词不调模型（2026-11-09 起；退回四次调用的开关 PLANNING_FULL_LLM 已在瘦身第 4 批删除）：
+ * 单条视频派发时提示词会按已确认的故事板改写（storyboard-beats 的 ground* 函数），剧情与镜头来自商家原话 + 镜头卡，
+ * 方案里的段提示词只留下 PRODUCT / CHARACTER / 各类 LOCK / Audio / Spoken dialogue 这几行模板行——
+ * 为它们调模型写出来的镜头表与人物场景设定本来就整段被丢弃。
  */
 
 import { signoffActive } from "@/lib/video-generation/brand-signoff";
@@ -26,7 +32,7 @@ import { randomUUID } from "node:crypto";
 import { classifyInput } from "@/lib/video-generation/input-classifier";
 import { classifyAsset } from "@/lib/video-generation/asset-classifier";
 import { buildCreativeBrief } from "@/lib/video-generation/creative-strategist";
-import { buildConsistencyBible } from "@/lib/video-generation/consistency-bible";
+import { heuristicBible } from "@/lib/video-generation/consistency-bible";
 import {
   getConsistencyLocks,
   resolveStyleTemplate,
@@ -47,7 +53,6 @@ import {
   createPlanningDegradationLog,
   logPlanningDegradations,
 } from "@/lib/video-generation/planning-degradation";
-import { leanPlanningEnabled } from "@/lib/video-generation/planning-mode";
 import {
   effectiveAssetRole,
   type UnifiedVideoGenerationRequest,
@@ -124,8 +129,6 @@ export async function buildPlan(
 
   const classification = classifyInput({ ...request, attachments: classifiedAssets });
   const degradations = createPlanningDegradationLog();
-  /// 出方案精简（缺省开，PLANNING_FULL_LLM=on 退回）：一致性设定与段提示词不再调模型，见 planning-mode.ts
-  const lean = leanPlanningEnabled();
 
   /// 2. Creative brief（可能调 LLM）与 5.45 参考图视觉分析：
   /// 视觉分析让 GPT 真正「看」参考图，提取真实门店 / 产品实拍细节，让文字锚（bible / prompt）和图片锚描述同一个真实场景。
@@ -184,9 +187,9 @@ export async function buildPlan(
     ...(request.consistencyLockIds ?? []),
   ]);
 
-  /// 5.5 Consistency bible（跨镜头一致性锚：角色/场景/产品/光线弧，一次生成逐段复用）
+  /// 5.5 Consistency bible（跨镜头一致性锚：角色/场景/产品/光线弧，一次生成逐段复用）。确定性，不调模型。
   const aiSlotCount = segmentSlots.filter((s) => s.source === "ai").length;
-  const consistencyBible = await buildConsistencyBible({
+  const consistencyBible = heuristicBible({
     creativeBrief,
     classification,
     classifiedAssets,
@@ -194,11 +197,9 @@ export async function buildPlan(
     language: request.language ?? "en-US",
     styleTemplate,
     visualRefs,
-    onDegraded: degradations.record,
-    skipLlm: lean,
   });
 
-  /// 6. Per-segment prompts → VideoSegment[]
+  /// 6. Per-segment prompts → VideoSegment[]（模板镜头表，不调模型）
   const segments = await buildVideoSegments({
     creativeBrief,
     segmentSlots,
@@ -211,8 +212,6 @@ export async function buildPlan(
     consistencyLocks,
     visualRefs,
     voiceover: postProduction.audio.voiceover,
-    onDegraded: degradations.record,
-    skipLlm: lean,
   });
 
   /// 7. Assembly plan

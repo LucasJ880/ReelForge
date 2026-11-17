@@ -64,7 +64,6 @@ npm run context:find -- "..."
 
 | 开关（Vercel 环境变量） | 缺省 | 作用 |
 |---|---|---|
-| `PLANNING_FULL_LLM=on` | 关 | 出方案退回完整模型链路（缺省是精简版：一条片最多 7 次模型调用） |
 | `CAPTION_SPEECH_ALIGN=on` | 关 | 合成时把 AI 段人声交给 OpenAI `whisper-1` 识别，字幕跟着人声走。要求这把 `OPENAI_API_KEY` 有 whisper-1 权限（11-10 实查没有，需在 OpenAI 项目里开通）；识别不到就照旧按字数摊，不影响出片 |
 | `OPS_ALERT_WEBHOOK_URL` | 未配 | 运维告警的群机器人地址；没配只进日志（`[ops-alert]`） |
 | `PROGRESS_SEGMENT_EXPECTED_MIN` | 10 | 进度条估算用的出片典型分钟数（实测中位数） |
@@ -95,7 +94,9 @@ npm run context:find -- "..."
 以及故事板帧旧 planId `runway:` 的守卫（`storyboard-service.ts`，不交给 Shuyu，提示重新生成这一帧）。
 当初走 Runway 的旧成片照常看、照常只重新合成；「重做一段」「重试失败的段」会被明确拒绝，指到「用同样的素材再做一条」。
 Shuyu 现在没有备用线路，明确失败就是失败（可重试、可免费取消）。
-抠图、商品链接抓取、实拍图库与配音这几条线路的代码 11-17 已删（瘦身第 2 批）；内容审核留着当一个默认关的可选开关（`RETIRED_CAPABILITY_KEYS` 里只剩它）。
+抠图、商品链接抓取、实拍图库与配音这几条线路的代码 11-17 已删（瘦身第 2 批）。
+关着不用的那几样 11-17 也删了（瘦身第 4 批）：BytePlus / 火山直连出片（线路定义留在 `video-route-registry.ts` 里标成停用，只为读旧记录；
+旧值 `VIDEO_PROVIDER=byteplus` 按 shuyu 处理并提醒删掉）、内容审核、出方案的完整模型链路（`PLANNING_FULL_LLM`）、故事板 AI 审帧（`STORYBOARD_AI_REVIEW`）。
 
 ## 5. 交付门
 

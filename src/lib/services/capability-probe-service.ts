@@ -381,8 +381,6 @@ export async function probeShuyuCapabilities(
  *
  * 只做免费或近乎免费的探测（与 scripts/e2e-1025/route-truth-table.ts 同一批端点）：
  *  - text / vision：1 token 的 chat completion（额度用完 429 insufficient_quota → 暂停）
- *  - moderation：免费端点，但只在内容审核真开着（CONTENT_REVIEW_ENABLED + openai_moderation）时才探；
- *    关着就记「未开通」，不发任何请求（capabilityConfiguration 里判）
  *  - image / video：复用上面的 Shuyu /prices 探测 + 余额
  *  - graphics（Logo）没有便宜的探测：由账户状态推断 + 生产回写
  *  - email：只看配置
@@ -393,7 +391,6 @@ export async function probeShuyuCapabilities(
 type EnvLike = NodeJS.ProcessEnv | Record<string, string | undefined>;
 
 const OPENAI_API_BASE = "https://api.openai.com/v1";
-const OPENAI_MODERATION_MODEL = "omni-moderation-latest";
 const PROBE_TIMEOUT_MS = 15_000;
 const ACCOUNT_LEVEL_REASONS: ReadonlySet<CapabilityReason> = new Set(["quota", "auth"]);
 
@@ -531,17 +528,6 @@ export async function probeOpenAiChat(ctx: ProbeContext, models: string[]): Prom
     return observation;
   }
   return last ?? { status: "degraded", reason: "unknown", detail: { provider: "openai", note: "no model candidates" } };
-}
-
-export async function probeOpenAiModeration(ctx: ProbeContext): Promise<CapabilityObservation> {
-  const key = envValue(ctx, "OPENAI_API_KEY");
-  if (!key) return notConfigured();
-  const outcome = await httpProbe(ctx, `${OPENAI_API_BASE}/moderations`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: OPENAI_MODERATION_MODEL, input: "ok" }),
-  });
-  return fromHttp(outcome, { provider: "openai", model: OPENAI_MODERATION_MODEL });
 }
 
 function shuyuErrorObservation(code: string | null, httpStatus: number | null): CapabilityObservation {
@@ -702,9 +688,8 @@ export async function runCapabilityProbeCycle(deps: CapabilityProbeDeps = {}): P
   };
 
   const textModels = deps.models?.text ?? textProbeModels();
-  const [text, moderation, shuyu] = await Promise.all([
+  const [text, shuyu] = await Promise.all([
     openAiChat ? safely(() => probeOpenAiChat(ctx, textModels)) : Promise.resolve(null),
-    configured.moderation ? safely(() => probeOpenAiModeration(ctx)) : Promise.resolve(notConfigured()),
     probeShuyuLines(ctx, deps),
   ]);
 
@@ -745,7 +730,6 @@ export async function runCapabilityProbeCycle(deps: CapabilityProbeDeps = {}): P
     add("graphics", uncheckedAvailable("account recovered"), "derived");
   } else keep("graphics");
 
-  add("moderation", moderation, configured.moderation ? "probe" : "config");
   add("image", configured.image ? shuyu.image : notConfigured(), configured.image ? "probe" : "config");
   add("video", configured.video ? shuyu.video : notConfigured(), configured.video ? "probe" : "config");
 

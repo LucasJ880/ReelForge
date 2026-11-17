@@ -208,16 +208,6 @@ function has(env: EnvLike, name: string): boolean {
  * 每个能力的配置是否齐全（只看 env，不发请求）。与各 provider 的 isXxxAvailable() 同一判据，
  * 但在这里重写一遍而不 import provider：provider 反过来要 import 本模块做回写，不能成环。
  */
-/**
- * 内容审核是不是真的在用 OpenAI 审核端点：与 content-review/index.ts 选 provider 的判据一致
- *（CONTENT_REVIEW_ENABLED 为真且 CONTENT_REVIEW_PROVIDER=openai_moderation；真值写法同 env.ts 的 parseBool）。
- * 关着的时候审核是空操作，这项能力按「未开通」算——每小时的探测也就不会去打审核端点。
- */
-export function isOpenAiContentReviewEnabled(env: EnvLike = process.env): boolean {
-  const enabled = ["true", "1", "yes", "on"].includes(env.CONTENT_REVIEW_ENABLED?.trim().toLowerCase() ?? "");
-  return enabled && env.CONTENT_REVIEW_PROVIDER?.trim().toLowerCase() === "openai_moderation";
-}
-
 export function capabilityConfiguration(env: EnvLike = process.env): Record<CapabilityKey, boolean> {
   const openai = has(env, "OPENAI_API_KEY");
   const chat = openai;
@@ -228,7 +218,6 @@ export function capabilityConfiguration(env: EnvLike = process.env): Record<Capa
     image: shuyu,
     graphics: chat && env.IMAGE_ENGINE_MOCK !== "true",
     video: shuyu,
-    moderation: openai && isOpenAiContentReviewEnabled(env),
     email: has(env, "RESEND_API_KEY") && has(env, "EMAIL_FROM"),
   };
 }

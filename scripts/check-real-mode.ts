@@ -10,8 +10,8 @@
  *   npm run mode:check                # 仅打印
  *   npm run mode:check -- --strict    # 任何 REAL 都 exit 1（CI / dry-run 防呆）
  *
- * 不依赖 src/ 任何模块（避免反向引用）；只读 process.env，跟 src/lib/providers/seedance.ts
- * 的 isMockMode 判断逻辑保持一致。
+ * 不依赖 src/ 任何模块（避免反向引用）；只读 process.env，跟 src/lib/config/env.ts
+ * 的 isMockVideoRuntime 判断逻辑保持一致。
  */
 
 import { readFileSync, existsSync } from "node:fs";
@@ -81,84 +81,79 @@ function checkLLM(): ProviderState {
       estimatedCostNote: "$0 (no key)",
     };
   }
-  const dirModel = process.env.OPENAI_DIRECTOR_MODEL || "gpt-5.5";
-  const scriptModel = process.env.OPENAI_SCRIPT_MODEL || "gpt-5.5";
+  /// 与 src/lib/providers/openai.ts 的 DEFAULTS 同值：出方案只用 creative / fast / vision 三档
+  const creativeModel = process.env.OPENAI_CREATIVE_MODEL || "gpt-5.6-sol";
+  const fastModel = process.env.OPENAI_FAST_MODEL || "gpt-5.6-terra";
   return {
     name: "LLM (OpenAI)",
     mode: "REAL",
     reason: "OPENAI_API_KEY set + no FORCE_MOCK flag",
-    detail: `director=${dirModel} script=${scriptModel}`,
-    estimatedCostNote: "~$0.05–0.20 / preview-or-dispatch (gpt-5.5/4.1 mix)",
-  };
-}
-
-function checkSeedance(): ProviderState {
-  /// 与 src/lib/providers/seedance.ts 的 isMockMode 完全同构
-  const flag = process.env.VIDEO_ENGINE_MOCK?.toLowerCase();
-  const apiKey = !!process.env.BYTEPLUS_ARK_API_KEY;
-  const model = process.env.ARK_VIDEO_MODEL || "dreamina-seedance-2-0-260128";
-  if (flag === "1" || flag === "true" || flag === "yes") {
-    return {
-      name: "Seedance (BytePlus ModelArk international)",
-      mode: "MOCK",
-      reason: "VIDEO_ENGINE_MOCK=true",
-      detail: apiKey
-        ? "API key configured but explicitly forced mock"
-        : "no API key (mock-only)",
-      estimatedCostNote: "$0 / segment",
-    };
-  }
-  if (flag === "0" || flag === "false" || flag === "no") {
-    return {
-      name: "Seedance (BytePlus ModelArk international)",
-      mode: "REAL",
-      reason: "VIDEO_ENGINE_MOCK=false (explicit)",
-      detail: apiKey
-        ? `model=${model}`
-        : "❌ no BYTEPLUS_ARK_API_KEY — real mode forced but submit will throw",
-      estimatedCostNote: "待确认（企业账号注册后回填）",
-    };
-  }
-  /// 未设置：一律 mock；真实调用必须显式 VIDEO_ENGINE_MOCK=false
-  return {
-    name: "Seedance (BytePlus ModelArk international)",
-    mode: "MOCK",
-    reason: apiKey
-      ? "API key set but VIDEO_ENGINE_MOCK unset (safe default mock)"
-      : "no BYTEPLUS_ARK_API_KEY + no VIDEO_ENGINE_MOCK (safe default mock)",
-    detail: "set BYTEPLUS_ARK_API_KEY + VIDEO_ENGINE_MOCK=false to go real",
-    estimatedCostNote: "$0 / segment",
+    detail: `creative=${creativeModel} fast=${fastModel}`,
+    estimatedCostNote: "~$0.05–0.20 / preview-or-dispatch",
   };
 }
 
 function checkVideoProvider(): ProviderState {
-  const provider = (process.env.VIDEO_PROVIDER ?? "byteplus")
-    .trim()
-    .toLowerCase();
+  /// 与 src/lib/config/env.ts 的 isMockVideoRuntime 同构：出片只有 Shuyu 一家；
+  /// VIDEO_PROVIDER=mock、AIVORA_DRY_RUN、或 VIDEO_ENGINE_MOCK 没有显式写 false，都是 mock。
+  const name = "Video (Shuyu · Seedance)";
+  const rawProvider = (process.env.VIDEO_PROVIDER ?? "shuyu").trim().toLowerCase() || "shuyu";
+  /// 旧值 byteplus（已删除的直连线路）按 shuyu 处理，与 env.ts 的 LEGACY_VIDEO_PROVIDER_ALIAS 一致
+  const provider = rawProvider === "byteplus" ? "shuyu" : rawProvider;
+  const apiKey = Boolean(
+    process.env.SHUYU_API_KEY?.trim() || process.env.shuyu_api_key?.trim(),
+  );
+  if (provider !== "shuyu" && provider !== "mock") {
+    return {
+      name,
+      mode: "MOCK",
+      reason: `❌ VIDEO_PROVIDER=${provider} is not allowed (shuyu | mock)`,
+      detail: "the app refuses to parse its environment until this is unset or set to shuyu",
+      estimatedCostNote: "$0 / video (nothing can be submitted)",
+    };
+  }
   if (provider === "mock") {
     return {
-      name: "Video provider",
+      name,
       mode: "MOCK",
       reason: "VIDEO_PROVIDER=mock",
-      detail: "provider factory will use generated preview clips",
+      detail: "generated preview clips; blocked in production",
       estimatedCostNote: "$0 / video",
     };
   }
-  if (provider === "shuyu") {
-    const apiKey = Boolean(
-      process.env.SHUYU_API_KEY?.trim() || process.env.shuyu_api_key?.trim(),
-    );
+  if (parseBool(process.env.AIVORA_DRY_RUN)) {
     return {
-      name: "Video (Shuyu partner route)",
+      name,
+      mode: "MOCK",
+      reason: "AIVORA_DRY_RUN=true",
+      detail: apiKey ? "API key configured but dry run overrides" : "no API key (mock-only)",
+      estimatedCostNote: "$0 / video",
+    };
+  }
+  const flag = process.env.VIDEO_ENGINE_MOCK?.trim().toLowerCase();
+  if (flag === "0" || flag === "false" || flag === "no") {
+    return {
+      name,
       mode: "REAL",
-      reason: "VIDEO_PROVIDER=shuyu",
+      reason: "VIDEO_ENGINE_MOCK=false (explicit)",
       detail: apiKey
         ? "API key configured; live /prices audit still runs before dispatch"
         : "❌ no SHUYU_API_KEY/shuyu_api_key — submit will fail closed",
-      estimatedCostNote: "900 points / generated video (audited live plan)",
+      estimatedCostNote: "Shuyu points per video at the live audited plan price",
     };
   }
-  return checkSeedance();
+  /// 未设置或显式 true：一律 mock；真实调用必须显式 VIDEO_ENGINE_MOCK=false
+  return {
+    name,
+    mode: "MOCK",
+    reason: flag
+      ? `VIDEO_ENGINE_MOCK=${flag}`
+      : apiKey
+        ? "API key set but VIDEO_ENGINE_MOCK unset (safe default mock)"
+        : "no SHUYU_API_KEY + no VIDEO_ENGINE_MOCK (safe default mock)",
+    detail: "set SHUYU_API_KEY + VIDEO_ENGINE_MOCK=false to go real",
+    estimatedCostNote: "$0 / video",
+  };
 }
 
 function checkOpenAIImage(): ProviderState {
@@ -314,7 +309,7 @@ function guidance(realCount: number, isProd: boolean): string {
   }
   if (realCount === 0) return "all mock — safe to develop / iterate UI";
   if (realCount < 3) return "partial REAL — be aware of costs on each dispatch";
-  return "全部 REAL — 每次 Generate 都会真扣当前视频供应商/OpenAI 额度，确认你想这么做";
+  return "全部 REAL — 每次 Generate 都会真扣 Shuyu / OpenAI 额度，确认你想这么做";
 }
 
 main();

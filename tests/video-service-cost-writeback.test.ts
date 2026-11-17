@@ -25,7 +25,8 @@ import { parseDirectorPlan } from "../src/lib/schemas/director-plan";
  *   2. dispatchVideoGeneration（按镜头提交，旧单段流）
  *   3. retryFailedVideoJob 段重试分支
  *   4. retryFailedVideoJob 单段旧路径重试分支
- * 调用点 3 / 4 与「不覆盖」守卫各跑 byteplus 与 buddy 两种线路快照；
+ * 四处都跑 buddy 线路快照（出片只有 Shuyu；两条直连线路 2026-11-17 下线，它们的旧记录
+ * 重试会被明确拒绝，见 direct-seedance-retired-legacy-rows.test.ts）；
  * 另有 CAS 落空时什么都不写的守卫。回写范围只有 providerPlanId / providerUnitPoints，
  * providerUnitPriceUsd 不在本轮（任何路径都不得写它）。
  */
@@ -33,11 +34,6 @@ import { parseDirectorPlan } from "../src/lib/schemas/director-plan";
 type Row = Record<string, unknown>;
 type Write = { where: Row; data: Row };
 
-const BYTEPLUS_ROUTE = {
-  videoRouteSnapshot: "byteplus_international" as const,
-  videoModelSnapshot: "dreamina-seedance-2-0-260128",
-  videoProviderAdapterSnapshot: "byteplus" as const,
-};
 const BUDDY_ROUTE = {
   videoRouteSnapshot: "buddy" as const,
   videoModelSnapshot: "studio-video",
@@ -51,10 +47,7 @@ const ESTIMATED_AT_CREATE = {
 };
 /// 受理回写只允许动这两列；美元位不在 P03-B 范围内，任何线路都不得写
 const COST_COLUMNS = ["providerPlanId", "providerUnitPoints", "providerUnitPriceUsd"] as const;
-const ROUTE_VARIANTS = [
-  ["byteplus_international", BYTEPLUS_ROUTE],
-  ["buddy", BUDDY_ROUTE],
-] as const;
+const ROUTE_VARIANTS = [["buddy", BUDDY_ROUTE]] as const;
 /// 供应商受理时报告的实际套餐（提交级降级后换到的档）
 const ACTUAL_AT_ACCEPT = {
   providerPlanId: "video-plan-fallback",
@@ -75,7 +68,7 @@ function patch(t: TestContext, target: Row, values: Row) {
 function installRealMode(t: TestContext) {
   const keys = ["VIDEO_PROVIDER", "VIDEO_ENGINE_MOCK", "VERCEL_ENV"] as const;
   const previous = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
-  process.env.VIDEO_PROVIDER = "byteplus";
+  process.env.VIDEO_PROVIDER = "shuyu";
   process.env.VIDEO_ENGINE_MOCK = "false";
   process.env.VERCEL_ENV = "preview";
   /// 这些测试全部走 submitter 测试钩子，不该有任何真实网络请求（含 Shuyu /prices）。
@@ -183,7 +176,7 @@ function failedSegmentJob(overrides: Row = {}): Row {
     id: "job-cost-retry",
     status: VideoJobStatus.FAILED,
     provider: VideoProvider.SEEDANCE_T2V,
-    ...BYTEPLUS_ROUTE,
+    ...BUDDY_ROUTE,
     externalJobId: "provider-original",
     submissionState: ProviderSubmissionState.ACCEPTED,
     providerRequestKey: "job-cost-retry:attempt:1",
@@ -237,7 +230,7 @@ test("调用点 1 · submitSegmentJob（buddy）：受理后以实际套餐覆�
   assert.equal(where.providerRequestKey, table.row.providerRequestKey);
 });
 
-test("调用点 2 · dispatchVideoGeneration（byteplus）：按镜头提交同样回写", async (t) => {
+test("调用点 2 · dispatchVideoGeneration（buddy）：按镜头提交同样回写", async (t) => {
   installRealMode(t);
   const table = fakeVideoJobTable(t);
   const brief = {
@@ -248,7 +241,7 @@ test("调用点 2 · dispatchVideoGeneration（byteplus）：按镜头提交同�
     aspectRatio: "9:16",
     durationSec: 15,
     referenceImageUrls: [],
-    ...BYTEPLUS_ROUTE,
+    ...BUDDY_ROUTE,
     scripts: [{ id: "script-cost-scene" }],
   };
   patch(t, db.videoBrief as unknown as Row, {
@@ -273,14 +266,14 @@ test("调用点 2 · dispatchVideoGeneration（byteplus）：按镜头提交同�
     ],
   });
   videoTest.__setSubmitterForTests(async () => ({
-    jobId: "ark-task-1",
+    jobId: "shuyu-scene-task-1",
     ...ACTUAL_AT_ACCEPT,
   }));
 
   const created = await dispatchVideoGeneration("brief-cost-scene");
 
   assert.equal(created.length, 1);
-  assert.equal(created[0]?.externalJobId, "ark-task-1");
+  assert.equal(created[0]?.externalJobId, "shuyu-scene-task-1");
   assertActualSnapshotPersisted(table);
 });
 

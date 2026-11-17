@@ -19,16 +19,16 @@ const OLD_JOB = {
 };
 
 const REAL_ENV = {
-  VIDEO_PROVIDER: "byteplus",
+  VIDEO_PROVIDER: "shuyu",
   VIDEO_ENGINE_MOCK: "false",
-  BYTEPLUS_ARK_API_KEY: "test-placeholder-never-used",
+  SHUYU_API_KEY: "test-placeholder-never-used",
 };
 
 function installRealDispatchEnv(t: TestContext) {
   const keys = [
     "VIDEO_PROVIDER",
     "VIDEO_ENGINE_MOCK",
-    "BYTEPLUS_ARK_API_KEY",
+    "SHUYU_API_KEY",
   ] as const;
   const previous = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
   Object.assign(process.env, REAL_ENV);

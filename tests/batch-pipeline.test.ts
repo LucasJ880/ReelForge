@@ -491,7 +491,7 @@ test("派发领取：10 个候选使用一次批量 CAS，避免 Neon 逐行事�
     engineMock: process.env.VIDEO_ENGINE_MOCK,
     concurrency: process.env.PROVIDER_CONCURRENCY,
   };
-  process.env.VIDEO_PROVIDER = "byteplus";
+  process.env.VIDEO_PROVIDER = "shuyu";
   process.env.VIDEO_ENGINE_MOCK = "false";
   process.env.PROVIDER_CONCURRENCY = "10";
   t.after(() => {

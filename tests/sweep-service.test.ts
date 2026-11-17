@@ -164,7 +164,7 @@ test("RF-007 sweep：真实模式下历史未决 job 保持隔离，不改成 FA
   patchEmptyDefaults(t);
   const previousProvider = process.env.VIDEO_PROVIDER;
   const previousMock = process.env.VIDEO_ENGINE_MOCK;
-  process.env.VIDEO_PROVIDER = "byteplus";
+  process.env.VIDEO_PROVIDER = "shuyu";
   process.env.VIDEO_ENGINE_MOCK = "false";
   t.after(() => {
     if (previousProvider === undefined) delete process.env.VIDEO_PROVIDER;
@@ -203,7 +203,7 @@ test("RF-007 sweep：真实模式下历史未决 job 保持隔离，不改成 FA
   assert.ok(capturedWhere?.AND, "数据库首层查询必须包含派发隔离 eligibility");
 
   const realEligibility = sweepTest.videoJobSweepEligibilityWhere({
-    VIDEO_PROVIDER: "byteplus",
+    VIDEO_PROVIDER: "shuyu",
     VIDEO_ENGINE_MOCK: "false",
   });
   assert.deepEqual(

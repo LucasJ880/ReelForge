@@ -95,9 +95,8 @@ test("runtime LENS-5：没有在跑的段时，选法退回此前的 updatedAt �
   assert.deepEqual(ids, batches.slice(0, 20).map((batch) => batch.id));
 });
 
-test("runtime LENS-5：cron 路由用 selectCronBatchIds 选批次，并在看图预算上下文里跑（故事板 AI 审帧要它）", () => {
+test("runtime LENS-5：cron 路由用 selectCronBatchIds 选批次", () => {
   const route = readFileSync("src/app/api/cron/process-batches/route.ts", "utf8");
   assert.match(route, /selectCronBatchIds\(\)/);
-  assert.match(route, /runWithVisionBudget\(/);
   assert.doesNotMatch(route, /orderBy: \{ updatedAt: "asc" \}/, "选法不再只看 updatedAt");
 });

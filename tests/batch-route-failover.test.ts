@@ -86,7 +86,7 @@ function patch(
 function realEnvWithLeftovers(t: TestContext) {
   const values: Record<string, string | undefined> = {
     VERCEL_ENV: "preview",
-    VIDEO_PROVIDER: "byteplus",
+    VIDEO_PROVIDER: "shuyu",
     VIDEO_ENGINE_MOCK: "false",
     AIVORA_DRY_RUN: "false",
     SHUYU_API_KEY: "test-only",

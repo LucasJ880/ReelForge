@@ -64,11 +64,10 @@ test("生成复用 plan/dispatch、客户安全错误与请求级幂等契约", 
   assert.match(studio, /busy !== null \|\| uploadingTarget !== null/);
 });
 
-test("规格栏保留线路选择组件 hook，不在新页面硬编码 provider route id", async () => {
+test("规格栏只有客户的线路卡：线路只有一条，创作页不带线路 id 派发，也不硬编码 provider route id", async () => {
   const studio = await readFile(STUDIO_PATH, "utf8");
 
-  assert.match(studio, /<VideoRouteSelector/);
-  assert.match(studio, /canSelectVideoRoute=\{canSelectVideoRoute\}/);
-  assert.match(studio, /videoRouteId: selectedVideoRouteId/);
+  assert.match(studio, /<CustomerRoutePicker/);
+  assert.doesNotMatch(studio, /VideoRouteSelector|canSelectVideoRoute|selectedVideoRouteId|videoRouteId/);
   assert.doesNotMatch(studio, /byteplus_international|volcengine_cn_legacy|value="buddy"/);
 });

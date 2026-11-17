@@ -179,9 +179,6 @@ test("H1 health contract: healthy and degraded snapshots expose only bounded dia
     aiProvider: "openai",
     storageProvider: "vercel_blob",
     videoProvider: "mock",
-    seedanceRuntimeProfile: "byteplus_international",
-    contentReviewProvider: "openai_moderation",
-    contentReviewEnabled: true,
     database: "connected",
     aiProviderStatus: "configured",
     storageProviderStatus: "configured",
@@ -195,12 +192,9 @@ test("H1 health contract: healthy and degraded snapshots expose only bounded dia
     "aiProvider",
     "aiProviderStatus",
     "appVersion",
-    "contentReviewEnabled",
-    "contentReviewProvider",
     "database",
     "envValidation",
     "ok",
-    "seedanceRuntimeProfile",
     "storage",
     "storageProvider",
     "storageProviderStatus",
@@ -226,6 +220,11 @@ test("H1 health contract: healthy and degraded snapshots expose only bounded dia
     { smsLoginEnabled: false },
     { aiProvider: "volcengine" },
     { storageProvider: "volcengine_tos" },
+    /// 2026-11-17：直连出片线路与内容审核的字段随代码一起退出契约；videoProvider 只报 shuyu / mock / unknown
+    { seedanceRuntimeProfile: "byteplus_international" },
+    { contentReviewProvider: "noop" },
+    { contentReviewEnabled: false },
+    { videoProvider: "byteplus" },
   ]) {
     assert.equal(healthResponseSchema.safeParse({ ...healthy, ...retired }).success, false, JSON.stringify(retired));
   }

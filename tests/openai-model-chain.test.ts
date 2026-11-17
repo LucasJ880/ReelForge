@@ -87,6 +87,41 @@ test("客户最终看到的 tier 不退化到轻量档", () => {
   });
 });
 
+/// 这把密钥能用的对话模型（2026-11 核对）。回退链里出现清单外的模型 = 白吃一次「模型不存在」再降级
+const KEY_USABLE_MODELS = new Set([
+  "gpt-5.5-pro",
+  "gpt-5.6-sol",
+  "gpt-5.6-terra",
+  "gpt-6-astra",
+  "gpt-5",
+  "gpt-5.2",
+  "gpt-5-nano",
+]);
+
+test("内置回退链只放这把密钥能用的模型，每一档都有备用，各档的首选没变", () => {
+  const tierEnv = Object.fromEntries(TIERS.map((tier) => [`OPENAI_${tier.toUpperCase()}_MODEL`, undefined]));
+  withEnv({ OPENAI_MODEL: undefined, ...tierEnv }, () => {
+    const chains = Object.fromEntries(TIERS.map((tier) => [tier, resolveFallbackChain(tier)]));
+    assert.deepEqual(chains, {
+      director: ["gpt-5.6-sol", "gpt-6-astra"],
+      script: ["gpt-5.6-sol", "gpt-6-astra"],
+      videoPrompt: ["gpt-5.6-sol", "gpt-6-astra"],
+      creative: ["gpt-5.6-sol", "gpt-5.6-terra"],
+      qa: ["gpt-5.6-terra", "gpt-5.6-sol"],
+      fast: ["gpt-5.6-terra", "gpt-5.6-sol"],
+      research: ["gpt-5.6-terra", "gpt-5.6-sol"],
+      vision: ["gpt-5.6-sol", "gpt-5.6-terra"],
+    });
+    for (const tier of TIERS) {
+      assert.ok(chains[tier].length >= 2, `${tier} 没有备用`);
+      for (const model of chains[tier]) {
+        assert.ok(KEY_USABLE_MODELS.has(model), `${tier} 链里的 ${model} 这把密钥用不了`);
+      }
+      assert.equal(chains[tier][0], resolveModelForTier(tier));
+    }
+  });
+});
+
 test("tier 专属 env 仍然优先，运维要能临时切模型", () => {
   withEnv({ OPENAI_CREATIVE_MODEL: "gpt-5.6-terra" }, () => {
     assert.equal(resolveModelForTier("creative"), "gpt-5.6-terra");

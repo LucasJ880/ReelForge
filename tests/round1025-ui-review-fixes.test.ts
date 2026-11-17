@@ -58,7 +58,7 @@ test("LENS-2 代码里真在调的外部供应商，中英两版处理方名单�
     /// 2026-11-17：抠图（remove.bg / Clipdrop）、链接抓取（Firecrawl）、实拍图库（Pexels / Pixabay）三条线路的代码已删，
     /// 政策里也同步去掉了这几家和 OpenAI 的「配音」——不再用的不写，下面的反向检查守着。
     ["src/lib/services/notification-service.ts", ["Resend"]],
-    ["src/lib/config/seedance-runtime.ts", ["BytePlus"]],
+    /// 2026-11-17 第 4 批：两条直连 Seedance 线路（BytePlus / 火山引擎）的代码已删，政策里那一句也去掉了。
   ];
   for (const locale of ["zh-CN", "en-US"] as const) {
     const body = getPublicPageCopy(locale).privacy.processors.body;
@@ -67,13 +67,10 @@ test("LENS-2 代码里真在调的外部供应商，中英两版处理方名单�
       for (const name of names) assert.ok(body.includes(name), `${locale} 处理方名单缺 ${name}`);
     }
     for (const name of ["Neon", "Vercel"]) assert.ok(body.includes(name), `${locale} 缺 ${name}`);
-    for (const gone of ["remove.bg", "Clipdrop", "Firecrawl", "Pexels", "Pixabay", "配音", "voiceover", "Runway", "Stripe"]) {
+    for (const gone of ["remove.bg", "Clipdrop", "Firecrawl", "Pexels", "Pixabay", "配音", "voiceover", "Runway", "Stripe", "BytePlus", "火山", "Volcengine"]) {
       assert.ok(!body.includes(gone), `${locale} 处理方名单里还写着已经不用的 ${gone}`);
     }
   }
-  /// Seedance 两个档位都只在启用时使用：中国区端点必须写明是北京
-  assert.match(getPublicPageCopy("zh-CN").privacy.processors.body, /Seedance 视频线路只在启用时使用：BytePlus（东南亚）或火山引擎（中国北京）/);
-  assert.match(getPublicPageCopy("en-US").privacy.processors.body, /Seedance video routes are used only when enabled: BytePlus \(Southeast Asia\) or Volcengine \(Beijing, China\)/);
 });
 
 test("LENS-2 询盘与试点申请的联系方式：写清用途与保存多久；法务草案状态行保留", () => {

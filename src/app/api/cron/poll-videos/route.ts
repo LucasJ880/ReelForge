@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { machineAuthFailure } from "@/lib/machine-auth";
 import { startSchedulerHeartbeat } from "@/lib/scheduler-heartbeat";
-import { CRON_VISION_BUDGET, runWithVisionBudget } from "@/lib/services/vision-budget-context";
 import { pollRunningJobs } from "@/lib/services/video-service";
 import { sweepStuckTasks } from "@/lib/services/sweep-service";
 import { pollPendingStoryboardRuns } from "@/lib/video-generation/storyboard-service";
@@ -13,8 +12,6 @@ import { sendOpsAlert } from "@/lib/services/ops-alert-service";
  *
  * 顺带执行孤儿/超时清扫（sweep-service）：超时任务转为用户可见的失败状态，
  * 保证「任何任务都不会永远处于进行中」。清扫失败不影响 poll 主流程。
- *
- * 整次调用跑在看图预算上下文里（vision-budget-context）：故事板 AI 审帧只在 cron 里预约得到时长。
  *
  * 整轮超过 CRON_OVERRUN_ALERT_MS 发运维告警——清扫与退款都挂在这条 cron 的尾部，
  * 被平台在 300 秒掐掉就是整轮丢失。
@@ -119,11 +116,7 @@ export function createPollVideosHandler(
       heartbeat: heartbeatEvent,
     });
   }
-  return (req: NextRequest) =>
-    runWithVisionBudget(
-      { label: "cron:poll-videos", ...CRON_VISION_BUDGET },
-      () => pollVideosHandler(req),
-    );
+  return pollVideosHandler;
 }
 
 const pollVideos = createPollVideosHandler();

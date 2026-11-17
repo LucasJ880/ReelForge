@@ -23,7 +23,7 @@ export interface DispatchQuarantineRecord {
 export function isRealVideoDispatchMode(
   env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
 ): boolean {
-  if ((env.VIDEO_PROVIDER ?? "byteplus").trim().toLowerCase() === "mock") {
+  if ((env.VIDEO_PROVIDER ?? "shuyu").trim().toLowerCase() === "mock") {
     return false;
   }
   return ["0", "false", "no", "off"].includes(

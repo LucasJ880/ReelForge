@@ -25,7 +25,11 @@
  *   PROVIDER_STALL_MIN       信号 B 的僵死阈值，默认 30（必须 > 正常生成时长上限）
  */
 
-import type { SeedanceJobResult } from "@/lib/providers/seedance";
+/** 供应商状态查询结果里看门狗用到的两项（video-service 的 DirectProviderStatus 是它的超集）。 */
+type ProviderStatusForWatchdog = {
+  status: "pending" | "processing" | "completed" | "failed";
+  rawProviderResponse?: unknown;
+};
 
 /// 机器可读的失败原因前缀 —— 写进 VideoJob.errorMessage 开头，
 /// dispatch-breaker 与存量修复脚本按前缀识别 watchdog 失败，不再需要 schema 迁移。
@@ -88,14 +92,14 @@ export interface ProviderStallVerdict {
 
 /**
  * 信号 B：provider 僵死（晚于信号 A 的兜底，见模块头 2026-07-20 语义修正）。
- * Seedance 原始响应里 created_at / updated_at 为 unix 秒。火山 CN 实测：健康
+ * 供应商原始响应里 created_at / updated_at 为 unix 秒（数字）时才判；没有这两项就不判。火山 CN 实测：健康
  * running 任务的 updated_at 同样恒等于 created_at（仅终态推进），因此该信号
  * 无法区分「僵死」与「正常生成中」，阈值必须显著大于正常生成时长上限。
  * 判定：非终态 && updated_at <= created_at && 任务已存在超过 PROVIDER_STALL_MIN。
  * 原始响应快照由调用方随日志保留。
  */
 export function detectProviderStall(
-  result: Pick<SeedanceJobResult, "status" | "rawProviderResponse">,
+  result: ProviderStatusForWatchdog,
   now: Date = new Date(),
 ): ProviderStallVerdict {
   if (result.status !== "processing" && result.status !== "pending") {

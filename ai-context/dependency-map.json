@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T02:07:37.564Z",
+  "generatedAt": "2026-11-17T16:12:39.819Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -5089,7 +5089,6 @@
         "@/lib/auth-role-policy",
         "@/lib/db",
         "@/lib/services/exchange-readings",
-        "@/lib/capabilities/registry",
         "@/lib/services/capability-status-service",
         "@/i18n/server"
       ],
@@ -5099,7 +5098,6 @@
         "@/lib/auth-role-policy",
         "@/lib/db",
         "@/lib/services/exchange-readings",
-        "@/lib/capabilities/registry",
         "@/lib/services/capability-status-service",
         "@/i18n/server"
       ],
@@ -5490,14 +5488,12 @@
         "@/components/capabilities/capability-board",
         "@/i18n/server",
         "@/lib/auth",
-        "@/lib/capabilities/registry",
         "@/lib/services/capability-status-service"
       ],
       "localImports": [
         "@/components/capabilities/capability-board",
         "@/i18n/server",
         "@/lib/auth",
-        "@/lib/capabilities/registry",
         "@/lib/services/capability-status-service"
       ],
       "externalImports": [
@@ -6087,12 +6083,10 @@
       "imports": [
         "next/server",
         "@/lib/api-auth",
-        "@/lib/capabilities/registry",
         "@/lib/services/capability-status-service"
       ],
       "localImports": [
         "@/lib/api-auth",
-        "@/lib/capabilities/registry",
         "@/lib/services/capability-status-service"
       ],
       "externalImports": [
@@ -6120,7 +6114,6 @@
         "next/server",
         "@/lib/machine-auth",
         "@/lib/scheduler-heartbeat",
-        "@/lib/services/vision-budget-context",
         "@/lib/services/video-service",
         "@/lib/services/sweep-service",
         "@/lib/video-generation/storyboard-service",
@@ -6129,7 +6122,6 @@
       "localImports": [
         "@/lib/machine-auth",
         "@/lib/scheduler-heartbeat",
-        "@/lib/services/vision-budget-context",
         "@/lib/services/video-service",
         "@/lib/services/sweep-service",
         "@/lib/video-generation/storyboard-service",
@@ -6145,14 +6137,12 @@
         "next/server",
         "@/lib/machine-auth",
         "@/lib/scheduler-heartbeat",
-        "@/lib/services/batch-service",
-        "@/lib/services/vision-budget-context"
+        "@/lib/services/batch-service"
       ],
       "localImports": [
         "@/lib/machine-auth",
         "@/lib/scheduler-heartbeat",
-        "@/lib/services/batch-service",
-        "@/lib/services/vision-budget-context"
+        "@/lib/services/batch-service"
       ],
       "externalImports": [
         "next/server"
@@ -6264,7 +6254,7 @@
         "@/lib/config/env",
         "@/lib/ai",
         "@/lib/storage",
-        "@/lib/video-generation/providers",
+        "@/lib/providers/shuyu",
         "@/lib/contracts/health"
       ],
       "localImports": [
@@ -6272,7 +6262,7 @@
         "@/lib/config/env",
         "@/lib/ai",
         "@/lib/storage",
-        "@/lib/video-generation/providers",
+        "@/lib/providers/shuyu",
         "@/lib/contracts/health"
       ],
       "externalImports": [
@@ -9330,7 +9320,6 @@
         "@/components/quota/quota-next-steps",
         "@/lib/quota-next-steps",
         "@/components/video-generation/storyboard-workflow-panel",
-        "@/components/video-generation/video-route-selector",
         "@/components/video-generation/customer-route-picker",
         "@/i18n/useTranslation",
         "@/lib/capabilities/registry",
@@ -9338,7 +9327,8 @@
         "@/lib/api/customer-video-dispatch-recovery",
         "@/lib/utils",
         "@/lib/services/workspace-brand-package-service",
-        "@/lib/brand/brand-end-card-policy"
+        "@/lib/brand/brand-end-card-policy",
+        "@/lib/create/hook-angles"
       ],
       "localImports": [
         "@/components/exchange/quote-header",
@@ -9356,7 +9346,6 @@
         "@/components/quota/quota-next-steps",
         "@/lib/quota-next-steps",
         "@/components/video-generation/storyboard-workflow-panel",
-        "@/components/video-generation/video-route-selector",
         "@/components/video-generation/customer-route-picker",
         "@/i18n/useTranslation",
         "@/lib/capabilities/registry",
@@ -9364,7 +9353,8 @@
         "@/lib/api/customer-video-dispatch-recovery",
         "@/lib/utils",
         "@/lib/services/workspace-brand-package-service",
-        "@/lib/brand/brand-end-card-policy"
+        "@/lib/brand/brand-end-card-policy",
+        "@/lib/create/hook-angles"
       ],
       "externalImports": [
         "next/link",
@@ -9802,11 +9792,9 @@
     {
       "file": "src/lib/config/env.ts",
       "imports": [
-        "@/lib/config/seedance-runtime",
         "@/lib/providers/shuyu"
       ],
       "localImports": [
-        "@/lib/config/seedance-runtime",
         "@/lib/providers/shuyu"
       ],
       "externalImports": []
@@ -9819,49 +9807,6 @@
       "localImports": [],
       "externalImports": [
         "@prisma/client"
-      ]
-    },
-    {
-      "file": "src/lib/content-review/index.ts",
-      "imports": [
-        "@/lib/content-review",
-        "@/lib/config/env",
-        "./providers/noop-review-provider",
-        "./providers/openai-moderation-provider",
-        "./types"
-      ],
-      "localImports": [
-        "@/lib/content-review",
-        "@/lib/config/env",
-        "./providers/noop-review-provider",
-        "./providers/openai-moderation-provider",
-        "./types"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/lib/content-review/providers/noop-review-provider.ts",
-      "imports": [
-        "../types"
-      ],
-      "localImports": [
-        "../types"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/lib/content-review/providers/openai-moderation-provider.ts",
-      "imports": [
-        "openai",
-        "@/lib/services/capability-status-service",
-        "../types"
-      ],
-      "localImports": [
-        "@/lib/services/capability-status-service",
-        "../types"
-      ],
-      "externalImports": [
-        "openai"
       ]
     },
     {
@@ -10343,28 +10288,6 @@
       ]
     },
     {
-      "file": "src/lib/providers/seedance.ts",
-      "imports": [
-        "@/lib/config/dry-run",
-        "@/lib/config/env",
-        "@/lib/config/seedance-runtime",
-        "@/lib/video-generation/providers/submission-error",
-        "@/lib/content-review",
-        "@/lib/db",
-        "@/lib/video-generation/mock-clip-generator"
-      ],
-      "localImports": [
-        "@/lib/config/dry-run",
-        "@/lib/config/env",
-        "@/lib/config/seedance-runtime",
-        "@/lib/video-generation/providers/submission-error",
-        "@/lib/content-review",
-        "@/lib/db",
-        "@/lib/video-generation/mock-clip-generator"
-      ],
-      "externalImports": []
-    },
-    {
       "file": "src/lib/providers/shuyu-image-provider.ts",
       "imports": [
         "./shuyu-catalog",
@@ -10483,8 +10406,7 @@
         "@/lib/video-generation/video-route-cost",
         "@/lib/video-generation/batch-reference-manifest",
         "@/lib/video-generation/creative-recipe",
-        "@/lib/video-generation/storyboard-service",
-        "@/lib/video-generation/storyboard-ai-review"
+        "@/lib/video-generation/storyboard-service"
       ],
       "localImports": [
         "@/lib/db",
@@ -10510,8 +10432,7 @@
         "@/lib/video-generation/video-route-cost",
         "@/lib/video-generation/batch-reference-manifest",
         "@/lib/video-generation/creative-recipe",
-        "@/lib/video-generation/storyboard-service",
-        "@/lib/video-generation/storyboard-ai-review"
+        "@/lib/video-generation/storyboard-service"
       ],
       "externalImports": [
         "node:crypto",
@@ -10865,12 +10786,10 @@
       "file": "src/lib/services/ops-alert-service.ts",
       "imports": [
         "@/lib/db",
-        "@/lib/capabilities/registry",
         "@/lib/services/rate-limit-service"
       ],
       "localImports": [
         "@/lib/db",
-        "@/lib/capabilities/registry",
         "@/lib/services/rate-limit-service"
       ],
       "externalImports": []
@@ -11110,7 +11029,6 @@
         "@/lib/media/stitch-runtime",
         "./ops-alert-service",
         "@/lib/services/stitch-composer",
-        "@/lib/content-review",
         "@/lib/storage"
       ],
       "localImports": [
@@ -11128,7 +11046,6 @@
         "@/lib/media/stitch-runtime",
         "./ops-alert-service",
         "@/lib/services/stitch-composer",
-        "@/lib/content-review",
         "@/lib/storage"
       ],
       "externalImports": [
@@ -11368,16 +11285,6 @@
       ]
     },
     {
-      "file": "src/lib/services/video-watchdog.ts",
-      "imports": [
-        "@/lib/providers/seedance"
-      ],
-      "localImports": [
-        "@/lib/providers/seedance"
-      ],
-      "externalImports": []
-    },
-    {
       "file": "src/lib/services/videos-sync-service.ts",
       "imports": [
         "@prisma/client",
@@ -11394,16 +11301,6 @@
       ],
       "externalImports": [
         "@prisma/client"
-      ]
-    },
-    {
-      "file": "src/lib/services/vision-budget-context.ts",
-      "imports": [
-        "node:async_hooks"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "node:async_hooks"
       ]
     },
     {
@@ -11782,18 +11679,14 @@
     {
       "file": "src/lib/video-generation/consistency-bible.ts",
       "imports": [
-        "@/lib/ai",
         "@/types/video-generation",
         "@/lib/video-generation/storyboard-person-refs",
-        "@/lib/video-generation/planning-degradation",
         "@/lib/video-generation/style-templates",
         "@/lib/video-generation/visual-reference-analysis"
       ],
       "localImports": [
-        "@/lib/ai",
         "@/types/video-generation",
         "@/lib/video-generation/storyboard-person-refs",
-        "@/lib/video-generation/planning-degradation",
         "@/lib/video-generation/style-templates",
         "@/lib/video-generation/visual-reference-analysis"
       ],
@@ -11904,7 +11797,6 @@
         "@/lib/video-generation/plan-preview",
         "@/lib/video-generation/client-lock-profiles",
         "@/lib/video-generation/planning-degradation",
-        "@/lib/video-generation/planning-mode",
         "@/types/video-generation"
       ],
       "localImports": [
@@ -11924,7 +11816,6 @@
         "@/lib/video-generation/plan-preview",
         "@/lib/video-generation/client-lock-profiles",
         "@/lib/video-generation/planning-degradation",
-        "@/lib/video-generation/planning-mode",
         "@/types/video-generation"
       ],
       "externalImports": [
@@ -12057,40 +11948,20 @@
     {
       "file": "src/lib/video-generation/prompt-intelligence.ts",
       "imports": [
-        "@/lib/ai",
         "@/types/video-generation",
         "@/lib/video-generation/storyboard-person-refs",
         "@/lib/video-generation/consistency-bible",
         "@/lib/video-generation/style-templates",
         "@/lib/video-generation/visual-reference-analysis",
-        "@/lib/video-generation/segment-planner-adapter",
-        "@/lib/video-generation/planning-degradation"
+        "@/lib/video-generation/segment-planner-adapter"
       ],
       "localImports": [
-        "@/lib/ai",
         "@/types/video-generation",
         "@/lib/video-generation/storyboard-person-refs",
         "@/lib/video-generation/consistency-bible",
         "@/lib/video-generation/style-templates",
         "@/lib/video-generation/visual-reference-analysis",
-        "@/lib/video-generation/segment-planner-adapter",
-        "@/lib/video-generation/planning-degradation"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/lib/video-generation/providers/byteplus-video-provider.ts",
-      "imports": [
-        "@/lib/config/dry-run",
-        "@/lib/providers/seedance",
-        "@/lib/config/seedance-runtime",
-        "./types"
-      ],
-      "localImports": [
-        "@/lib/config/dry-run",
-        "@/lib/providers/seedance",
-        "@/lib/config/seedance-runtime",
-        "./types"
+        "@/lib/video-generation/segment-planner-adapter"
       ],
       "externalImports": []
     },
@@ -12098,18 +11969,14 @@
       "file": "src/lib/video-generation/providers/index.ts",
       "imports": [
         "@/lib/video-generation/providers",
-        "@/lib/config/env",
         "./mock-video-provider",
-        "./byteplus-video-provider",
         "./shuyu-video-provider",
         "./types",
         "../video-route-registry"
       ],
       "localImports": [
         "@/lib/video-generation/providers",
-        "@/lib/config/env",
         "./mock-video-provider",
-        "./byteplus-video-provider",
         "./shuyu-video-provider",
         "./types",
         "../video-route-registry"
@@ -12139,15 +12006,13 @@
         "@/lib/providers/shuyu",
         "./submission-error",
         "./types",
-        "../shuyu-runtime",
-        "@/lib/content-review"
+        "../shuyu-runtime"
       ],
       "localImports": [
         "@/lib/providers/shuyu",
         "./submission-error",
         "./types",
-        "../shuyu-runtime",
-        "@/lib/content-review"
+        "../shuyu-runtime"
       ],
       "externalImports": []
     },
@@ -12266,18 +12131,6 @@
       "externalImports": []
     },
     {
-      "file": "src/lib/video-generation/storyboard-ai-review.ts",
-      "imports": [
-        "@/lib/video-generation/storyboard-frame-inputs",
-        "@/lib/video-generation/storyboard-gacha"
-      ],
-      "localImports": [
-        "@/lib/video-generation/storyboard-frame-inputs",
-        "@/lib/video-generation/storyboard-gacha"
-      ],
-      "externalImports": []
-    },
-    {
       "file": "src/lib/video-generation/storyboard-beats.ts",
       "imports": [
         "@/lib/video-generation/storyboard-frame-inputs"
@@ -12323,8 +12176,6 @@
         "node:crypto",
         "@prisma/client",
         "@/lib/db",
-        "@/lib/ai",
-        "@/lib/services/vision-budget-context",
         "@/lib/providers/shuyu-image-provider",
         "@/lib/providers/shuyu",
         "@/lib/video-generation/video-route-registry",
@@ -12339,14 +12190,10 @@
         "@/lib/video-generation/story-english",
         "@/lib/video-generation/visual-reference-analysis",
         "@/lib/video-generation/storyboard-person-refs",
-        "@/lib/video-generation/planning-degradation",
-        "@/lib/video-generation/storyboard-gacha",
-        "@/lib/video-generation/storyboard-ai-review"
+        "@/lib/video-generation/planning-degradation"
       ],
       "localImports": [
         "@/lib/db",
-        "@/lib/ai",
-        "@/lib/services/vision-budget-context",
         "@/lib/providers/shuyu-image-provider",
         "@/lib/providers/shuyu",
         "@/lib/video-generation/video-route-registry",
@@ -12361,9 +12208,7 @@
         "@/lib/video-generation/story-english",
         "@/lib/video-generation/visual-reference-analysis",
         "@/lib/video-generation/storyboard-person-refs",
-        "@/lib/video-generation/planning-degradation",
-        "@/lib/video-generation/storyboard-gacha",
-        "@/lib/video-generation/storyboard-ai-review"
+        "@/lib/video-generation/planning-degradation"
       ],
       "externalImports": [
         "node:crypto",
@@ -12432,14 +12277,12 @@
       "file": "src/lib/video-generation/video-route-selection.ts",
       "imports": [
         "@/lib/config/env",
-        "@/lib/config/seedance-runtime",
         "@/lib/providers/shuyu",
         "./shuyu-runtime",
         "./video-route-registry"
       ],
       "localImports": [
         "@/lib/config/env",
-        "@/lib/config/seedance-runtime",
         "@/lib/providers/shuyu",
         "./shuyu-runtime",
         "./video-route-registry"
@@ -13658,23 +13501,6 @@
       ]
     },
     {
-      "file": "tests/byteplus-endpoint-guard.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/video-generation/providers/submission-error",
-        "../src/lib/providers/seedance"
-      ],
-      "localImports": [
-        "../src/lib/video-generation/providers/submission-error",
-        "../src/lib/providers/seedance"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/c4-capability-probe.test.ts",
       "imports": [
         "node:assert/strict",
@@ -13997,27 +13823,6 @@
       ]
     },
     {
-      "file": "tests/content-review-phase4.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test",
-        "../src/lib/content-review/providers/openai-moderation-provider",
-        "../src/lib/content-review",
-        "../src/lib/config/env"
-      ],
-      "localImports": [
-        "../src/lib/content-review/providers/openai-moderation-provider",
-        "../src/lib/content-review",
-        "../src/lib/config/env"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/create-chat-first.test.ts",
       "imports": [
         "node:assert/strict",
@@ -14331,6 +14136,55 @@
       ]
     },
     {
+      "file": "tests/direct-seedance-retired-legacy-rows.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:fs/promises",
+        "node:path",
+        "node:module",
+        "node:test",
+        "@prisma/client",
+        "next/server",
+        "../src/lib/db",
+        "../src/lib/auth",
+        "../src/app/api/briefs/[id]/render-retry/route",
+        "../src/lib/services/stitch-service",
+        "../src/lib/services/video-service",
+        "../src/lib/video-generation/providers",
+        "../src/lib/contracts/batch-request",
+        "../src/lib/video-generation/segment-redo",
+        "../src/lib/video-generation/video-route-registry",
+        "../src/lib/video-generation/video-route-selection",
+        "../src/types/video-generation",
+        "next-auth/next"
+      ],
+      "localImports": [
+        "../src/lib/db",
+        "../src/lib/auth",
+        "../src/app/api/briefs/[id]/render-retry/route",
+        "../src/lib/services/stitch-service",
+        "../src/lib/services/video-service",
+        "../src/lib/video-generation/providers",
+        "../src/lib/contracts/batch-request",
+        "../src/lib/video-generation/segment-redo",
+        "../src/lib/video-generation/video-route-registry",
+        "../src/lib/video-generation/video-route-selection",
+        "../src/types/video-generation"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:fs/promises",
+        "node:path",
+        "node:module",
+        "node:test",
+        "@prisma/client",
+        "next/server",
+        "next-auth/next"
+      ]
+    },
+    {
       "file": "tests/director-plan-schema.test.ts",
       "imports": [
         "node:assert/strict",
@@ -14486,14 +14340,18 @@
         "node:assert/strict",
         "node:test",
         "../src/lib/config/dry-run",
-        "../src/lib/providers/seedance",
+        "../src/lib/config/env",
+        "../src/lib/video-generation/video-route-selection",
+        "../src/lib/video-generation/providers",
         "../src/lib/providers/openai",
         "../src/lib/providers/openai-image",
         "../src/lib/providers/shuyu-image-provider"
       ],
       "localImports": [
         "../src/lib/config/dry-run",
-        "../src/lib/providers/seedance",
+        "../src/lib/config/env",
+        "../src/lib/video-generation/video-route-selection",
+        "../src/lib/video-generation/providers",
         "../src/lib/providers/openai",
         "../src/lib/providers/openai-image",
         "../src/lib/providers/shuyu-image-provider"
@@ -14653,15 +14511,13 @@
         "../src/lib/db",
         "../src/lib/services/video-service",
         "../src/lib/video-generation/business-status",
-        "../src/lib/video-generation/personal-status",
-        "../src/lib/providers/seedance"
+        "../src/lib/video-generation/personal-status"
       ],
       "localImports": [
         "../src/lib/db",
         "../src/lib/services/video-service",
         "../src/lib/video-generation/business-status",
-        "../src/lib/video-generation/personal-status",
-        "../src/lib/providers/seedance"
+        "../src/lib/video-generation/personal-status"
       ],
       "externalImports": [
         "node:assert/strict",
@@ -15318,7 +15174,6 @@
         "../next.config",
         "../src/lib/media/media-fonts",
         "../src/lib/video-generation/audio-post-production",
-        "../src/lib/services/vision-budget-context",
         "../src/lib/video-generation/brand-end-card-renderer",
         "../src/app/api/cron/poll-videos/route",
         "../src/app/api/cron/process-batches/route",
@@ -15330,7 +15185,6 @@
         "../next.config",
         "../src/lib/media/media-fonts",
         "../src/lib/video-generation/audio-post-production",
-        "../src/lib/services/vision-budget-context",
         "../src/lib/video-generation/brand-end-card-renderer",
         "../src/app/api/cron/poll-videos/route",
         "../src/app/api/cron/process-batches/route",
@@ -15589,21 +15443,6 @@
       ]
     },
     {
-      "file": "tests/openai-moderation-retry.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/content-review/providers/openai-moderation-provider"
-      ],
-      "localImports": [
-        "../src/lib/content-review/providers/openai-moderation-provider"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/openai-tier-director.test.ts",
       "imports": [
         "node:assert/strict",
@@ -15852,7 +15691,6 @@
         "../src/lib/providers/openai",
         "../src/lib/video-generation/business-status",
         "../src/lib/video-generation/generation-supervisor",
-        "../src/lib/video-generation/planning-mode",
         "../src/lib/video-generation/storyboard-beats",
         "../src/lib/video-generation/planning-degradation",
         "../src/lib/video-generation/planning-degradation-notice",
@@ -15871,7 +15709,6 @@
         "../src/lib/providers/openai",
         "../src/lib/video-generation/business-status",
         "../src/lib/video-generation/generation-supervisor",
-        "../src/lib/video-generation/planning-mode",
         "../src/lib/video-generation/storyboard-beats",
         "../src/lib/video-generation/planning-degradation",
         "../src/lib/video-generation/planning-degradation-notice",
@@ -16048,11 +15885,15 @@
         "node:test",
         "../src/lib/video-generation/providers/mock-video-provider",
         "node:fs",
-        "../src/lib/providers/seedance"
+        "../src/lib/config/env",
+        "../src/lib/video-generation/video-route-selection",
+        "../src/lib/video-generation/providers"
       ],
       "localImports": [
         "../src/lib/video-generation/providers/mock-video-provider",
-        "../src/lib/providers/seedance"
+        "../src/lib/config/env",
+        "../src/lib/video-generation/video-route-selection",
+        "../src/lib/video-generation/providers"
       ],
       "externalImports": [
         "node:assert/strict",
@@ -16141,16 +15982,18 @@
         "../src/lib/ai",
         "../src/lib/storage",
         "../src/lib/video-generation/providers",
-        "../src/lib/content-review",
-        "../src/lib/video-generation/providers/byteplus-video-provider"
+        "../src/lib/video-generation/providers/mock-video-provider",
+        "../src/lib/video-generation/providers/shuyu-video-provider",
+        "../src/lib/video-generation/video-route-registry"
       ],
       "localImports": [
         "../src/lib/config/env",
         "../src/lib/ai",
         "../src/lib/storage",
         "../src/lib/video-generation/providers",
-        "../src/lib/content-review",
-        "../src/lib/video-generation/providers/byteplus-video-provider"
+        "../src/lib/video-generation/providers/mock-video-provider",
+        "../src/lib/video-generation/providers/shuyu-video-provider",
+        "../src/lib/video-generation/video-route-registry"
       ],
       "externalImports": [
         "node:assert/strict",
@@ -16408,14 +16251,12 @@
         "@prisma/client",
         "../src/lib/db",
         "../src/lib/services/video-service",
-        "../src/lib/services/video-watchdog",
-        "../src/lib/providers/seedance"
+        "../src/lib/services/video-watchdog"
       ],
       "localImports": [
         "../src/lib/db",
         "../src/lib/services/video-service",
-        "../src/lib/services/video-watchdog",
-        "../src/lib/providers/seedance"
+        "../src/lib/services/video-watchdog"
       ],
       "externalImports": [
         "node:assert/strict",
@@ -16773,42 +16614,6 @@
       ]
     },
     {
-      "file": "tests/seedance-generate-audio.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/providers/seedance"
-      ],
-      "localImports": [
-        "../src/lib/providers/seedance"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/seedance-mock-hints.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "node:fs",
-        "node:url",
-        "node:child_process",
-        "../src/lib/providers/seedance"
-      ],
-      "localImports": [
-        "../src/lib/providers/seedance"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test",
-        "node:fs",
-        "node:url",
-        "node:child_process"
-      ]
-    },
-    {
       "file": "tests/seedance-opening-frame-prompt.test.ts",
       "imports": [
         "node:assert/strict",
@@ -16830,68 +16635,6 @@
       "externalImports": [
         "node:assert/strict",
         "node:fs/promises",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/seedance-privacy-fallback.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/providers/seedance"
-      ],
-      "localImports": [
-        "../src/lib/providers/seedance"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/seedance-reference-mode.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/providers/seedance"
-      ],
-      "localImports": [
-        "../src/lib/providers/seedance"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/seedance-status-mapping.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/providers/seedance"
-      ],
-      "localImports": [
-        "../src/lib/providers/seedance"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/seedance-submit-error-classification.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/providers/seedance",
-        "../src/lib/video-generation/providers/submission-error"
-      ],
-      "localImports": [
-        "../src/lib/providers/seedance",
-        "../src/lib/video-generation/providers/submission-error"
-      ],
-      "externalImports": [
-        "node:assert/strict",
         "node:test"
       ]
     },
@@ -17818,31 +17561,6 @@
       ]
     },
     {
-      "file": "tests/storyboard-auto-review.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test",
-        "../src/lib/db",
-        "../src/lib/services/vision-budget-context",
-        "../src/lib/video-generation/storyboard-ai-review",
-        "../src/lib/video-generation/storyboard-gacha",
-        "../src/lib/video-generation/storyboard-service"
-      ],
-      "localImports": [
-        "../src/lib/db",
-        "../src/lib/services/vision-budget-context",
-        "../src/lib/video-generation/storyboard-ai-review",
-        "../src/lib/video-generation/storyboard-gacha",
-        "../src/lib/video-generation/storyboard-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/storyboard-cancel.test.ts",
       "imports": [
         "node:assert/strict",
@@ -18711,14 +18429,12 @@
         "node:fs/promises",
         "node:test",
         "../src/lib/providers/shuyu",
-        "../src/lib/video-generation/providers/byteplus-video-provider",
         "../src/lib/video-generation/providers/mock-video-provider",
         "../src/lib/video-generation/providers/shuyu-video-provider",
         "../src/lib/video-generation/providers/types"
       ],
       "localImports": [
         "../src/lib/providers/shuyu",
-        "../src/lib/video-generation/providers/byteplus-video-provider",
         "../src/lib/video-generation/providers/mock-video-provider",
         "../src/lib/video-generation/providers/shuyu-video-provider",
         "../src/lib/video-generation/providers/types"
@@ -18781,7 +18497,9 @@
         "../src/lib/services/video-service",
         "../src/lib/services/historical-dispatch-quarantine",
         "../src/lib/config/env",
-        "../src/lib/content-review",
+        "../src/lib/providers/shuyu",
+        "../src/lib/video-generation/shuyu-runtime",
+        "../src/lib/video-generation/segment-redo",
         "../src/lib/duration/segment-planner",
         "./helpers/director-plan-fixture",
         "../src/lib/schemas/director-plan"
@@ -18791,7 +18509,9 @@
         "../src/lib/services/video-service",
         "../src/lib/services/historical-dispatch-quarantine",
         "../src/lib/config/env",
-        "../src/lib/content-review",
+        "../src/lib/providers/shuyu",
+        "../src/lib/video-generation/shuyu-runtime",
+        "../src/lib/video-generation/segment-redo",
         "../src/lib/duration/segment-planner",
         "./helpers/director-plan-fixture",
         "../src/lib/schemas/director-plan"
@@ -18844,11 +18564,9 @@
         "node:assert/strict",
         "node:test",
         "node:fs/promises",
-        "../src/components/video-generation/video-route-selector",
         "../src/lib/auth-role-policy"
       ],
       "localImports": [
-        "../src/components/video-generation/video-route-selector",
         "../src/lib/auth-role-policy"
       ],
       "externalImports": [

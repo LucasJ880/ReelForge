@@ -16,7 +16,9 @@ import {
 test("Shuyu 适配器给满 9 张（E1 视频档 input_images_max），其它适配器与历史行沿用 8", () => {
   assert.equal(SHUYU_MAX_REFERENCE_IMAGES, 9);
   assert.equal(singleVideoReferenceImageLimitForAdapter("shuyu"), 9);
+  /// 旧记录上已下线线路的适配器名（直连 Seedance 的 byteplus、runway）读出来仍沿用 8
   assert.equal(singleVideoReferenceImageLimitForAdapter("byteplus"), SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT);
+  assert.equal(singleVideoReferenceImageLimitForAdapter("runway"), SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT);
   assert.equal(singleVideoReferenceImageLimitForAdapter("mock"), SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT);
   assert.equal(singleVideoReferenceImageLimitForAdapter(null), SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT);
   assert.equal(singleVideoReferenceImageLimitForAdapter(undefined), SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT);

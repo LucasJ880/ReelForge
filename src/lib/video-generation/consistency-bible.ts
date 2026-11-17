@@ -1,24 +1,20 @@
 /**
- * Consistency Bible —— 跨镜头一致性锚点生成器（2026-07 质量对齐）。
+ * Consistency Bible —— 跨镜头一致性锚点（确定性模板）。
  *
- * 对标同行工作流：他们靠「角色板 + 产品板」图片锚定跨镜头一致性；
- * 我们的等价机制 = 一次性生成高密度文字锚（本模块）+ Seedance 2.0
- * Omni-Reference 产品参考图（video-service 传入）。
+ * 每个镜头分开生成，这里把必须逐镜一致的东西（人物、场景、商品、光线、画风）写成一份设定，逐段复用；
+ * 配合出片时传入的商品参考图一起锁住一致性。
  *
- * 关键原则：
- * 1. characterProfile / environmentProfile / productDescription 必须**具体到可复现**
- *    （发型长度、服装颜色款式、家具材质、窗外景别…），任何模糊描述都会导致跨段漂移。
- * 2. lightingArc 是叙事工具：光线要随剧情推进（同行案例：刺眼晨光→拉帘全黑→柔和晨光）。
- * 3. 输出全英文（Seedance 对英文 prompt 的语义遵从度最好），voiceProfile 记录口播语言。
+ * 2026-11-09 起出方案不再为这份设定调模型（那次调用没看图，写出的人物 / 场景 / 光线在按故事板改写提示词时
+ * 全被丢弃，只剩商品描述一句进 PRODUCT 行）。瘦身第 4 批把调模型的那条退路（PLANNING_FULL_LLM）连同它的
+ * 系统提示词一起删了：现在只有 heuristicBible 这一条路——
+ *  - 商品描述直接用「看商品图」那一步的原话（visualRefs.productDescription）；
+ *  - 真实场所的场景描述直接用实拍盘点；
+ *  - 其余取风格模版的底盘，没有模版时用通用设定。
+ * 输出全英文（视频模型对英文提示词的遵从度最好），voiceProfile 记录口播语言。
  */
 
-import { chatJsonByTier, isLLMAvailable, isLLMForcedMock } from "@/lib/ai";
 import { effectiveAssetRole } from "@/types/video-generation";
 import { presenterReferenceAssets } from "@/lib/video-generation/storyboard-person-refs";
-import {
-  planningDegradation,
-  type RecordPlanningDegradation,
-} from "@/lib/video-generation/planning-degradation";
 import type {
   ConsistencyBible,
   CreativeBrief,
@@ -28,31 +24,7 @@ import type {
 import type { StyleTemplate } from "@/lib/video-generation/style-templates";
 import type { VisualReferenceAnalysis } from "@/lib/video-generation/visual-reference-analysis";
 
-const SYSTEM_PROMPT = `You are a film production designer creating a "consistency bible" for an AI-generated short-form video ad. Every shot of the video will be generated separately, so your job is to lock down EVERY visual detail that must stay identical across shots.
-
-Return strict JSON:
-{
-  "characterProfile": "one main on-camera person, described so precisely that two different artists would draw the same person: gender, age range, ethnicity, exact hairstyle & hair color, skin tone, face shape, EXACT outfit (garment type, color, fit), overall vibe. 40-70 words.",
-  "environmentProfile": "the single primary location, described precisely: room type, wall color, key furniture with materials, window type & what's visible outside, floor, decor items. 30-60 words.",
-  "productDescription": "the product's exact visual identity: color, material, finish, shape, size relative to human hands/body, distinguishing details. 25-50 words.",
-  "lightingArc": ["shot-by-shot lighting narrative entry per video segment, e.g. 'harsh 6AM sunlight blasting through window straight into her face'", "..."],
-  "voiceProfile": "spoken-voice spec if the ad has voiceover, e.g. 'en-US, casual excited young female voice, natural pacing' — or null if no voiceover fits",
-  "styleKeywords": "8-14 comma-separated style anchors, e.g. 'authentic handheld iPhone footage, realistic skin texture, natural motion blur, true-to-life color, no beauty filter, slight camera shake'"
-}
-
-RULES:
-- Write in English only.
-- If product photos are provided, the productDescription MUST describe what is actually in those photos (you are given their filenames + classifier notes; be faithful, never invent a different product).
-- The character must fit the target audience (relatable, not a fashion model).
-- lightingArc length MUST equal the number of segments given, and lighting must PROGRESS the story, not stay static.
-- No brand names, no logos, no on-screen text instructions — except what is physically printed on the product in the photos: productDescription names that printed logo or label (where it sits, its color) so it stays on the product.`;
-
-/// 有主播参考图（开关放行且素材标了 person）时追加的规则（P02-C）：人物身份以主播参考图为准，
-/// 描述要具体但不许和那张照片打架。（主播图何时真正进视频参考由 P02-F(v) 决定，这里不做承诺。）
-const PRESENTER_REFERENCE_RULE =
-  `- A PRESENTER REFERENCE PHOTO is attached: characterProfile MUST describe the person in that photo. Open with "the exact person in the presenter reference photo", then give a concrete, reproducible description (hair, skin tone, build, age range, EXACT outfit, vibe) that stays faithful to that person and the brief. Never invent a different person.`;
-
-/// 无 LLM 时的主播兜底：在具体人物描述后追加「与主播参考图同一人」。
+/// 有主播参考图时在具体人物描述后追加「与主播参考图同一人」。
 const PRESENTER_HEURISTIC_SUFFIX =
   "Must be the exact person in the presenter reference photo — same face, hair, skin tone, build and age in every shot.";
 
@@ -68,119 +40,6 @@ export interface BuildConsistencyBibleArgs {
   styleTemplate?: StyleTemplate | null;
   /// 参考图视觉分析（真实门店/产品实拍）；有真实场所时 environmentProfile 逐字采用实拍描述
   visualRefs?: VisualReferenceAnalysis | null;
-  /// LLM 失败退回启发式时记一条（方案上可见）；不传 = 只打日志
-  onDegraded?: RecordPlanningDegradation;
-  /// 出方案精简（planning-mode.ts）：直接用确定性设定，不调模型。这是设计如此，不算降级、不记 onDegraded。
-  skipLlm?: boolean;
-}
-
-export async function buildConsistencyBible(
-  args: BuildConsistencyBibleArgs,
-): Promise<ConsistencyBible> {
-  if (args.skipLlm || isLLMForcedMock() || !isLLMAvailable()) {
-    return heuristicBible(args);
-  }
-  try {
-    const productAssets = args.classifiedAssets.filter((a) => {
-      const r = effectiveAssetRole(a);
-      return r === "product_image" || r === "reference_image";
-    });
-    const productNotes =
-      productAssets.length > 0
-        ? productAssets
-            .map((a) => `- ${a.fileName}: ${a.suggestedUse ?? "product photo"}`)
-            .join("\n")
-        : "(no product photos uploaded — infer product from the brief)";
-    const presenterAssets = presenterReferenceAssets(args.classifiedAssets);
-    const presenterSection =
-      presenterAssets.length > 0
-        ? `
-# Presenter reference photo(s) (the real on-camera person)
-${presenterAssets.map((a) => `- ${a.fileName}`).join("\n")}
-`
-        : "";
-
-    const refs = args.visualRefs;
-    const realLocationSection =
-      refs?.isRealLocation && refs.locationDescription
-        ? `
-# REAL LOCATION (from the client's actual photos — these photos are ALSO fed to the video model as visual references)
-The video takes place in this REAL place. environmentProfile MUST be this description verbatim or near-verbatim — do NOT invent a different place:
-"${refs.locationDescription}"
-${refs.signageText ? (refs.signageKind === "product_print" ? `Brand mark printed on the product reads exactly: "${refs.signageText}" — keep it in place on the product; never enlarge, duplicate or erase it.` : `Storefront signage reads exactly: "${refs.signageText}" — the sign may appear in establishing shots.`) : ""}
-${refs.keyFeatures.length > 0 ? `Signature features to keep recognizable: ${refs.keyFeatures.join("; ")}.` : ""}
-`
-        : "";
-
-    const tpl = args.styleTemplate;
-    const templateSection = tpl
-      ? `
-# LOCKED STYLE TEMPLATE (the user chose the "${tpl.name}" style — you MUST obey these constraints)
-${tpl.scaffold.characterHint ? `- character direction: ${tpl.scaffold.characterHint}` : ""}
-${tpl.scaffold.environmentHint ? `- environment direction: ${tpl.scaffold.environmentHint}` : ""}
-${tpl.scaffold.lightingHint ? `- lighting direction: ${tpl.scaffold.lightingHint}` : ""}
-- shot pattern this video will follow: ${tpl.scaffold.shotPattern}
-- dominant camera language: ${tpl.scaffold.cameraLanguage}
-${tpl.scaffold.dialogueStyle ? `- voiceover style: ${tpl.scaffold.dialogueStyle}` : "- this style has NO voiceover: set voiceProfile to null"}
-`
-      : "";
-
-    const { data } = await chatJsonByTier<Partial<ConsistencyBible>>({
-      tier: "videoPrompt",
-      stage: "consistency_bible",
-      system: presenterAssets.length > 0 ? `${SYSTEM_PROMPT}\n${PRESENTER_REFERENCE_RULE}` : SYSTEM_PROMPT,
-      user: `# Creative brief
-${JSON.stringify(args.creativeBrief, null, 2)}
-${realLocationSection}${templateSection}${presenterSection}
-# Product photos (will also be passed to the video model as visual references)
-${refs?.productDescription ? `Analyzed product from photos: ${refs.productDescription}\n` : ""}${productNotes}
-
-# Video structure
-- number of segments: ${args.aiSegmentCount}
-- target voiceover language: ${args.language}
-- video goal: ${args.classification.videoGoal}
-
-Return the JSON now.`,
-      temperature: 0.6,
-      maxTokens: 1200,
-    });
-
-    const fallback = heuristicBible(args);
-    const lightingArc =
-      Array.isArray(data.lightingArc) && data.lightingArc.length > 0
-        ? normalizeArc(data.lightingArc.map(String), args.aiSegmentCount)
-        : fallback.lightingArc;
-
-    return {
-      characterProfile: str(data.characterProfile) ?? fallback.characterProfile,
-      environmentProfile:
-        str(data.environmentProfile) ??
-        (refs?.isRealLocation ? refs.locationDescription : null) ??
-        fallback.environmentProfile,
-      productDescription:
-        str(data.productDescription) ?? refs?.productDescription ?? fallback.productDescription,
-      lightingArc,
-      voiceProfile:
-        tpl && !tpl.scaffold.dialogueStyle
-          ? null
-          : data.voiceProfile === null
-            ? null
-            : (str(data.voiceProfile) ?? fallback.voiceProfile),
-      /// 模版的 styleKeywords 是「锁死的风格底盘」，优先于 LLM 自由发挥
-      styleKeywords: tpl?.scaffold.styleKeywords ?? (str(data.styleKeywords) ?? fallback.styleKeywords),
-    };
-  } catch (err) {
-    console.warn(
-      "[consistency-bible] LLM failed; falling back to heuristic:",
-      (err as Error).message,
-    );
-    args.onDegraded?.(planningDegradation("consistency_bible", err));
-    return heuristicBible(args);
-  }
-}
-
-function str(v: unknown): string | null {
-  return typeof v === "string" && v.trim().length > 0 ? v.trim() : null;
 }
 
 /** lightingArc 长度对齐 segment 数：不足则复用最后一条，超出则截断 */
@@ -192,7 +51,7 @@ function normalizeArc(arc: string[], count: number): string[] {
   return out;
 }
 
-/** 无 LLM 时的可用兜底（mock 模式 / LLM 故障） */
+/** 一致性设定（确定性，不调模型）。出方案与测试都走这一条。 */
 export function heuristicBible(args: BuildConsistencyBibleArgs): ConsistencyBible {
   const langIsZh = args.language.toLowerCase().startsWith("zh");
   const tpl = args.styleTemplate;

@@ -66,11 +66,8 @@ test("director tier fallback chain: 永远不退到 mini", () => {
     for (const m of chain) {
       assert.doesNotMatch(m, /mini/, `director fallback chain 不应含 mini: ${m}`);
     }
-    /// 至少保留一个稳定可用的备份
-    assert.ok(
-      chain.includes("gpt-5.5") || chain.includes("gpt-4.1"),
-      `chain 应有更低档兜底：${JSON.stringify(chain)}`,
-    );
+    /// 备用只放这把密钥真能用的：原来的 gpt-5.5 / gpt-4.1 都用不了，换成 gpt-6-astra
+    assert.deepEqual(chain, ["gpt-5.6-sol", "gpt-6-astra"]);
   });
 });
 

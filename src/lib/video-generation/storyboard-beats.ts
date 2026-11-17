@@ -72,7 +72,7 @@ const KEEP_TEMPLATE_LINE =
 
 /// 供应商提示词上限 5000 字（shuyu）；商家描述最多 4000 字，这里给故事最多留 1500，余量给约束与台词。
 const STORY_CHAR_BUDGET = 1500;
-/// 视频 provider（providers/shuyu-video-provider.ts、byteplus-video-provider.ts）发出的是
+/// 视频 provider（providers/shuyu-video-provider.ts）发出的是
 /// `${prompt}\nNegative constraints: ${negativePrompt}`：预算必须把这条尾巴算进去，否则 grounding 4800 + 负面 250
 /// 就撞 5000 不可重试拒绝。分隔符在这里定一份，测试读 provider 源码盯它不漂移。
 export const NEGATIVE_CONSTRAINTS_SEPARATOR = "\nNegative constraints: ";

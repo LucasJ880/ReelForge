@@ -77,7 +77,7 @@ test("only retryable definitely-not-created failures permit automatic resubmissi
   assert.equal(shouldAutomaticallyRetrySubmission(safeTransient), true);
 
   const validationFailure = new ProviderSubmissionError("invalid duration", {
-    providerId: "byteplus",
+    providerId: "shuyu",
     stage: "provider_response",
     httpStatus: 422,
     code: "VALIDATION_ERROR",
@@ -100,7 +100,7 @@ test("unknown adapter errors are wrapped conservatively and preserve their cause
   const cause = new Error("socket closed after upload");
   const wrapped = asProviderSubmissionError({
     error: cause,
-    providerId: "byteplus",
+    providerId: "shuyu",
   });
 
   assert.equal(isProviderSubmissionError(wrapped), true);
@@ -110,8 +110,8 @@ test("unknown adapter errors are wrapped conservatively and preserve their cause
   assert.equal(wrapped.cause, cause);
 });
 
-test("BytePlus and Buddy remain explicitly unverified until contract tests prove idempotency", () => {
-  for (const providerId of ["byteplus", "buddy"]) {
+test("provider ids remain explicitly unverified until contract tests prove idempotency", () => {
+  for (const providerId of ["shuyu", "buddy"]) {
     assert.deepEqual(unverifiedSubmissionCapabilities(providerId), {
       providerId,
       idempotencySupport: "unknown",

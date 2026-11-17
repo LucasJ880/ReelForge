@@ -11,7 +11,10 @@ import {
   WATCHDOG_TIMEOUT_PREFIX,
   providerStallMin,
 } from "../src/lib/services/video-watchdog";
-import type { SeedanceJobResult } from "../src/lib/providers/seedance";
+/// 供应商状态查询的注入形状：取自 video-service 测试钩子的参数类型（那个类型本身不导出）
+type ProviderStatus = Awaited<
+  ReturnType<NonNullable<Parameters<typeof videoSvcTest.__setStatusFetcherForTests>[0]>>
+>;
 
 /**
  * AC-1 / AC-3 / AC-6 —— reconcileVideoJob 故障注入测试。
@@ -104,13 +107,9 @@ function installInMemoryJob(t: TestContext, job: JobRow) {
 
 function injectFetcher(
   t: TestContext,
-  fn: (jobId: string) => Promise<SeedanceJobResult>,
+  fn: (jobId: string) => Promise<ProviderStatus>,
 ) {
-  videoSvcTest.__setStatusFetcherForTests(
-    fn as unknown as Parameters<
-      typeof videoSvcTest.__setStatusFetcherForTests
-    >[0],
-  );
+  videoSvcTest.__setStatusFetcherForTests(fn);
   t.after(() => videoSvcTest.__setStatusFetcherForTests(null));
 }
 

@@ -26,27 +26,6 @@ test("默认负面：不再一刀切禁 logo 与可读文字，只禁额外添�
   assert.match(negative, /no subtitles, no captions, no on-screen text$/);
 });
 
-test("LLM 照旧规则写的负面：剔掉一刀切禁字项、补守卫、同项去重，且幂等", () => {
-  const llm = "blurry, no logo, no brand text, No URLs, no readable text, no QR codes, no subtitles,";
-  const out = promptIntel.appendBrandGuard(llm);
-  assertNoBlanketBans(out);
-  assert.ok(items(out).includes("blurry"));
-  assert.equal(items(out).filter((item) => item === "no urls").length, 1);
-  assert.equal(items(out).filter((item) => item === "no subtitles").length, 1);
-  assert.match(out, /keep any logo or label printed on the product exactly as in the reference photos/);
-  assert.match(out, /no on-screen text/);
-  assert.equal(promptIntel.appendBrandGuard(out), out);
-  assert.equal(promptIntel.appendBrandGuard(promptIntel.DEFAULT_NEGATIVE_PROMPT), promptIntel.DEFAULT_NEGATIVE_PROMPT);
-});
-
-test("给 LLM 的品牌守卫：商品印字是商品的一部分；负面必含项不再是一刀切禁字", () => {
-  const rule = promptIntel.SEEDANCE_BRAND_GUARD_RULE;
-  assert.match(rule, /printed on the product in the reference photos must stay exactly as photographed/);
-  assert.match(rule, /Never ask the model to remove, blur, hide or replace them/);
-  assert.doesNotMatch(rule, /MUST include: "no logo, no brand text/);
-  assert.match(rule, /Never write a bare "no logo", "no brand text" or "no readable text"/);
-});
-
 const brief: CreativeBrief = {
   hook: "A steel travel mug steams on a sunny desk",
   narrative: "Show the mug keeping coffee hot through a busy morning",

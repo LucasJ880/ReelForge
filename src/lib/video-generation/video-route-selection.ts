@@ -1,12 +1,4 @@
-import {
-  isMockVideoRuntime,
-  type VideoGenerationRuntimeUnavailableReason,
-} from "@/lib/config/env";
-import {
-  resolveSeedanceArkBaseUrl,
-  resolveSeedanceRuntimeProfile,
-  seedanceApiKey,
-} from "@/lib/config/seedance-runtime";
+import { isMockVideoRuntime } from "@/lib/config/env";
 import { shuyuApiKey } from "@/lib/providers/shuyu";
 import { getShuyuRouteRuntimeAvailability } from "./shuyu-runtime";
 import {
@@ -14,12 +6,9 @@ import {
   type VideoRouteSnapshot,
 } from "./video-route-registry";
 
-/// 内部可点名的线路。runway 不在其中：那条线路 2026-11-16 下线，只剩读旧记录用的线路定义（见 video-route-registry）。
-export const STAFF_SELECTABLE_VIDEO_ROUTE_IDS = [
-  "byteplus_international",
-  "volcengine_cn_legacy",
-  "buddy",
-] as const;
+/// 内部可点名的线路：只有 buddy。runway（2026-11-16）与两条直连 Seedance 线路（2026-11-17）已下线，
+/// 只剩读旧记录用的线路定义（见 video-route-registry），点名它们按 INVALID_ROUTE 拒绝。
+export const STAFF_SELECTABLE_VIDEO_ROUTE_IDS = ["buddy"] as const;
 
 export type StaffSelectableVideoRouteId =
   (typeof STAFF_SELECTABLE_VIDEO_ROUTE_IDS)[number];
@@ -69,8 +58,8 @@ export function selectCustomerVideoRouteSnapshot(args: {
 
 /**
  * Resolve one immutable route snapshot before idempotency/quota work begins.
- * Customer requests are Shuyu-only; legacy direct profiles remain available to
- * internal staff and historical snapshot readers.
+ * Shuyu (buddy) is the only real route for customers and internal staff alike;
+ * the retired direct profiles stay readable on historical snapshots only.
  */
 export function selectVideoRouteSnapshot(args: {
   requestedRouteId?: unknown;
@@ -111,9 +100,7 @@ export function selectVideoRouteSnapshot(args: {
     return createVideoRouteSnapshot(args.requestedRouteId);
   }
 
-  return createVideoRouteSnapshot(
-    resolveSeedanceRuntimeProfile(env.SEEDANCE_RUNTIME_PROFILE),
-  );
+  return createVideoRouteSnapshot("buddy");
 }
 
 export function isVideoRouteSnapshotRuntimeReady(
@@ -127,46 +114,6 @@ export function isVideoRouteSnapshotRuntimeReady(
     return Boolean(shuyuApiKey(env));
   }
   /// 已下线的线路（只剩读旧记录用的定义）永远不算就绪
-  if (snapshot.videoRouteSnapshot === "runway") return false;
-  if (!seedanceApiKey(snapshot.videoRouteSnapshot, env)) return false;
-  try {
-    resolveSeedanceArkBaseUrl(
-      env.ARK_BASE_URL,
-      snapshot.videoRouteSnapshot,
-    );
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * An explicit route may bypass readiness only when the reported failure
- * belongs to a different provider/profile. Content-review and mock seals are
- * intentionally never bypassable.
- */
-export function canVideoRouteOverrideDefaultRuntimeFailure(
-  snapshot: VideoRouteSnapshot,
-  reason: VideoGenerationRuntimeUnavailableReason,
-): boolean {
-  const byteplusFailure = [
-    "byteplus_key_missing",
-    "byteplus_endpoint_invalid",
-  ].some((candidate) => candidate === reason);
-  const volcengineFailure = [
-    "volcengine_legacy_key_missing",
-    "volcengine_legacy_endpoint_invalid",
-  ].some((candidate) => candidate === reason);
-
-  if (snapshot.videoRouteSnapshot === "buddy") {
-    return byteplusFailure || volcengineFailure;
-  }
-  if (snapshot.videoRouteSnapshot === "byteplus_international") {
-    return reason === "shuyu_key_missing" || volcengineFailure;
-  }
-  if (snapshot.videoRouteSnapshot === "volcengine_cn_legacy") {
-    return reason === "shuyu_key_missing" || byteplusFailure;
-  }
   return false;
 }
 

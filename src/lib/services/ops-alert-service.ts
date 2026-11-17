@@ -21,7 +21,6 @@
  * 而它被每个 provider import——数据库客户端只在真要占闩锁时才加载。
  */
 
-import { RETIRED_CAPABILITY_KEYS } from "@/lib/capabilities/registry";
 
 export const OPS_ALERT_KINDS = [
   "capability_down",
@@ -211,7 +210,6 @@ const CAPABILITY_LABELS: Record<string, string> = {
   image: "出图",
   graphics: "图文",
   video: "出片",
-  moderation: "内容审核",
   email: "邮件",
 };
 
@@ -225,8 +223,6 @@ export function capabilityTransitionAlert(
   prev: { status: string } | null | undefined,
   next: { key: string; status: string; reason: string; detail?: { provider?: string; note?: string; httpStatus?: number } },
 ): OpsAlert | null {
-  /// 没在用的线路（现在只有内容审核，生产关着）翻转不叫醒人。配音、图库、抓取、抠图 2026-11-16 连代码一起删了，不再有它们的观测
-  if ((RETIRED_CAPABILITY_KEYS as readonly string[]).includes(next.key)) return null;
   const wasDown = prev ? DOWN_STATUSES.has(prev.status) : false;
   const isDown = DOWN_STATUSES.has(next.status);
   const label = CAPABILITY_LABELS[next.key] ?? next.key;

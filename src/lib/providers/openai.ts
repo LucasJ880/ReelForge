@@ -7,25 +7,28 @@ import {
 } from "@/lib/providers/openai-vision-inline";
 
 /**
- * OpenAI 模型分层（2026-05 Phase Lifecycle Hardening）：
+ * OpenAI 模型分层。
  *
- * - 不再把所有阶段都钉在 mini —— mini 输出对最终客户看到的脚本/视频 prompt 太弱。
- * - 通过 `OpenAITier` 在调用点声明该次调用属于哪一类，然后在此处统一映射到具体模型。
- * - 模型由环境变量配置；未配置时使用默认值。
+ * 调用点用 `OpenAITier` 声明这次调用属于哪一类，在这里统一映射到具体模型（DEFAULTS），
+ * 首选模型不存在 / 没权限时按 FALLBACK_CHAIN 换下一个。
  *
- * 期望默认（在我们的 OpenAI 账号里可用，2026-05）：
- *   creative   → gpt-4.1（最终脚本/创意角度/视频 prompt；用户能看到的内容）
- *   qa         → gpt-4.1-mini（带推理的轻量打分；可手动升 gpt-4.1 / o4-mini）
- *   fast       → gpt-4o-mini（分类/抽取/补字段）
- *   research   → gpt-4o-mini（市场调研结构化压缩；fast 也可）
- *   vision     → gpt-5.6-sol，备用 gpt-5.6-terra（图像理解 + JSON；analyzeImages 按 vision 链回退）
+ * 这把密钥能用的对话模型（2026-11 核对过的清单）只有：
+ *   gpt-5.6-sol、gpt-5.6-terra、gpt-6-astra、gpt-5.5-pro、gpt-5.2、gpt-5、gpt-5-nano。
+ * gpt-4.x / gpt-4o 系和 gpt-5.5（不带 -pro）这把密钥都用不了，回退链里不再放它们。
  *
- * 想试 gpt-5.5 / o4 系列？只需在 .env 里覆写：
- *   OPENAI_CREATIVE_MODEL=gpt-5.5
- *   OPENAI_QA_MODEL=o4-mini
+ * 现在各档用的模型（缺省值，没有任何档改过）：
+ *   creative（创意简报）                         → gpt-5.6-sol，备用 gpt-5.6-terra
+ *   fast（镜头卡、原话英译、口播稿起草、发布文案）   → gpt-5.6-terra，备用 gpt-5.6-sol
+ *   vision（看商品图；analyzeImages 按这条链回退）  → gpt-5.6-sol，备用 gpt-5.6-terra
+ *   director / script / videoPrompt               → gpt-5.6-sol，备用 gpt-6-astra
+ *   qa / research                                 → gpt-5.6-terra，备用 gpt-5.6-sol
+ * 后五档在瘦身第 4 批时没有调用方（出方案的一致性设定、段提示词已不调模型），留着是因为类型与环境变量名还在。
  *
- * 若环境变量被设置但 OpenAI 账号里没有该模型，调用会抛错，
- * 此时 chatJsonByTier 会按 Tier 的 fallback chain 自动重试到下一档（可观测性日志会标 fallbackUsed=true）。
+ * 临时换模型：在环境变量里覆写对应档，例如
+ *   OPENAI_CREATIVE_MODEL=gpt-6-astra
+ *   OPENAI_FAST_MODEL=gpt-5.2
+ * 覆写成账号里没有的模型时，那次调用会报「模型不存在」，chatJsonByTier 按回退链换下一个
+ *（日志标 fallback=true）。限流、5xx、内容被拒不回退——那不是模型选错。
  */
 
 /**
@@ -57,10 +60,9 @@ export type OpenAITier =
   | "vision";
 
 /**
- * ⚠️ 2026-08-01：生产 key 的项目**只有 gpt-5.6 系与 gpt-image-2 的权限**，
- * 全部 gpt-4o / gpt-4.1 系一律 403。此前整条回退链都是 4 系，
- * 于是每个 LLM 阶段都跑完三次 403 再静默降级到启发式 —— 线上看不出来，
- * 因为降级是「成功」路径。改模型前先跑 `GET /v1/models` 确认权限，别照抄文档。
+ * ⚠️ 2026-08-01 的教训：当时整条回退链都是 4 系，而这把密钥对 4 系一律 403——
+ * 每个 LLM 阶段都跑完三次 403 再静默降级到启发式，线上看不出来，因为降级是「成功」路径。
+ * 改模型前先跑 `GET /v1/models` 确认权限，别照抄文档。
  */
 const DEFAULTS: Record<OpenAITier, string> = {
   /// 最强的视频导演 / 脚本 / Seedance prompt 阶段 — 客户最终看到的输出
@@ -75,32 +77,30 @@ const DEFAULTS: Record<OpenAITier, string> = {
 };
 
 /**
- * 当首选模型不可用时按顺序回退。
+ * 当首选模型不可用（不存在 / 没权限）时按顺序回退。链里只放这把密钥真能用的模型。
  *
- * 两条规则：
- * 1. director / script / videoPrompt 永远不能退到轻量档 —— 这些是客户最终看到的
- *    脚本与 Seedance prompt。
- * 2. 链尾保留 4 系是给尚未换 key 的部署兜底；当前生产用不到它们。
- *    **不要把 4 系放到链首**，那会让每次调用白白吃三个 403。
- * 3. vision 链此前是 [sol, gpt-4o]：sol 一旦 404 就直接掉到 403 的 4o，等于没有备用线。
- *    P01-A 起备用是 gpt-5.6-terra（生产 key 有权限，也支持图像输入），analyzeImages 真的会走这条链。
+ * 1. director / script / videoPrompt 不退到轻量档（terra / nano）——这三档是给客户最终看到的脚本与提示词用的。
+ *    原来的备用 gpt-5.5、gpt-4.1 这把密钥都用不了；去掉后这三档就没有备用了，所以补上能用的里最强的 gpt-6-astra。
+ *    它没有在这三档上真跑过（这三档目前也没有调用方），只在 sol 被下架时才会用到。
+ * 2. 其余各档在 sol 与 terra 之间互为备用；链尾原来的 4 系（gpt-4.1 / gpt-4.1-mini / gpt-4o-mini）已删。
+ * 3. vision 的备用是 gpt-5.6-terra（也支持图像输入），analyzeImages 真的会走这条链。
  */
 const FALLBACK_CHAIN: Record<OpenAITier, string[]> = {
-  director: ["gpt-5.6-sol", "gpt-5.5", "gpt-4.1"],
-  script: ["gpt-5.6-sol", "gpt-5.5", "gpt-4.1"],
-  videoPrompt: ["gpt-5.6-sol", "gpt-5.5", "gpt-4.1"],
-  creative: ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-4.1"],
-  qa: ["gpt-5.6-terra", "gpt-5.6-sol", "gpt-4.1-mini"],
-  fast: ["gpt-5.6-terra", "gpt-5.6-sol", "gpt-4o-mini"],
-  research: ["gpt-5.6-terra", "gpt-5.6-sol", "gpt-4o-mini"],
+  director: ["gpt-5.6-sol", "gpt-6-astra"],
+  script: ["gpt-5.6-sol", "gpt-6-astra"],
+  videoPrompt: ["gpt-5.6-sol", "gpt-6-astra"],
+  creative: ["gpt-5.6-sol", "gpt-5.6-terra"],
+  qa: ["gpt-5.6-terra", "gpt-5.6-sol"],
+  fast: ["gpt-5.6-terra", "gpt-5.6-sol"],
+  research: ["gpt-5.6-terra", "gpt-5.6-sol"],
   vision: ["gpt-5.6-sol", "gpt-5.6-terra"],
 };
 
 /**
- * 已知在当前生产项目下**没有权限**的模型。
+ * 已知在当前生产项目下**没有权限**的模型。回退链里已经没有它们，这条规则只管环境变量：
  *
  * 旧部署的 `OPENAI_MODEL=gpt-4o-mini` 会被 resolveModelForTier 当成首选，
- * 于是链首必然 403。与其每次调用浪费一个往返，不如在这里直接跳过 ——
+ * 于是链首必然 403。与其每次调用浪费一个往返，不如把它挪到链尾 ——
  * 这不是猜测，是 `GET /v1/models` 的返回。
  */
 const KNOWN_UNAVAILABLE = /^gpt-4/;
@@ -142,7 +142,7 @@ export function resolveFallbackChain(tier: OpenAITier): string[] {
     return true;
   });
 
-  /// 已知无权限的模型下沉到链尾而不是删掉：万一某个部署的 key 确实有 4 系权限，
+  /// 环境变量点名的 4 系下沉到链尾而不是删掉：那是运维明写的值，万一换了一把有 4 系权限的密钥
   /// 它仍然能作为最后的兜底，只是不再占用首选位置浪费往返。
   const usable = chain.filter((m) => !KNOWN_UNAVAILABLE.test(m));
   const deprioritized = chain.filter((m) => KNOWN_UNAVAILABLE.test(m));
@@ -208,8 +208,8 @@ function isReasoningModel(model: string): boolean {
 
 /**
  * 推理模型的 max_completion_tokens 同时包含思考与正文，而调用方的 maxTokens 是按「正文多长」定的
- * （一致性设定 1200、镜头卡 2500）。思考把额度吃光时正文为空、finish_reason=length。
- * 10-29 真机：consistency_bible 在 gpt-5.6-sol 上 reasoning_tokens=1200/1200、正文 0 字；
+ * （例如镜头卡 2500）。思考把额度吃光时正文为空、finish_reason=length。
+ * 10-29 真机：当时还调模型的一致性设定（上限 1200）在 gpt-5.6-sol 上 reasoning_tokens=1200/1200、正文 0 字；
  * 同一请求放开上限重跑，思考 133–1375 token 不等，正文只要约 420。镜头卡在 terra 上思考 107–1025。
  * 所以推理模型在正文上限之外另留一份思考余量。按实际生成计费，上限放宽本身不多花钱。
  */

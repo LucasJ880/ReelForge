@@ -16,7 +16,10 @@ import {
   type BusinessVideoStatus,
 } from "../src/lib/video-generation/business-status";
 import { derivePersonalStatus } from "../src/lib/video-generation/personal-status";
-import type { SeedanceJobResult } from "../src/lib/providers/seedance";
+/// 供应商状态查询的注入形状：取自 video-service 测试钩子的参数类型（那个类型本身不导出）
+type ProviderStatus = Awaited<
+  ReturnType<NonNullable<Parameters<typeof videoSvcTest.__setStatusFetcherForTests>[0]>>
+>;
 
 /**
  * AC-2 —— 完整生成流程的状态序列集成测试。
@@ -108,7 +111,7 @@ test("AC-2 集成：完整生成的前端可见状态序列合法，无回退，
 
   /// ---- Provider 响应序列（updated_at 推进 → 不触发僵死判定） ----
   const createdSec = Math.floor(NOW / 1000);
-  const providerSequence: SeedanceJobResult[] = [
+  const providerSequence: ProviderStatus[] = [
     {
       jobId: "ext_seq",
       status: "processing",

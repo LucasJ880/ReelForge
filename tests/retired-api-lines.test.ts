@@ -5,8 +5,10 @@
  * 2026-11-16 第 2 批瘦身把其中四条线路整段删了：实拍图库 + 配音、链接抓取、抠图。这里守住删完之后的事实：
  *   - 那些接口、组件、供应商文件不在了，也没有任何活代码还指着它们；
  *   - 数据库不动：表与已有记录留着，库里旧的能力状态行不让任何页面出错；
- *   - 还留着但没在用的只有内容审核（生产关着，合规随时可能要开），客户视图不列它、它翻转不叫醒人；
  *   - 留下的线路出问题照样报。
+ * 2026-11-17 第 4 批：内容审核（一直关着）的代码、开关与能力键也删了。原先为它留的「已下线但还登记着」
+ * 这一档（RETIRED_CAPABILITY_KEYS / withoutRetiredCapabilities）没有成员了，概念一起拿掉：
+ * 登记在册的能力都是真在用的，状态页全列、翻转都告警；库里 moderation 的旧行与另外四个键一样被过滤。
  * 出片没有兜底线路（Shuyu 不可用就按原原因拒绝）的断言在 batch-route-failover.test.ts。
  */
 import assert from "node:assert/strict";
@@ -16,11 +18,8 @@ import test from "node:test";
 import {
   CAPABILITY_KEYS,
   FEATURE_KEYS,
-  RETIRED_CAPABILITY_KEYS,
   isCapabilityKey,
-  isRetiredCapability,
   resolveCapabilities,
-  withoutRetiredCapabilities,
   type CapabilityKey,
   type CapabilityRecord,
 } from "../src/lib/capabilities/registry";
@@ -29,8 +28,8 @@ import { capabilityTransitionAlert } from "../src/lib/services/ops-alert-service
 
 const NOW = new Date("2026-11-16T12:00:00.000Z");
 const ALL_CONFIGURED = Object.fromEntries(CAPABILITY_KEYS.map((key) => [key, true])) as Record<CapabilityKey, boolean>;
-/// 2026-11-16 随线路一起删掉的四个能力键；CapabilityStatus 表里它们的旧行还在
-const DELETED_CAPABILITY_KEYS = ["voice", "stock", "scrape", "cutout"] as const;
+/// 随线路一起删掉的能力键（前四个 2026-11-16，moderation 2026-11-17）；CapabilityStatus 表里它们的旧行还在
+const DELETED_CAPABILITY_KEYS = ["voice", "stock", "scrape", "cutout", "moderation"] as const;
 
 function record(key: CapabilityKey, status: CapabilityRecord["status"], reason: CapabilityRecord["reason"]): CapabilityRecord {
   return {
@@ -54,15 +53,13 @@ function walk(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-test("能力清单：留下出方案、看图、出图、配图、出片、审核、邮件；配音 / 图库 / 抓取 / 抠图不再是能力", () => {
-  assert.deepEqual([...CAPABILITY_KEYS], ["text", "vision", "image", "graphics", "video", "moderation", "email"]);
+test("能力清单：留下出方案、看图、出图、配图、出片、邮件；配音 / 图库 / 抓取 / 抠图 / 审核不再是能力", () => {
+  assert.deepEqual([...CAPABILITY_KEYS], ["text", "vision", "image", "graphics", "video", "email"]);
   for (const key of DELETED_CAPABILITY_KEYS) assert.equal(isCapabilityKey(key), false, key);
-  /// 「已下线」清单里只剩审核：代码与开关都在，生产关着
-  assert.deepEqual([...RETIRED_CAPABILITY_KEYS], ["moderation"]);
-  for (const key of ["text", "vision", "image", "graphics", "video", "email"] as const) {
-    assert.equal(isRetiredCapability(key), false, key);
-  }
-  for (const gone of ["broll", "linkImport", "productCutout"]) {
+  /// 「已下线但还登记着」这一档没有成员了，概念连同导出一起拿掉
+  const registry = read("src/lib/capabilities/registry.ts");
+  assert.doesNotMatch(registry, /export (const|function) (RETIRED_CAPABILITY_KEYS|isRetiredCapability|withoutRetiredCapabilities)\b/);
+  for (const gone of ["broll", "linkImport", "productCutout", "uploadReview", "storyboardReview"]) {
     assert.equal((FEATURE_KEYS as readonly string[]).includes(gone), false, gone);
   }
 });
@@ -152,87 +149,99 @@ test("数据库不动：ProductAnchor 表留着；库里已删能力键的旧状
   const full = resolveCapabilities({ records: stale, configured: ALL_CONFIGURED, now: NOW });
   assert.deepEqual(full.items.map((item) => item.key), [...CAPABILITY_KEYS]);
   assert.equal(full.paused, false, "一条已经不存在的线路的旧故障不点亮「部分 AI 能力暂停」");
-  assert.equal(withoutRetiredCapabilities(full).paused, false);
-});
-
-test("客户视图：没在用的审核不列出、不计数；它出错不点亮「部分 AI 能力暂停」", () => {
-  const full = resolveCapabilities({
-    records: [record("moderation", "unavailable", "permission"), record("video", "available", "ok")],
-    configured: ALL_CONFIGURED,
-    now: NOW,
-  });
-  assert.equal(full.items.length, CAPABILITY_KEYS.length, "完整视图不变：功能闸门与探测照旧用它");
-  assert.equal(full.paused, true);
-
-  const customer = withoutRetiredCapabilities(full);
-  assert.deepEqual(
-    customer.items.map((item) => item.key),
-    CAPABILITY_KEYS.filter((key) => !isRetiredCapability(key)),
-  );
-  assert.equal(customer.paused, false, "审核 403 不让壳层报暂停");
-  assert.ok(
-    customer.items.every((item) => !item.features.includes("uploadReview")),
-    "「影响哪些功能」里不列依赖审核的上传审核",
-  );
-  const writing = customer.items.find((item) => item.key === "text");
-  assert.ok(writing?.features.includes("scriptWriting"), "仍在用的功能照列");
+  assert.equal(full.counts.unavailable, 0);
   assert.equal(
-    Object.values(customer.counts).reduce((sum, count) => sum + count, 0),
-    customer.items.length,
+    Object.values(full.counts).reduce((sum, count) => sum + count, 0),
+    CAPABILITY_KEYS.length,
     "计数与列出的行一致",
   );
 });
 
-test("客户视图：留下的线路出问题照样报", () => {
-  const customer = withoutRetiredCapabilities(
-    resolveCapabilities({
-      records: [record("video", "unavailable", "quota"), record("moderation", "available", "ok")],
-      configured: ALL_CONFIGURED,
-      now: NOW,
-    }),
+test("客户视图：登记在册的能力全列、全计数；留下的线路出问题照样报", () => {
+  const view = resolveCapabilities({
+    records: [record("video", "unavailable", "quota"), record("text", "available", "ok")],
+    configured: ALL_CONFIGURED,
+    now: NOW,
+  });
+  assert.deepEqual(view.items.map((item) => item.key), [...CAPABILITY_KEYS]);
+  assert.equal(view.paused, true);
+  assert.equal(view.counts.unavailable, 1);
+  assert.equal(
+    Object.values(view.counts).reduce((sum, count) => sum + count, 0),
+    view.items.length,
+    "计数与列出的行一致",
   );
-  assert.equal(customer.paused, true);
-  assert.equal(customer.counts.unavailable >= 1, true);
+  assert.ok(view.items.every((item) => !(item.features as string[]).includes("uploadReview")), "上传审核这项功能不在了");
+  const writing = view.items.find((item) => item.key === "text");
+  assert.ok(writing?.features.includes("scriptWriting"), "仍在用的功能照列");
 });
 
-test("客户视图接在状态页、壳层与 /api/capabilities 三处；创作页的功能闸门仍用完整视图", () => {
+test("状态页、壳层与 /api/capabilities 三处直接用 getCapabilities() 的整份视图：不再有「去掉已下线线路」那一步", () => {
   for (const path of [
     "src/app/(platform)/app/status/page.tsx",
     "src/app/(platform)/app/layout.tsx",
     "src/app/api/capabilities/route.ts",
   ]) {
-    assert.match(read(path), /withoutRetiredCapabilities\(/, path);
+    const source = read(path);
+    assert.match(source, /getCapabilities\(\)/, path);
+    assert.doesNotMatch(source, /withoutRetiredCapabilities|isRetiredCapability|RETIRED_CAPABILITY_KEYS/, path);
   }
-  assert.doesNotMatch(read("src/app/(platform)/app/create/page.tsx"), /withoutRetiredCapabilities/);
 });
 
-test("运维告警：没在用的审核翻转不叫醒人；出片、看图照报", () => {
-  for (const key of RETIRED_CAPABILITY_KEYS) {
+test("运维告警：登记在册的每一项能力翻转都报；已删的审核键不在标签表里", () => {
+  for (const key of CAPABILITY_KEYS) {
     assert.equal(
-      capabilityTransitionAlert({ status: "available" }, { key, status: "unavailable", reason: "quota" }),
-      null,
+      capabilityTransitionAlert({ status: "available" }, { key, status: "unavailable", reason: "quota" })?.kind,
+      "capability_down",
       key,
     );
-    assert.equal(capabilityTransitionAlert({ status: "unavailable" }, { key, status: "available", reason: "ok" }), null, key);
+    assert.ok(
+      capabilityTransitionAlert({ status: "unavailable" }, { key, status: "available", reason: "ok" }),
+      `${key} 恢复也报`,
+    );
   }
-  assert.equal(
-    capabilityTransitionAlert({ status: "available" }, { key: "video", status: "unavailable", reason: "quota" })?.kind,
-    "capability_down",
-  );
-  assert.equal(
-    capabilityTransitionAlert({ status: "available" }, { key: "vision", status: "unavailable", reason: "quota" })?.kind,
-    "capability_down",
-  );
+  const alerts = read("src/lib/services/ops-alert-service.ts");
+  assert.doesNotMatch(alerts, /RETIRED_CAPABILITY_KEYS/);
+  assert.doesNotMatch(alerts, /moderation: "内容审核"/);
 });
 
-test("画面质检整套删除之后：功能表里没有它，状态页「影响哪些功能」不列；看图这项能力本身还在（出方案看商品图）", () => {
+test("内容审核整套删除：目录不在了，没有活代码还 import 它、读它的开关或打审核端点；探测不再有审核这一路", () => {
+  assert.equal(existsSync("src/lib/content-review"), false, "src/lib/content-review 应该已经删除");
+  const offenders: string[] = [];
+  const forbidden =
+    /content-review|CONTENT_REVIEW_|contentReviewEnabled|contentReviewProvider|reviewTextOrThrow|reviewMediaOrThrow|ContentReviewRejectedError|probeOpenAiModeration|isOpenAiContentReviewEnabled|omni-moderation|\/moderations/;
+  for (const file of walk("src")) {
+    /// 注释里可以提历史；只看代码行
+    const code = read(file)
+      .split("\n")
+      .filter((line) => !/^\s*(\/\/|\*|\/\*)/.test(line))
+      .join("\n");
+    if (forbidden.test(code)) offenders.push(file);
+  }
+  assert.deepEqual(offenders, []);
+  /// 出片与合成两处原来的挂钩都拿掉了，其余流程原样
+  const shuyu = read("src/lib/video-generation/providers/shuyu-video-provider.ts");
+  assert.match(shuyu, /resolveShuyuVideoPlanWithCooldown\(/, "Shuyu 提交流程照旧");
+  const stitch = read("src/lib/services/stitch-service.ts");
+  assert.doesNotMatch(stitch, /reviewGeneratedVideo/);
+  assert.match(stitch, /status: FinalVideoStatus\.READY/, "成片照旧写成 READY");
+});
+
+test("举报内容是独立功能（商家举报 → ContentReport 行），不随内容审核删除：按钮、接口、表都在", () => {
+  assert.equal(existsSync("src/components/library/report-content-button.tsx"), true);
+  assert.equal(existsSync("src/app/api/reports/route.ts"), true);
+  assert.match(read("src/components/library/report-content-button.tsx"), /举报内容/);
+  assert.match(read("src/app/(platform)/app/library/[id]/page.tsx"), /<ReportContentButton/);
+  assert.match(read("prisma/schema.prisma"), /^model ContentReport \{/m);
+});
+
+test("画面质检与故事板 AI 审帧删除之后：功能表里没有它们，状态页「影响哪些功能」不列；看图这项能力本身还在（出方案看商品图）", () => {
   assert.equal((FEATURE_KEYS as readonly string[]).includes("frameQa"), false);
+  assert.equal((FEATURE_KEYS as readonly string[]).includes("storyboardReview"), false);
   const full = resolveCapabilities({ records: [record("vision", "available", "ok")], configured: ALL_CONFIGURED, now: NOW });
-  const fullVision = full.items.find((item) => item.key === "vision");
-  assert.deepEqual(fullVision?.features, ["storyboardReview"]);
-  const vision = withoutRetiredCapabilities(full).items.find((item) => item.key === "vision");
+  const vision = full.items.find((item) => item.key === "vision");
   assert.ok(vision, "看图能力仍在客户视图里");
-  assert.deepEqual(vision.features, ["storyboardReview"]);
+  assert.deepEqual(vision.features, [], "没有功能再依赖看图：状态页这一行不显示「影响」");
   assert.match(vision.message["zh-CN"], /商品图/);
 });
 

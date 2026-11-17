@@ -1005,7 +1005,10 @@ test("写手的模型：缺省走 director 档的回退链，OPENAI_DIRECTOR_WRI
     const base = directorWriterModelChain();
     assert.equal(base[0], "gpt-5.6-sol");
     process.env[DIRECTOR_WRITER_MODEL_ENV] = "gpt-6-astra";
-    assert.deepEqual(directorWriterModelChain(), ["gpt-6-astra", ...base]);
+    /// 点名的模型排最前；它本来就在回退链里时不重复出现（第 4 批起 director 档的备用就是 gpt-6-astra）
+    assert.deepEqual(directorWriterModelChain(), ["gpt-6-astra", ...base.filter((model) => model !== "gpt-6-astra")]);
+    process.env[DIRECTOR_WRITER_MODEL_ENV] = "gpt-5.5-pro";
+    assert.deepEqual(directorWriterModelChain(), ["gpt-5.5-pro", ...base]);
     process.env[DIRECTOR_WRITER_MODEL_ENV] = "gpt-5.6-sol";
     assert.deepEqual(directorWriterModelChain(), base);
   });

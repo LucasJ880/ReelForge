@@ -65,7 +65,7 @@ function provider(
   create: (options: CreateVideoJobOptions) => Promise<CreateVideoJobResult>,
 ): VideoProviderAdapter {
   return {
-    id: "byteplus",
+    id: "shuyu",
     displayName: "Billing safety fixture",
     manualRetryBillingRisk: "possible",
     supportsReferenceAudio: false,
@@ -128,7 +128,7 @@ test("RF-003: provider acknowledgement followed by DB persistence loss fails clo
     provider(async (options) => {
       providerCalls += 1;
       assert.equal(options.providerRequestKey, "job-billing-safe:attempt:1");
-      return { providerJobId: "accepted-but-not-saved", providerId: "byteplus" };
+      return { providerJobId: "accepted-but-not-saved", providerId: "shuyu" };
     }),
   );
 
@@ -182,7 +182,7 @@ test("P03-B: provider acknowledgement writes the actual plan id and points onto 
 test("P03-B: a provider that reports no plan leaves the batch creation-time cost snapshot untouched", async (t) => {
   installProvider(
     t,
-    provider(async () => ({ providerJobId: "accepted-plain", providerId: "byteplus" })),
+    provider(async () => ({ providerJobId: "accepted-plain", providerId: "shuyu" })),
   );
   const updates: Array<Record<string, unknown>> = [];
   patch(t, db.videoJob as unknown as Record<string, unknown>, {
@@ -274,21 +274,49 @@ test("RF-018: retry capability keeps explicit mock stalls recoverable without re
     batchTest.isBillingSafeManualRetry({
       ...stalled,
       provider: VideoProvider.SEEDANCE_I2V,
-      videoRouteSnapshot: "byteplus_international",
-      videoModelSnapshot: "dreamina-seedance-2-0-260128",
-      videoProviderAdapterSnapshot: "byteplus",
+      videoRouteSnapshot: "buddy",
+      videoModelSnapshot: "studio-video",
+      videoProviderAdapterSnapshot: "shuyu",
     }),
     false,
     "a real-provider timeout remains blocked until billing reconciliation",
   );
 });
 
+test("读旧记录：已下线线路（runway、两条直连）的失败批量段不能走零成本重试；判定本身不抛——批次详情照常打开", () => {
+  /// toCustomerBatchStatus 对每条 FAILED 的段都会问一次 isBillingSafeManualRetry；
+  /// 这里一抛，带着旧线路失败段的批次详情就整页打不开。
+  for (const retired of [
+    { videoRouteSnapshot: "byteplus_international", videoModelSnapshot: "dreamina-seedance-2-0-260128", videoProviderAdapterSnapshot: "byteplus" },
+    { videoRouteSnapshot: "volcengine_cn_legacy", videoModelSnapshot: "doubao-seedance-2-0-260128", videoProviderAdapterSnapshot: "byteplus" },
+    { videoRouteSnapshot: "runway", videoModelSnapshot: "klingO3_pro", videoProviderAdapterSnapshot: "runway" },
+  ]) {
+    for (const state of [
+      { submissionState: ProviderSubmissionState.NOT_STARTED, externalJobId: null, lastProviderStatus: null, errorMessage: null },
+      { submissionState: ProviderSubmissionState.REJECTED, externalJobId: null, lastProviderStatus: null, errorMessage: "rejected" },
+      {
+        submissionState: ProviderSubmissionState.ACCEPTED,
+        externalJobId: "provider-job-failed",
+        lastProviderStatus: "failed",
+        errorMessage: "[provider:failed] upstream",
+      },
+      { submissionState: ProviderSubmissionState.ACK_UNKNOWN, externalJobId: null, lastProviderStatus: null, errorMessage: "timeout" },
+    ]) {
+      let verdict: boolean | undefined;
+      assert.doesNotThrow(() => {
+        verdict = batchTest.isBillingSafeManualRetry({ provider: VideoProvider.SEEDANCE_I2V, ...retired, ...state });
+      }, `${retired.videoRouteSnapshot} / ${state.submissionState}`);
+      assert.equal(verdict, false, `${retired.videoRouteSnapshot} / ${state.submissionState}：线路没了，重提无处可去`);
+    }
+  }
+});
+
 test("RF-033: paid-provider retry requires proof that no external job exists", () => {
   const base = {
     provider: VideoProvider.SEEDANCE_I2V,
-    videoRouteSnapshot: "byteplus_international",
-    videoModelSnapshot: "dreamina-seedance-2-0-260128",
-    videoProviderAdapterSnapshot: "byteplus",
+    videoRouteSnapshot: "buddy",
+    videoModelSnapshot: "studio-video",
+    videoProviderAdapterSnapshot: "shuyu",
     submissionState: ProviderSubmissionState.NOT_STARTED,
     externalJobId: null,
     lastProviderStatus: null,

@@ -99,7 +99,7 @@ test("接线：客户的线路卡不带线路 id 派发（只有标准线路）�
     readFile("src/components/video-generation/customer-route-picker.tsx", "utf8"),
     readFile("src/app/api/video-generation/routes/catalog/route.ts", "utf8"),
   ]);
-  assert.match(studio, /\.\.\.\(canSelectVideoRoute && selectedVideoRouteId \? \{ videoRouteId: selectedVideoRouteId \} : \{\}\)/);
+  assert.doesNotMatch(studio, /videoRouteId/, "创作页派发不带线路 id：服务端缺省就是标准线路");
   assert.doesNotMatch(studio, /videoRouteId: "runway"|customerRoute/);
   assert.doesNotMatch(picker, /premium|fallsBackToPremium|高质量/);
   assert.match(studio, /<CustomerRoutePicker[\s\S]*?active=\{moreOpen\}/);

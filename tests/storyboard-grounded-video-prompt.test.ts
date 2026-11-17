@@ -87,14 +87,10 @@ test("接线：派发前按故事板改写提示词并写回 directorPlan；该�
   assert.match(service, /const groundSegment = seedanceOpeningFrame\s*\? groundSegmentPromptForSeedanceOpeningFrame\s*: groundSegmentPromptInStoryboard;/);
   assert.match(service, /negativePrompt: segment\.negativePrompt,/);
   assert.match(service, /directorPlan: \{ \.\.\.groundedPlan, referenceLayout \} as unknown as Prisma\.InputJsonValue/);
-  // 视频 provider 真正发出的拼接方式必须与预算用的分隔符一致
-  for (const file of [
-    "src/lib/video-generation/providers/shuyu-video-provider.ts",
-    "src/lib/video-generation/providers/byteplus-video-provider.ts",
-  ]) {
-    const provider = await readFile(file, "utf8");
-    assert.ok(provider.includes(JSON.stringify(NEGATIVE_CONSTRAINTS_SEPARATOR).slice(1, -1)), file);
-  }
+  // 视频 provider 真正发出的拼接方式必须与预算用的分隔符一致（出片适配器只剩 Shuyu 这一个）
+  const providerFile = "src/lib/video-generation/providers/shuyu-video-provider.ts";
+  const provider = await readFile(providerFile, "utf8");
+  assert.ok(provider.includes(JSON.stringify(NEGATIVE_CONSTRAINTS_SEPARATOR).slice(1, -1)), providerFile);
 });
 
 /**

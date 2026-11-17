@@ -41,41 +41,50 @@ test("isDryRun：解析 1/true/yes/on，其余为 false", async (t) => {
   }
 });
 
-test("dry-run：Seedance 提交强制走 mock（即便 BYTEPLUS_ARK_API_KEY 存在且 VIDEO_ENGINE_MOCK=false）", async (t) => {
+test("dry-run：出片线路强制落到 mock（即便 SHUYU_API_KEY 存在且 VIDEO_ENGINE_MOCK=false），点名真实线路被拒，全程零外呼", async (t) => {
   withEnv(t, {
     AIVORA_DRY_RUN: "1",
-    BYTEPLUS_ARK_API_KEY: "fake-key-should-never-be-used",
+    VERCEL_ENV: "preview",
+    SHUYU_API_KEY: "fake-key-should-never-be-used",
     VIDEO_ENGINE_MOCK: "false",
+    VIDEO_PROVIDER: undefined,
   });
-  const { submitSeedanceJob, getSeedanceStatus, isSeedanceConfigured } =
-    await import("../src/lib/providers/seedance");
-
-  const { jobId } = await submitSeedanceJob({ prompt: "test", duration: 5 });
-  assert.ok(jobId.startsWith("mock_"), `dry-run 提交必须返回 mock jobId，实际: ${jobId}`);
-
-  const status = await getSeedanceStatus(jobId);
-  assert.ok(status.jobId === jobId, "mock 状态查询应可用");
-
-  assert.equal(isSeedanceConfigured(), false, "dry-run 下 Seedance 视为未配置");
-});
-
-test("dry-run：真实 externalJobId 的状态查询也不打真实 API（走 mock 分支）", async (t) => {
-  withEnv(t, {
-    AIVORA_DRY_RUN: "1",
-    BYTEPLUS_ARK_API_KEY: "fake-key",
-    VIDEO_ENGINE_MOCK: "false",
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async (input: unknown) => {
+    throw new Error(`dry-run 下不该有任何外呼：${String(input)}`);
+  }) as typeof fetch;
+  t.after(() => {
+    globalThis.fetch = originalFetch;
   });
-  const { getSeedanceStatus } = await import("../src/lib/providers/seedance");
-  /// cgt- 开头是真实任务 id；dry-run 下必须走 mock 分支（返回 not-found 类结果或抛错都行，
-  /// 但绝不能发出真实 HTTP 请求）。mock 分支对未知 id 的行为是抛错或返回 failed。
-  await getSeedanceStatus("cgt-20260709010337-r2djs").then(
-    (r) => {
-      assert.ok(r.status === "failed" || r.status === "pending", "mock 分支返回值");
-    },
-    () => {
-      /* mock 分支抛「任务不存在」也可接受 —— 关键是没有真实外呼 */
-    },
+
+  const { isMockVideoRuntime } = await import("../src/lib/config/env");
+  const { selectVideoRouteSnapshot, VideoRouteSelectionError } = await import(
+    "../src/lib/video-generation/video-route-selection"
   );
+  const { createVideoProviderByRouteSnapshot } = await import("../src/lib/video-generation/providers");
+
+  assert.equal(isMockVideoRuntime(), true, "dry-run 盖过 VIDEO_ENGINE_MOCK=false");
+  /// 生产残留的旧值 VIDEO_PROVIDER=byteplus（按 shuyu 处理）也一样
+  for (const provider of [undefined, "shuyu", "byteplus"]) {
+    withEnv(t, { VIDEO_PROVIDER: provider });
+    for (const isInternalStaff of [false, true]) {
+      const snapshot = selectVideoRouteSnapshot({ isInternalStaff });
+      assert.equal(snapshot.videoRouteSnapshot, "mock", `${String(provider)} / staff=${isInternalStaff}`);
+      assert.throws(
+        () => selectVideoRouteSnapshot({ isInternalStaff, requestedRouteId: "buddy" }),
+        (error: unknown) => error instanceof VideoRouteSelectionError && error.code === "MOCK_ROUTE_CONFLICT",
+        "dry-run 下不许点名真实线路",
+      );
+    }
+  }
+
+  /// mock 线路的适配器本身不出网：提交与查询都在进程内
+  const provider = createVideoProviderByRouteSnapshot(selectVideoRouteSnapshot({ isInternalStaff: false }));
+  assert.equal(provider.id, "mock");
+  const { providerJobId } = await provider.createVideoJob({ prompt: "test", durationSec: 5 });
+  assert.match(providerJobId, /^batchmock_/, `dry-run 提交必须返回 mock 任务号，实际: ${providerJobId}`);
+  const status = await provider.getVideoJobStatus(providerJobId);
+  assert.equal(status.providerJobId, providerJobId, "mock 状态查询应可用");
 });
 
 test("dry-run：OpenAI LLM 强制 mock，chatJson 主动拒绝", async (t) => {

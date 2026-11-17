@@ -8,19 +8,29 @@
  */
 
 export const VIDEO_ROUTE_IDS = [
-  "byteplus_international",
-  "volcengine_cn_legacy",
   "mock",
   "buddy",
-  /// 只为读旧记录留着（见 ROUTES.runway）
+  /// 以下三条只为读旧记录留着（见 ROUTES 里各自的说明）
   "runway",
+  "byteplus_international",
+  "volcengine_cn_legacy",
 ] as const;
 
 /**
  * 已下线的线路：出片代码已经删了，登记只为读旧记录——readVideoRouteSnapshot 遇到认不得的线路 id 会抛，
  * 而旧的 brief / 段任务 / 批次上还记着它。不能再建新快照，也不再调供应商。
  */
-export const RETIRED_VIDEO_ROUTE_IDS: readonly VideoRouteId[] = ["runway"];
+export const RETIRED_VIDEO_ROUTE_IDS: readonly VideoRouteId[] = [
+  "runway",
+  "byteplus_international",
+  "volcengine_cn_legacy",
+];
+
+/**
+ * 已下线线路的适配器名。旧记录上的适配器名只要是其中之一，就不许落到任何还在的适配器分支上
+ *（哪怕那一行的线路 id 被写错了）。
+ */
+export const RETIRED_VIDEO_PROVIDER_ADAPTERS: readonly VideoProviderAdapterSnapshot[] = ["runway", "byteplus"];
 
 export type VideoRouteId = (typeof VIDEO_ROUTE_IDS)[number];
 export type EnabledVideoRouteId = VideoRouteId;
@@ -38,22 +48,6 @@ export interface VideoRouteContract {
 }
 
 const ROUTES = {
-  byteplus_international: {
-    id: "byteplus_international",
-    enabled: true,
-    providerAdapter: "byteplus",
-    model: "dreamina-seedance-2-0-260128",
-    processingRegion: "ap-southeast",
-  },
-  volcengine_cn_legacy: {
-    id: "volcengine_cn_legacy",
-    enabled: true,
-    // The current audited adapter is shared; the route snapshot distinguishes
-    // the explicit legacy account/endpoint/model profile.
-    providerAdapter: "byteplus",
-    model: "doubao-seedance-2-0-260128",
-    processingRegion: "cn-beijing",
-  },
   mock: {
     id: "mock",
     enabled: true,
@@ -80,6 +74,24 @@ const ROUTES = {
     providerAdapter: "runway",
     model: "klingO3_pro",
     processingRegion: null,
+  },
+  /// 只读（2026-11-17 起）：两条直连 Seedance 线路（BytePlus ModelArk 国际 / 火山 Ark 北京），共用适配器名 "byteplus"。
+  /// 生产一直没配密钥、客户出片从来只走 buddy；11-17 第 4 批删掉了直连的全部出片代码。
+  /// 与 runway 同一套读侧约定：线路 id 与适配器名留着读旧记录；enabled=false，建新快照会抛、
+  /// 供应商调用一律被拒；旧成片照常看、照常只重新合成；重做 / 重试某一段会被明确拒绝（video-service）。
+  byteplus_international: {
+    id: "byteplus_international",
+    enabled: false,
+    providerAdapter: "byteplus",
+    model: "dreamina-seedance-2-0-260128",
+    processingRegion: "ap-southeast",
+  },
+  volcengine_cn_legacy: {
+    id: "volcengine_cn_legacy",
+    enabled: false,
+    providerAdapter: "byteplus",
+    model: "doubao-seedance-2-0-260128",
+    processingRegion: "cn-beijing",
   },
 } as const satisfies Record<VideoRouteId, VideoRouteContract>;
 
@@ -132,6 +144,11 @@ export function getVideoRouteContract(routeId: VideoRouteId): VideoRouteContract
 /** 这条线路 id 是不是登记在册、但已经下线（只读旧记录）。认不得的 id 返回 false：那是数据错误，由 readVideoRouteSnapshot 报。 */
 export function isRetiredVideoRouteId(routeId: string | null | undefined): boolean {
   return typeof routeId === "string" && RETIRED_VIDEO_ROUTE_IDS.some((retired) => retired === routeId);
+}
+
+/** 旧记录上的适配器名是不是已下线的那几家（runway、直连 Seedance 的 byteplus）。 */
+export function isRetiredVideoProviderAdapter(adapter: string | null | undefined): boolean {
+  return typeof adapter === "string" && RETIRED_VIDEO_PROVIDER_ADAPTERS.some((retired) => retired === adapter);
 }
 
 export function isEnabledVideoRouteId(

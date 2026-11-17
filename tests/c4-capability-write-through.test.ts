@@ -190,8 +190,9 @@ test("行 ↔ 记录：原因与来源存进 detail；坏行（未知 key / 状�
   const row = capabilityRecordToRow(record);
   assert.deepEqual(row.detail, { reason: "permission", source: "probe", provider: "openai", httpStatus: 403 });
   assert.deepEqual(rowToCapabilityRecord({ key: "vision", ...row }), record);
-  /// 库里留着的旧行（2026-11-16 之前探测写的）：四个已删的键读出来是 null，连同它带的 ttsProbedAt 一起忽略
-  for (const key of ["voice", "stock", "scrape", "cutout"]) {
+  /// 库里留着的旧行（之前探测写的）：已删的键读出来是 null，连同它带的 ttsProbedAt 一起忽略
+  /// （前四个 2026-11-16 随线路删除；moderation 2026-11-17 随内容审核删除，之前每小时都写一行「未开通」）
+  for (const key of ["voice", "stock", "scrape", "cutout", "moderation"]) {
     assert.equal(
       rowToCapabilityRecord({
         key,
@@ -208,10 +209,12 @@ test("行 ↔ 记录：原因与来源存进 detail；坏行（未知 key / 状�
   assert.equal(rowToCapabilityRecord({ key: "text", status: "melting", detail: null, checkedAt: NOW, failingSince: null }), null);
 });
 
-test("配置判据：邮件要 key + 发件人；Shuyu 认大小写两种变量名；已删线路的 key 配着也不产生能力", () => {
+test("配置判据：邮件要 key + 发件人；Shuyu 认大小写两种变量名；已删线路的 key 与开关配着也不产生能力", () => {
   const config = capabilityConfiguration({
     OPENAI_API_KEY: "sk",
     shuyu_api_key: "s",
+    CONTENT_REVIEW_ENABLED: "true",
+    CONTENT_REVIEW_PROVIDER: "openai_moderation",
     PIXABAY_API_KEYS: " ,px ",
     FIRECRAWL_API_KEY: "fc",
     REMOVE_BG_API_KEY: "rb",
@@ -222,7 +225,7 @@ test("配置判据：邮件要 key + 发件人；Shuyu 认大小写两种变量�
   assert.equal(config.image, true);
   assert.equal(config.video, true);
   assert.equal(config.email, false, "缺 EMAIL_FROM");
-  assert.deepEqual(Object.keys(config).sort(), ["email", "graphics", "image", "moderation", "text", "video", "vision"]);
+  assert.deepEqual(Object.keys(config).sort(), ["email", "graphics", "image", "text", "video", "vision"]);
   assert.equal(capabilityConfiguration({ OPENAI_API_KEY: "sk", IMAGE_ENGINE_MOCK: "true" }).graphics, false);
 });
 

@@ -551,13 +551,9 @@ test("manual storyboard waits for approval while auto policy approves", () => {
   assert.equal(reviewing.canApprove, false);
 });
 
-for (const [mode, expected] of [
-  [undefined, "APPROVED"],
-  ["off", "APPROVED"],
-  ["shadow", "APPROVED"],
-  ["block", "AWAITING_APPROVAL"],
-] as const) {
-  test(`advanceRun：STORYBOARD_AI_REVIEW=${mode ?? "(unset)"} 时全部出图的 AUTO run → ${expected}；MANUAL 恒等确认`, async (t) => {
+/// 故事板 AI 审帧（STORYBOARD_AI_REVIEW）已删：残留的环境变量不管写什么，AUTO 都是出完图即批准。
+for (const mode of [undefined, "off", "shadow", "block"] as const) {
+  test(`advanceRun：全部出图的 AUTO run 直接 APPROVED、不写审帧汇总（残留的 STORYBOARD_AI_REVIEW=${mode ?? "(unset)"} 不再读）；MANUAL 恒等确认`, async (t) => {
     const runModel = db.storyboardRun as unknown as Record<string, unknown>;
     const originals = { findFirst: runModel.findFirst, updateMany: runModel.updateMany };
     const previousMode = process.env.STORYBOARD_AI_REVIEW;
@@ -565,11 +561,9 @@ for (const [mode, expected] of [
       Object.assign(runModel, originals);
       if (previousMode === undefined) delete process.env.STORYBOARD_AI_REVIEW;
       else process.env.STORYBOARD_AI_REVIEW = previousMode;
-      storyboardServiceTest.__setRuntimeDependenciesForTests(null);
     });
     if (mode === undefined) delete process.env.STORYBOARD_AI_REVIEW;
     else process.env.STORYBOARD_AI_REVIEW = mode;
-    storyboardServiceTest.__setRuntimeDependenciesForTests({ visionAvailable: () => true });
     const frames = [0, 1, 2, 3].map((ordinal) =>
       fakeFrame({ id: `f${ordinal}`, ordinal, status: "SUCCEEDED", submissionState: "ACCEPTED", outputUrl: `https://assets.example.test/${ordinal}.png` }),
     );
@@ -582,7 +576,8 @@ for (const [mode, expected] of [
       approvalPolicy: policy,
       durationSec: 15,
       aspectRatio: "9:16",
-      aiReviewSummary: null,
+      /// 旧行上可能留着审帧汇总（列还在）：读得进来，不影响推进
+      aiReviewSummary: { mode: "block", state: "reviewing", regenRound: 1, budgetShortTicks: 0, updatedAt: "2026-11-01T00:00:00.000Z" },
       frames,
     });
     runModel.updateMany = async (args: { data: Record<string, unknown> }) => {
@@ -590,9 +585,9 @@ for (const [mode, expected] of [
       return { count: 1 };
     };
     await storyboardServiceTest.advanceRun("run-modes");
-    assert.equal(updates[0]?.status, expected);
-    assert.equal(updates[0]?.approvedAt instanceof Date, expected === "APPROVED");
-    assert.equal("aiReviewSummary" in updates[0]!, mode === "block", "只有 block 写审帧汇总");
+    assert.equal(updates[0]?.status, "APPROVED");
+    assert.equal(updates[0]?.approvedAt instanceof Date, true);
+    assert.equal("aiReviewSummary" in updates[0]!, false, "不再写审帧汇总");
 
     policy = "MANUAL";
     updates.length = 0;

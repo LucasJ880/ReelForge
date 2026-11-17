@@ -14,17 +14,14 @@ import type { VideoRouteId } from "./video-route-registry";
  * 轮换（900 分/条下架、出现 700 分/条与按秒计费档），固定常量会把调价误判
  * 成停机或写错计价。快照价与提交用的是同一次审计解析（60s 缓存），
  * 解析失败时保持该列为 null，而不是写一个可能过期的旧价污染成本统计。
- *
- * byteplus 系线路按供应商美元计价、不走积分，这里返回 null；它们的成本快照
- * 应该落在 providerUnitPriceUsd 上（尚未接入），不做隐式换算。
  */
 const STATIC_UNIT_POINTS: Record<VideoRouteId, number | null> = {
   buddy: null, // 动态解析，见 resolveVideoRouteUnitPoints
-  byteplus_international: null,
-  volcengine_cn_legacy: null,
   mock: 0,
   /// 已下线、只读旧记录的线路（Record 要覆盖每个线路 id）：没有合作方积分价
   runway: null,
+  byteplus_international: null,
+  volcengine_cn_legacy: null,
 };
 
 export async function resolveVideoRouteUnitPoints(

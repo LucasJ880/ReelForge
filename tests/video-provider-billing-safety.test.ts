@@ -34,10 +34,16 @@ function patch(
 function installRealMode(t: TestContext) {
   const keys = ["VIDEO_PROVIDER", "VIDEO_ENGINE_MOCK", "VERCEL_ENV"] as const;
   const previous = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
-  process.env.VIDEO_PROVIDER = "byteplus";
+  process.env.VIDEO_PROVIDER = "shuyu";
   process.env.VIDEO_ENGINE_MOCK = "false";
   process.env.VERCEL_ENV = "preview";
+  /// 全部走 submitter / status 测试钩子：buddy 线路也不该有任何真实网络请求（含 Shuyu /prices）。
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input) => {
+    throw new Error(`unexpected network call in billing safety test: ${String(input)}`);
+  };
   t.after(() => {
+    globalThis.fetch = originalFetch;
     for (const key of keys) {
       const value = previous[key];
       if (value === undefined) delete process.env[key];
@@ -75,9 +81,9 @@ function failedAcceptedJob() {
     id: "job-retry-safe",
     status: VideoJobStatus.FAILED,
     provider: VideoProvider.SEEDANCE_T2V,
-    videoRouteSnapshot: "byteplus_international",
-    videoModelSnapshot: "dreamina-seedance-2-0-260128",
-    videoProviderAdapterSnapshot: "byteplus",
+    videoRouteSnapshot: "buddy",
+    videoModelSnapshot: "studio-video",
+    videoProviderAdapterSnapshot: "shuyu",
     externalJobId: "provider-original",
     submissionState: ProviderSubmissionState.ACCEPTED,
     providerRequestKey: "job-retry-safe:attempt:1",
@@ -230,9 +236,9 @@ test("RF-003: logical segment key makes repeated initial dispatch submit once", 
     segmentCount: 1,
     referenceImageUrls: [],
     routeSnapshot: {
-      videoRouteSnapshot: "byteplus_international" as const,
-      videoModelSnapshot: "dreamina-seedance-2-0-260128",
-      videoProviderAdapterSnapshot: "byteplus" as const,
+      videoRouteSnapshot: "buddy" as const,
+      videoModelSnapshot: "studio-video",
+      videoProviderAdapterSnapshot: "shuyu" as const,
     },
   };
   const first = await videoTest.submitSegmentJob(args);

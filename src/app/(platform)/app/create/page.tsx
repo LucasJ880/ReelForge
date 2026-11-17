@@ -145,8 +145,6 @@ export default async function PlatformCreatePage({
         loadedProductName={productAssets.length > 0 && retryAssets.length === 0 ? productPrefill?.name ?? null : null}
         recentSources={recentSources}
         brandPackages={brandPackages}
-        canSelectVideoRoute={false}
-        showInternalVideoRoutes={false}
         forceOnboarding={guide === "open"}
         returningUser={finishedCount > 0}
         capabilities={capabilities}

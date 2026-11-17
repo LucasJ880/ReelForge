@@ -2,18 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { machineAuthFailure } from "@/lib/machine-auth";
 import { startSchedulerHeartbeat } from "@/lib/scheduler-heartbeat";
 import { processBatchTick, selectCronBatchIds } from "@/lib/services/batch-service";
-import { CRON_VISION_BUDGET, runWithVisionBudget } from "@/lib/services/vision-budget-context";
 
-/// 整次调用跑在看图预算上下文里：批次里的故事板 AI 审帧只在这里（和 poll-videos）预约得到时长。
 export const maxDuration = 300;
 
 export async function GET(req: NextRequest) {
   const authFailure = machineAuthFailure(req);
   if (authFailure) return authFailure;
-  return runWithVisionBudget(
-    { label: "cron:process-batches", ...CRON_VISION_BUDGET },
-    processBatches,
-  );
+  return processBatches();
 }
 
 async function processBatches() {

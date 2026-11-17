@@ -24,7 +24,6 @@ export const CAPABILITY_KEYS = [
   "image",
   "graphics",
   "video",
-  "moderation",
   "email",
 ] as const;
 export type CapabilityKey = (typeof CAPABILITY_KEYS)[number];
@@ -37,15 +36,10 @@ export type CapabilityKey = (typeof CAPABILITY_KEYS)[number];
  * 代码整段删除，四个键也不再是能力键——CapabilityStatus 表里它们的旧行照旧留着，读的时候
  * 被 isCapabilityKey 过滤掉（rowToCapabilityRecord 返回 null），不进任何页面，也不再有探测去写。
  *
- * 留在这个清单里的只有 moderation：OpenAI 内容审核生产一直关着，但代码与开关保留（合规随时可能要开）。
- * 「已下线」在这里的意思是：客户的状态页不列出它（capability-board），它的状态翻转不发运维告警
- *（ops-alert-service）；探测与状态推进照旧。打开审核时把它从这个清单里拿掉。
+ * 2026-11-17 第 4 批瘦身：内容审核（moderation）一直关着，代码、开关与这个键一并删了；旧行同样被 isCapabilityKey 过滤。
+ * 原先为它留的「已下线但还登记着」这一档（RETIRED_CAPABILITY_KEYS）也就没有成员了，概念一起拿掉：
+ * 现在登记在册的能力键都是真在用的，状态页全列，状态翻转都发运维告警。
  */
-export const RETIRED_CAPABILITY_KEYS: readonly CapabilityKey[] = ["moderation"];
-
-export function isRetiredCapability(key: CapabilityKey): boolean {
-  return RETIRED_CAPABILITY_KEYS.includes(key);
-}
 
 export const CAPABILITY_STATUSES = ["available", "degraded", "unavailable", "not_configured"] as const;
 export type CapabilityStatus = (typeof CAPABILITY_STATUSES)[number];
@@ -231,18 +225,6 @@ export const CAPABILITY_COPY: Record<CapabilityKey, CapabilityCopy> = {
       not_configured: b("视频生成未开通。", "Video generation isn't set up."),
     },
   },
-  moderation: {
-    label: b("内容审核", "Content review"),
-    messages: {
-      available: b("内容审核正常。", "Content review is on."),
-      degraded: b("内容审核不稳定：上传可能稍慢。", "Content review is unstable: uploads may be slower."),
-      unavailable: b(
-        "内容审核暂停：上传可能暂时无法通过安全检查，请稍后再试。",
-        "Content review is paused: uploads may not pass the safety check right now. Try again later.",
-      ),
-      not_configured: b("内容审核未开通。", "Content review isn't set up."),
-    },
-  },
   email: {
     label: b("邮件通知", "Email alerts"),
     messages: {
@@ -278,9 +260,7 @@ export const FEATURE_KEYS = [
   "scriptWriting",
   "logo",
   "storyboardFrames",
-  "storyboardReview",
   "videoGeneration",
-  "uploadReview",
   "leadEmail",
 ] as const;
 export type FeatureKey = (typeof FEATURE_KEYS)[number];
@@ -330,28 +310,12 @@ export const FEATURES: Record<FeatureKey, FeatureSpec> = {
       "Storyboard frames can't render right now. Finished frames are kept and can be redone one by one after it recovers.",
     ),
   },
-  storyboardReview: {
-    needs: ["vision"],
-    label: b("故事板 AI 审帧", "Storyboard AI review"),
-    whenBlocked: b(
-      "故事板跳过 AI 审帧，照常生成。",
-      "Storyboards skip the AI review and still render.",
-    ),
-  },
   videoGeneration: {
     needs: ["video"],
     label: b("视频生成", "Video generation"),
     whenBlocked: b(
       "暂时无法提交新视频；已完成的成片不受影响。",
       "New videos can't be submitted right now; finished videos are unaffected.",
-    ),
-  },
-  uploadReview: {
-    needs: ["moderation"],
-    label: b("上传审核", "Upload review"),
-    whenBlocked: b(
-      "上传可能暂时无法通过安全检查，请稍后再试。",
-      "Uploads may not pass the safety check right now. Try again later.",
     ),
   },
   leadEmail: {
@@ -430,7 +394,6 @@ export type PublicCapabilities = {
 /**
  * 这些能力走同一个 OpenAI 计费账户：账户没额度 / key 失效时它们一起停，
  * 哪怕各自的上一次观测还是「正常」（账户的观测更新时以账户为准）。
- * 内容审核端点免费，不受额度影响，不在此列。
  */
 const OPENAI_ACCOUNT_DEPENDENTS: ReadonlySet<CapabilityKey> = new Set(["vision", "graphics"]);
 const ACCOUNT_LEVEL_REASONS: ReadonlySet<CapabilityReason> = new Set(["quota", "auth"]);
@@ -513,35 +476,6 @@ export function resolveCapabilities(input: {
   });
   return {
     generatedAt: input.now.toISOString(),
-    items,
-    counts,
-    paused: counts.unavailable > 0,
-    unstable: counts.unavailable === 0 && counts.degraded > 0,
-    lastCheckedAt,
-  };
-}
-
-/**
- * 给客户看的能力视图：去掉已下线的线路（RETIRED_CAPABILITY_KEYS），并按剩下的重新计数。
- * 状态页不列「内容审核未开通」这类与商家无关的行；壳层的「部分 AI 能力暂停」也不会被
- * 一条没在用的线路点亮。功能闸门仍用完整视图，不走这里。
- */
-export function withoutRetiredCapabilities(capabilities: PublicCapabilities): PublicCapabilities {
-  /// 「影响哪些功能」里也去掉入口已撤的功能（依赖任何一条已下线线路的，如上传审核）
-  const retiredFeature = (feature: FeatureKey) => FEATURES[feature].needs.some(isRetiredCapability);
-  const items = capabilities.items
-    .filter((item) => !isRetiredCapability(item.key))
-    .map((item) => ({ ...item, features: item.features.filter((feature) => !retiredFeature(feature)) }));
-  const counts: Record<CapabilityStatus, number> = { available: 0, degraded: 0, unavailable: 0, not_configured: 0 };
-  let lastCheckedAt: string | null = null;
-  for (const item of items) {
-    counts[item.status] += 1;
-    if (item.checkedAt && (!lastCheckedAt || laterOrEqual(item.checkedAt, lastCheckedAt))) {
-      lastCheckedAt = item.checkedAt;
-    }
-  }
-  return {
-    ...capabilities,
     items,
     counts,
     paused: counts.unavailable > 0,

@@ -150,7 +150,7 @@ export class ShuyuVideoProvider implements VideoProvider {
         { providerId: this.id, stage: "preflight", retryable: false },
       );
     }
-    /// 静默丢弃会让客户以为声音/动作参考生效了;必须在任何网络请求(含内容审核)前拒绝。
+    /// 静默丢弃会让客户以为声音/动作参考生效了;必须在任何网络请求前拒绝。
     if ((options.referenceAudios?.length ?? 0) > 0) {
       throw new ProviderSubmissionError(
         "Shuyu route does not support reference audio",
@@ -161,26 +161,6 @@ export class ShuyuVideoProvider implements VideoProvider {
       throw new ProviderSubmissionError(
         "Shuyu route does not support reference videos",
         { providerId: this.id, stage: "preflight", retryable: false },
-      );
-    }
-
-    try {
-      const { reviewTextOrThrow } = await import("@/lib/content-review");
-      await reviewTextOrThrow({
-        kind: "generation_prompt",
-        text: prompt,
-      });
-    } catch (error) {
-      throw new ProviderSubmissionError(
-        error instanceof Error
-          ? error.message
-          : "Shuyu prompt content review failed",
-        {
-          providerId: this.id,
-          stage: "preflight",
-          retryable: false,
-          cause: error,
-        },
       );
     }
 

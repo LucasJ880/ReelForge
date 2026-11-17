@@ -16,7 +16,6 @@ import { NextRequest } from "next/server";
 import nextConfig, { mediaRuntimeTracingIncludes } from "../next.config";
 import { BUNDLED_CJK_FONT_CANDIDATES } from "../src/lib/media/media-fonts";
 import { BGM_TRACKS } from "../src/lib/video-generation/audio-post-production";
-import { visionBudgetLabel } from "../src/lib/services/vision-budget-context";
 import { renderBrandEndCard } from "../src/lib/video-generation/brand-end-card-renderer";
 import * as pollVideosRoute from "../src/app/api/cron/poll-videos/route";
 import * as processBatchesRoute from "../src/app/api/cron/process-batches/route";
@@ -199,28 +198,30 @@ test("[media-runtime] 4.3 两个 cron 设 maxDuration=300（C3：stitch-dispatch
   assert.equal(stitchDispatchRoute.maxDuration, 300);
   assert.equal(stitchDispatchRoute.maxDuration, STITCH_DISPATCH_MAX_DURATION_SEC);
   assert.equal(stitchDispatchRoute.runtime, "nodejs");
-  assert.match(code("src/app/api/cron/process-batches/route.ts"), /runWithVisionBudget\(/);
 });
 
-test("[media-runtime] 4.3 poll-videos 的轮询 / 清扫跑在看图预算上下文里；响应不再带已删的帧质检字段", async (t: TestContext) => {
+test("[media-runtime] 4.3 poll-videos 照常跑轮询与清扫（看图预算上下文随故事板 AI 审帧一起删了）；响应不再带已删的帧质检字段", async (t: TestContext) => {
   const previous = process.env.CRON_SECRET;
   process.env.CRON_SECRET = "machine-secret";
   t.after(() => {
     if (previous === undefined) delete process.env.CRON_SECRET;
     else process.env.CRON_SECRET = previous;
   });
-  const seen: Array<string | null> = [];
+  const seen: string[] = [];
   const handler = pollVideosRoute.createPollVideosHandler({
     startSchedulerHeartbeat: (() => ({
       finish: () => ({ status: "ok" }),
     })) as never,
     pollRunningJobs: async () => {
-      seen.push(visionBudgetLabel());
+      seen.push("poll");
       return { polled: 0, updated: 0 };
     },
-    pollPendingStoryboardRuns: async () => 0 as never,
+    pollPendingStoryboardRuns: async () => {
+      seen.push("storyboards");
+      return 0 as never;
+    },
     sweepStuckTasks: async () => {
-      seen.push(visionBudgetLabel());
+      seen.push("sweep");
       return {} as never;
     },
   });
@@ -230,14 +231,15 @@ test("[media-runtime] 4.3 poll-videos 的轮询 / 清扫跑在看图预算上下
     }),
   );
   assert.equal(response.status, 200);
-  assert.deepEqual(seen, ["cron:poll-videos", "cron:poll-videos"]);
+  assert.deepEqual(seen, ["poll", "storyboards", "sweep"]);
   const body = (await response.json()) as Record<string, unknown>;
   for (const gone of ["frameQa", "finalFrameQa", "finalFrameQaError", "frameQaRecheck", "frameQaRecheckError"]) {
     assert.equal(gone in body, false, gone);
   }
   assert.equal(body.degraded, false);
-  /// 上下文随请求结束
-  assert.equal(visionBudgetLabel(), null);
+  for (const route of ["poll-videos", "process-batches"]) {
+    assert.doesNotMatch(code(`src/app/api/cron/${route}/route.ts`), /vision-budget-context|runWithVisionBudget/, route);
+  }
 });
 
 test("[media-runtime] 尾卡：生产默认 inprocess 当场渲染、external（回滚）才延迟；forceLocal 任何模式都内联", async (t: TestContext) => {

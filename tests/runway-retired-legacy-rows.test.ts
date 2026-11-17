@@ -177,7 +177,7 @@ test("新请求点名 runway：客户按 FORBIDDEN、内部按 INVALID_ROUTE 拒
   }
 });
 
-test("供应商工厂：runway 快照（线路 id 或适配器名任一个是它）明确拒绝，不落到 Seedance 直连分支", () => {
+test("供应商工厂：runway 快照（线路 id 或适配器名任一个是它）明确拒绝，不落到别的适配器分支", () => {
   for (const snapshot of [
     RUNWAY_KLING,
     RUNWAY_SEEDANCE,
@@ -197,7 +197,7 @@ test("供应商工厂：runway 快照（线路 id 或适配器名任一个是它
 // 重做一段 / 重试失败的段
 // ---------------------------------------------------------------------------
 
-test("判据：只拦已下线线路的记录；Shuyu、直连、mock 与没有快照的历史行都不拦", () => {
+test("判据：只拦已下线线路的记录；Shuyu、mock 与没有快照的历史行都不拦", () => {
   for (const snapshot of [RUNWAY_KLING, RUNWAY_SEEDANCE, { videoRouteSnapshot: "buddy", videoProviderAdapterSnapshot: "runway" }]) {
     assert.throws(
       () => assertVideoRouteNotRetiredForRegeneration(snapshot),
@@ -208,7 +208,8 @@ test("判据：只拦已下线线路的记录；Shuyu、直连、mock 与没有�
     );
   }
   assert.match(RETIRED_VIDEO_ROUTE_REGENERATION_MESSAGE, /用同样的素材再做一条/u);
-  for (const routeId of ["buddy", "byteplus_international", "volcengine_cn_legacy", "mock"] as const) {
+  /// 两条直连线路 2026-11-17 也下线了，它们的旧记录同样被拦：见 direct-seedance-retired-legacy-rows.test.ts
+  for (const routeId of ["buddy", "mock"] as const) {
     assert.doesNotThrow(() => assertVideoRouteNotRetiredForRegeneration(createVideoRouteSnapshot(routeId)), routeId);
   }
   assert.doesNotThrow(() => assertVideoRouteNotRetiredForRegeneration({ videoRouteSnapshot: null, videoProviderAdapterSnapshot: null }));

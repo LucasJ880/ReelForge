@@ -2,21 +2,25 @@
  * 视频生成 Provider 工厂入口。
  *
  * 业务代码：
- *   import { getVideoProvider } from "@/lib/video-generation/providers";
- *   const provider = getVideoProvider();
+ *   import { createVideoProviderByRouteSnapshot } from "@/lib/video-generation/providers";
+ *   const provider = createVideoProviderByRouteSnapshot(snapshot);
  *   const { providerJobId } = await provider.createVideoJob({ prompt, ... });
  *
- * 真实实现：BytePlus ModelArk（Seedance）、Shuyu（buddy 线路）。
- * 线路由快照决定（createVideoProviderByRouteSnapshot）；VIDEO_PROVIDER 只管默认运行时。
- * runway 线路 2026-11-16 下线、适配器已删：旧记录上的 runway 快照到这里会被明确拒绝。
+ * 真实实现只有 Shuyu（buddy 线路）；mock 只给本地联调与测试（生产被 env.ts 拦着）。
+ * 适配器只由持久化的线路快照决定；没有「按 VIDEO_PROVIDER 取默认适配器」的入口了
+ *（原来只有健康检查在用，它现在直接按 env 报）。
+ * runway（2026-11-16）与两条直连 Seedance 线路（2026-11-17）已下线、适配器已删：
+ * 旧记录上的这些快照到这里会被明确拒绝（RetiredVideoRouteError），不落到任何还在的适配器上。
  */
 
-import { getAppEnv } from "@/lib/config/env";
 import { MockVideoProvider } from "./mock-video-provider";
-import { BytePlusVideoProvider } from "./byteplus-video-provider";
 import { ShuyuVideoProvider } from "./shuyu-video-provider";
 import type { VideoProvider } from "./types";
-import { isRetiredVideoRouteId, type VideoRouteSnapshot } from "../video-route-registry";
+import {
+  isRetiredVideoProviderAdapter,
+  isRetiredVideoRouteId,
+  type VideoRouteSnapshot,
+} from "../video-route-registry";
 
 /** 旧记录上的线路已下线：没有适配器可用，任何供应商调用都到此为止（不落到别的适配器分支上）。 */
 export class RetiredVideoRouteError extends Error {
@@ -26,48 +30,13 @@ export class RetiredVideoRouteError extends Error {
   }
 }
 
-let cached: VideoProvider | null = null;
-
-export function getVideoProvider(): VideoProvider {
-  if (cached) return cached;
-  cached = createVideoProvider();
-  return cached;
-}
-
-export function createVideoProvider(): VideoProvider {
-  const env = getAppEnv();
-  switch (env.videoProvider) {
-    case "mock":
-      return new MockVideoProvider();
-    case "byteplus":
-      return new BytePlusVideoProvider();
-    case "shuyu":
-      return new ShuyuVideoProvider();
-    default: {
-      const exhaustiveCheck: never = env.videoProvider;
-      throw new Error(
-        `[video] 未知 VIDEO_PROVIDER: ${String(exhaustiveCheck)}`,
-      );
-    }
-  }
-}
-
-export function createVideoProviderById(
-  id: "byteplus" | "shuyu" | "mock",
-): VideoProvider {
-  if (id === "mock") return new MockVideoProvider();
-  if (id === "shuyu") return new ShuyuVideoProvider();
-  return new BytePlusVideoProvider();
-}
-
 export function createVideoProviderByRouteSnapshot(
   snapshot: VideoRouteSnapshot,
 ): VideoProvider {
-  /// 先于一切分支：线路 id 或适配器名任一个是已下线的那家，都不许落到下面的 Seedance 直连分支
+  /// 先于一切分支：线路 id 或适配器名任一个是已下线的那几家，都不许落到下面还在的适配器上
   if (
-    snapshot.videoRouteSnapshot === "runway" ||
     isRetiredVideoRouteId(snapshot.videoRouteSnapshot) ||
-    snapshot.videoProviderAdapterSnapshot === "runway"
+    isRetiredVideoProviderAdapter(snapshot.videoProviderAdapterSnapshot)
   ) {
     throw new RetiredVideoRouteError(snapshot.videoRouteSnapshot);
   }
@@ -83,17 +52,10 @@ export function createVideoProviderByRouteSnapshot(
     }
     return new ShuyuVideoProvider(snapshot.videoModelSnapshot);
   }
-  if (snapshot.videoProviderAdapterSnapshot !== "byteplus") {
-    throw new Error("Seedance route snapshot has an incompatible adapter");
-  }
-  return new BytePlusVideoProvider(
-    snapshot.videoRouteSnapshot,
-    snapshot.videoModelSnapshot,
+  /// 登记在册的线路只有上面两条还在用；走到这里是数据错误，不猜适配器
+  throw new Error(
+    `Video route snapshot ${String(snapshot.videoRouteSnapshot)} has no provider adapter`,
   );
-}
-
-export function __resetVideoProviderForTests(): void {
-  cached = null;
 }
 
 export type {

@@ -119,8 +119,7 @@ npm run context:find -- "vercel blob upload video url"
 |---|------|------|
 | 1 | `src/app/api/upload/blob/route.ts` | Blob 上传 endpoint |
 | 2 | `src/lib/upload/blob-xhr.ts` | 前端直传（`uploadBlobWithProgress`，带进度与卡住超时） |
-| 3 | `src/lib/services/ad-render-service.ts` | 标记 `uses Vercel Blob storage` |
-| 4 | `src/lib/services/video-service.ts` | 持久化 final video URL |
+| 3 | `src/lib/services/video-service.ts` | 持久化 final video URL |
 
 **典型场景**
 

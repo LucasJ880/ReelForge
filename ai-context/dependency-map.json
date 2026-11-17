@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T00:27:58.143Z",
+  "generatedAt": "2026-11-17T00:44:25.770Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -4376,13 +4376,11 @@
       "imports": [
         "../../src/lib/ai",
         "../../src/lib/video-generation/shot-cards",
-        "../../src/lib/video-generation/storyboard-direction",
         "./golden-set.cases.json"
       ],
       "localImports": [
         "../../src/lib/ai",
         "../../src/lib/video-generation/shot-cards",
-        "../../src/lib/video-generation/storyboard-direction",
         "./golden-set.cases.json"
       ],
       "externalImports": []
@@ -5105,11 +5103,7 @@
         "@/lib/auth",
         "@/lib/db",
         "@/components/brand/brand-package-manager",
-        "@/lib/create/entry-policy",
-        "@/components/brand/product-anchor-manager",
         "@/lib/services/workspace-brand-package-service",
-        "@/lib/services/product-anchor-service",
-        "@/lib/contracts/product-anchor-api",
         "@/i18n/platform-copy",
         "@/i18n/server",
         "@/components/brand/customer-brand-wall",
@@ -5119,11 +5113,7 @@
         "@/lib/auth",
         "@/lib/db",
         "@/components/brand/brand-package-manager",
-        "@/lib/create/entry-policy",
-        "@/components/brand/product-anchor-manager",
         "@/lib/services/workspace-brand-package-service",
-        "@/lib/services/product-anchor-service",
-        "@/lib/contracts/product-anchor-api",
         "@/i18n/platform-copy",
         "@/i18n/server",
         "@/components/brand/customer-brand-wall",
@@ -5211,7 +5201,6 @@
         "next-auth",
         "next/navigation",
         "@/components/video-generation/streamlined-video-studio",
-        "@/lib/services/broll-assembly-service",
         "@/lib/services/capability-status-service",
         "@/lib/auth",
         "@/lib/config/contact",
@@ -5231,7 +5220,6 @@
       ],
       "localImports": [
         "@/components/video-generation/streamlined-video-studio",
-        "@/lib/services/broll-assembly-service",
         "@/lib/services/capability-status-service",
         "@/lib/auth",
         "@/lib/config/contact",
@@ -6375,21 +6363,6 @@
       ]
     },
     {
-      "file": "src/app/api/briefs/[id]/ad-plan/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/ad-agent-service"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/ad-agent-service"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
       "file": "src/app/api/briefs/[id]/feedback/route.ts",
       "imports": [
         "next/server",
@@ -6403,21 +6376,6 @@
         "@/lib/contracts/video-feedback",
         "@/lib/services/brief-access",
         "@/lib/services/video-feedback-service"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/briefs/[id]/qa/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/qa-service"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/qa-service"
       ],
       "externalImports": [
         "next/server"
@@ -6480,23 +6438,6 @@
       ]
     },
     {
-      "file": "src/app/api/briefs/[id]/render/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/ad-render-service",
-        "@/lib/services/video-service"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/ad-render-service",
-        "@/lib/services/video-service"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
       "file": "src/app/api/briefs/[id]/route.ts",
       "imports": [
         "next/server",
@@ -6511,88 +6452,6 @@
       ],
       "externalImports": [
         "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/briefs/[id]/scenes/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/scene-service",
-        "@/lib/services/prompt-service"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/scene-service",
-        "@/lib/services/prompt-service"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/briefs/[id]/script/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/script-service"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/script-service"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/broll/cancel/route.ts",
-      "imports": [
-        "next/server",
-        "zod",
-        "@/lib/api-auth",
-        "@/lib/services/broll-assembly-service"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/broll-assembly-service"
-      ],
-      "externalImports": [
-        "next/server",
-        "zod"
-      ]
-    },
-    {
-      "file": "src/app/api/broll/dispatch/route.ts",
-      "imports": [
-        "next/server",
-        "zod",
-        "@/lib/api-auth",
-        "@/lib/api-rate-limit",
-        "@/lib/demo-account",
-        "@/lib/services/broll-assembly-service",
-        "@/lib/services/broll-plan-service",
-        "@/lib/services/paid-action-rate-limit",
-        "@/lib/providers/provider-billing-error",
-        "@/lib/capabilities/registry",
-        "@/lib/services/capability-status-service",
-        "@/i18n/server"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/api-rate-limit",
-        "@/lib/demo-account",
-        "@/lib/services/broll-assembly-service",
-        "@/lib/services/broll-plan-service",
-        "@/lib/services/paid-action-rate-limit",
-        "@/lib/providers/provider-billing-error",
-        "@/lib/capabilities/registry",
-        "@/lib/services/capability-status-service",
-        "@/i18n/server"
-      ],
-      "externalImports": [
-        "next/server",
-        "zod"
       ]
     },
     {
@@ -6710,7 +6569,6 @@
         "@/lib/services/video-service",
         "@/lib/services/product-image-service",
         "@/lib/services/content-post-image-job-service",
-        "@/lib/services/product-anchor-service",
         "@/lib/services/sweep-service",
         "@/lib/video-generation/storyboard-service",
         "@/lib/services/final-frame-qa-service",
@@ -6724,7 +6582,6 @@
         "@/lib/services/video-service",
         "@/lib/services/product-image-service",
         "@/lib/services/content-post-image-job-service",
-        "@/lib/services/product-anchor-service",
         "@/lib/services/sweep-service",
         "@/lib/video-generation/storyboard-service",
         "@/lib/services/final-frame-qa-service",
@@ -7268,54 +7125,6 @@
       ]
     },
     {
-      "file": "src/app/api/product-anchors/[id]/retry/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/api-rate-limit",
-        "@/lib/demo-account",
-        "@/lib/contracts/product-anchor-api",
-        "@/lib/services/product-anchor-service",
-        "@/lib/services/paid-action-rate-limit"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/api-rate-limit",
-        "@/lib/demo-account",
-        "@/lib/contracts/product-anchor-api",
-        "@/lib/services/product-anchor-service",
-        "@/lib/services/paid-action-rate-limit"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/product-anchors/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/api-rate-limit",
-        "@/lib/demo-account",
-        "@/lib/contracts/product-anchor-api",
-        "@/lib/services/media-asset-service",
-        "@/lib/services/product-anchor-service",
-        "@/lib/services/paid-action-rate-limit"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/api-rate-limit",
-        "@/lib/demo-account",
-        "@/lib/contracts/product-anchor-api",
-        "@/lib/services/media-asset-service",
-        "@/lib/services/product-anchor-service",
-        "@/lib/services/paid-action-rate-limit"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
       "file": "src/app/api/product-images/[id]/cancel/route.ts",
       "imports": [
         "next/server",
@@ -7393,27 +7202,6 @@
       ],
       "externalImports": [
         "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/product-link/route.ts",
-      "imports": [
-        "next/server",
-        "zod",
-        "@/lib/api-auth",
-        "@/lib/api-rate-limit",
-        "@/lib/services/product-link-service",
-        "@/lib/services/paid-action-rate-limit"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/api-rate-limit",
-        "@/lib/services/product-link-service",
-        "@/lib/services/paid-action-rate-limit"
-      ],
-      "externalImports": [
-        "next/server",
-        "zod"
       ]
     },
     {
@@ -7536,38 +7324,6 @@
         "@/lib/services/notification-service",
         "../_shared",
         "@/lib/config/contact"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/publish/[id]/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/publish-service",
-        "@/lib/validators"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/publish-service",
-        "@/lib/validators"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/publish/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/publish-service"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/publish-service"
       ],
       "externalImports": [
         "next/server"
@@ -8518,39 +8274,6 @@
       "externalImports": []
     },
     {
-      "file": "src/components/brand/product-anchor-manager.tsx",
-      "imports": [
-        "react",
-        "next/image",
-        "lucide-react",
-        "@/components/ui/badge",
-        "@/components/ui/button",
-        "@/components/exchange/empty-state",
-        "@/components/exchange/section-head",
-        "@/components/ui/dialog",
-        "@/components/ui/input",
-        "@/i18n/useTranslation",
-        "@/lib/upload/blob-xhr",
-        "@/lib/contracts/product-anchor-api"
-      ],
-      "localImports": [
-        "@/components/ui/badge",
-        "@/components/ui/button",
-        "@/components/exchange/empty-state",
-        "@/components/exchange/section-head",
-        "@/components/ui/dialog",
-        "@/components/ui/input",
-        "@/i18n/useTranslation",
-        "@/lib/upload/blob-xhr",
-        "@/lib/contracts/product-anchor-api"
-      ],
-      "externalImports": [
-        "react",
-        "next/image",
-        "lucide-react"
-      ]
-    },
-    {
       "file": "src/components/brand/signoff-preview.tsx",
       "imports": [
         "@/lib/video-generation/brand-signoff"
@@ -8941,7 +8664,6 @@
     {
       "file": "src/components/layout/internal-sidebar.tsx",
       "imports": [
-        "react",
         "next/link",
         "next/navigation",
         "next-auth/react",
@@ -8964,7 +8686,6 @@
         "@/lib/utils"
       ],
       "externalImports": [
-        "react",
         "next/link",
         "next/navigation",
         "next-auth/react",
@@ -10308,37 +10029,6 @@
       ]
     },
     {
-      "file": "src/components/video-generation/broll-quick-card.tsx",
-      "imports": [
-        "react",
-        "next/link",
-        "next/navigation",
-        "lucide-react",
-        "@/components/exchange/status-tick",
-        "@/components/ui/button",
-        "@/components/ui/card",
-        "@/components/ui/textarea",
-        "@/i18n/useTranslation",
-        "@/lib/capabilities/registry",
-        "@/lib/utils"
-      ],
-      "localImports": [
-        "@/components/exchange/status-tick",
-        "@/components/ui/button",
-        "@/components/ui/card",
-        "@/components/ui/textarea",
-        "@/i18n/useTranslation",
-        "@/lib/capabilities/registry",
-        "@/lib/utils"
-      ],
-      "externalImports": [
-        "react",
-        "next/link",
-        "next/navigation",
-        "lucide-react"
-      ]
-    },
-    {
       "file": "src/components/video-generation/customer-route-picker.tsx",
       "imports": [
         "react",
@@ -10398,25 +10088,6 @@
       ]
     },
     {
-      "file": "src/components/video-generation/product-link-prefill.tsx",
-      "imports": [
-        "react",
-        "lucide-react",
-        "@/components/ui/button",
-        "@/components/ui/input",
-        "@/i18n/useTranslation"
-      ],
-      "localImports": [
-        "@/components/ui/button",
-        "@/components/ui/input",
-        "@/i18n/useTranslation"
-      ],
-      "externalImports": [
-        "react",
-        "lucide-react"
-      ]
-    },
-    {
       "file": "src/components/video-generation/storyboard-workflow-panel.tsx",
       "imports": [
         "react",
@@ -10470,8 +10141,6 @@
         "@/components/ui/button",
         "@/components/ui/confirm-dialog",
         "@/components/ui/textarea",
-        "@/components/video-generation/broll-quick-card",
-        "@/components/video-generation/product-link-prefill",
         "@/components/video-generation/audio-caption-controls",
         "@/components/video-generation/first-run-onboarding-dialog",
         "@/components/video-generation/plan-preview-card",
@@ -10483,7 +10152,9 @@
         "@/i18n/useTranslation",
         "@/lib/capabilities/registry",
         "@/lib/api/customer-video-dispatch",
-        "@/lib/api/customer-video-dispatch-recovery"
+        "@/lib/api/customer-video-dispatch-recovery",
+        "@/lib/utils",
+        "@/lib/services/workspace-brand-package-service"
       ],
       "localImports": [
         "@/components/exchange/quote-header",
@@ -10496,8 +10167,6 @@
         "@/components/ui/button",
         "@/components/ui/confirm-dialog",
         "@/components/ui/textarea",
-        "@/components/video-generation/broll-quick-card",
-        "@/components/video-generation/product-link-prefill",
         "@/components/video-generation/audio-caption-controls",
         "@/components/video-generation/first-run-onboarding-dialog",
         "@/components/video-generation/plan-preview-card",
@@ -10509,7 +10178,9 @@
         "@/i18n/useTranslation",
         "@/lib/capabilities/registry",
         "@/lib/api/customer-video-dispatch",
-        "@/lib/api/customer-video-dispatch-recovery"
+        "@/lib/api/customer-video-dispatch-recovery",
+        "@/lib/utils",
+        "@/lib/services/workspace-brand-package-service"
       ],
       "externalImports": [
         "next/link",
@@ -10984,18 +10655,6 @@
       "externalImports": []
     },
     {
-      "file": "src/lib/config/industry-defaults.ts",
-      "imports": [
-        "@/lib/config/blanket-themes",
-        "@/lib/schemas/creative-evidence"
-      ],
-      "localImports": [
-        "@/lib/config/blanket-themes",
-        "@/lib/schemas/creative-evidence"
-      ],
-      "externalImports": []
-    },
-    {
       "file": "src/lib/config/quota-tiers.ts",
       "imports": [
         "@prisma/client"
@@ -11148,16 +10807,6 @@
     },
     {
       "file": "src/lib/contracts/performance-api.ts",
-      "imports": [
-        "zod"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "zod"
-      ]
-    },
-    {
-      "file": "src/lib/contracts/product-anchor-api.ts",
       "imports": [
         "zod"
       ],
@@ -11483,26 +11132,6 @@
       "externalImports": []
     },
     {
-      "file": "src/lib/providers/cutout.ts",
-      "imports": [
-        "@/lib/services/capability-status-service"
-      ],
-      "localImports": [
-        "@/lib/services/capability-status-service"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/lib/providers/firecrawl.ts",
-      "imports": [
-        "@/lib/services/capability-status-service"
-      ],
-      "localImports": [
-        "@/lib/services/capability-status-service"
-      ],
-      "externalImports": []
-    },
-    {
       "file": "src/lib/providers/openai-image.ts",
       "imports": [
         "openai",
@@ -11629,89 +11258,6 @@
       ]
     },
     {
-      "file": "src/lib/providers/stock-footage.ts",
-      "imports": [
-        "zod",
-        "@/lib/services/capability-status-service"
-      ],
-      "localImports": [
-        "@/lib/services/capability-status-service"
-      ],
-      "externalImports": [
-        "zod"
-      ]
-    },
-    {
-      "file": "src/lib/providers/tts/elevenlabs.ts",
-      "imports": [
-        "@/lib/services/capability-status-service",
-        "@/lib/providers/tts/config",
-        "@/lib/providers/tts/types",
-        "@/lib/providers/tts/voices"
-      ],
-      "localImports": [
-        "@/lib/services/capability-status-service",
-        "@/lib/providers/tts/config",
-        "@/lib/providers/tts/types",
-        "@/lib/providers/tts/voices"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/lib/providers/tts/index.ts",
-      "imports": [
-        "@/lib/providers/tts/config",
-        "@/lib/providers/tts/elevenlabs",
-        "@/lib/providers/tts/openai",
-        "@/lib/providers/tts/types",
-        "@/lib/providers/tts/voices"
-      ],
-      "localImports": [
-        "@/lib/providers/tts/config",
-        "@/lib/providers/tts/elevenlabs",
-        "@/lib/providers/tts/openai",
-        "@/lib/providers/tts/types",
-        "@/lib/providers/tts/voices"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/lib/providers/tts/openai.ts",
-      "imports": [
-        "@/lib/services/capability-status-service",
-        "@/lib/providers/tts/config",
-        "@/lib/providers/tts/types",
-        "@/lib/providers/tts/voices"
-      ],
-      "localImports": [
-        "@/lib/services/capability-status-service",
-        "@/lib/providers/tts/config",
-        "@/lib/providers/tts/types",
-        "@/lib/providers/tts/voices"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/lib/providers/tts/types.ts",
-      "imports": [
-        "@/lib/providers/tts/config"
-      ],
-      "localImports": [
-        "@/lib/providers/tts/config"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/lib/providers/tts/voices.ts",
-      "imports": [
-        "@/lib/providers/tts/config"
-      ],
-      "localImports": [
-        "@/lib/providers/tts/config"
-      ],
-      "externalImports": []
-    },
-    {
       "file": "src/lib/qa/customer-route-state-rehearsal.ts",
       "imports": [
         "next/headers",
@@ -11737,16 +11283,6 @@
       ]
     },
     {
-      "file": "src/lib/schemas/ad-edit-plan.ts",
-      "imports": [
-        "zod"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "zod"
-      ]
-    },
-    {
       "file": "src/lib/schemas/content-plan.ts",
       "imports": [
         "zod",
@@ -11755,16 +11291,6 @@
       "localImports": [
         "@/lib/video-generation/creative-recipe"
       ],
-      "externalImports": [
-        "zod"
-      ]
-    },
-    {
-      "file": "src/lib/schemas/creative-evidence.ts",
-      "imports": [
-        "zod"
-      ],
-      "localImports": [],
       "externalImports": [
         "zod"
       ]
@@ -11797,25 +11323,6 @@
       ]
     },
     {
-      "file": "src/lib/services/ad-agent-service.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/ai",
-        "@/lib/schemas/ad-edit-plan",
-        "@/lib/services/brief-service"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/ai",
-        "@/lib/schemas/ad-edit-plan",
-        "@/lib/services/brief-service"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
       "file": "src/lib/services/ad-intel-service.ts",
       "imports": [
         "zod",
@@ -11830,35 +11337,6 @@
       ],
       "externalImports": [
         "zod"
-      ]
-    },
-    {
-      "file": "src/lib/services/ad-render-service.ts",
-      "imports": [
-        "crypto",
-        "child_process",
-        "util",
-        "fs/promises",
-        "os",
-        "path",
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/storage",
-        "@/lib/schemas/ad-edit-plan"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/storage",
-        "@/lib/schemas/ad-edit-plan"
-      ],
-      "externalImports": [
-        "crypto",
-        "child_process",
-        "util",
-        "fs/promises",
-        "os",
-        "path",
-        "@prisma/client"
       ]
     },
     {
@@ -11955,83 +11433,6 @@
       ]
     },
     {
-      "file": "src/lib/services/brief-service.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db"
-      ],
-      "localImports": [
-        "@/lib/db"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "src/lib/services/broll-assembly-service.ts",
-      "imports": [
-        "node:crypto",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "node:url",
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/storage",
-        "@/lib/schemas/unified-input",
-        "@/types/video-generation",
-        "@/lib/services/broll-plan-service",
-        "@/lib/providers/tts",
-        "@/lib/providers/stock-footage",
-        "@/lib/services/quota-refund-service",
-        "@/lib/services/single-video-cancel-service",
-        "@/lib/services/stitch-service",
-        "@/lib/video-generation/broll-segment-compose",
-        "@/lib/media/ffmpeg-bin",
-        "@/lib/media/stitch-pipeline",
-        "@/lib/media/stitch-runtime"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/storage",
-        "@/lib/schemas/unified-input",
-        "@/types/video-generation",
-        "@/lib/services/broll-plan-service",
-        "@/lib/providers/tts",
-        "@/lib/providers/stock-footage",
-        "@/lib/services/quota-refund-service",
-        "@/lib/services/single-video-cancel-service",
-        "@/lib/services/stitch-service",
-        "@/lib/video-generation/broll-segment-compose",
-        "@/lib/media/ffmpeg-bin",
-        "@/lib/media/stitch-pipeline",
-        "@/lib/media/stitch-runtime"
-      ],
-      "externalImports": [
-        "node:crypto",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "node:url",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "src/lib/services/broll-plan-service.ts",
-      "imports": [
-        "zod",
-        "@/lib/ai",
-        "@/lib/providers/stock-footage"
-      ],
-      "localImports": [
-        "@/lib/ai",
-        "@/lib/providers/stock-footage"
-      ],
-      "externalImports": [
-        "zod"
-      ]
-    },
-    {
       "file": "src/lib/services/capability-probe-service.ts",
       "imports": [
         "zod",
@@ -12040,10 +11441,6 @@
         "@/lib/providers/shuyu-catalog",
         "@/lib/providers/shuyu-seedance25-probe",
         "@/lib/ai/providers/openai-provider",
-        "@/lib/providers/tts/config",
-        "@/lib/providers/tts/elevenlabs",
-        "@/lib/providers/tts/openai",
-        "@/lib/providers/tts/voices",
         "@/lib/capabilities/classify",
         "@/lib/capabilities/registry",
         "@/lib/services/capability-status-service",
@@ -12055,10 +11452,6 @@
         "@/lib/providers/shuyu-catalog",
         "@/lib/providers/shuyu-seedance25-probe",
         "@/lib/ai/providers/openai-provider",
-        "@/lib/providers/tts/config",
-        "@/lib/providers/tts/elevenlabs",
-        "@/lib/providers/tts/openai",
-        "@/lib/providers/tts/voices",
         "@/lib/capabilities/classify",
         "@/lib/capabilities/registry",
         "@/lib/services/capability-status-service",
@@ -12073,14 +11466,12 @@
       "imports": [
         "@/lib/capabilities/registry",
         "@/lib/capabilities/classify",
-        "@/lib/providers/tts/config",
         "@/lib/db",
         "@/lib/services/ops-alert-service"
       ],
       "localImports": [
         "@/lib/capabilities/registry",
         "@/lib/capabilities/classify",
-        "@/lib/providers/tts/config",
         "@/lib/db",
         "@/lib/services/ops-alert-service"
       ],
@@ -12204,35 +11595,6 @@
         "@/lib/db"
       ],
       "externalImports": []
-    },
-    {
-      "file": "src/lib/services/director-service.ts",
-      "imports": [
-        "@prisma/client",
-        "zod",
-        "@/lib/db",
-        "@/lib/ai",
-        "@/lib/duration/segment-planner",
-        "@/lib/schemas/director-plan",
-        "@/lib/config/industry-defaults",
-        "@/lib/video-generation/platform-safe-zone",
-        "./ai-usage-log-service",
-        "./llm-schema-error"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/ai",
-        "@/lib/duration/segment-planner",
-        "@/lib/schemas/director-plan",
-        "@/lib/config/industry-defaults",
-        "@/lib/video-generation/platform-safe-zone",
-        "./ai-usage-log-service",
-        "./llm-schema-error"
-      ],
-      "externalImports": [
-        "@prisma/client",
-        "zod"
-      ]
     },
     {
       "file": "src/lib/services/dispatch-breaker.ts",
@@ -12499,16 +11861,6 @@
       ]
     },
     {
-      "file": "src/lib/services/llm-schema-error.ts",
-      "imports": [
-        "zod"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "zod"
-      ]
-    },
-    {
       "file": "src/lib/services/logo-fidelity-gate.ts",
       "imports": [
         "sharp"
@@ -12734,31 +12086,6 @@
       "externalImports": []
     },
     {
-      "file": "src/lib/services/product-anchor-service.ts",
-      "imports": [
-        "@prisma/client",
-        "sharp",
-        "@/lib/db",
-        "@/lib/storage",
-        "@/lib/providers/cutout",
-        "@/lib/capabilities/registry",
-        "@/lib/services/capability-status-service",
-        "@/lib/services/logo-fidelity-gate"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/storage",
-        "@/lib/providers/cutout",
-        "@/lib/capabilities/registry",
-        "@/lib/services/capability-status-service",
-        "@/lib/services/logo-fidelity-gate"
-      ],
-      "externalImports": [
-        "@prisma/client",
-        "sharp"
-      ]
-    },
-    {
       "file": "src/lib/services/product-image-facts-service.ts",
       "imports": [
         "@/lib/ai"
@@ -12800,12 +12127,9 @@
       "imports": [
         "node:dns/promises",
         "node:net",
-        "zod",
-        "@/lib/providers/firecrawl"
+        "zod"
       ],
-      "localImports": [
-        "@/lib/providers/firecrawl"
-      ],
+      "localImports": [],
       "externalImports": [
         "node:dns/promises",
         "node:net",
@@ -12824,21 +12148,6 @@
         "@/lib/db",
         "@/lib/contracts/product-profile",
         "@/lib/services/create-retry-prefill-service"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "src/lib/services/prompt-service.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/ai"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/ai"
       ],
       "externalImports": [
         "@prisma/client"
@@ -12878,27 +12187,6 @@
       ],
       "localImports": [
         "@/lib/db"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "src/lib/services/qa-service.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/ai",
-        "@/lib/services/qa-review-merge",
-        "@/lib/services/qa-review-write",
-        "@/lib/config/qa-criteria"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/ai",
-        "@/lib/services/qa-review-merge",
-        "@/lib/services/qa-review-write",
-        "@/lib/config/qa-criteria"
       ],
       "externalImports": [
         "@prisma/client"
@@ -12991,18 +12279,6 @@
       "externalImports": []
     },
     {
-      "file": "src/lib/services/scene-service.ts",
-      "imports": [
-        "@/lib/db",
-        "@/lib/ai"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/ai"
-      ],
-      "externalImports": []
-    },
-    {
       "file": "src/lib/services/scoring-service.ts",
       "imports": [
         "@prisma/client",
@@ -13012,21 +12288,6 @@
       "localImports": [
         "@/lib/db",
         "@/lib/config/scoring-weights"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "src/lib/services/script-service.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/ai"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/ai"
       ],
       "externalImports": [
         "@prisma/client"
@@ -13068,16 +12329,12 @@
       "imports": [
         "@/lib/video-generation/brand-signoff",
         "@/types/video-generation",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
         "@/lib/db",
         "@/lib/media/stitch-pipeline",
         "@/lib/schemas/director-plan",
         "@/lib/video-generation/tail-trim",
         "./stitch-service",
         "@/lib/services/workspace-brand-package-service",
-        "@/lib/services/broll-assembly-service",
         "@/lib/video-generation/assembly-executor"
       ],
       "localImports": [
@@ -13089,14 +12346,9 @@
         "@/lib/video-generation/tail-trim",
         "./stitch-service",
         "@/lib/services/workspace-brand-package-service",
-        "@/lib/services/broll-assembly-service",
         "@/lib/video-generation/assembly-executor"
       ],
-      "externalImports": [
-        "node:fs/promises",
-        "node:os",
-        "node:path"
-      ]
+      "externalImports": []
     },
     {
       "file": "src/lib/services/stitch-dispatch-service.ts",
@@ -13354,7 +12606,6 @@
         "@/lib/db",
         "@/lib/api/customer-generation-error",
         "@/lib/config/env",
-        "@/lib/providers/remove-bg",
         "@/lib/schemas/director-plan",
         "@/lib/schemas/unified-input",
         "@/lib/video-generation/frame-qa",
@@ -13383,7 +12634,6 @@
         "@/lib/db",
         "@/lib/api/customer-generation-error",
         "@/lib/config/env",
-        "@/lib/providers/remove-bg",
         "@/lib/schemas/director-plan",
         "@/lib/schemas/unified-input",
         "@/lib/video-generation/frame-qa",
@@ -13453,15 +12703,11 @@
     {
       "file": "src/lib/services/voiceover-drive-service.ts",
       "imports": [
-        "@/lib/capabilities/registry",
-        "@/lib/services/capability-status-service",
         "@/lib/video-generation/voiceover-drive",
         "@/lib/video-generation/video-route-registry",
         "@/types/video-generation"
       ],
       "localImports": [
-        "@/lib/capabilities/registry",
-        "@/lib/services/capability-status-service",
         "@/lib/video-generation/voiceover-drive",
         "@/lib/video-generation/video-route-registry",
         "@/types/video-generation"
@@ -14368,22 +13614,6 @@
       "externalImports": []
     },
     {
-      "file": "src/lib/video-generation/storyboard-direction.ts",
-      "imports": [
-        "@/lib/ai",
-        "@/lib/video-generation/shot-cards",
-        "@/lib/video-generation/story-english",
-        "@/lib/video-generation/visual-reference-analysis"
-      ],
-      "localImports": [
-        "@/lib/ai",
-        "@/lib/video-generation/shot-cards",
-        "@/lib/video-generation/story-english",
-        "@/lib/video-generation/visual-reference-analysis"
-      ],
-      "externalImports": []
-    },
-    {
       "file": "src/lib/video-generation/storyboard-gacha.ts",
       "imports": [
         "@/lib/ai"
@@ -14433,7 +13663,6 @@
         "@/lib/video-generation/shot-cards",
         "@/lib/video-generation/storyboard-frame-inputs",
         "@/lib/video-generation/story-english",
-        "@/lib/video-generation/storyboard-direction",
         "@/lib/video-generation/visual-reference-analysis",
         "@/lib/video-generation/storyboard-person-refs",
         "@/lib/video-generation/planning-degradation",
@@ -14456,7 +13685,6 @@
         "@/lib/video-generation/shot-cards",
         "@/lib/video-generation/storyboard-frame-inputs",
         "@/lib/video-generation/story-english",
-        "@/lib/video-generation/storyboard-direction",
         "@/lib/video-generation/visual-reference-analysis",
         "@/lib/video-generation/storyboard-person-refs",
         "@/lib/video-generation/planning-degradation",
@@ -14675,21 +13903,6 @@
       ]
     },
     {
-      "file": "tests/ad-edit-plan-validation.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/schemas/ad-edit-plan"
-      ],
-      "localImports": [
-        "../src/lib/schemas/ad-edit-plan"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/ad-intel-compliance.test.ts",
       "imports": [
         "node:assert/strict",
@@ -14717,21 +13930,6 @@
       ],
       "localImports": [
         "../src/lib/compliance/ad-law-terms"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/ad-render-fallback.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/ad-render-service"
-      ],
-      "localImports": [
-        "../src/lib/services/ad-render-service"
       ],
       "externalImports": [
         "node:assert/strict",
@@ -15721,66 +14919,32 @@
       ]
     },
     {
-      "file": "tests/broll-assembly.test.ts",
+      "file": "tests/broll-retired.test.ts",
       "imports": [
         "node:assert/strict",
-        "node:test",
-        "../src/lib/services/broll-assembly-service",
-        "../src/lib/video-generation/broll-segment-compose",
-        "../src/lib/providers/tts",
-        "../src/lib/schemas/unified-input"
-      ],
-      "localImports": [
-        "../src/lib/services/broll-assembly-service",
-        "../src/lib/video-generation/broll-segment-compose",
-        "../src/lib/providers/tts",
-        "../src/lib/schemas/unified-input"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/broll-cancel.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
         "node:test",
         "@prisma/client",
         "../src/lib/db",
-        "../src/lib/services/broll-assembly-service",
-        "../src/lib/services/exchange-readings",
-        "../src/lib/services/single-video-cancel-service",
-        "../src/lib/services/unified-library-service"
+        "../src/lib/services/stitch-service",
+        "../src/lib/services/unified-library-service",
+        "../src/lib/video-generation/broll-segment-compose",
+        "../src/lib/video-generation/restitch-patch",
+        "../src/lib/video-generation/segment-redo",
+        "../src/types/video-generation"
       ],
       "localImports": [
         "../src/lib/db",
-        "../src/lib/services/broll-assembly-service",
-        "../src/lib/services/exchange-readings",
-        "../src/lib/services/single-video-cancel-service",
-        "../src/lib/services/unified-library-service"
+        "../src/lib/services/stitch-service",
+        "../src/lib/services/unified-library-service",
+        "../src/lib/video-generation/broll-segment-compose",
+        "../src/lib/video-generation/restitch-patch",
+        "../src/lib/video-generation/segment-redo",
+        "../src/types/video-generation"
       ],
       "externalImports": [
         "node:assert/strict",
-        "node:fs/promises",
         "node:test",
         "@prisma/client"
-      ]
-    },
-    {
-      "file": "tests/broll-plan.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/broll-plan-service"
-      ],
-      "localImports": [
-        "../src/lib/services/broll-plan-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
       ]
     },
     {
@@ -15994,15 +15158,11 @@
         "node:test",
         "../src/lib/capabilities/registry",
         "../src/lib/services/capability-status-service",
-        "../src/lib/providers/tts",
-        "../src/lib/providers/stock-footage",
         "../src/lib/providers/openai"
       ],
       "localImports": [
         "../src/lib/capabilities/registry",
         "../src/lib/services/capability-status-service",
-        "../src/lib/providers/tts",
-        "../src/lib/providers/stock-footage",
         "../src/lib/providers/openai"
       ],
       "externalImports": [
@@ -16428,21 +15588,6 @@
       ]
     },
     {
-      "file": "tests/creative-evidence-schema.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/schemas/creative-evidence"
-      ],
-      "localImports": [
-        "../src/lib/schemas/creative-evidence"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/customer-api-envelope-contract.test.ts",
       "imports": [
         "node:assert/strict",
@@ -16683,12 +15828,12 @@
         "node:assert/strict",
         "node:test",
         "../src/lib/schemas/director-plan",
-        "../src/lib/services/director-service",
+        "./helpers/director-plan-fixture",
         "../src/lib/duration/segment-planner"
       ],
       "localImports": [
         "../src/lib/schemas/director-plan",
-        "../src/lib/services/director-service",
+        "./helpers/director-plan-fixture",
         "../src/lib/duration/segment-planner"
       ],
       "externalImports": [
@@ -17413,9 +16558,6 @@
         "next/server",
         "next-auth/next",
         "../src/lib/db.ts",
-        "../src/app/api/briefs/[id]/qa/route.ts",
-        "../src/app/api/publish/route.ts",
-        "../src/app/api/publish/[id]/route.ts",
         "../src/app/api/reports/route.ts",
         "../src/app/api/internal/reports/route.ts",
         "../src/app/api/internal/reports/[id]/route.ts",
@@ -17425,9 +16567,6 @@
       ],
       "localImports": [
         "../src/lib/db.ts",
-        "../src/app/api/briefs/[id]/qa/route.ts",
-        "../src/app/api/publish/route.ts",
-        "../src/app/api/publish/[id]/route.ts",
         "../src/app/api/reports/route.ts",
         "../src/app/api/internal/reports/route.ts",
         "../src/app/api/internal/reports/[id]/route.ts",
@@ -17502,6 +16641,23 @@
         "next/server",
         "node:fs/promises",
         "\\.\\/stitch-pipeline"
+      ]
+    },
+    {
+      "file": "tests/helpers/director-plan-fixture.ts",
+      "imports": [
+        "@prisma/client",
+        "../../src/lib/duration/segment-planner",
+        "../../src/lib/schemas/director-plan",
+        "../../src/lib/video-generation/platform-safe-zone"
+      ],
+      "localImports": [
+        "../../src/lib/duration/segment-planner",
+        "../../src/lib/schemas/director-plan",
+        "../../src/lib/video-generation/platform-safe-zone"
+      ],
+      "externalImports": [
+        "@prisma/client"
       ]
     },
     {
@@ -17622,23 +16778,6 @@
         "node:fs",
         "node:path",
         ")) return false;\n      if (t.startsWith("
-      ]
-    },
-    {
-      "file": "tests/industry-defaults.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/config/industry-defaults",
-        "../src/lib/config/blanket-themes"
-      ],
-      "localImports": [
-        "../src/lib/config/industry-defaults",
-        "../src/lib/config/blanket-themes"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
       ]
     },
     {
@@ -18039,13 +17178,13 @@
         "@prisma/client",
         "../src/lib/services/video-service",
         "../src/lib/duration/segment-planner",
-        "../src/lib/services/director-service",
+        "./helpers/director-plan-fixture",
         "../src/lib/schemas/director-plan"
       ],
       "localImports": [
         "../src/lib/services/video-service",
         "../src/lib/duration/segment-planner",
-        "../src/lib/services/director-service",
+        "./helpers/director-plan-fixture",
         "../src/lib/schemas/director-plan"
       ],
       "externalImports": [
@@ -18062,13 +17201,13 @@
         "@prisma/client",
         "../src/lib/services/video-service",
         "../src/lib/duration/segment-planner",
-        "../src/lib/services/director-service",
+        "./helpers/director-plan-fixture",
         "../src/lib/schemas/director-plan"
       ],
       "localImports": [
         "../src/lib/services/video-service",
         "../src/lib/duration/segment-planner",
-        "../src/lib/services/director-service",
+        "./helpers/director-plan-fixture",
         "../src/lib/schemas/director-plan"
       ],
       "externalImports": [
@@ -18613,52 +17752,6 @@
       ]
     },
     {
-      "file": "tests/product-anchor.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:path",
-        "node:test",
-        "sharp",
-        "../src/lib/services/product-anchor-service",
-        "../src/lib/providers/cutout",
-        "next/server",
-        "../src/app/api/cron/poll-videos/route"
-      ],
-      "localImports": [
-        "../src/lib/services/product-anchor-service",
-        "../src/lib/providers/cutout",
-        "../src/app/api/cron/poll-videos/route"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:path",
-        "node:test",
-        "sharp",
-        "next/server"
-      ]
-    },
-    {
-      "file": "tests/product-anchors-api.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/app/api/product-anchors/route",
-        "../src/app/api/product-anchors/[id]/retry/route",
-        "../src/lib/services/media-asset-service"
-      ],
-      "localImports": [
-        "../src/app/api/product-anchors/route",
-        "../src/app/api/product-anchors/[id]/retry/route",
-        "../src/lib/services/media-asset-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/product-image-recovery.test.ts",
       "imports": [
         "node:assert/strict",
@@ -18730,21 +17823,6 @@
       "externalImports": [
         "node:assert/strict",
         "node:fs/promises",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/product-link-firecrawl.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/product-link-service"
-      ],
-      "localImports": [
-        "../src/lib/services/product-link-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
         "node:test"
       ]
     },
@@ -19011,16 +18089,10 @@
       "imports": [
         "node:assert/strict",
         "node:test",
-        "../src/lib/db",
-        "../src/lib/services/qa-review-merge",
-        "../src/lib/services/qa-service",
-        "./helpers/qa-review-cas-store"
+        "../src/lib/services/qa-review-merge"
       ],
       "localImports": [
-        "../src/lib/db",
-        "../src/lib/services/qa-review-merge",
-        "../src/lib/services/qa-service",
-        "./helpers/qa-review-cas-store"
+        "../src/lib/services/qa-review-merge"
       ],
       "externalImports": [
         "node:assert/strict",
@@ -19276,7 +18348,7 @@
         "../src/lib/db",
         "../src/lib/duration/segment-planner",
         "../src/lib/schemas/director-plan",
-        "../src/lib/services/director-service",
+        "./helpers/director-plan-fixture",
         "../src/lib/services/video-service",
         "../src/lib/services/quota-refund-service",
         "../src/lib/services/stitch-service",
@@ -19290,7 +18362,7 @@
         "../src/lib/db",
         "../src/lib/duration/segment-planner",
         "../src/lib/schemas/director-plan",
-        "../src/lib/services/director-service",
+        "./helpers/director-plan-fixture",
         "../src/lib/services/video-service",
         "../src/lib/services/quota-refund-service",
         "../src/lib/services/stitch-service",
@@ -19381,19 +18453,23 @@
       "imports": [
         "node:assert/strict",
         "node:fs",
+        "node:path",
         "node:test",
         "../src/lib/capabilities/registry",
         "../src/lib/create/entry-policy",
+        "../src/lib/services/capability-status-service",
         "../src/lib/services/ops-alert-service"
       ],
       "localImports": [
         "../src/lib/capabilities/registry",
         "../src/lib/create/entry-policy",
+        "../src/lib/services/capability-status-service",
         "../src/lib/services/ops-alert-service"
       ],
       "externalImports": [
         "node:assert/strict",
         "node:fs",
+        "node:path",
         "node:test"
       ]
     },
@@ -19804,27 +18880,6 @@
         "node:assert/strict",
         "node:fs",
         "node:path",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/shot-cards-vision.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/providers/openai",
-        "../src/lib/ai",
-        "../src/lib/video-generation/shot-cards",
-        "../src/types/video-generation"
-      ],
-      "localImports": [
-        "../src/lib/providers/openai",
-        "../src/lib/ai",
-        "../src/lib/video-generation/shot-cards",
-        "../src/types/video-generation"
-      ],
-      "externalImports": [
-        "node:assert/strict",
         "node:test"
       ]
     },
@@ -20321,11 +19376,11 @@
         "node:fs",
         "node:os",
         "node:path",
-        "node:url",
         "node:test",
         "@prisma/client",
         "../src/lib/db",
         "../src/lib/media/ffmpeg-bin",
+        "../src/lib/media/stitch-pipeline",
         "../src/lib/services/stitch-composer",
         "../src/lib/services/stitch-service",
         "../src/types/video-generation",
@@ -20335,6 +19390,7 @@
       "localImports": [
         "../src/lib/db",
         "../src/lib/media/ffmpeg-bin",
+        "../src/lib/media/stitch-pipeline",
         "../src/lib/services/stitch-composer",
         "../src/lib/services/stitch-service",
         "../src/types/video-generation",
@@ -20346,7 +19402,6 @@
         "node:fs",
         "node:os",
         "node:path",
-        "node:url",
         "node:test",
         "@prisma/client"
       ]
@@ -20564,8 +19619,7 @@
         "../src/lib/db",
         "../src/lib/media/stitch-runtime",
         "../src/lib/services/stitch-service",
-        "../src/lib/services/stitch-dispatch-service",
-        "node:fs/promises"
+        "../src/lib/services/stitch-dispatch-service"
       ],
       "localImports": [
         "../src/lib/db",
@@ -20576,8 +19630,7 @@
       "externalImports": [
         "node:assert/strict",
         "node:test",
-        "@prisma/client",
-        "node:fs/promises"
+        "@prisma/client"
       ]
     },
     {
@@ -20616,21 +19669,6 @@
         "node:assert/strict",
         "node:test",
         "@prisma/client"
-      ]
-    },
-    {
-      "file": "tests/stock-footage.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/providers/stock-footage"
-      ],
-      "localImports": [
-        "../src/lib/providers/stock-footage"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
       ]
     },
     {
@@ -20708,23 +19746,6 @@
       "externalImports": [
         "node:assert/strict",
         "node:fs/promises",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/storyboard-direction.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/video-generation/storyboard-direction",
-        "../src/lib/video-generation/visual-reference-analysis"
-      ],
-      "localImports": [
-        "../src/lib/video-generation/storyboard-direction",
-        "../src/lib/video-generation/visual-reference-analysis"
-      ],
-      "externalImports": [
-        "node:assert/strict",
         "node:test"
       ]
     },
@@ -21098,68 +20119,18 @@
         "../src/lib/config/quota-tiers",
         "../src/lib/services/quota-service",
         "../src/lib/services/paid-action-rate-limit",
-        "../src/lib/services/rate-limit-service",
-        "../src/app/api/product-anchors/route",
-        "../src/app/api/product-anchors/[id]/retry/route"
+        "../src/lib/services/rate-limit-service"
       ],
       "localImports": [
         "../src/lib/db",
         "../src/lib/config/quota-tiers",
         "../src/lib/services/quota-service",
         "../src/lib/services/paid-action-rate-limit",
-        "../src/lib/services/rate-limit-service",
-        "../src/app/api/product-anchors/route",
-        "../src/app/api/product-anchors/[id]/retry/route"
+        "../src/lib/services/rate-limit-service"
       ],
       "externalImports": [
         "node:assert/strict",
         "node:fs/promises",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/tts-elevenlabs.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/providers/tts",
-        "../src/lib/providers/tts/elevenlabs",
-        "../src/lib/services/capability-probe-service",
-        "../src/lib/services/capability-status-service"
-      ],
-      "localImports": [
-        "../src/lib/providers/tts",
-        "../src/lib/providers/tts/elevenlabs",
-        "../src/lib/services/capability-probe-service",
-        "../src/lib/services/capability-status-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/tts-provider.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:test",
-        "../src/lib/providers/tts",
-        "../src/lib/providers/tts/openai",
-        "../src/lib/capabilities/registry",
-        "../src/lib/services/capability-probe-service",
-        "../src/lib/services/capability-status-service"
-      ],
-      "localImports": [
-        "../src/lib/providers/tts",
-        "../src/lib/providers/tts/openai",
-        "../src/lib/capabilities/registry",
-        "../src/lib/services/capability-probe-service",
-        "../src/lib/services/capability-status-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:fs",
         "node:test"
       ]
     },
@@ -21606,7 +20577,7 @@
         "@prisma/client",
         "../src/lib/db",
         "../src/lib/duration/segment-planner",
-        "../src/lib/services/director-service",
+        "./helpers/director-plan-fixture",
         "../src/lib/services/video-service",
         "../src/lib/services/historical-dispatch-quarantine",
         "../src/lib/schemas/director-plan"
@@ -21614,7 +20585,7 @@
       "localImports": [
         "../src/lib/db",
         "../src/lib/duration/segment-planner",
-        "../src/lib/services/director-service",
+        "./helpers/director-plan-fixture",
         "../src/lib/services/video-service",
         "../src/lib/services/historical-dispatch-quarantine",
         "../src/lib/schemas/director-plan"
@@ -21704,7 +20675,7 @@
         "../src/lib/config/env",
         "../src/lib/content-review",
         "../src/lib/duration/segment-planner",
-        "../src/lib/services/director-service",
+        "./helpers/director-plan-fixture",
         "../src/lib/schemas/director-plan"
       ],
       "localImports": [
@@ -21714,7 +20685,7 @@
         "../src/lib/config/env",
         "../src/lib/content-review",
         "../src/lib/duration/segment-planner",
-        "../src/lib/services/director-service",
+        "./helpers/director-plan-fixture",
         "../src/lib/schemas/director-plan"
       ],
       "externalImports": [
@@ -21800,7 +20771,7 @@
         "@prisma/client",
         "../src/lib/db",
         "../src/lib/duration/segment-planner",
-        "../src/lib/services/director-service",
+        "./helpers/director-plan-fixture",
         "../src/lib/services/video-service",
         "../src/lib/services/historical-dispatch-quarantine",
         "../src/lib/schemas/director-plan"
@@ -21808,7 +20779,7 @@
       "localImports": [
         "../src/lib/db",
         "../src/lib/duration/segment-planner",
-        "../src/lib/services/director-service",
+        "./helpers/director-plan-fixture",
         "../src/lib/services/video-service",
         "../src/lib/services/historical-dispatch-quarantine",
         "../src/lib/schemas/director-plan"
@@ -21962,7 +20933,6 @@
         "../src/lib/video-generation/generation-supervisor",
         "../src/lib/video-generation/voiceover-drive",
         "../src/lib/video-generation/video-route-registry",
-        "../src/lib/capabilities/registry",
         "../src/types/video-generation"
       ],
       "localImports": [
@@ -21975,7 +20945,6 @@
         "../src/lib/video-generation/generation-supervisor",
         "../src/lib/video-generation/voiceover-drive",
         "../src/lib/video-generation/video-route-registry",
-        "../src/lib/capabilities/registry",
         "../src/types/video-generation"
       ],
       "externalImports": [

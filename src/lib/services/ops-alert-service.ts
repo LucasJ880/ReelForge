@@ -212,11 +212,7 @@ const CAPABILITY_LABELS: Record<string, string> = {
   image: "出图",
   graphics: "图文",
   video: "出片",
-  voice: "配音",
   moderation: "内容审核",
-  stock: "素材图库",
-  scrape: "链接抓取",
-  cutout: "抠图",
   email: "邮件",
 };
 
@@ -230,7 +226,7 @@ export function capabilityTransitionAlert(
   prev: { status: string } | null | undefined,
   next: { key: string; status: string; reason: string; detail?: { provider?: string; note?: string; httpStatus?: number } },
 ): OpsAlert | null {
-  /// 已下线的线路（配音、图库、抓取、抠图、审核）翻转不叫醒人：没有任何入口还在用它们
+  /// 没在用的线路（现在只有内容审核，生产关着）翻转不叫醒人。配音、图库、抓取、抠图 2026-11-16 连代码一起删了，不再有它们的观测
   if ((RETIRED_CAPABILITY_KEYS as readonly string[]).includes(next.key)) return null;
   const wasDown = prev ? DOWN_STATUSES.has(prev.status) : false;
   const isDown = DOWN_STATUSES.has(next.status);

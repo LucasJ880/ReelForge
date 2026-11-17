@@ -83,37 +83,6 @@ const contracts: RouteMethodContract[] = [
     successMarker: /data: parsed\.data[\s\S]*NextResponse\.json\(brief\)/,
   },
   {
-    method: "POST",
-    route: "/api/briefs/contract-brief/ad-plan",
-    file: "src/app/api/briefs/[id]/ad-plan/route.ts",
-    boundary: "operator",
-    successMarker:
-      /generateAdEditPlanForBrief\(id\)[\s\S]*NextResponse\.json\(plan\)/,
-  },
-  {
-    method: "POST",
-    route: "/api/briefs/contract-brief/scenes",
-    file: "src/app/api/briefs/[id]/scenes/route.ts",
-    boundary: "operator",
-    successMarker: /NextResponse\.json\(\{ scenes \}\)/,
-  },
-  {
-    method: "POST",
-    route: "/api/briefs/contract-brief/script",
-    file: "src/app/api/briefs/[id]/script/route.ts",
-    boundary: "operator",
-    successMarker:
-      /generateScriptForBrief\(id\)[\s\S]*NextResponse\.json\(script\)/,
-  },
-  {
-    method: "POST",
-    route: "/api/briefs/contract-brief/render",
-    file: "src/app/api/briefs/[id]/render/route.ts",
-    boundary: "operator",
-    successMarker:
-      /NextResponse\.json\(\{ plan \}\)[\s\S]*NextResponse\.json\(\{ jobs \}\)/,
-  },
-  {
     method: "GET",
     route: "/api/briefs/contract-brief/render-status",
     file: "src/app/api/briefs/[id]/render-status/route.ts",
@@ -136,13 +105,6 @@ const contracts: RouteMethodContract[] = [
     boundary: "owner-session",
     successMarker:
       /reconcileBriefRenderStatus\(briefId\)[\s\S]*toCustomerBriefRenderSummary\(summary\)/,
-  },
-  {
-    method: "POST",
-    route: "/api/briefs/contract-brief/qa",
-    file: "src/app/api/briefs/[id]/qa/route.ts",
-    boundary: "reviewer",
-    successMarker: /runAIQA\(id\)[\s\S]*NextResponse\.json\(review\)/,
   },
   {
     method: "GET",
@@ -190,9 +152,10 @@ function routeSource(file: string): string {
   return readFileSync(path.join(process.cwd(), file), "utf8");
 }
 
-test("H1 group A STATIC: all 19 route methods lock a success shape and handler boundary", () => {
+test("H1 group A STATIC: all 14 route methods lock a success shape and handler boundary", () => {
   /// 2026-10-28 me/usage、billing/checkout、personal/agent-chat、ad-plans render、raw-assets preprocess 随删：24 → 19
-  assert.equal(contracts.length, 19);
+  /// 2026-11-16 没人调的旧 brief 接口（ad-plan / scenes / script / render / qa）随删：19 → 14
+  assert.equal(contracts.length, 14);
   assert.equal(
     new Set(contracts.map(({ method, route }) => `${method} ${route}`)).size,
     contracts.length,
@@ -321,11 +284,6 @@ test("H1 group A STATIC: staff and owner-scoped routes cannot silently lose auth
   for (const file of operatorFiles) {
     assert.match(routeSource(file), /requireOperator\(\)/, file);
   }
-
-  assert.match(
-    routeSource("src/app/api/briefs/[id]/qa/route.ts"),
-    /requireReviewer\(\)/,
-  );
 
   for (const file of [
     "src/app/api/briefs/[id]/render-status/route.ts",

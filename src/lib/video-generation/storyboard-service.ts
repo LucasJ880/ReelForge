@@ -65,7 +65,6 @@ import {
   truncateStoryText,
 } from "@/lib/video-generation/storyboard-frame-inputs";
 import { renderStoryInEnglish } from "@/lib/video-generation/story-english";
-import { designStoryboardDirection } from "@/lib/video-generation/storyboard-direction";
 import {
   readStoredVisualReference,
   type VisualReferenceAnalysis,
@@ -664,26 +663,15 @@ export async function createStoryboardRun(
     productImageCount: assets.length,
     personImageCount: personAssetIds.length,
     voiceoverScript: input.voiceoverScript ?? null,
-    /// 看图写卡（STORYBOARD_SHOT_CARDS_VISION=on 才生效）要用的商家实拍
-    productImageUrls: assets.map((asset) => asset.url),
   };
-  /// 出方案并成一次（11-09，storyboard-direction.ts）：有商品图的单条故事板先试一次看图调用，同时出镜头卡、
-  /// 原话英译与视觉盘点；哪一样没用上就只补跑那一样原来的单独调用，整次没用上（返回 null）就全走原路径。
-  const direction = isBatchRun
-    ? null
-    : await designStoryboardDirection(shotCardInput);
+  /// 镜头卡与原话英译各一次模型调用，并行跑。11-09 试过把它们和商品图的视觉盘点并成一次看图调用
+  ///（STORYBOARD_DIRECTION）：首次真机只用上三样里的一样、还更慢，一直缺省关，2026-11-16 删除。
   const [shotCards, storyEnglish] = await Promise.all([
     isBatchRun
       ? Promise.resolve(null)
-      : direction?.cards
-        ? Promise.resolve(direction.cards)
-        : designStoryboardShotCards(shotCardInput, { onDegraded: degradations.record }),
-    direction?.storyEnglish
-      ? Promise.resolve(direction.storyEnglish)
-      : renderStoryInEnglish(input.prompt, { onDegraded: degradations.record }),
+      : designStoryboardShotCards(shotCardInput, { onDegraded: degradations.record }),
+    renderStoryInEnglish(input.prompt, { onDegraded: degradations.record }),
   ]);
-  /// 盘点随 run 落库，派发视频时读回；没有就留空（派发时照旧现看一遍图）
-  const visualReference = direction?.visualReference ?? null;
   const promptStory = storyEnglish ?? input.prompt;
   const planningDegradations = degradations.list();
   logPlanningDegradations({ source: "storyboard", runId: id }, planningDegradations);
@@ -716,7 +704,6 @@ export async function createStoryboardRun(
         inputImageUrls: assets.map((asset) => asset.url),
         personAssetIds,
         planningDegradations: planningDegradations as unknown as Prisma.InputJsonValue,
-        ...(visualReference ? { visualReference: visualReference as unknown as Prisma.InputJsonValue } : {}),
         frames: {
           create: plans.map((plan) => ({
             ordinal: plan.ordinal,
@@ -1959,7 +1946,8 @@ export interface StoryboardVideoInputs extends SingleVideoReferenceGroups {
 
 
 /**
- * 派发视频前读回这轮故事板的视觉盘点（建故事板时那次看图调用存下的，storyboard-direction.ts）。
+ * 派发视频前读回这轮故事板的视觉盘点。写它的那次合并看图调用（STORYBOARD_DIRECTION）2026-11-16 删了，
+ * 新建的故事板不再有这一列的值；开关开着那几天建的旧故事板上还存着，所以读的这一头留着。
  * 只读本人的 run；没有、形状不对、读库失败都返回 null——调用方照旧现看一遍图，绝不因此挡住派发。
  */
 export async function readStoryboardVisualReferenceForUser(

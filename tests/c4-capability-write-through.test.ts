@@ -15,8 +15,6 @@ import {
   rowToCapabilityRecord,
   type CapabilityStore,
 } from "../src/lib/services/capability-status-service";
-import { getTtsProvider } from "../src/lib/providers/tts";
-import { searchStockClips } from "../src/lib/providers/stock-footage";
 import { chatJsonByTier, openai } from "../src/lib/providers/openai";
 
 /**
@@ -88,20 +86,20 @@ test("成功 → 正常（runtime）；同状态 10 分钟内不重复写；过�
 
 test("账户层错误 → 立刻暂停并记 failingSince；持续失败保留起点；恢复后清空", async (t) => {
   const store = useStore(t);
-  await markCapability("voice", { error: { status: 403, message: "Project does not have access to model tts-1" } }, { now: NOW });
-  const paused = store.records.get("voice");
+  await markCapability("vision", { error: { status: 403, message: "Project does not have access to model gpt-vision-x" } }, { now: NOW });
+  const paused = store.records.get("vision");
   assert.equal(paused?.status, "unavailable");
   assert.equal(paused?.reason, "permission");
   assert.equal(paused?.failingSince, NOW.toISOString());
   assert.equal(paused?.detail?.httpStatus, 403);
 
-  await markCapability("voice", { error: { status: 429, code: "insufficient_quota" } }, { now: new Date(NOW.getTime() + MINUTE) });
-  assert.equal(store.records.get("voice")?.reason, "quota", "原因变了就写");
-  assert.equal(store.records.get("voice")?.failingSince, NOW.toISOString(), "起点不变");
+  await markCapability("vision", { error: { status: 429, code: "insufficient_quota" } }, { now: new Date(NOW.getTime() + MINUTE) });
+  assert.equal(store.records.get("vision")?.reason, "quota", "原因变了就写");
+  assert.equal(store.records.get("vision")?.failingSince, NOW.toISOString(), "起点不变");
 
-  await markCapability("voice", "success", { now: new Date(NOW.getTime() + 2 * MINUTE) });
-  assert.equal(store.records.get("voice")?.status, "available");
-  assert.equal(store.records.get("voice")?.failingSince, null);
+  await markCapability("vision", "success", { now: new Date(NOW.getTime() + 2 * MINUTE) });
+  assert.equal(store.records.get("vision")?.status, "available");
+  assert.equal(store.records.get("vision")?.failingSince, null);
 });
 
 test("超时 / 5xx / 普通限流不改状态（一个抖动不能把整站标成暂停）", async (t) => {
@@ -146,7 +144,7 @@ test("getCapabilities：读失败退回「按配置显示」不抛；60 秒内�
   const view = await getCapabilities({ store: failing, env, now: NOW });
   assert.equal(view.items.find((item) => item.key === "text")?.status, "available");
   assert.equal(view.items.find((item) => item.key === "text")?.reason, "unchecked");
-  assert.equal(view.items.find((item) => item.key === "stock")?.status, "not_configured");
+  assert.equal(view.items.find((item) => item.key === "video")?.status, "not_configured");
   assert.equal(view.paused, false);
 
   const counting = createMemoryCapabilityStore([
@@ -179,69 +177,56 @@ test("getCapabilities：读失败退回「按配置显示」不抛；60 秒内�
   assert.ok(reads >= 1);
 });
 
-test("行 ↔ 记录：原因与来源存进 detail；坏行（未知 key / 状态）丢弃", () => {
+test("行 ↔ 记录：原因与来源存进 detail；坏行（未知 key / 状态）丢弃；已删线路的旧行也丢弃", () => {
   const record: CapabilityRecord = {
-    key: "voice",
+    key: "vision",
     status: "unavailable",
     reason: "permission",
     source: "probe",
     checkedAt: NOW.toISOString(),
     failingSince: NOW.toISOString(),
-    detail: { provider: "openai", httpStatus: 403, ttsProbedAt: NOW.toISOString() },
+    detail: { provider: "openai", httpStatus: 403 },
   };
   const row = capabilityRecordToRow(record);
-  assert.deepEqual(row.detail, { reason: "permission", source: "probe", provider: "openai", httpStatus: 403, ttsProbedAt: NOW.toISOString() });
-  assert.deepEqual(rowToCapabilityRecord({ key: "voice", ...row }), record);
+  assert.deepEqual(row.detail, { reason: "permission", source: "probe", provider: "openai", httpStatus: 403 });
+  assert.deepEqual(rowToCapabilityRecord({ key: "vision", ...row }), record);
+  /// 库里留着的旧行（2026-11-16 之前探测写的）：四个已删的键读出来是 null，连同它带的 ttsProbedAt 一起忽略
+  for (const key of ["voice", "stock", "scrape", "cutout"]) {
+    assert.equal(
+      rowToCapabilityRecord({
+        key,
+        status: "unavailable",
+        detail: { reason: "permission", source: "probe", ttsProbedAt: NOW.toISOString() },
+        checkedAt: NOW,
+        failingSince: NOW,
+      }),
+      null,
+      key,
+    );
+  }
   assert.equal(rowToCapabilityRecord({ key: "telepathy", status: "available", detail: null, checkedAt: NOW, failingSince: null }), null);
   assert.equal(rowToCapabilityRecord({ key: "text", status: "melting", detail: null, checkedAt: NOW, failingSince: null }), null);
 });
 
-test("配置判据：邮件要 key + 发件人；图库 Pexels 或 Pixabay 任一；Shuyu 认大小写两种变量名", () => {
+test("配置判据：邮件要 key + 发件人；Shuyu 认大小写两种变量名；已删线路的 key 配着也不产生能力", () => {
   const config = capabilityConfiguration({
     OPENAI_API_KEY: "sk",
     shuyu_api_key: "s",
     PIXABAY_API_KEYS: " ,px ",
+    FIRECRAWL_API_KEY: "fc",
+    REMOVE_BG_API_KEY: "rb",
+    ELEVENLABS_API_KEY: "el",
     RESEND_API_KEY: "re_x",
   });
   assert.equal(config.text, true);
   assert.equal(config.image, true);
   assert.equal(config.video, true);
-  assert.equal(config.stock, true);
   assert.equal(config.email, false, "缺 EMAIL_FROM");
-  assert.equal(config.scrape, false);
+  assert.deepEqual(Object.keys(config).sort(), ["email", "graphics", "image", "moderation", "text", "video", "vision"]);
   assert.equal(capabilityConfiguration({ OPENAI_API_KEY: "sk", IMAGE_ENGINE_MOCK: "true" }).graphics, false);
 });
 
 /* ── 生产调用点真的会回写 ──────────────────────────────────────────── */
-
-test("TTS：403 没有模型权限 → 配音暂停；成功合成 → 正常", async (t) => {
-  const store = useStore(t);
-  withEnv(t, { OPENAI_API_KEY: "sk-test-key" });
-  const denied = (async () =>
-    new Response(JSON.stringify({ error: { message: "Project proj_x does not have access to model tts-1" } }), { status: 403 })) as typeof fetch;
-  await assert.rejects(getTtsProvider({ fetchImpl: denied }).synthesize({ text: "你好", language: "zh" }));
-  assert.equal(store.records.get("voice")?.status, "unavailable");
-  assert.equal(store.records.get("voice")?.reason, "permission");
-
-  const ok = (async () => new Response(new Uint8Array(2048), { status: 200 })) as typeof fetch;
-  const { audio } = await getTtsProvider({ fetchImpl: ok }).synthesize({ text: "你好", language: "zh" });
-  assert.equal(audio.byteLength, 2048);
-  assert.equal(store.records.get("voice")?.status, "available");
-});
-
-test("图库：key 被拒（401）→ 图库暂停；搜索成功 → 正常", async (t) => {
-  const store = useStore(t);
-  withEnv(t, { PEXELS_API_KEYS: "pexels-test", PIXABAY_API_KEYS: undefined });
-  const rejected = (async () => new Response("Unauthorized", { status: 401 })) as typeof fetch;
-  await assert.rejects(searchStockClips({ term: "blinds", aspect: "portrait", fetchImpl: rejected }));
-  assert.deepEqual(
-    { status: store.records.get("stock")?.status, reason: store.records.get("stock")?.reason },
-    { status: "unavailable", reason: "auth" },
-  );
-  const ok = (async () => new Response(JSON.stringify({ videos: [] }), { status: 200 })) as typeof fetch;
-  await searchStockClips({ term: "blinds", aspect: "portrait", fetchImpl: ok });
-  assert.equal(store.records.get("stock")?.status, "available");
-});
 
 test("写作：chatJsonByTier 撞上 429 额度 → 写作暂停；之后一次成功 → 恢复（整条回退链只回写一次结论）", async (t) => {
   const store = useStore(t);

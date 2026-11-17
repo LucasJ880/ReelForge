@@ -1,13 +1,10 @@
 import { lookup } from "node:dns/promises";
 import { BlockList, isIP } from "node:net";
 import { z } from "zod";
-import {
-  firecrawlScrapeHtml,
-  isFirecrawlAvailable,
-} from "@/lib/providers/firecrawl";
 
 /**
- * O1 · 商品链接起片（PRD §3，P0）。
+ * O1 · 读商品链接里公开声明的商品信息（PRD §3，P0）。
+ * 创作页的「贴商品链接」入口与 /api/product-link 已删（2026-11-16）；现在只有「本周内容」按链接排计划时用。
  *
  * 抓取顺序：Shopify 官方 `.json` → JSON-LD Product → OpenGraph → `<title>` 兜底。
  * 全部是**页面自己公开声明的结构化数据**，不做 DOM 猜测式抓取 ——
@@ -211,40 +208,17 @@ export async function fetchProductFacts(
 ): Promise<ProductLinkFacts> {
   const url = assertPublicHttpUrl(rawUrl);
   const doFetch = deps.fetchImpl ?? fetch;
-  /// 解析到内网的域名在任何请求之前就拒绝，也不交给 Firecrawl 兜底。
+  /// 解析到内网的域名在任何请求之前就拒绝。
   await assertPublicDestination(url, deps.resolveHost);
 
   /// Shopify 商品页加 `.json` 就是官方结构化接口，比解析 HTML 稳得多。
   const shopify = await tryShopifyJson(url, doFetch, deps.resolveHost);
   if (shopify) return shopify;
 
-  /// 直抓优先（免费、快）；抓不到或页面是 JS 渲染壳（抽不出任何事实）时，
-  /// 走 Firecrawl 托管渲染兜底（0802 接入），两条路径共用同一套抽取。
-  try {
-    const html = await fetchText(url, doFetch, deps.resolveHost);
-    const facts = extractFactsFromHtml(html, url.toString());
-    if (facts.source !== "none" || !isFirecrawlAvailable()) return facts;
-    return await fetchFactsViaFirecrawl(url, deps.fetchImpl);
-  } catch (err) {
-    const recoverable =
-      err instanceof ProductLinkError &&
-      (err.reason === "unreachable" || err.reason === "not_html");
-    if (!recoverable || !isFirecrawlAvailable()) throw err;
-    try {
-      return await fetchFactsViaFirecrawl(url, deps.fetchImpl);
-    } catch {
-      /// 兜底也失败时抛直抓的原始错误：对用户更可解释（页面 404 vs 渲染失败）
-      throw err;
-    }
-  }
-}
-
-async function fetchFactsViaFirecrawl(
-  url: URL,
-  fetchImpl?: typeof fetch,
-): Promise<ProductLinkFacts> {
-  const rendered = await firecrawlScrapeHtml(url.toString(), { fetchImpl });
-  return extractFactsFromHtml(rendered, url.toString());
+  /// 只直抓。原来抓不到或页面是 JS 渲染壳时还会交给 Firecrawl 托管渲染兜底（0802 接入），
+  /// 那条外部线路 2026-11-09 下线、2026-11-16 删除：现在抽不出事实就如实返回 source: "none"。
+  const html = await fetchText(url, doFetch, deps.resolveHost);
+  return extractFactsFromHtml(html, url.toString());
 }
 
 async function fetchText(

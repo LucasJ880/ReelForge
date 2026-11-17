@@ -1,8 +1,8 @@
 /**
  * C4 · 能力注册表：一份表回答「哪些 AI 能力现在在工作、哪些暂停、暂停时系统改用什么」。
  *
- * 背景（1025 真机验收）：OpenAI 账户 429「no credits」时，写作静默退回模板、实拍线路提交后才 503、
- * TTS 403、画面质检被跳过、Logo 失败——客户一个都看不见。现在每个能力一条状态，
+ * 背景（1025 真机验收）：OpenAI 账户 429「no credits」时，写作静默退回模板、
+ * 画面质检被跳过、Logo 失败——客户一个都看不见。现在每个能力一条状态，
  * 由每小时探测 + 生产调用实时回写（capability-status-service / capability-probe-service）维护，
  * 界面只从这里取词与判定。
  *
@@ -21,31 +21,24 @@ export const CAPABILITY_KEYS = [
   "image",
   "graphics",
   "video",
-  "voice",
   "moderation",
-  "stock",
-  "scrape",
-  "cutout",
   "email",
 ] as const;
 export type CapabilityKey = (typeof CAPABILITY_KEYS)[number];
 
 /**
- * 线路精简（2026-11-09）：这些能力背后的外部线路已下线，对外只留 Shuyu（出图 / 出片）与只做出方案的 OpenAI
+ * 线路精简（2026-11-09）：对外只留 Shuyu（出图 / 出片）与只做出方案的 OpenAI
  * （当时还留着的 Runway 出片备选 2026-11-16 也下线了，代码已删）。
  *
- *  - voice：OpenAI / ElevenLabs 配音只服务实拍图库线路（入口 10-28 已撤）；主线口播是视频模型原生对白
- *  - stock：Pexels / Pixabay 实拍素材，同上
- *  - moderation：OpenAI 内容审核，生产一直关着
- *  - scrape：Firecrawl 贴链接起片
- *  - cutout：remove.bg / Clipdrop 商品主体抠图
+ * 2026-11-16 第 2 批瘦身：配音（voice）、实拍图库（stock）、链接抓取（scrape）、抠图（cutout）四条线路的
+ * 代码整段删除，四个键也不再是能力键——CapabilityStatus 表里它们的旧行照旧留着，读的时候
+ * 被 isCapabilityKey 过滤掉（rowToCapabilityRecord 返回 null），不进任何页面，也不再有探测去写。
  *
- * A 级下线：只撤入口与展示——这些键仍在 CAPABILITY_KEYS 里，探测、状态推进、provider 代码与库里的历史行
- * 全都保留（撤掉对应密钥后探测自然报「未开通」，不再发请求）。这里只管两件事：客户的状态页不再列出它们
- *（capability-board），它们的状态翻转不再发运维告警（ops-alert-service）。
- * 放回某条线路：把它从这个清单里拿掉，并把对应入口开关（lib/create/entry-policy.ts）改回 true。
+ * 留在这个清单里的只有 moderation：OpenAI 内容审核生产一直关着，但代码与开关保留（合规随时可能要开）。
+ * 「已下线」在这里的意思是：客户的状态页不列出它（capability-board），它的状态翻转不发运维告警
+ *（ops-alert-service）；探测与状态推进照旧。打开审核时把它从这个清单里拿掉。
  */
-export const RETIRED_CAPABILITY_KEYS: readonly CapabilityKey[] = ["voice", "moderation", "stock", "scrape", "cutout"];
+export const RETIRED_CAPABILITY_KEYS: readonly CapabilityKey[] = ["moderation"];
 
 export function isRetiredCapability(key: CapabilityKey): boolean {
   return RETIRED_CAPABILITY_KEYS.includes(key);
@@ -88,8 +81,6 @@ export type CapabilityDetail = {
   model?: string;
   /** ≤160 字的脱敏说明 */
   note?: string;
-  /** voice：最近一次真正发出 TTS 探测的时刻（每 24 小时最多一次） */
-  ttsProbedAt?: string;
   /** Shuyu 余额（积分） */
   balancePoints?: number;
 };
@@ -154,8 +145,8 @@ export const CAPABILITY_COPY: Record<CapabilityKey, CapabilityCopy> = {
     label: b("AI 写作", "AI writing"),
     messages: {
       available: b(
-        "AI 写作正常：脚本、周计划与实拍线路拆段由 AI 撰写。",
-        "AI writing is on: scripts, weekly plans and stock-route segments are written by AI.",
+        "AI 写作正常：脚本与周计划由 AI 撰写。",
+        "AI writing is on: scripts and weekly plans are written by AI.",
       ),
       degraded: b(
         "AI 写作不稳定：可能变慢；单次失败会先用模板顶上，不会卡住。",
@@ -246,27 +237,6 @@ export const CAPABILITY_COPY: Record<CapabilityKey, CapabilityCopy> = {
       not_configured: b("视频生成未开通。", "Video generation isn't set up."),
     },
   },
-  voice: {
-    label: b("AI 配音", "AI voiceover"),
-    messages: {
-      available: b(
-        "AI 配音正常：实拍图库线路可以自动配音。",
-        "AI voiceover is on: the stock footage route can voice your script.",
-      ),
-      degraded: b(
-        "AI 配音不稳定：实拍线路提交可能变慢。",
-        "AI voiceover is unstable: stock-route submissions may be slow.",
-      ),
-      unavailable: b(
-        "AI 配音暂停：实拍图库线路暂不可用；主线视频的原生口播不受影响，恢复后自动启用。",
-        "AI voiceover is paused: the stock footage route is unavailable, while native voiceover in main-flow videos is unaffected. It resumes once it recovers.",
-      ),
-      not_configured: b(
-        "AI 配音未开通：实拍图库线路不可用；主线视频的原生口播不受影响。",
-        "AI voiceover isn't set up: the stock footage route is unavailable; native voiceover in main-flow videos is unaffected.",
-      ),
-    },
-  },
   moderation: {
     label: b("内容审核", "Content review"),
     messages: {
@@ -277,57 +247,6 @@ export const CAPABILITY_COPY: Record<CapabilityKey, CapabilityCopy> = {
         "Content review is paused: uploads may not pass the safety check right now. Try again later.",
       ),
       not_configured: b("内容审核未开通。", "Content review isn't set up."),
-    },
-  },
-  stock: {
-    label: b("图库素材", "Stock footage"),
-    messages: {
-      available: b("图库素材正常。", "Stock footage is available."),
-      degraded: b("图库素材不稳定：选片可能变慢。", "Stock footage is unstable: clip search may be slow."),
-      unavailable: b(
-        "图库素材暂停：实拍图库线路暂不可用，主线视频不受影响。",
-        "Stock footage is paused: the stock route is unavailable; main-flow videos are unaffected.",
-      ),
-      not_configured: b(
-        "图库素材未开通：实拍图库线路不可用。",
-        "Stock footage isn't set up: the stock route is unavailable.",
-      ),
-    },
-  },
-  scrape: {
-    label: b("链接抓取", "Link import"),
-    messages: {
-      available: b(
-        "链接抓取正常：粘贴商品链接可自动读取商品信息。",
-        "Link import is on: paste a product link to pull in its details.",
-      ),
-      degraded: b(
-        "链接抓取不稳定：个别网站可能读不全，可以手动补充。",
-        "Link import is unstable: some sites may not load fully, and you can fill in the rest yourself.",
-      ),
-      unavailable: b(
-        "链接抓取受限：常规商品页照常读取，复杂网站暂时读不到，请手动填写。",
-        "Link import is limited: regular product pages still load, but complex sites can't be read right now. Fill in the details manually.",
-      ),
-      not_configured: b(
-        "链接抓取受限：只读取常规商品页，复杂网站请手动填写。",
-        "Link import is limited: only regular product pages load; fill in complex sites manually.",
-      ),
-    },
-  },
-  cutout: {
-    label: b("产品抠图", "Product cutout"),
-    messages: {
-      available: b("产品抠图正常。", "Product cutout is on."),
-      degraded: b("产品抠图不稳定：可能变慢。", "Product cutout is unstable: it may be slow."),
-      unavailable: b(
-        "产品抠图暂停：暂时不能从照片里抠出产品做锚点，已上传的照片都保留。",
-        "Product cutout is paused: products can't be cut out of photos for anchoring right now. Uploaded photos are kept.",
-      ),
-      not_configured: b(
-        "产品抠图未开通：暂不能从照片里抠出产品做锚点。",
-        "Product cutout isn't set up: products can't be cut out of photos for anchoring yet.",
-      ),
     },
   },
   email: {
@@ -361,7 +280,6 @@ export function capabilityMessage(key: CapabilityKey, status: CapabilityStatus, 
 /* ── 功能依赖 ───────────────────────────────────────────────────────── */
 
 export const FEATURE_KEYS = [
-  "broll",
   "contentPlanWriting",
   "narrationDraft",
   "scriptWriting",
@@ -373,8 +291,6 @@ export const FEATURE_KEYS = [
   "videoGeneration",
   "frameQa",
   "uploadReview",
-  "linkImport",
-  "productCutout",
   "leadEmail",
 ] as const;
 export type FeatureKey = (typeof FEATURE_KEYS)[number];
@@ -392,14 +308,6 @@ type FeatureSpec = {
  * 图文配图 C2 起默认 Shuyu 异步出图（CONTENT_POST_IMAGE_PROVIDER=openai 才回到 graphics，属回滚，不在这里分支）。
  */
 export const FEATURES: Record<FeatureKey, FeatureSpec> = {
-  broll: {
-    needs: ["text", "voice", "stock"],
-    label: b("实拍图库线路", "Stock footage route"),
-    whenBlocked: b(
-      "可以先用上方主线生成视频，恢复后这里自动开放。",
-      "Use the main flow above for now; this route reopens automatically once it recovers.",
-    ),
-  },
   contentPlanWriting: {
     needs: ["text"],
     label: b("周计划撰写", "Weekly plan writing"),
@@ -488,22 +396,6 @@ export const FEATURES: Record<FeatureKey, FeatureSpec> = {
       "Uploads may not pass the safety check right now. Try again later.",
     ),
   },
-  linkImport: {
-    needs: ["scrape"],
-    label: b("链接起片", "Start from a link"),
-    whenBlocked: b(
-      "常规商品页照常读取；复杂网站读不到时请手动填写。",
-      "Regular product pages still load; fill in the details manually when a site can't be read.",
-    ),
-  },
-  productCutout: {
-    needs: ["cutout"],
-    label: b("产品抠图", "Product cutout"),
-    whenBlocked: b(
-      "暂时不能从照片里抠出产品做锚点；照片都保留。",
-      "Products can't be cut out of photos for anchoring right now; your photos are kept.",
-    ),
-  },
   leadEmail: {
     needs: ["email"],
     label: b("询盘邮件提醒", "Lead email alerts"),
@@ -520,9 +412,6 @@ export function featuresForCapability(key: CapabilityKey): FeatureKey[] {
 }
 
 /* ── 状态推进 ───────────────────────────────────────────────────────── */
-
-/** 跨观测保留的细节字段：TTS 探测时刻不能被一次生产回写抹掉，否则 24 小时节流失效。 */
-const STICKY_DETAIL_KEYS = ["ttsProbedAt"] as const;
 
 /**
  * 由上一条状态 + 一次观测算出下一条状态。
@@ -541,12 +430,7 @@ export function nextCapabilityRecord(
       ? prev.failingSince
       : now.toISOString()
     : null;
-  const sticky: CapabilityDetail = {};
-  for (const field of STICKY_DETAIL_KEYS) {
-    const value = prev?.detail?.[field];
-    if (value !== undefined) sticky[field] = value;
-  }
-  const detail = { ...sticky, ...(observation.detail ?? {}) };
+  const detail = { ...(observation.detail ?? {}) };
   return {
     key,
     status: observation.status,
@@ -590,16 +474,8 @@ export type PublicCapabilities = {
  * 哪怕各自的上一次观测还是「正常」（账户的观测更新时以账户为准）。
  * 内容审核端点免费，不受额度影响，不在此列。
  */
-const OPENAI_ACCOUNT_DEPENDENTS: ReadonlySet<CapabilityKey> = new Set(["vision", "graphics", "voice"]);
+const OPENAI_ACCOUNT_DEPENDENTS: ReadonlySet<CapabilityKey> = new Set(["vision", "graphics"]);
 const ACCOUNT_LEVEL_REASONS: ReadonlySet<CapabilityReason> = new Set(["quota", "auth"]);
-
-/** 可切换供应商的能力当前用的是哪家（TTS_PROVIDER）。缺省 = openai，与切换前的行为一致。 */
-export type CapabilityProviders = Partial<Record<"voice", string>>;
-
-function dependsOnOpenAiAccount(key: CapabilityKey, providers: CapabilityProviders): boolean {
-  if (!OPENAI_ACCOUNT_DEPENDENTS.has(key)) return false;
-  return key !== "voice" || (providers.voice ?? "openai") === "openai";
-}
 
 function laterOrEqual(a: string, b: string): boolean {
   return Date.parse(a) >= Date.parse(b);
@@ -611,13 +487,12 @@ function resolveOne(
   key: CapabilityKey,
   byKey: ReadonlyMap<CapabilityKey, CapabilityRecord>,
   configured: Readonly<Record<CapabilityKey, boolean>>,
-  providers: CapabilityProviders,
 ): Resolved {
   const record = byKey.get(key);
   if (!configured[key]) {
     return { status: "not_configured", reason: "not_configured", checkedAt: record?.checkedAt ?? null, failingSince: null };
   }
-  if (dependsOnOpenAiAccount(key, providers) && configured.text) {
+  if (OPENAI_ACCOUNT_DEPENDENTS.has(key) && configured.text) {
     const account = byKey.get("text");
     if (
       account &&
@@ -651,7 +526,6 @@ function resolveOne(
 export function resolveCapabilities(input: {
   records: ReadonlyArray<CapabilityRecord>;
   configured: Readonly<Record<CapabilityKey, boolean>>;
-  providers?: CapabilityProviders;
   now: Date;
 }): PublicCapabilities {
   const byKey = new Map<CapabilityKey, CapabilityRecord>();
@@ -666,7 +540,7 @@ export function resolveCapabilities(input: {
   };
   let lastCheckedAt: string | null = null;
   const items = CAPABILITY_KEYS.map((key): PublicCapability => {
-    const resolved = resolveOne(key, byKey, input.configured, input.providers ?? {});
+    const resolved = resolveOne(key, byKey, input.configured);
     counts[resolved.status] += 1;
     if (resolved.checkedAt && (!lastCheckedAt || laterOrEqual(resolved.checkedAt, lastCheckedAt))) {
       lastCheckedAt = resolved.checkedAt;
@@ -691,11 +565,11 @@ export function resolveCapabilities(input: {
 
 /**
  * 给客户看的能力视图：去掉已下线的线路（RETIRED_CAPABILITY_KEYS），并按剩下的重新计数。
- * 状态页不再列「素材图库未开通」这类与商家无关的行；壳层的「部分 AI 能力暂停」也不会被
- * 一条已经不用的线路（比如配音 403）点亮。功能闸门仍用完整视图，不走这里。
+ * 状态页不列「内容审核未开通」这类与商家无关的行；壳层的「部分 AI 能力暂停」也不会被
+ * 一条没在用的线路点亮。功能闸门仍用完整视图，不走这里。
  */
 export function withoutRetiredCapabilities(capabilities: PublicCapabilities): PublicCapabilities {
-  /// 「影响哪些功能」里也去掉入口已撤的功能（依赖任何一条已下线线路的，如实拍图库线路）
+  /// 「影响哪些功能」里也去掉入口已撤的功能（依赖任何一条已下线线路的，如上传审核）
   const retiredFeature = (feature: FeatureKey) =>
     RETIRED_FEATURE_KEYS.includes(feature) || FEATURES[feature].needs.some(isRetiredCapability);
   const items = capabilities.items
@@ -744,9 +618,9 @@ function zhAppend(head: string, tail: string): string {
 }
 
 /**
- * 被挡住的原因。英文写成「状态：名单」，不拼主谓一致（标签有单有复：Post images / Stock footage route）。
- * zh：AI 写作、AI 配音暂不可用；图库素材尚未开通
- * en：unavailable: AI writing, AI voiceover; not set up: Stock footage
+ * 被挡住的原因。英文写成「状态：名单」，不拼主谓一致（标签有单有复：Post images / AI vision）。
+ * zh：AI 写作、AI 看图暂不可用；邮件通知尚未开通
+ * en：unavailable: AI writing, AI vision; not set up: Email alerts
  */
 function causePhrase(keys: CapabilityKey[], status: "unavailable" | "not_configured", locale: Lang): string {
   const labels = keys.map((key) => capabilityLabel(key, locale));

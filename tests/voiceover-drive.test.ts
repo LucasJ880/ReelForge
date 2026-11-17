@@ -15,7 +15,6 @@ import { evaluateVoiceoverDrive } from "../src/lib/services/voiceover-drive-serv
 import { normalizePostProductionSettings } from "../src/lib/video-generation/generation-supervisor";
 import { checkVoiceoverDrive, voiceoverDriveOf } from "../src/lib/video-generation/voiceover-drive";
 import { createVideoRouteSnapshot, VIDEO_ROUTE_IDS } from "../src/lib/video-generation/video-route-registry";
-import type { PublicCapabilities } from "../src/lib/capabilities/registry";
 import type { UnifiedVideoGenerationRequest } from "../src/types/video-generation";
 
 /**
@@ -74,19 +73,23 @@ test("能力闸（纯函数）：native 在每条线路都放行；非 native �
   }
 });
 
-test("能力闸（服务）：native 与线路不支持时都不读能力表", async () => {
-  let loads = 0;
-  const loadCapabilities = async () => {
-    loads += 1;
-    return { items: [] } as unknown as PublicCapabilities;
-  };
+test("能力闸（服务）：native 放行，非 native 在线路这一关就拒绝；不读能力表（配音线路 2026-11-16 删除，不再有「AI 配音」这项能力）", async () => {
   const routeSnapshot = createVideoRouteSnapshot("buddy");
-  assert.equal((await evaluateVoiceoverDrive({ voiceover: undefined, routeSnapshot, loadCapabilities })).ok, true);
-  assert.equal((await evaluateVoiceoverDrive({ voiceover: { drive: "native" }, routeSnapshot, loadCapabilities })).ok, true);
-  const rejected = await evaluateVoiceoverDrive({ voiceover: { drive: "tts_lipsync" }, routeSnapshot, loadCapabilities });
-  assert.equal(rejected.ok, false);
-  assert.match(!rejected.ok ? rejected.message : "", /暂不支持所选口播方式/);
-  assert.equal(loads, 0);
+  assert.equal((await evaluateVoiceoverDrive({ voiceover: undefined, routeSnapshot })).ok, true);
+  assert.equal((await evaluateVoiceoverDrive({ voiceover: { drive: "native" }, routeSnapshot })).ok, true);
+  for (const drive of ["tts_lipsync", "audio_reference"] as const) {
+    const rejected = await evaluateVoiceoverDrive({ voiceover: { drive }, routeSnapshot });
+    assert.equal(rejected.ok, false, drive);
+    assert.match(!rejected.ok ? rejected.message : "", /暂不支持所选口播方式/);
+  }
+  const service = readFileSync("src/lib/services/voiceover-drive-service.ts", "utf8");
+  assert.doesNotMatch(service, /getCapabilities|findCapability|capability-status-service/);
+  /// 哪天给某条线路开了非 native 方式却没接回配音：得到「AI 配音暂不可用」，而不是静默放行
+  assert.match(service, /ttsUsable: false/);
+  assert.deepEqual(
+    checkVoiceoverDrive({ drive: "native", routeId: routeSnapshot.videoRouteSnapshot, ttsUsable: false }),
+    { ok: true, drive: "native" },
+  );
 });
 
 test("dispatch：能力闸在幂等登记、扣额与供应商提交之前，返回契约内 422 VALIDATION_FAILED", () => {

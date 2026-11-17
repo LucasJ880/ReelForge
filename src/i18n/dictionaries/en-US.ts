@@ -52,9 +52,6 @@ export const enUS: Dictionary = {
     classicWizard: "Wizard (legacy)",
     contentReports: "Content reports",
     internalOps: "Internal Ops",
-    legacySection: "Legacy",
-    legacyProjects: "Projects (legacy)",
-    legacyVideos: "Videos (legacy)",
   },
   role: {
     superAdmin: "Super admin",

@@ -39,7 +39,7 @@ export function storyNeedsEnglish(story: string): boolean {
   return cjkShare(story) > 0;
 }
 
-/** 译文校验（也给 storyboard-direction 的合并调用用）：空的、基本没译的拒收；超长截断。 */
+/** 译文校验：空的、基本没译的拒收；超长截断。 */
 export function normalizeStoryEnglish(data: unknown): string | null {
   if (!data || typeof data !== "object" || Array.isArray(data)) return null;
   const raw = (data as { english?: unknown }).english;

@@ -3,11 +3,10 @@ import test from "node:test";
 import { VideoJobStatus } from "@prisma/client";
 import { __test__ as videoSvcTest } from "../src/lib/services/video-service";
 import { planSegments } from "../src/lib/duration/segment-planner";
-import { __test__ as directorTest } from "../src/lib/services/director-service";
+import { mockDirectorPlan } from "./helpers/director-plan-fixture";
 import { parseDirectorPlan } from "../src/lib/schemas/director-plan";
 
 const { classifyUserStatus, friendlySubmitError } = videoSvcTest;
-const { mockDirectorPlan } = directorTest;
 
 /**
  * 段感知重试测试 —— 防双计费的核心契约：

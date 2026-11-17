@@ -88,7 +88,6 @@ const CUSTOMER_SOURCES = [
   "src/components/product-images/product-image-studio.tsx",
   "src/components/batch/batch-monitor.tsx",
   "src/components/brand/brand-package-manager.tsx",
-  "src/components/brand/product-anchor-manager.tsx",
   "src/components/brand/customer-brand-wall.tsx",
   "src/components/templates/template-recipe-dialog.tsx",
   "src/components/templates/template-library-grid.tsx",

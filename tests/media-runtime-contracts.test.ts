@@ -42,8 +42,6 @@ const MEDIA_FILES = [
   "src/lib/video-generation/brand-packaging-service.ts",
   "src/lib/services/stitch-service.ts",
   "src/lib/services/stitch-composer.ts",
-  /// C3：b-roll 合成在 inprocess 合成函数里跑——Vercel 上没有 PATH 上的 ffmpeg，也没有 ffprobe
-  "src/lib/services/broll-assembly-service.ts",
   "src/lib/media/stitch-pipeline.ts",
   "src/lib/media/frame-qa-shadow.ts",
   "src/lib/media/media-health.ts",

@@ -1,7 +1,7 @@
 /**
  * 供应商「账户层」错误：额度用完 / 欠费 / key 没有该模型权限。
  * 这类错误原样重试必然再失败——给客户的应是「暂不可用、我们在处理」，不是「请稍后重试」。
- * 1025 真机验收：OpenAI 账户 429「no credits remaining」在实拍线路被包成 500 + retryable。
+ * 1025 真机验收：OpenAI 账户 429「no credits remaining」在实拍线路（2026-11-16 已删）被包成 500 + retryable。
  *
  * C2 · 也认 Shuyu 的同类错误（图文配图改走 Shuyu 之后，它的账户故障同样不能引导客户反复重试）：
  * - `ShuyuApiError`（GET /prices、/tasks）：code `authentication_rejected`（401/403）、

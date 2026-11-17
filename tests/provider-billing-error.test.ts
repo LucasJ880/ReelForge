@@ -13,11 +13,6 @@ test("1025：账户层错误（无额度 / 无权限）识别为不可重试", (
   assert.equal(isProviderBillingError(null), false);
 });
 
-test("实拍线路：账户层错误回 503 + 不可重试 + 人话，不再是 500「请稍后重试」", async () => {
-  const route = await readFile("src/app/api/broll/dispatch/route.ts", "utf8");
-  assert.match(route, /if \(isProviderBillingError\(err\)\) \{[\s\S]*?code: "PROVIDER_UNAVAILABLE"[\s\S]*?retryable: false,[\s\S]*?status: 503/);
-});
-
 test("图文出图：账户层错误回 503 + 稍后再来（不是「出图失败，请重试」），已出的图保留", async () => {
   const service = await readFile("src/lib/services/content-post-render-service.ts", "utf8");
   assert.match(service, /isProviderBillingError\(failure\)[\s\S]*?"provider_unavailable"/);

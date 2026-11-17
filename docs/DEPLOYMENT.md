@@ -8,7 +8,6 @@
 | Neon Postgres | 数据库 | ✅ |
 | OpenAI API | LLM（调研/卖点/Angle/脚本/QA/蒸馏） | MVP 可用 mock，生产必需 |
 | BytePlus ModelArk international (Seedance) | 文本/图生视频 | MVP 可用 mock，生产必需 |
-| remove.bg | V2 图片抠图（MVP 可关闭） | 可选 |
 
 ## 2. 环境变量清单
 
@@ -48,7 +47,6 @@ HEYGEN_AVATAR_ID=
 HEYGEN_VOICE_ID=
 
 # === 可选 ===
-REMOVE_BG_API_KEY=             # V2 抠图，MVP 不用
 TIKTOK_CLIENT_KEY=             # V2 全自动发布预留
 TIKTOK_CLIENT_SECRET=
 ```

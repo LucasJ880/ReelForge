@@ -212,7 +212,7 @@ test("B2.3 一页一枚实心主钮：有计划时「排一周」降为描边；
 
 /* ── B2.4 品牌 ─────────────────────────────────────────────────────── */
 
-test("B2.4 品牌页：一枚实心主钮在页头、预览底色走 token、去掉 TRUSTED BY 眉题、三块同一种抬头与空态", () => {
+test("B2.4 品牌页：一枚实心主钮在页头、预览底色走 token、去掉 TRUSTED BY 眉题、两块同一种抬头与空态（商品主体那一块 2026-11-16 删除）", () => {
   const page = read("src/app/(platform)/app/brands/page.tsx");
   assert.match(page, /primaryAction=\{<NewBrandPackageButton label=\{copy\.newPackage\} \/>\}/);
   assert.match(page, /<BrandPackageDraftProvider>/);
@@ -220,14 +220,11 @@ test("B2.4 品牌页：一枚实心主钮在页头、预览底色走 token、去
   assert.match(manager, /variant=\{channel\?\.draftOpen \? "outline" : "default"\}/);
   assert.match(manager, /<SectionHead/);
   assert.match(manager, /<EmptyState compact/);
-  const anchors = read("src/components/brand/product-anchor-manager.tsx");
-  assert.match(anchors, /variant="outline" size="sm" onClick=\{\(\) => setDialogOpen\(true\)\} data-testid="product-anchor-open"/);
-  assert.match(anchors, /<SectionHead/);
-  assert.match(anchors, /<EmptyState/);
+  assert.doesNotMatch(page, /ProductAnchorManager|product-anchor/);
   const wall = read("src/components/brand/customer-brand-wall.tsx");
   assert.doesNotMatch(stripComments(wall), /TRUSTED BY|已服务客户|x-label/);
   assert.match(wall, /<SectionHead/);
-  for (const file of [manager, anchors, wall]) {
+  for (const file of [manager, wall]) {
     assert.doesNotMatch(file, /bg-white|border-dashed border-border px-5|text-title font-medium">\{props\.title/);
   }
   assert.match(manager, /bg-\(--brand-tile\)/);

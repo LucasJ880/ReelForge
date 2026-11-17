@@ -3,7 +3,10 @@
  *
  * ⚠️ 与 audio-post-production 同一纪律：**零运行时依赖**（无 Next / Prisma / 网络），
  * 因为 scripts/stitch-runner.ts（GH Action 上的 standalone runner）要直接 import。
- * 服务端 broll-assembly-service 与 runner 共用这一份，保证两端 ffmpeg 参数不漂移。
+ *
+ * 实拍图库（b-roll）线路 2026-11-16 删除，服务端那一头（broll-assembly-service）没有了，不再产生新的 b-roll 成片。
+ * 这个文件留着只为两件事：stitch-service 用它的 BrollClaimSegment 认出旧的 b-roll 成片（拒绝重新合成）；
+ * 外部 runner 给旧 b-roll 成片重烧字幕（scripts/ops/reburn-final-video-captions.ts）时还按这份参数合成段。
  */
 
 /// 口播与画面之间的呼吸间隙：紧贴着切下一段会显得赶。
@@ -17,15 +20,6 @@ export function brollSegmentDurationSec(ttsDurationSec: number): number {
     ttsDurationSec + BROLL_BREATH_GAP_SEC,
   );
   return Math.round(target * 100) / 100;
-}
-
-export function brollAspectResolution(aspectRatio: string): {
-  width: number;
-  height: number;
-} {
-  return aspectRatio === "16:9"
-    ? { width: 1920, height: 1080 }
-    : { width: 1080, height: 1920 };
 }
 
 /**

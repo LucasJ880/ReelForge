@@ -34,7 +34,7 @@ npm run context:find -- "关键词1 关键词2"   # 0.3s，输出 top 10 + 建�
 ```
 route (src/app/api/**)      鉴权 + zod 校验 + 调 service，不写业务逻辑、不直接 Prisma
 service (src/lib/services)  业务逻辑与事务；40+ 个，改前查 dependency-map
-provider (src/lib/providers) 外部 API 封装（openai / seedance / shuyu / apify / remove-bg …）
+provider (src/lib/providers) 外部 API 封装（openai / seedance / shuyu …）
 contract (src/lib/contracts) 对外契约与 zod schema —— 跨系统的字段定义放这里
 ```
 

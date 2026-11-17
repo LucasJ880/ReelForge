@@ -136,8 +136,8 @@ test("post-production persistence and runner contracts are explicit", async () =
   assert.match(pipeline, /renderAssCaptions/);
   assert.match(pipeline, /buildAudioFilterPlan/);
   assert.match(pipeline, /probeMedia/);
-  /// 每一个分支（b-roll / assembly / legacy）都把持久化的后期快照交给合成器
-  assert.equal(composer.match(/postProduction,/g)?.length, 3);
+  /// 每一个分支（assembly / legacy；b-roll 分支 2026-11-16 随线路删除）都把持久化的后期快照交给合成器
+  assert.equal(composer.match(/postProduction,/g)?.length, 2);
   assert.match(runner, /ffprobe/);
   assert.match(runner, /buildDeterministicCues/);
   assert.match(runner, /sidechaincompress/);

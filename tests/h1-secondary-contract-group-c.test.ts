@@ -21,9 +21,6 @@ type ContractSession = {
 const nextAuthRuntime = require("next-auth/next") as MutableRecord;
 const { db } = require("../src/lib/db.ts") as { db: Record<string, unknown> };
 
-const briefQaRoute = require("../src/app/api/briefs/[id]/qa/route.ts") as MutableRecord;
-const publishRoute = require("../src/app/api/publish/route.ts") as MutableRecord;
-const publishItemRoute = require("../src/app/api/publish/[id]/route.ts") as MutableRecord;
 const reportsRoute = require("../src/app/api/reports/route.ts") as MutableRecord;
 const internalReportsRoute = require("../src/app/api/internal/reports/route.ts") as MutableRecord;
 const internalReportRoute = require("../src/app/api/internal/reports/[id]/route.ts") as MutableRecord;
@@ -134,124 +131,6 @@ function handler<T extends (...args: never[]) => Promise<Response>>(
 test("H1 secondary contracts group C", async (t) => {
   patch(t, nextAuthRuntime, {
     getServerSession: async () => activeSession,
-  });
-
-  await t.test("brief QA locks auth, validation, and success shapes（/api/qa 列表与决策 2026-10-28 随旧中台删除）", async (st) => {
-    const qaReview = db.qAReview as MutableRecord;
-    const videoBrief = db.videoBrief as MutableRecord;
-    const publishRecord = db.publishRecord as MutableRecord;
-    patch(st, qaReview, {
-      findUnique: async () => ({
-        id: "qa-review-1",
-        videoBriefId: "brief-1",
-        reviewerComment: null,
-        videoBrief: { id: "brief-1" },
-      }),
-      findFirst: async () => ({ id: "qa-ai-existing" }),
-      update: async () => ({ id: "qa-review-1", status: "APPROVED", reviewerId: sessions.reviewer.user.id }),
-    });
-    /// runAIQA 更新既有行走事务内 JSON CAS（qa-review-write）
-    patch(st, db as unknown as MutableRecord, {
-      $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
-        fn({
-          qAReview: {
-            findUnique: async () => ({ id: "qa-ai-existing", status: "PENDING", aiScoreBreakdown: null, aiIssues: null }),
-            updateMany: async () => ({ count: 1 }),
-          },
-        }),
-    });
-    patch(st, videoBrief, {
-      findUnique: async () => ({
-        id: "brief-ai-1",
-        contentAngle: { title: "Title", hook: "Hook", narrative: "Narrative" },
-        durationSec: 15,
-        onCameraMode: "none",
-        scripts: [],
-        videoJobs: [],
-      }),
-      update: async () => ({ id: "brief-1", status: "QA_APPROVED" }),
-    });
-    patch(st, publishRecord, {
-      findFirst: async () => ({ id: "publish-existing" }),
-    });
-    const briefQa = handler<
-      (request: NextRequest, context: { params: Promise<{ id: string }> }) => Promise<Response>
-    >(briefQaRoute, "POST");
-    const briefQaRequest = () => jsonRequest("/api/briefs/brief-ai-1/qa", "POST", {});
-
-    activeSession = null;
-    await assertJson(
-      await briefQa(briefQaRequest(), {
-        params: Promise.resolve({ id: "brief-ai-1" }),
-      }),
-      401,
-      AUTH_REQUIRED,
-    );
-    activeSession = sessions.customer;
-    await assertJson(
-      await briefQa(briefQaRequest(), {
-        params: Promise.resolve({ id: "brief-ai-1" }),
-      }),
-      403,
-      FORBIDDEN,
-    );
-
-    activeSession = sessions.reviewer;
-
-    const aiQa = await briefQa(
-      briefQaRequest(),
-      { params: Promise.resolve({ id: "brief-ai-1" }) },
-    );
-    assert.equal(aiQa.status, 200);
-    const aiQaBody = (await aiQa.json()) as Record<string, unknown>;
-    assert.deepEqual(
-      { id: aiQaBody.id, status: aiQaBody.status, aiOverallScore: aiQaBody.aiOverallScore },
-      { id: "qa-ai-existing", status: "PENDING", aiOverallScore: 70 },
-    );
-  });
-
-  await t.test("publish GET/POST lock operator auth, validation, and success shapes", async (st) => {
-    const publishRecord = db.publishRecord as MutableRecord;
-    patch(st, publishRecord, {
-      findMany: async () => [{ id: "publish-1", status: "PENDING" }],
-      update: async () => ({ id: "publish-1", status: "DOWNLOADED" }),
-    });
-
-    const list = handler<() => Promise<Response>>(publishRoute, "GET");
-    const mutate = handler<
-      (request: NextRequest, context: { params: Promise<{ id: string }> }) => Promise<Response>
-    >(publishItemRoute, "POST");
-    const downloadRequest = () => jsonRequest("/api/publish/publish-1", "POST", { action: "download" });
-
-    activeSession = null;
-    await assertJson(await list(), 401, AUTH_REQUIRED);
-    await assertJson(
-      await mutate(downloadRequest(), { params: Promise.resolve({ id: "publish-1" }) }),
-      401,
-      AUTH_REQUIRED,
-    );
-    activeSession = sessions.customer;
-    await assertJson(await list(), 403, FORBIDDEN);
-    await assertJson(
-      await mutate(downloadRequest(), { params: Promise.resolve({ id: "publish-1" }) }),
-      403,
-      FORBIDDEN,
-    );
-
-    activeSession = sessions.operator;
-    await assertJson(await list(), 200, { items: [{ id: "publish-1", status: "PENDING" }] });
-    await assertJson(
-      await mutate(jsonRequest("/api/publish/publish-1", "POST", { action: "unknown" }), {
-        params: Promise.resolve({ id: "publish-1" }),
-      }),
-      400,
-      { error: "不支持的 action" },
-    );
-    await assertJson(
-      await mutate(downloadRequest(), { params: Promise.resolve({ id: "publish-1" }) }),
-      200,
-      { id: "publish-1", status: "DOWNLOADED" },
-    );
   });
 
   await t.test("customer and internal reports lock ownership, staff auth, validation, and success", async (st) => {
@@ -441,9 +320,6 @@ test("H1 secondary contracts group C", async (t) => {
 
   await t.test("route-method matrix and NextAuth handler wiring are explicit", async () => {
     const matrix: Array<[string, MutableRecord, string[]]> = [
-      ["/api/briefs/[id]/qa", briefQaRoute, ["POST"]],
-      ["/api/publish", publishRoute, ["GET"]],
-      ["/api/publish/[id]", publishItemRoute, ["POST"]],
       ["/api/reports", reportsRoute, ["POST"]],
       ["/api/internal/reports", internalReportsRoute, ["GET"]],
       ["/api/internal/reports/[id]", internalReportRoute, ["PATCH"]],

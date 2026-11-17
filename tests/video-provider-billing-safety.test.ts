@@ -8,7 +8,7 @@ import {
 } from "@prisma/client";
 import { db } from "../src/lib/db";
 import { planSegments } from "../src/lib/duration/segment-planner";
-import { __test__ as directorTest } from "../src/lib/services/director-service";
+import { mockDirectorPlan } from "./helpers/director-plan-fixture";
 import {
   retryFailedVideoJob,
   __test__ as videoTest,
@@ -50,7 +50,7 @@ function installRealMode(t: TestContext) {
 
 function directorPlan() {
   return parseDirectorPlan(
-    directorTest.mockDirectorPlan({
+    mockDirectorPlan({
       targetDurationSec: 15,
       segmentSlots: planSegments(15),
       clientBrief: { businessName: "Acme", productName: "Acme Pro" },

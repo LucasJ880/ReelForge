@@ -8,13 +8,11 @@ import {
   type CapabilityDetail,
   type CapabilityKey,
   type CapabilityObservation,
-  type CapabilityProviders,
   type CapabilityRecord,
   type CapabilitySource,
   type PublicCapabilities,
 } from "@/lib/capabilities/registry";
 import { classifyRuntimeFailure } from "@/lib/capabilities/classify";
-import { isTtsConfigured, resolveTtsProviderId } from "@/lib/providers/tts/config";
 
 /**
  * C4 · 能力状态的读写（服务端）。
@@ -24,7 +22,7 @@ import { isTtsConfigured, resolveTtsProviderId } from "@/lib/providers/tts/confi
  *  - markCapability(key, outcome)：生产调用成功 / 撞上账户层错误时立即回写。同状态 10 分钟内只写一次，
  *    任何失败只记日志、绝不抛出（不能让状态回写拖垮客户请求）。
  *
- * 刻意不静态 import `@/lib/db`：provider 模块（openai / tts / 图库 …）都会 import 本模块，
+ * 刻意不静态 import `@/lib/db`：provider 模块（openai / shuyu / 发信 …）都会 import 本模块，
  * 用到时才懒加载 Prisma，免得把数据库客户端塞进每一个 provider 的模块图。
  */
 
@@ -50,7 +48,7 @@ type CapabilityRow = {
   failingSince: Date | null;
 };
 
-const DETAIL_FIELDS = ["provider", "httpStatus", "model", "note", "ttsProbedAt", "balancePoints"] as const;
+const DETAIL_FIELDS = ["provider", "httpStatus", "model", "note", "balancePoints"] as const;
 const SOURCES: ReadonlySet<CapabilitySource> = new Set(["probe", "runtime", "derived", "config"]);
 
 function pickDetail(raw: Record<string, unknown>): CapabilityDetail | undefined {
@@ -59,7 +57,6 @@ function pickDetail(raw: Record<string, unknown>): CapabilityDetail | undefined 
   if (typeof raw.httpStatus === "number") detail.httpStatus = raw.httpStatus;
   if (typeof raw.model === "string") detail.model = raw.model.slice(0, 80);
   if (typeof raw.note === "string") detail.note = raw.note.slice(0, 160);
-  if (typeof raw.ttsProbedAt === "string") detail.ttsProbedAt = raw.ttsProbedAt;
   if (typeof raw.balancePoints === "number") detail.balancePoints = raw.balancePoints;
   return Object.keys(detail).length > 0 ? detail : undefined;
 }
@@ -207,10 +204,6 @@ function has(env: EnvLike, name: string): boolean {
   return Boolean(env[name]?.trim());
 }
 
-function hasList(env: EnvLike, name: string): boolean {
-  return (env[name] ?? "").split(",").some((part) => part.trim().length > 0);
-}
-
 /**
  * 每个能力的配置是否齐全（只看 env，不发请求）。与各 provider 的 isXxxAvailable() 同一判据，
  * 但在这里重写一遍而不 import provider：provider 反过来要 import 本模块做回写，不能成环。
@@ -225,18 +218,9 @@ export function capabilityConfiguration(env: EnvLike = process.env): Record<Capa
     image: shuyu,
     graphics: chat && env.IMAGE_ENGINE_MOCK !== "true",
     video: shuyu,
-    voice: isTtsConfigured(env),
     moderation: openai,
-    stock: hasList(env, "PEXELS_API_KEYS") || hasList(env, "PIXABAY_API_KEYS"),
-    scrape: has(env, "FIRECRAWL_API_KEY"),
-    cutout: has(env, "REMOVE_BG_API_KEY") || has(env, "CLIPDROP_API_KEY"),
     email: has(env, "RESEND_API_KEY") && has(env, "EMAIL_FROM"),
   };
-}
-
-/** 能力背后可切换的供应商（目前只有配音）：决定它是否跟着 OpenAI 账户一起停。 */
-export function capabilityProviders(env: EnvLike = process.env): CapabilityProviders {
-  return { voice: resolveTtsProviderId(env) };
 }
 
 /* ── 进程内缓存 ─────────────────────────────────────────────────────── */
@@ -315,7 +299,6 @@ export async function getCapabilities(
   return resolveCapabilities({
     records,
     configured: capabilityConfiguration(env),
-    providers: capabilityProviders(env),
     now,
   });
 }

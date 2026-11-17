@@ -3,21 +3,12 @@
  * A 级 = 只撤入口：组件、接口与数据全保留，放回时改成 true。删代码（C 级）另提删除提交。
  *
  * 纯常量模块：客户端组件也引用，不得引入服务端依赖。
+ *
+ * 2026-11-16 第 2 批瘦身：这里原来还有三个开关——实拍图库线路（BROLL_ROUTE_ENTRY_ENABLED）、
+ * 贴商品链接（PRODUCT_LINK_ENTRY_ENABLED）、品牌页商品主体抠图（PRODUCT_ANCHOR_ENTRY_ENABLED）。
+ * 三条线路的组件、接口与供应商代码已经整段删除（C 级），开关随之拿掉；要放回得从 git 历史取回代码，
+ * 不是改个开关。数据库里的表与已有记录（ProductAnchor、旧的 b-roll 成片）都留着。
  */
-
-/// 实拍图库线路（Pexels 实拍素材 + TTS 口播的独立出片卡）：与主线重复，出片线路能直接生成同类画面。
-export const BROLL_ROUTE_ENTRY_ENABLED = false;
 
 /// 产品图工作台（/app/create/images）的「生成视频 / 产品图片」切换：商品图改进品牌套件（P1）。
 export const PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED = false;
-
-/**
- * 线路精简（2026-11-09，Lucas 定）：对外线路只留 Shuyu 与只做出方案的 OpenAI，其余下线（Runway 2026-11-16 也下线了）。
- * 下面两个入口各背着一条要砍的外部线路；同样是 A 级——只撤入口，组件、接口、数据与已有记录全保留。
- */
-
-/// 创作页「贴商品链接」（Firecrawl 抓取商品页自动预填描述）：商家改为手动传图、写描述。
-export const PRODUCT_LINK_ENTRY_ENABLED = false;
-
-/// 品牌页「商品主体」管理（remove.bg / Clipdrop 抠图）：不再新建；已经 READY 的商品主体照旧进故事板。
-export const PRODUCT_ANCHOR_ENTRY_ENABLED = false;

@@ -1,30 +1,38 @@
 /**
- * 线路精简（2026-11-09，Lucas 定）：对外线路只留 Shuyu（出图 / 出片）与只做出方案的 OpenAI（Runway 出片备选 2026-11-16 整段删除）。
- * 这里守住 A 级下线的三件事：入口关着、已下线的线路不进客户视图、它们出错不叫醒人。
+ * 线路精简：对外线路只留 Shuyu（出图 / 出片）与只做出方案的 OpenAI。
+ *
+ * 2026-11-09（Lucas 定）先做 A 级——只撤入口，组件、接口与供应商代码保留。
+ * 2026-11-16 第 2 批瘦身把其中四条线路整段删了：实拍图库 + 配音、链接抓取、抠图。这里守住删完之后的事实：
+ *   - 那些接口、组件、供应商文件不在了，也没有任何活代码还指着它们；
+ *   - 数据库不动：表与已有记录留着，库里旧的能力状态行不让任何页面出错；
+ *   - 还留着但没在用的只有内容审核（生产关着，合规随时可能要开），客户视图不列它、它翻转不叫醒人；
+ *   - 留下的线路出问题照样报。
  * 出片没有兜底线路（Shuyu 不可用就按原原因拒绝）的断言在 batch-route-failover.test.ts。
  */
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
 import test from "node:test";
 import {
   CAPABILITY_KEYS,
+  FEATURE_KEYS,
   RETIRED_CAPABILITY_KEYS,
   RETIRED_FEATURE_KEYS,
+  isCapabilityKey,
   isRetiredCapability,
   resolveCapabilities,
   withoutRetiredCapabilities,
   type CapabilityKey,
   type CapabilityRecord,
 } from "../src/lib/capabilities/registry";
-import {
-  BROLL_ROUTE_ENTRY_ENABLED,
-  PRODUCT_ANCHOR_ENTRY_ENABLED,
-  PRODUCT_LINK_ENTRY_ENABLED,
-} from "../src/lib/create/entry-policy";
+import * as entryPolicy from "../src/lib/create/entry-policy";
+import { rowToCapabilityRecord } from "../src/lib/services/capability-status-service";
 import { capabilityTransitionAlert } from "../src/lib/services/ops-alert-service";
 
-const NOW = new Date("2026-11-09T12:00:00.000Z");
+const NOW = new Date("2026-11-16T12:00:00.000Z");
 const ALL_CONFIGURED = Object.fromEntries(CAPABILITY_KEYS.map((key) => [key, true])) as Record<CapabilityKey, boolean>;
+/// 2026-11-16 随线路一起删掉的四个能力键；CapabilityStatus 表里它们的旧行还在
+const DELETED_CAPABILITY_KEYS = ["voice", "stock", "scrape", "cutout"] as const;
 
 function record(key: CapabilityKey, status: CapabilityRecord["status"], reason: CapabilityRecord["reason"]): CapabilityRecord {
   return {
@@ -39,44 +47,119 @@ function record(key: CapabilityKey, status: CapabilityRecord["status"], reason: 
 
 const read = (path: string) => readFileSync(path, "utf8");
 
-test("下线清单：配音、审核、实拍图库、链接抓取、抠图；留下的是出方案、出图、出片", () => {
-  assert.deepEqual([...RETIRED_CAPABILITY_KEYS].sort(), ["cutout", "moderation", "scrape", "stock", "voice"]);
+function walk(dir: string, out: string[] = []): string[] {
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) walk(full, out);
+    else if (/\.(ts|tsx)$/.test(entry)) out.push(full);
+  }
+  return out;
+}
+
+test("能力清单：留下出方案、看图、出图、配图、出片、审核、邮件；配音 / 图库 / 抓取 / 抠图不再是能力", () => {
+  assert.deepEqual([...CAPABILITY_KEYS], ["text", "vision", "image", "graphics", "video", "moderation", "email"]);
+  for (const key of DELETED_CAPABILITY_KEYS) assert.equal(isCapabilityKey(key), false, key);
+  /// 「已下线」清单里只剩审核：代码与开关都在，生产关着
+  assert.deepEqual([...RETIRED_CAPABILITY_KEYS], ["moderation"]);
   for (const key of ["text", "vision", "image", "graphics", "video", "email"] as const) {
     assert.equal(isRetiredCapability(key), false, key);
   }
-});
-
-test("三个背着外部线路的入口都关着（A 级：只撤入口，组件与接口保留）", () => {
-  assert.equal(BROLL_ROUTE_ENTRY_ENABLED, false, "实拍图库线路（Pexels + 配音）");
-  assert.equal(PRODUCT_LINK_ENTRY_ENABLED, false, "贴商品链接（Firecrawl）");
-  assert.equal(PRODUCT_ANCHOR_ENTRY_ENABLED, false, "商品主体抠图（remove.bg）");
-
-  const studio = read("src/components/video-generation/streamlined-video-studio.tsx");
-  assert.match(studio, /\{PRODUCT_LINK_ENTRY_ENABLED \? \(/, "贴链接按钮受开关控制");
-  assert.match(studio, /\{PRODUCT_LINK_ENTRY_ENABLED && linkOpen \? \(/, "预填面板受开关控制");
-  const brands = read("src/app/(platform)/app/brands/page.tsx");
-  assert.match(brands, /\{PRODUCT_ANCHOR_ENTRY_ENABLED \? \(\s*<ProductAnchorManager/, "商品主体管理受开关控制");
-  assert.match(brands, /PRODUCT_ANCHOR_ENTRY_ENABLED \? listProductAnchorsForUser/, "不展示就不查");
-
-  /// 组件与接口还在：放回只需改开关
-  for (const kept of [
-    "src/components/video-generation/product-link-prefill.tsx",
-    "src/app/api/product-link/route.ts",
-    "src/components/brand/product-anchor-manager.tsx",
-    "src/app/api/product-anchors/route.ts",
-    "src/app/api/broll/cancel/route.ts",
-  ]) {
-    assert.ok(read(kept).length > 0, kept);
+  for (const gone of ["broll", "linkImport", "productCutout"]) {
+    assert.equal((FEATURE_KEYS as readonly string[]).includes(gone), false, gone);
   }
 });
 
-test("客户视图：已下线的线路不列出、不计数；一条不用的线路出错不点亮「部分 AI 能力暂停」", () => {
+test("四条线路的接口、组件与供应商代码都删了（不是关着：这些地址现在是 404）", () => {
+  for (const gone of [
+    // 实拍图库 + 配音
+    "src/app/api/broll",
+    "src/components/video-generation/broll-quick-card.tsx",
+    "src/lib/services/broll-assembly-service.ts",
+    "src/lib/services/broll-plan-service.ts",
+    "src/lib/providers/stock-footage.ts",
+    "src/lib/providers/tts",
+    // 链接抓取
+    "src/app/api/product-link",
+    "src/components/video-generation/product-link-prefill.tsx",
+    "src/lib/providers/firecrawl.ts",
+    // 抠图
+    "src/app/api/product-anchors",
+    "src/components/brand/product-anchor-manager.tsx",
+    "src/lib/services/product-anchor-service.ts",
+    "src/lib/contracts/product-anchor-api.ts",
+    "src/lib/providers/cutout.ts",
+    "src/lib/providers/remove-bg.ts",
+  ]) {
+    assert.equal(existsSync(gone), false, `${gone} 应该已经删除`);
+  }
+});
+
+test("没有活代码还指着删掉的线路：不 import、不请求那些接口、不读它们的密钥", () => {
+  const offenders: string[] = [];
+  const forbidden =
+    /broll-assembly-service|broll-plan-service|broll-quick-card|providers\/stock-footage|providers\/tts|providers\/firecrawl|providers\/cutout|providers\/remove-bg|product-anchor-service|product-anchor-manager|product-anchor-api|product-link-prefill|\/api\/broll|\/api\/product-link|\/api\/product-anchors|PEXELS_API_KEYS|PIXABAY_API_KEYS|FIRECRAWL_API_KEY|REMOVE_BG_API_KEY|CLIPDROP_API_KEY|ELEVENLABS_API_KEY|TTS_PROVIDER|PRODUCT_ANCHOR_CUTOUT_CRON/;
+  for (const file of walk("src")) {
+    /// 注释里可以提历史；只看代码行
+    const code = read(file)
+      .split("\n")
+      .filter((line) => !/^\s*(\/\/|\*|\/\*)/.test(line))
+      .join("\n");
+    if (forbidden.test(code)) offenders.push(file);
+  }
+  assert.deepEqual(offenders, []);
+});
+
+test("入口开关随代码一起拿掉：要放回得取回代码，不是改个开关", () => {
+  assert.deepEqual(Object.keys(entryPolicy).sort(), ["PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED"]);
+  assert.equal(entryPolicy.PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED, false);
+
+  const studio = read("src/components/video-generation/streamlined-video-studio.tsx");
+  assert.doesNotMatch(studio, /PRODUCT_LINK_ENTRY_ENABLED|BROLL_ROUTE_ENTRY_ENABLED|ProductLinkPrefill|BrollQuickCard/);
+  const brands = read("src/app/(platform)/app/brands/page.tsx");
+  assert.doesNotMatch(brands, /PRODUCT_ANCHOR_ENTRY_ENABLED|ProductAnchorManager|listProductAnchorsForUser/);
+  assert.match(brands, /<BrandPackageManager/, "品牌包管理照旧");
+  assert.match(brands, /<CustomerBrandWall/, "全局品牌墙照旧");
+});
+
+test("每分钟的 poll-videos 不再调抠图续跑；其余推进与清扫都还在", () => {
+  const cron = read("src/app/api/cron/poll-videos/route.ts");
+  assert.doesNotMatch(cron, /sweepProductAnchorCutouts|anchorCutout|anchorResult/);
+  for (const kept of [
+    "dependencies.pollRunningJobs(30)",
+    "dependencies.pollPendingProductImageJobs(20)",
+    "dependencies.pollPendingStoryboardRuns(20)",
+    "dependencies.pollPendingContentPostRenders(20)",
+    "dependencies.sweepStuckTasks()",
+  ]) {
+    assert.ok(cron.includes(kept), kept);
+  }
+});
+
+test("数据库不动：ProductAnchor 表留着；库里已删能力键的旧状态行读出来被忽略，不让任何页面出错", () => {
+  const schema = read("prisma/schema.prisma");
+  assert.match(schema, /^model ProductAnchor \{/m);
+  assert.match(schema, /^model CapabilityStatus \{/m);
+
+  for (const key of DELETED_CAPABILITY_KEYS) {
+    assert.equal(
+      rowToCapabilityRecord({ key, status: "unavailable", detail: { reason: "permission", source: "probe" }, checkedAt: NOW, failingSince: NOW }),
+      null,
+      key,
+    );
+  }
+  /// 就算有一行漏过了存储层的过滤，视图也只按现存的键出行
+  const stale = DELETED_CAPABILITY_KEYS.map(
+    (key) => ({ ...record("text", "unavailable", "permission"), key }) as unknown as CapabilityRecord,
+  );
+  const full = resolveCapabilities({ records: stale, configured: ALL_CONFIGURED, now: NOW });
+  assert.deepEqual(full.items.map((item) => item.key), [...CAPABILITY_KEYS]);
+  assert.equal(full.paused, false, "一条已经不存在的线路的旧故障不点亮「部分 AI 能力暂停」");
+  assert.equal(withoutRetiredCapabilities(full).paused, false);
+});
+
+test("客户视图：没在用的审核不列出、不计数；它出错不点亮「部分 AI 能力暂停」", () => {
   const full = resolveCapabilities({
-    records: [
-      record("voice", "unavailable", "permission"),
-      record("stock", "degraded", "upstream"),
-      record("video", "available", "ok"),
-    ],
+    records: [record("moderation", "unavailable", "permission"), record("video", "available", "ok")],
     configured: ALL_CONFIGURED,
     now: NOW,
   });
@@ -88,11 +171,13 @@ test("客户视图：已下线的线路不列出、不计数；一条不用的�
     customer.items.map((item) => item.key),
     CAPABILITY_KEYS.filter((key) => !isRetiredCapability(key)),
   );
-  assert.equal(customer.paused, false, "配音 403 不再让壳层报暂停");
+  assert.equal(customer.paused, false, "审核 403 不让壳层报暂停");
+  assert.ok(
+    customer.items.every((item) => !item.features.includes("uploadReview")),
+    "「影响哪些功能」里不列依赖审核的上传审核",
+  );
   const writing = customer.items.find((item) => item.key === "text");
-  assert.ok(writing && !writing.features.includes("broll"), "「影响哪些功能」里不再列入口已撤的实拍图库线路");
-  assert.ok(writing.features.includes("contentPlanWriting"), "仍在用的功能照列");
-  assert.equal(customer.unstable, false, "图库不稳也不算");
+  assert.ok(writing?.features.includes("contentPlanWriting"), "仍在用的功能照列");
   assert.equal(
     Object.values(customer.counts).reduce((sum, count) => sum + count, 0),
     customer.items.length,
@@ -103,7 +188,7 @@ test("客户视图：已下线的线路不列出、不计数；一条不用的�
 test("客户视图：留下的线路出问题照样报", () => {
   const customer = withoutRetiredCapabilities(
     resolveCapabilities({
-      records: [record("video", "unavailable", "quota"), record("voice", "available", "ok")],
+      records: [record("video", "unavailable", "quota"), record("moderation", "available", "ok")],
       configured: ALL_CONFIGURED,
       now: NOW,
     }),
@@ -123,7 +208,7 @@ test("客户视图接在状态页、壳层与 /api/capabilities 三处；创作�
   assert.doesNotMatch(read("src/app/(platform)/app/create/page.tsx"), /withoutRetiredCapabilities/);
 });
 
-test("运维告警：已下线的线路翻转不叫醒人；出片、看图照报", () => {
+test("运维告警：没在用的审核翻转不叫醒人；出片、看图照报", () => {
   for (const key of RETIRED_CAPABILITY_KEYS) {
     assert.equal(
       capabilityTransitionAlert({ status: "available" }, { key, status: "unavailable", reason: "quota" }),

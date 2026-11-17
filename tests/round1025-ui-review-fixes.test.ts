@@ -56,9 +56,9 @@ test("LENS-2 代码里真在调的外部供应商，中英两版处理方名单�
   const wired: Array<[file: string, names: string[]]> = [
     ["src/lib/providers/shuyu.ts", ["Shuyu"]],
     ["src/lib/providers/openai.ts", ["OpenAI"]],
-    ["src/lib/providers/cutout.ts", ["remove.bg", "Clipdrop"]],
-    ["src/lib/providers/firecrawl.ts", ["Firecrawl"]],
-    ["src/lib/providers/stock-footage.ts", ["Pexels", "Pixabay"]],
+    /// 2026-11-16：抠图（remove.bg / Clipdrop）、链接抓取（Firecrawl）、实拍图库（Pexels / Pixabay）三条线路的
+    /// 代码已删，不再有数据交给它们。隐私政策这一节的文字这一批没有动（法务草案，且同一行另有改动在途），
+    /// 名单里仍写着这几家与 OpenAI 的「配音」——多写不漏写，等政策下次修订时删掉。
     ["src/lib/services/notification-service.ts", ["Resend"]],
     ["src/lib/config/seedance-runtime.ts", ["BytePlus"]],
   ];

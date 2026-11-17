@@ -4,7 +4,6 @@ import {
   StreamlinedVideoStudio,
   type StudioReadings,
 } from "@/components/video-generation/streamlined-video-studio";
-import { isBrollRouteAvailable } from "@/lib/services/broll-assembly-service";
 import { getCapabilities } from "@/lib/services/capability-status-service";
 import { authOptions } from "@/lib/auth";
 import { contactEmail } from "@/lib/config/contact";
@@ -55,7 +54,7 @@ export default async function PlatformCreatePage({
   const [brandPackages, readings, capabilities, finishedCount] = await Promise.all([
     listWorkspaceBrandPackagesForUser(session.user.id),
     loadCreateReadings(session.user.id, routeState === "empty"),
-    /// C4：能力状态（纯 DTO）交给客户端——实拍线路、口播稿起草与画面质检说明据此诚实显示。永不抛出。
+    /// C4：能力状态（纯 DTO）交给客户端——口播稿起草与画面质检说明据此诚实显示。永不抛出。
     getCapabilities(),
     /// 出过成片的账号不再被当成新人弹首启引导（只看本地记号时，换台电脑就又弹一次）
     routeState === "empty" ? Promise.resolve(0) : countFinished(session.user.id).catch(() => 0),
@@ -181,7 +180,6 @@ export default async function PlatformCreatePage({
         showInternalVideoRoutes={false}
         forceOnboarding={guide === "open"}
         returningUser={finishedCount > 0}
-        brollAvailable={isBrollRouteAvailable()}
         capabilities={capabilities}
         readings={readings}
         /// 额度用完时「联系我们」的邮箱：服务端取值、以 props 传下去（客户端不读环境变量；审计 A7）

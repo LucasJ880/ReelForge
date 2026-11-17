@@ -249,10 +249,3 @@ test("retryStitch inprocess：重置为 PENDING 后不在请求里合成，交�
   assert.equal(updateManys[0]?.status, FinalVideoStatus.PENDING);
   assert.equal(updateManys[0]?.stitchAttempts, 0);
 });
-
-test("b-roll 交付入口只在 local 模式内联推进（inprocess / external 都不在用户请求里合成）", async () => {
-  const { readFile } = await import("node:fs/promises");
-  const source = await readFile("src/lib/services/broll-assembly-service.ts", "utf8");
-  assert.match(source, /if \(resolveStitchRuntimeMode\(\) === "local"\) \{/);
-  assert.doesNotMatch(source, /process\.env\.NODE_ENV !== "production"/);
-});

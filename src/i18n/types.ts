@@ -58,9 +58,6 @@ export type Dictionary = {
     classicWizard: string;
     contentReports: string;
     internalOps: string;
-    legacySection: string;
-    legacyProjects: string;
-    legacyVideos: string;
   };
   role: {
     superAdmin: string;

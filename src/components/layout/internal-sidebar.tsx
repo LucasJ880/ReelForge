@@ -1,18 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import {
-  FolderKanban,
-  Film,
-  LogOut,
-  ChevronDown,
-  ChevronRight,
-  Menu,
-  ScanEye,
-} from "lucide-react";
+import { LogOut, Menu, ScanEye } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { Button } from "@/components/ui/button";
@@ -40,10 +31,12 @@ interface NavItem {
 }
 
 /**
- * InternalSidebar 是旧 AppSidebar 的 quarantined 版本：
- * - 路径前缀变成 /internal/*（Step 7 真正迁移后这些链接会指向新路径）
- * - 在 Phase 5 Step 5 阶段仍然指向旧路径（如 /orders）保证兼容
+ * InternalSidebar 是旧 AppSidebar 的 quarantined 版本，现在只剩帧质检运维页一个入口。
+ * 2026-11-16 拿掉三个指向不存在页面的链接：「旧版入口」里的 /projects 与 /videos，
+ * 以及品牌标志指向的 /internal（没有这个页面，改指唯一存在的 /internal/frame-qa）。
  */
+const INTERNAL_HOME = "/internal/frame-qa";
+
 const INTERNAL_NAV: NavItem[] = [
   /// 旧代运营中台 2026-10-28 删除，只留帧质检运维页（P01-C）。
   {
@@ -54,21 +47,11 @@ const INTERNAL_NAV: NavItem[] = [
   },
 ];
 
-const LEGACY_NAV: NavItem[] = [
-  { href: "/projects", labelKey: "nav.legacyProjects", icon: FolderKanban },
-  { href: "/videos", labelKey: "nav.legacyVideos", icon: Film },
-];
-
 export function InternalSidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const { t } = useI18n();
   const role: Role = (session?.user.role as Role) ?? "OPERATOR";
-  const legacyActive = LEGACY_NAV.some(
-    (item) =>
-      pathname === item.href || pathname.startsWith(item.href + "/"),
-  );
-  const [legacyOpen, setLegacyOpen] = useState<boolean>(legacyActive);
   const visibleNav = INTERNAL_NAV.filter(
     (item) => !item.roles || item.roles.includes(role),
   );
@@ -78,7 +61,7 @@ export function InternalSidebar() {
     <>
       <aside className="x-pane hidden h-screen w-60 shrink-0 flex-col border-0 border-r md:flex">
         <Link
-          href="/internal"
+          href={INTERNAL_HOME}
           className="flex h-20 items-center gap-3 border-b border-border px-5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
           aria-label="Aivora 内部工作台"
         >
@@ -119,48 +102,6 @@ export function InternalSidebar() {
             );
           })}
 
-          <div className="pt-4">
-            <Button
-            type="button"
-            variant="ghost"
-            onClick={() => setLegacyOpen((open) => !open)}
-              className="w-full justify-between text-muted-foreground"
-              aria-expanded={legacyOpen}
-            >
-              {t("nav.legacySection")}
-              {legacyOpen ? (
-                <ChevronDown strokeWidth={1.5} aria-hidden />
-              ) : (
-                <ChevronRight strokeWidth={1.5} aria-hidden />
-              )}
-            </Button>
-            {legacyOpen ? (
-              <div className="mt-1 space-y-1">
-                {LEGACY_NAV.map((item) => {
-                  const active =
-                    pathname === item.href ||
-                    pathname.startsWith(`${item.href}/`);
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      aria-current={active ? "page" : undefined}
-                      className={cn(
-                        "flex h-10 items-center gap-3 rounded-(--radius-md) px-3 text-meta font-medium",
-                        active
-                          ? "bg-sidebar-accent text-foreground"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                      )}
-                    >
-                      <Icon strokeWidth={1.5} aria-hidden />
-                      {item.label ?? (item.labelKey ? t(item.labelKey) : item.href)}
-                    </Link>
-                  );
-                })}
-              </div>
-            ) : null}
-          </div>
         </nav>
 
         <div className="space-y-2 border-t border-border p-4">
@@ -185,7 +126,7 @@ export function InternalSidebar() {
 
       <header className="x-pane fixed inset-x-0 top-0 z-30 flex h-16 items-center justify-between border-0 border-b px-4 md:hidden">
         <Link
-          href="/internal"
+          href={INTERNAL_HOME}
           className="flex min-w-0 items-center gap-3"
           aria-label="Aivora 内部工作台"
         >

@@ -3,11 +3,10 @@ import test from "node:test";
 import { VideoJobStatus, FinalVideoStatus } from "@prisma/client";
 import { __test__ as videoSvcTest } from "../src/lib/services/video-service";
 import { planSegments, requiresStitching } from "../src/lib/duration/segment-planner";
-import { __test__ as directorTest } from "../src/lib/services/director-service";
+import { mockDirectorPlan } from "./helpers/director-plan-fixture";
 import { parseDirectorPlan } from "../src/lib/schemas/director-plan";
 
 const { classifyUserStatus, friendlyProviderError } = videoSvcTest;
-const { mockDirectorPlan } = directorTest;
 
 /**
  * 多段视频生命周期 —— 纯函数 mock 测试。

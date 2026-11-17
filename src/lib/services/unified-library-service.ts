@@ -77,6 +77,9 @@ export type MakingProcessEvidence = {
   hasPlayableVideo: boolean;
 };
 
+/// 旧的实拍图库（b-roll）成片在 VideoBrief.videoRouteSnapshot 上写的值（线路代码 2026-11-16 删除，记录留着）
+const BROLL_ROUTE_SNAPSHOT = "broll";
+
 const unifiedLibraryOrderSelect = {
   id: true,
   title: true,
@@ -94,6 +97,8 @@ const unifiedLibraryOrderSelect = {
             select: {
               id: true,
               status: true,
+              /// 只用来认出旧的实拍图库成片（"broll"）：线路删了，这种成片不能再重新合成
+              videoRouteSnapshot: true,
               durationSec: true,
               aspectRatio: true,
               finalVideoUrl: true,
@@ -379,7 +384,8 @@ export function toUnifiedLibraryRow(
   /// P05-B 只重拼（与 stitch-service prepareRestitch 同一套判据）：READY + 有后期快照 +
   /// brief 在可改成片的状态（归档 / 弃用不行）+ 段原片不是会过期的临时签名地址 +
   /// 不是直接复用某段原片（reuse_single_segment / reuse_first_segment_demo 会把首段 URL 原样写进
-  /// stitchedVideoUrl，没经过合成器，换设置不会生效）。
+  /// stitchedVideoUrl，没经过合成器，换设置不会生效）+ 不是旧的实拍图库成片（线路 2026-11-16 删除，
+  /// 段是「图库原片 + 配音」，没有代码能再合成一遍；照常能看能下载，只是不再给改字幕 / 配乐 / 重做一段的入口）。
   const segmentUrls = currentJobs
     .map((job) => job.outputVideoUrl)
     .filter((url): url is string => Boolean(url));
@@ -392,6 +398,7 @@ export function toUnifiedLibraryRow(
     Boolean(finalVideo.stitchedVideoUrl) &&
     finalVideo.postProduction != null &&
     canRestitchBriefStatus(brief?.status) &&
+    brief?.videoRouteSnapshot !== BROLL_ROUTE_SNAPSHOT &&
     !segmentUrls.some(isEphemeralSignedUrl) &&
     !reusedSegmentUrl;
   const redoInFlight = redoCandidates.some((job) => REDO_IN_FLIGHT_STATUSES.has(job.status));

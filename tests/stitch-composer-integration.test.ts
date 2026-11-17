@@ -11,11 +11,11 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import test, { type TestContext } from "node:test";
 import { FinalVideoStatus, VideoBriefStatus, VideoJobStatus } from "@prisma/client";
 import { db } from "../src/lib/db";
 import { probeMedia } from "../src/lib/media/ffmpeg-bin";
+import { StitchCompositionError } from "../src/lib/media/stitch-pipeline";
 import {
   assemblyClipsToTimeline,
   composeFinalVideoForStitch,
@@ -30,8 +30,6 @@ import {
   ffmpegUsable,
   installMemoryStorage,
   makeClip,
-  makeTone,
-  toneMeanVolumeDb,
 } from "./helpers/synthetic-media";
 
 function patchModel(
@@ -334,16 +332,9 @@ test("integration · assembly 分支：客户上传片段 + 客户选的品牌�
   );
 });
 
-test("integration · b-roll 分支：配音替换素材原声、30fps、一次编码，缩略图来自成片", async (t) => {
-  if (!(await ffmpegUsable())) return t.skip("ffmpeg not installed");
-  const dir = mkdtempSync(path.join(tmpdir(), "composer-broll-"));
-  t.after(() => rmSync(dir, { recursive: true, force: true }));
-  installMemoryStorage(t, dir);
-  /// 图库素材 1.5s、自带 880Hz 原声（必须被丢弃）；配音 2.2s 440Hz → 段长 max(2, 2.2+0.35)=2.55s（素材循环补长）
-  const stock = await makeClip(path.join(dir, "stock.mp4"), { durationSec: 1.5, fps: 25, audio: { kind: "tone", hz: 880, speechSec: 1.5 } });
-  const tts = await makeTone(path.join(dir, "tts.m4a"), 440, 2.2);
+test("b-roll（线路已删）：合成器认出旧的实拍图库成片就明确失败，绝不把图库原片当成片拼出去；经 runClaimedStitchAttempt 落成一次普通的合成失败", async (t) => {
   const row: FakeRow = {
-    id: "broll_e2e",
+    id: "broll_retired",
     status: FinalVideoStatus.STITCHING,
     stitchAttemptToken: "tok_broll",
     stitchAttempts: 0,
@@ -355,21 +346,38 @@ test("integration · b-roll 分支：配音替换素材原声、30fps、一次�
       audio: { ...BGM_ONLY.audio, voiceover: { ...BGM_ONLY.audio.voiceover, enabled: false } },
     },
     brief: { id: "brief_broll", aspectRatio: "9:16", videoGenerationPlan: null, contentAngle: null },
-    segments: [segment(0, fileUrl(stock), { assignedAssets: { broll: { ttsAudioUrl: fileUrl(tts) } } })],
+    segments: [
+      segment(0, "https://videos.example.com/stock.mp4", {
+        assignedAssets: { broll: { ttsAudioUrl: "https://blob.example.com/tts.mp3" } },
+      }),
+    ],
   };
   installFakeDb(t, row);
-  const composed = await composeFinalVideoForStitch({ finalVideoId: row.id });
-  assert.equal(composed.branch, "broll");
-  assert.equal(composed.clips[0]?.role, "broll");
-  assert.equal(composed.clips[0]?.tailTrimmedSec, 0, "b-roll 不裁尾");
-  assert.match(composed.thumbnailUrl ?? "", /\.jpg$/);
-  const output = fileURLToPath(composed.stitchedVideoUrl);
-  const probe = await probeMedia(output);
-  assert.equal(probe.fps, 30);
-  assert.ok(probe.durationSec && Math.abs(probe.durationSec - 2.55) < 0.1, `duration ${probe.durationSec}`);
-  /// 开着 BGM：配音必须还在（1025 runner 事故：b-roll 开 BGM 后口播被整段换成音乐）
-  const voice = await toneMeanVolumeDb(output, 440, { durationSec: 2 });
-  const stockAudio = await toneMeanVolumeDb(output, 880, { durationSec: 1.4 });
-  assert.ok(voice !== null && voice > -32, `voice band ${voice} dB`);
-  assert.ok(stockAudio !== null && voice > stockAudio + 15, `voice ${voice} dB vs stock ${stockAudio} dB`);
+  /// 不需要 ffmpeg、也不下载任何东西：在组时间线之前就拒绝
+  await assert.rejects(
+    composeFinalVideoForStitch({ finalVideoId: row.id }),
+    (err: unknown) =>
+      err instanceof StitchCompositionError &&
+      err.code === "BROLL_ROUTE_RETIRED" &&
+      /实拍图库线路/.test(err.message) &&
+      /照常可以看和下载/.test(err.message),
+  );
+
+  const finished: Array<{ error?: string; stitchedVideoUrl?: string }> = [];
+  const outcome = await runClaimedStitchAttempt({
+    finalVideoId: row.id,
+    attemptToken: "tok_broll",
+    checkpoint: async () => {},
+    finish: (async (args: { finalVideoId: string; error?: string; stitchedVideoUrl?: string }) => {
+      finished.push({ error: args.error, stitchedVideoUrl: args.stitchedVideoUrl });
+      return { finalVideoId: args.finalVideoId, ok: false, status: FinalVideoStatus.FAILED, error: args.error };
+    }) as never,
+    requeue: (async () => {
+      throw new Error("线路已删是重跑也不会好的失败，不该放回队列");
+    }) as never,
+  });
+  assert.equal(outcome.kind, "failed");
+  assert.equal(finished.length, 1);
+  assert.match(finished[0]?.error ?? "", /^BROLL_ROUTE_RETIRED: /);
+  assert.equal(finished[0]?.stitchedVideoUrl, undefined, "没有产出任何成片");
 });

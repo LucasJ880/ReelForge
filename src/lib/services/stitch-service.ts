@@ -173,8 +173,17 @@ export interface ClaimedStitchTask {
 }
 
 /**
- * 从段任务的 assignedAssets 提取 b-roll 输入（全部段都带 broll 标记才算
- * b-roll 任务；混合形态不存在——startBrollDelivery 整链同源写入）。
+ * 实拍图库（b-roll）线路 2026-11-16 删除（入口 10-28 就撤了）。旧的 b-roll 成片照常能看能下载，
+ * 但不能再重新合成：只重拼在预检（prepareRestitch）就拒绝，应用内合成器认出来也明确失败（BROLL_ROUTE_RETIRED）。
+ * 这句话直接给客户看。
+ */
+export const BROLL_ROUTE_RETIRED_MESSAGE =
+  "这条成片是用已下线的实拍图库线路做的，不能再更换字幕 / 配乐 / 片尾落款；成片照常可以看和下载。想换效果，请用同样的素材再做一条。";
+
+/**
+ * 从段任务的 assignedAssets 认出旧的 b-roll 成片（全部段都带 broll 标记才算；混合形态不存在——
+ * 当初整链同源写入）。线路删了之后只用来「认出来」：拒绝重新合成、不让图库原片被当成片复用；
+ * 运维重烧字幕（scripts/ops/reburn-final-video-captions.ts → scripts/stitch-runner.ts）仍靠它带出段输入。
  */
 export function extractBrollClaimSegments(
   segments: Array<{
@@ -1004,6 +1013,10 @@ export async function prepareRestitch(
   if (fv.brief && !canRestitchBriefStatus(fv.brief.status)) {
     throw new RestitchRejectedError("INVALID_STATE", "这条视频已归档或弃用，不能再更改成片。");
   }
+  /// 实拍图库线路已删：段是「图库原片 + 配音」，没有代码能把它们再合成一遍。在限频与 CAS 之前拒绝，旧成片原样不动。
+  if (extractBrollClaimSegments(fv.segments) !== null) {
+    throw new RestitchRejectedError("INVALID_STATE", BROLL_ROUTE_RETIRED_MESSAGE);
+  }
   if (!isStitchCandidateReady(fv)) {
     throw new RestitchRejectedError("INVALID_STATE", "分段素材不完整，不能只重拼。");
   }
@@ -1339,7 +1352,7 @@ export interface RollbackRestitchOptions {
  *   客户视角成片一直都在，只是这次换设置没成。
  *
  *   五处调用：finishStitchTask 失败分支、sweepStuckStitching（STITCHING 超时达上限）、
- *   sweepAwaitingStitchTimeout（等合成超时）、cancelUnifiedOrderForUser 与 cancelBrollDelivery（重拼中取消）。
+ *   sweepAwaitingStitchTimeout（等合成超时）、cancelUnifiedOrderForUser（重拼中取消）。
  */
 export async function rollbackRestitch(
   finalVideoId: string,

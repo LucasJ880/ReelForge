@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T00:27:58.138Z",
+  "generatedAt": "2026-11-17T00:44:25.765Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -8,8 +8,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 53,
-      "sizeBytes": 1144,
+      "lineCount": 46,
+      "sizeBytes": 909,
       "notes": ""
     },
     {
@@ -42,7 +42,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 121,
-      "sizeBytes": 10529,
+      "sizeBytes": 10509,
       "notes": "Documentation; area=media-processing"
     },
     {
@@ -52,8 +52,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 331,
-      "sizeBytes": 30143,
+      "lineCount": 333,
+      "sizeBytes": 30464,
       "notes": "Documentation"
     },
     {
@@ -9457,7 +9457,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 0,
-      "sizeBytes": 16663,
+      "sizeBytes": 15311,
       "notes": "area=config"
     },
     {
@@ -9468,7 +9468,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 0,
-      "sizeBytes": 3398,
+      "sizeBytes": 3213,
       "notes": "area=config"
     },
     {
@@ -9805,8 +9805,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 130,
-      "sizeBytes": 12669,
+      "lineCount": 128,
+      "sizeBytes": 12504,
       "notes": "Documentation"
     },
     {
@@ -9937,8 +9937,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 271,
-      "sizeBytes": 9676,
+      "lineCount": 270,
+      "sizeBytes": 9592,
       "notes": "Documentation"
     },
     {
@@ -10003,8 +10003,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 179,
-      "sizeBytes": 5949,
+      "lineCount": 177,
+      "sizeBytes": 5833,
       "notes": "Documentation"
     },
     {
@@ -13550,8 +13550,8 @@
         "@/lib/media/stitch-pipeline"
       ],
       "importantSymbols": [],
-      "lineCount": 737,
-      "sizeBytes": 40927,
+      "lineCount": 743,
+      "sizeBytes": 40974,
       "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
     },
     {
@@ -13640,12 +13640,11 @@
       "imports": [
         "../../src/lib/ai",
         "../../src/lib/video-generation/shot-cards",
-        "../../src/lib/video-generation/storyboard-direction",
         "./golden-set.cases.json"
       ],
       "importantSymbols": [],
-      "lineCount": 158,
-      "sizeBytes": 7097,
+      "lineCount": 123,
+      "sizeBytes": 5616,
       "notes": "Maintenance / one-off script (run via tsx); area=scripts"
     },
     {
@@ -13769,8 +13768,8 @@
         "DIRECTOR_FRAME_REFERENCES_MAX",
         "DIRECTOR_SHOT_ITEMS"
       ],
-      "lineCount": 915,
-      "sizeBytes": 50850,
+      "lineCount": 949,
+      "sizeBytes": 53042,
       "notes": "Maintenance / one-off script (run via tsx); area=scripts"
     },
     {
@@ -14105,8 +14104,8 @@
         "@/lib/ai"
       ],
       "importantSymbols": [],
-      "lineCount": 1266,
-      "sizeBytes": 68203,
+      "lineCount": 1273,
+      "sizeBytes": 68595,
       "notes": "Maintenance / one-off script (run via tsx); NextAuth session check; area=media-processing"
     },
     {
@@ -14736,11 +14735,7 @@
         "@/lib/auth",
         "@/lib/db",
         "@/components/brand/brand-package-manager",
-        "@/lib/create/entry-policy",
-        "@/components/brand/product-anchor-manager",
         "@/lib/services/workspace-brand-package-service",
-        "@/lib/services/product-anchor-service",
-        "@/lib/contracts/product-anchor-api",
         "@/i18n/platform-copy",
         "@/i18n/server",
         "@/components/brand/customer-brand-wall",
@@ -14751,8 +14746,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 85,
-      "sizeBytes": 3759,
+      "lineCount": 63,
+      "sizeBytes": 2615,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -14874,7 +14869,6 @@
         "next-auth",
         "next/navigation",
         "@/components/video-generation/streamlined-video-studio",
-        "@/lib/services/broll-assembly-service",
         "@/lib/services/capability-status-service",
         "@/lib/auth",
         "@/lib/config/contact",
@@ -14896,8 +14890,8 @@
         "PlatformCreatePage",
         "default"
       ],
-      "lineCount": 260,
-      "sizeBytes": 12167,
+      "lineCount": 258,
+      "sizeBytes": 12024,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -16181,25 +16175,6 @@
       "notes": "Next.js API route handler; NextAuth session check; area=media-processing"
     },
     {
-      "path": "src/app/api/briefs/[id]/ad-plan/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/ad-agent-service"
-      ],
-      "importantSymbols": [
-        "POST"
-      ],
-      "lineCount": 23,
-      "sizeBytes": 627,
-      "notes": "Next.js API route handler"
-    },
-    {
       "path": "src/app/api/briefs/[id]/feedback/route.ts",
       "type": "api",
       "area": "unknown",
@@ -16218,25 +16193,6 @@
       ],
       "lineCount": 37,
       "sizeBytes": 1791,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/briefs/[id]/qa/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/qa-service"
-      ],
-      "importantSymbols": [
-        "POST"
-      ],
-      "lineCount": 22,
-      "sizeBytes": 586,
       "notes": "Next.js API route handler"
     },
     {
@@ -16293,26 +16249,6 @@
       "notes": "Next.js API route handler; area=media-processing"
     },
     {
-      "path": "src/app/api/briefs/[id]/render/route.ts",
-      "type": "api",
-      "area": "media-processing",
-      "exports": [
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/ad-render-service",
-        "@/lib/services/video-service"
-      ],
-      "importantSymbols": [
-        "POST"
-      ],
-      "lineCount": 39,
-      "sizeBytes": 1400,
-      "notes": "Next.js API route handler; area=media-processing"
-    },
-    {
       "path": "src/app/api/briefs/[id]/route.ts",
       "type": "api",
       "area": "unknown",
@@ -16332,103 +16268,6 @@
       ],
       "lineCount": 61,
       "sizeBytes": 1774,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/briefs/[id]/scenes/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/scene-service",
-        "@/lib/services/prompt-service"
-      ],
-      "importantSymbols": [
-        "POST"
-      ],
-      "lineCount": 27,
-      "sizeBytes": 835,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/briefs/[id]/script/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/script-service"
-      ],
-      "importantSymbols": [
-        "POST"
-      ],
-      "lineCount": 22,
-      "sizeBytes": 620,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/broll/cancel/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "runtime",
-        "dynamic",
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "zod",
-        "@/lib/api-auth",
-        "@/lib/services/broll-assembly-service"
-      ],
-      "importantSymbols": [
-        "POST",
-        "runtime",
-        "dynamic"
-      ],
-      "lineCount": 51,
-      "sizeBytes": 1790,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/broll/dispatch/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "runtime",
-        "dynamic",
-        "maxDuration",
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "zod",
-        "@/lib/api-auth",
-        "@/lib/api-rate-limit",
-        "@/lib/demo-account",
-        "@/lib/services/broll-assembly-service",
-        "@/lib/services/broll-plan-service",
-        "@/lib/services/paid-action-rate-limit",
-        "@/lib/providers/provider-billing-error",
-        "@/lib/capabilities/registry",
-        "@/lib/services/capability-status-service",
-        "@/i18n/server"
-      ],
-      "importantSymbols": [
-        "POST",
-        "runtime",
-        "dynamic",
-        "maxDuration"
-      ],
-      "lineCount": 152,
-      "sizeBytes": 5123,
       "notes": "Next.js API route handler"
     },
     {
@@ -16567,8 +16406,8 @@
         "dynamic",
         "maxDuration"
       ],
-      "lineCount": 40,
-      "sizeBytes": 1870,
+      "lineCount": 38,
+      "sizeBytes": 1792,
       "notes": "Next.js API route handler"
     },
     {
@@ -16590,7 +16429,6 @@
         "@/lib/services/video-service",
         "@/lib/services/product-image-service",
         "@/lib/services/content-post-image-job-service",
-        "@/lib/services/product-anchor-service",
         "@/lib/services/sweep-service",
         "@/lib/video-generation/storyboard-service",
         "@/lib/services/final-frame-qa-service",
@@ -16604,8 +16442,8 @@
         "maxDuration",
         "createPollVideosHandler"
       ],
-      "lineCount": 229,
-      "sizeBytes": 10941,
+      "lineCount": 213,
+      "sizeBytes": 9955,
       "notes": "Next.js API route handler"
     },
     {
@@ -17322,71 +17160,6 @@
       "notes": "Next.js API route handler"
     },
     {
-      "path": "src/app/api/product-anchors/[id]/retry/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "runtime",
-        "dynamic",
-        "maxDuration",
-        "createProductAnchorRetryHandler",
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/api-rate-limit",
-        "@/lib/demo-account",
-        "@/lib/contracts/product-anchor-api",
-        "@/lib/services/product-anchor-service",
-        "@/lib/services/paid-action-rate-limit"
-      ],
-      "importantSymbols": [
-        "POST",
-        "runtime",
-        "dynamic",
-        "maxDuration",
-        "createProductAnchorRetryHandler"
-      ],
-      "lineCount": 119,
-      "sizeBytes": 3798,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/product-anchors/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "runtime",
-        "dynamic",
-        "maxDuration",
-        "createProductAnchorPostHandler",
-        "GET",
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/api-rate-limit",
-        "@/lib/demo-account",
-        "@/lib/contracts/product-anchor-api",
-        "@/lib/services/media-asset-service",
-        "@/lib/services/product-anchor-service",
-        "@/lib/services/paid-action-rate-limit"
-      ],
-      "importantSymbols": [
-        "GET",
-        "POST",
-        "runtime",
-        "dynamic",
-        "maxDuration",
-        "createProductAnchorPostHandler"
-      ],
-      "lineCount": 183,
-      "sizeBytes": 6051,
-      "notes": "Next.js API route handler"
-    },
-    {
       "path": "src/app/api/product-images/[id]/cancel/route.ts",
       "type": "api",
       "area": "unknown",
@@ -17482,34 +17255,6 @@
       ],
       "lineCount": 50,
       "sizeBytes": 1661,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/product-link/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "runtime",
-        "dynamic",
-        "maxDuration",
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "zod",
-        "@/lib/api-auth",
-        "@/lib/api-rate-limit",
-        "@/lib/services/product-link-service",
-        "@/lib/services/paid-action-rate-limit"
-      ],
-      "importantSymbols": [
-        "POST",
-        "runtime",
-        "dynamic",
-        "maxDuration"
-      ],
-      "lineCount": 72,
-      "sizeBytes": 2238,
       "notes": "Next.js API route handler"
     },
     {
@@ -17676,45 +17421,6 @@
       "lineCount": 49,
       "sizeBytes": 2224,
       "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/publish/[id]/route.ts",
-      "type": "api",
-      "area": "publishing",
-      "exports": [
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/publish-service",
-        "@/lib/validators"
-      ],
-      "importantSymbols": [
-        "POST"
-      ],
-      "lineCount": 82,
-      "sizeBytes": 2614,
-      "notes": "Next.js API route handler; area=publishing"
-    },
-    {
-      "path": "src/app/api/publish/route.ts",
-      "type": "api",
-      "area": "publishing",
-      "exports": [
-        "GET"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/publish-service"
-      ],
-      "importantSymbols": [
-        "GET"
-      ],
-      "lineCount": 11,
-      "sizeBytes": 360,
-      "notes": "Next.js API route handler; area=publishing"
     },
     {
       "path": "src/app/api/racing/rounds/[id]/analyze/route.ts",
@@ -18757,34 +18463,6 @@
       "notes": "React component"
     },
     {
-      "path": "src/components/brand/product-anchor-manager.tsx",
-      "type": "component",
-      "area": "shared",
-      "exports": [
-        "ProductAnchorManager"
-      ],
-      "imports": [
-        "react",
-        "next/image",
-        "lucide-react",
-        "@/components/ui/badge",
-        "@/components/ui/button",
-        "@/components/exchange/empty-state",
-        "@/components/exchange/section-head",
-        "@/components/ui/dialog",
-        "@/components/ui/input",
-        "@/i18n/useTranslation",
-        "@/lib/upload/blob-xhr",
-        "@/lib/contracts/product-anchor-api"
-      ],
-      "importantSymbols": [
-        "ProductAnchorManager"
-      ],
-      "lineCount": 512,
-      "sizeBytes": 19882,
-      "notes": "React component; client component"
-    },
-    {
       "path": "src/components/brand/signoff-preview.tsx",
       "type": "component",
       "area": "shared",
@@ -19379,7 +19057,6 @@
         "InternalSidebar"
       ],
       "imports": [
-        "react",
         "next/link",
         "next/navigation",
         "next-auth/react",
@@ -19395,8 +19072,8 @@
       "importantSymbols": [
         "InternalSidebar"
       ],
-      "lineCount": 266,
-      "sizeBytes": 9674,
+      "lineCount": 207,
+      "sizeBytes": 7656,
       "notes": "React component; NextAuth session check; client component"
     },
     {
@@ -21053,33 +20730,6 @@
       "notes": "React component; client component; area=video-generation"
     },
     {
-      "path": "src/components/video-generation/broll-quick-card.tsx",
-      "type": "component",
-      "area": "video-generation",
-      "exports": [
-        "BrollQuickCard"
-      ],
-      "imports": [
-        "react",
-        "next/link",
-        "next/navigation",
-        "lucide-react",
-        "@/components/exchange/status-tick",
-        "@/components/ui/button",
-        "@/components/ui/card",
-        "@/components/ui/textarea",
-        "@/i18n/useTranslation",
-        "@/lib/capabilities/registry",
-        "@/lib/utils"
-      ],
-      "importantSymbols": [
-        "BrollQuickCard"
-      ],
-      "lineCount": 362,
-      "sizeBytes": 14263,
-      "notes": "React component; client component; area=video-generation"
-    },
-    {
       "path": "src/components/video-generation/customer-route-picker.tsx",
       "type": "component",
       "area": "video-generation",
@@ -21141,27 +20791,6 @@
       ],
       "lineCount": 235,
       "sizeBytes": 10124,
-      "notes": "React component; client component; area=video-generation"
-    },
-    {
-      "path": "src/components/video-generation/product-link-prefill.tsx",
-      "type": "component",
-      "area": "video-generation",
-      "exports": [
-        "ProductLinkPrefill"
-      ],
-      "imports": [
-        "react",
-        "lucide-react",
-        "@/components/ui/button",
-        "@/components/ui/input",
-        "@/i18n/useTranslation"
-      ],
-      "importantSymbols": [
-        "ProductLinkPrefill"
-      ],
-      "lineCount": 122,
-      "sizeBytes": 3816,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -21228,8 +20857,6 @@
         "@/components/ui/button",
         "@/components/ui/confirm-dialog",
         "@/components/ui/textarea",
-        "@/components/video-generation/broll-quick-card",
-        "@/components/video-generation/product-link-prefill",
         "@/components/video-generation/audio-caption-controls",
         "@/components/video-generation/first-run-onboarding-dialog",
         "@/components/video-generation/plan-preview-card",
@@ -21241,14 +20868,16 @@
         "@/i18n/useTranslation",
         "@/lib/capabilities/registry",
         "@/lib/api/customer-video-dispatch",
-        "@/lib/api/customer-video-dispatch-recovery"
+        "@/lib/api/customer-video-dispatch-recovery",
+        "@/lib/utils",
+        "@/lib/services/workspace-brand-package-service"
       ],
       "importantSymbols": [
         "StudioReadings",
         "StreamlinedVideoStudio"
       ],
-      "lineCount": 2977,
-      "sizeBytes": 133853,
+      "lineCount": 2936,
+      "sizeBytes": 131886,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -21409,8 +21038,8 @@
         "enUS",
         "default"
       ],
-      "lineCount": 909,
-      "sizeBytes": 34166,
+      "lineCount": 906,
+      "sizeBytes": 34059,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -21451,8 +21080,8 @@
         "zhCN",
         "default"
       ],
-      "lineCount": 880,
-      "sizeBytes": 34200,
+      "lineCount": 877,
+      "sizeBytes": 34080,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -21645,8 +21274,8 @@
         "PlatformCopy",
         "getPlatformCopy"
       ],
-      "lineCount": 1308,
-      "sizeBytes": 84897,
+      "lineCount": 1304,
+      "sizeBytes": 84689,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -21729,8 +21358,8 @@
         "DotPath",
         "TranslationKey"
       ],
-      "lineCount": 774,
-      "sizeBytes": 18511,
+      "lineCount": 771,
+      "sizeBytes": 18430,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -22257,7 +21886,7 @@
         "nextCapabilityRecord",
         "PublicCapability",
         "PublicCapabilities",
-        "CapabilityProviders"
+        "resolveCapabilities"
       ],
       "imports": [],
       "importantSymbols": [
@@ -22270,8 +21899,8 @@
         "CAPABILITY_REASONS",
         "CapabilityReason"
       ],
-      "lineCount": 804,
-      "sizeBytes": 34636,
+      "lineCount": 678,
+      "sizeBytes": 28880,
       "notes": "Utility / helper module"
     },
     {
@@ -22332,27 +21961,6 @@
       ],
       "lineCount": 103,
       "sizeBytes": 4091,
-      "notes": "Utility / helper module"
-    },
-    {
-      "path": "src/lib/config/blanket-themes.ts",
-      "type": "util",
-      "area": "shared",
-      "exports": [
-        "ExplorationTheme",
-        "BLANKET_THEME_POOL",
-        "getThemeByKey",
-        "pickExplorationThemes"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "ExplorationTheme",
-        "BLANKET_THEME_POOL",
-        "getThemeByKey",
-        "pickExplorationThemes"
-      ],
-      "lineCount": 78,
-      "sizeBytes": 2972,
       "notes": "Utility / helper module"
     },
     {
@@ -22433,26 +22041,6 @@
       "notes": "Utility / helper module"
     },
     {
-      "path": "src/lib/config/industry-defaults.ts",
-      "type": "util",
-      "area": "shared",
-      "exports": [
-        "getDefaultThemesForIndustry",
-        "getTopThemeKeysForIndustry"
-      ],
-      "imports": [
-        "@/lib/config/blanket-themes",
-        "@/lib/schemas/creative-evidence"
-      ],
-      "importantSymbols": [
-        "getDefaultThemesForIndustry",
-        "getTopThemeKeysForIndustry"
-      ],
-      "lineCount": 120,
-      "sizeBytes": 3948,
-      "notes": "Utility / helper module"
-    },
-    {
       "path": "src/lib/config/landing-media.ts",
       "type": "util",
       "area": "shared",
@@ -22498,29 +22086,6 @@
       ],
       "lineCount": 19,
       "sizeBytes": 810,
-      "notes": "Utility / helper module"
-    },
-    {
-      "path": "src/lib/config/qa-criteria.ts",
-      "type": "util",
-      "area": "shared",
-      "exports": [
-        "QA_CRITERIA",
-        "QACriterionKey",
-        "QAScoreBreakdown",
-        "calcOverallScore",
-        "deriveReviewRoute"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "QA_CRITERIA",
-        "QACriterionKey",
-        "QAScoreBreakdown",
-        "calcOverallScore",
-        "deriveReviewRoute"
-      ],
-      "lineCount": 41,
-      "sizeBytes": 1350,
       "notes": "Utility / helper module"
     },
     {
@@ -23040,35 +22605,6 @@
       "notes": "Utility / helper module"
     },
     {
-      "path": "src/lib/contracts/product-anchor-api.ts",
-      "type": "util",
-      "area": "shared",
-      "exports": [
-        "logoBoxSchema",
-        "LogoBoxInput",
-        "createProductAnchorRequestSchema",
-        "CreateProductAnchorRequest",
-        "ProductAnchorStatusView",
-        "ProductAnchorView",
-        "productAnchorView"
-      ],
-      "imports": [
-        "zod"
-      ],
-      "importantSymbols": [
-        "LogoBoxInput",
-        "CreateProductAnchorRequest",
-        "ProductAnchorStatusView",
-        "ProductAnchorView",
-        "logoBoxSchema",
-        "createProductAnchorRequestSchema",
-        "productAnchorView"
-      ],
-      "lineCount": 90,
-      "sizeBytes": 2963,
-      "notes": "Utility / helper module"
-    },
-    {
       "path": "src/lib/contracts/product-profile.ts",
       "type": "util",
       "area": "shared",
@@ -23323,20 +22859,14 @@
       "type": "util",
       "area": "shared",
       "exports": [
-        "BROLL_ROUTE_ENTRY_ENABLED",
-        "PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED",
-        "PRODUCT_LINK_ENTRY_ENABLED",
-        "PRODUCT_ANCHOR_ENTRY_ENABLED"
+        "PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED"
       ],
       "imports": [],
       "importantSymbols": [
-        "BROLL_ROUTE_ENTRY_ENABLED",
-        "PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED",
-        "PRODUCT_LINK_ENTRY_ENABLED",
-        "PRODUCT_ANCHOR_ENTRY_ENABLED"
+        "PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED"
       ],
-      "lineCount": 24,
-      "sizeBytes": 1392,
+      "lineCount": 15,
+      "sizeBytes": 1024,
       "notes": "Utility / helper module"
     },
     {
@@ -24056,59 +23586,6 @@
       "notes": "Utility / helper module"
     },
     {
-      "path": "src/lib/providers/cutout.ts",
-      "type": "provider",
-      "area": "ai-providers",
-      "exports": [
-        "CutoutProviderId",
-        "CutoutUnavailableError",
-        "CutoutFailedError",
-        "availableCutoutProvider",
-        "isCutoutAvailable",
-        "CutoutResult",
-        "CutoutRegion",
-        "roiFormValue",
-        "cutoutProduct"
-      ],
-      "imports": [
-        "@/lib/services/capability-status-service"
-      ],
-      "importantSymbols": [
-        "CutoutProviderId",
-        "CutoutUnavailableError",
-        "CutoutFailedError",
-        "CutoutResult",
-        "CutoutRegion",
-        "availableCutoutProvider",
-        "isCutoutAvailable",
-        "roiFormValue"
-      ],
-      "lineCount": 163,
-      "sizeBytes": 5766,
-      "notes": "External API provider wrapper; area=ai-providers"
-    },
-    {
-      "path": "src/lib/providers/firecrawl.ts",
-      "type": "provider",
-      "area": "ai-providers",
-      "exports": [
-        "isFirecrawlAvailable",
-        "FirecrawlError",
-        "firecrawlScrapeHtml"
-      ],
-      "imports": [
-        "@/lib/services/capability-status-service"
-      ],
-      "importantSymbols": [
-        "FirecrawlError",
-        "isFirecrawlAvailable",
-        "firecrawlScrapeHtml"
-      ],
-      "lineCount": 93,
-      "sizeBytes": 3178,
-      "notes": "External API provider wrapper; area=ai-providers"
-    },
-    {
       "path": "src/lib/providers/openai-image.ts",
       "type": "provider",
       "area": "ai-providers",
@@ -24277,26 +23754,7 @@
         "isProviderBillingError"
       ],
       "lineCount": 33,
-      "sizeBytes": 2275,
-      "notes": "External API provider wrapper; area=ai-providers"
-    },
-    {
-      "path": "src/lib/providers/remove-bg.ts",
-      "type": "provider",
-      "area": "ai-providers",
-      "exports": [
-        "ProcessImageResult",
-        "processReferenceImage",
-        "processReferenceImages"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "ProcessImageResult",
-        "processReferenceImage",
-        "processReferenceImages"
-      ],
-      "lineCount": 40,
-      "sizeBytes": 959,
+      "sizeBytes": 2298,
       "notes": "External API provider wrapper; area=ai-providers"
     },
     {
@@ -24528,208 +23986,6 @@
       "notes": "External API provider wrapper; area=ai-providers"
     },
     {
-      "path": "src/lib/providers/stock-footage.ts",
-      "type": "provider",
-      "area": "ai-providers",
-      "exports": [
-        "StockAspect",
-        "stockClipSchema",
-        "StockClip",
-        "MIN_CLIP_DURATION_SEC",
-        "isStockFootageAvailable",
-        "StockFootageUnavailableError",
-        "StockFootageHttpError",
-        "redactSecrets",
-        "searchStockClips",
-        "__test__"
-      ],
-      "imports": [
-        "zod",
-        "@/lib/services/capability-status-service"
-      ],
-      "importantSymbols": [
-        "StockAspect",
-        "StockClip",
-        "MIN_CLIP_DURATION_SEC",
-        "StockFootageUnavailableError",
-        "StockFootageHttpError",
-        "stockClipSchema",
-        "isStockFootageAvailable",
-        "redactSecrets"
-      ],
-      "lineCount": 318,
-      "sizeBytes": 10015,
-      "notes": "External API provider wrapper; area=ai-providers"
-    },
-    {
-      "path": "src/lib/providers/tts/config.ts",
-      "type": "provider",
-      "area": "ai-providers",
-      "exports": [
-        "TTS_PROVIDER_IDS",
-        "TtsProviderId",
-        "DEFAULT_TTS_PROVIDER",
-        "resolveTtsProviderId",
-        "isTtsProviderConfigured",
-        "isTtsConfigured"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "TTS_PROVIDER_IDS",
-        "TtsProviderId",
-        "DEFAULT_TTS_PROVIDER",
-        "resolveTtsProviderId",
-        "isTtsProviderConfigured",
-        "isTtsConfigured"
-      ],
-      "lineCount": 49,
-      "sizeBytes": 2071,
-      "notes": "External API provider wrapper; area=ai-providers"
-    },
-    {
-      "path": "src/lib/providers/tts/elevenlabs.ts",
-      "type": "provider",
-      "area": "ai-providers",
-      "exports": [
-        "ELEVENLABS_API_BASE",
-        "ELEVENLABS_DEFAULT_TTS_MODEL",
-        "ELEVENLABS_OUTPUT_FORMAT",
-        "resolveElevenLabsTtsModel",
-        "elevenLabsTtsEndpoint",
-        "ElevenLabsAlignment",
-        "wordsFromCharacterAlignment",
-        "createElevenLabsTtsProvider"
-      ],
-      "imports": [
-        "@/lib/services/capability-status-service",
-        "@/lib/providers/tts/config",
-        "@/lib/providers/tts/types",
-        "@/lib/providers/tts/voices"
-      ],
-      "importantSymbols": [
-        "ELEVENLABS_API_BASE",
-        "ELEVENLABS_DEFAULT_TTS_MODEL",
-        "ELEVENLABS_OUTPUT_FORMAT",
-        "ElevenLabsAlignment",
-        "resolveElevenLabsTtsModel",
-        "elevenLabsTtsEndpoint",
-        "wordsFromCharacterAlignment",
-        "createElevenLabsTtsProvider"
-      ],
-      "lineCount": 193,
-      "sizeBytes": 8105,
-      "notes": "External API provider wrapper; area=ai-providers"
-    },
-    {
-      "path": "src/lib/providers/tts/index.ts",
-      "type": "provider",
-      "area": "ai-providers",
-      "exports": [
-        "getTtsProvider",
-        "DEFAULT_TTS_PROVIDER",
-        "TTS_PROVIDER_IDS",
-        "isTtsConfigured",
-        "isTtsProviderConfigured",
-        "resolveTtsProviderId",
-        "TtsError",
-        "PRODUCT_VOICE_IDS",
-        "VOICE_MAP",
-        "resolveTtsVoice"
-      ],
-      "imports": [
-        "@/lib/providers/tts/config",
-        "@/lib/providers/tts/elevenlabs",
-        "@/lib/providers/tts/openai",
-        "@/lib/providers/tts/types",
-        "@/lib/providers/tts/voices"
-      ],
-      "importantSymbols": [
-        "DEFAULT_TTS_PROVIDER",
-        "TTS_PROVIDER_IDS",
-        "TtsError",
-        "PRODUCT_VOICE_IDS",
-        "VOICE_MAP",
-        "getTtsProvider",
-        "isTtsConfigured",
-        "isTtsProviderConfigured"
-      ],
-      "lineCount": 29,
-      "sizeBytes": 1316,
-      "notes": "External API provider wrapper; area=ai-providers"
-    },
-    {
-      "path": "src/lib/providers/tts/openai.ts",
-      "type": "provider",
-      "area": "ai-providers",
-      "exports": [
-        "OPENAI_TTS_ENDPOINT",
-        "OPENAI_TTS_MODEL",
-        "createOpenAiTtsProvider"
-      ],
-      "imports": [
-        "@/lib/services/capability-status-service",
-        "@/lib/providers/tts/config",
-        "@/lib/providers/tts/types",
-        "@/lib/providers/tts/voices"
-      ],
-      "importantSymbols": [
-        "OPENAI_TTS_ENDPOINT",
-        "OPENAI_TTS_MODEL",
-        "createOpenAiTtsProvider"
-      ],
-      "lineCount": 84,
-      "sizeBytes": 3562,
-      "notes": "External API provider wrapper; area=ai-providers"
-    },
-    {
-      "path": "src/lib/providers/tts/types.ts",
-      "type": "provider",
-      "area": "ai-providers",
-      "exports": [
-        "TtsWord",
-        "TtsSynthesizeInput",
-        "TtsSynthesizeResult",
-        "TtsProvider",
-        "TtsError"
-      ],
-      "imports": [
-        "@/lib/providers/tts/config"
-      ],
-      "importantSymbols": [
-        "TtsWord",
-        "TtsSynthesizeInput",
-        "TtsSynthesizeResult",
-        "TtsProvider",
-        "TtsError"
-      ],
-      "lineCount": 45,
-      "sizeBytes": 1318,
-      "notes": "External API provider wrapper; area=ai-providers"
-    },
-    {
-      "path": "src/lib/providers/tts/voices.ts",
-      "type": "provider",
-      "area": "ai-providers",
-      "exports": [
-        "PRODUCT_VOICE_IDS",
-        "ProductVoiceId",
-        "VOICE_MAP",
-        "resolveTtsVoice"
-      ],
-      "imports": [
-        "@/lib/providers/tts/config"
-      ],
-      "importantSymbols": [
-        "PRODUCT_VOICE_IDS",
-        "ProductVoiceId",
-        "VOICE_MAP",
-        "resolveTtsVoice"
-      ],
-      "lineCount": 46,
-      "sizeBytes": 1592,
-      "notes": "External API provider wrapper; area=ai-providers"
-    },
-    {
       "path": "src/lib/qa/customer-route-state-rehearsal.ts",
       "type": "util",
       "area": "shared",
@@ -24803,43 +24059,6 @@
       "notes": "Utility / helper module"
     },
     {
-      "path": "src/lib/schemas/ad-edit-plan.ts",
-      "type": "schema",
-      "area": "media-processing",
-      "exports": [
-        "timelineClipRoleSchema",
-        "timelineClipSchema",
-        "timelineTextSchema",
-        "timelineOverlaySchema",
-        "adEditTimelineSchema",
-        "directorOutputSchema",
-        "reviewerOutputSchema",
-        "TimelineClip",
-        "AdEditTimeline",
-        "DirectorOutput",
-        "ReviewerOutput",
-        "parseAdEditTimeline",
-        "parseDirectorOutput",
-        "parseReviewerOutput"
-      ],
-      "imports": [
-        "zod"
-      ],
-      "importantSymbols": [
-        "TimelineClip",
-        "AdEditTimeline",
-        "DirectorOutput",
-        "ReviewerOutput",
-        "timelineClipRoleSchema",
-        "timelineClipSchema",
-        "timelineTextSchema",
-        "timelineOverlaySchema"
-      ],
-      "lineCount": 124,
-      "sizeBytes": 4275,
-      "notes": "Schema / validation; area=media-processing"
-    },
-    {
       "path": "src/lib/schemas/content-plan.ts",
       "type": "schema",
       "area": "shared",
@@ -24875,47 +24094,6 @@
       ],
       "lineCount": 123,
       "sizeBytes": 4526,
-      "notes": "Schema / validation"
-    },
-    {
-      "path": "src/lib/schemas/creative-evidence.ts",
-      "type": "schema",
-      "area": "shared",
-      "exports": [
-        "CREATIVE_INDUSTRIES",
-        "CreativeIndustry",
-        "CREATIVE_PLATFORMS",
-        "CreativePlatform",
-        "CREATIVE_OBJECTIVES",
-        "CreativeObjective",
-        "HOOK_TYPES",
-        "HookType",
-        "publicMetricsSchema",
-        "hookPatternSchema",
-        "structureSegmentSchema",
-        "structureBreakdownSchema",
-        "creativeEvidenceCardCoreSchema",
-        "CreativeEvidenceCardCore",
-        "creativeEvidenceBreakdownLLMSchema",
-        "CreativeEvidenceBreakdownLLM",
-        "parseCreativeEvidenceCardCore",
-        "parseCreativeEvidenceBreakdown"
-      ],
-      "imports": [
-        "zod"
-      ],
-      "importantSymbols": [
-        "CREATIVE_INDUSTRIES",
-        "CreativeIndustry",
-        "CREATIVE_PLATFORMS",
-        "CreativePlatform",
-        "CREATIVE_OBJECTIVES",
-        "CreativeObjective",
-        "HOOK_TYPES",
-        "HookType"
-      ],
-      "lineCount": 176,
-      "sizeBytes": 5766,
       "notes": "Schema / validation"
     },
     {
@@ -25010,31 +24188,6 @@
       "notes": "Schema / validation; area=media-processing"
     },
     {
-      "path": "src/lib/services/ad-agent-service.ts",
-      "type": "service",
-      "area": "media-processing",
-      "exports": [
-        "generateAdEditPlansForRound",
-        "generateAdEditPlanForBrief",
-        "runAdPlanReviewer"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/ai",
-        "@/lib/schemas/ad-edit-plan",
-        "@/lib/services/brief-service"
-      ],
-      "importantSymbols": [
-        "generateAdEditPlansForRound",
-        "generateAdEditPlanForBrief",
-        "runAdPlanReviewer"
-      ],
-      "lineCount": 448,
-      "sizeBytes": 13243,
-      "notes": "Business logic service; hits Prisma DB; area=media-processing"
-    },
-    {
       "path": "src/lib/services/ad-intel-service.ts",
       "type": "service",
       "area": "shared",
@@ -25068,36 +24221,6 @@
       "lineCount": 236,
       "sizeBytes": 8191,
       "notes": "Business logic service"
-    },
-    {
-      "path": "src/lib/services/ad-render-service.ts",
-      "type": "service",
-      "area": "media-processing",
-      "exports": [
-        "renderAdEditPlan",
-        "renderLatestPlanForBrief",
-        "buildRenderFallbackManifest"
-      ],
-      "imports": [
-        "crypto",
-        "child_process",
-        "util",
-        "fs/promises",
-        "os",
-        "path",
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/storage",
-        "@/lib/schemas/ad-edit-plan"
-      ],
-      "importantSymbols": [
-        "renderAdEditPlan",
-        "renderLatestPlanForBrief",
-        "buildRenderFallbackManifest"
-      ],
-      "lineCount": 356,
-      "sizeBytes": 11953,
-      "notes": "Business logic service; hits Prisma DB; area=media-processing"
     },
     {
       "path": "src/lib/services/ai-usage-log-service.ts",
@@ -25228,130 +24351,6 @@
       "notes": "Business logic service; NextAuth session check"
     },
     {
-      "path": "src/lib/services/brief-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "ensureBriefForAngle",
-        "ensureBriefsForRound",
-        "updateBriefStatus",
-        "setReferenceImages",
-        "ON_CAMERA_LABELS",
-        "getBriefInclude"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db"
-      ],
-      "importantSymbols": [
-        "ON_CAMERA_LABELS",
-        "ensureBriefForAngle",
-        "ensureBriefsForRound",
-        "updateBriefStatus",
-        "setReferenceImages",
-        "getBriefInclude"
-      ],
-      "lineCount": 104,
-      "sizeBytes": 2961,
-      "notes": "Business logic service; hits Prisma DB"
-    },
-    {
-      "path": "src/lib/services/broll-assembly-service.ts",
-      "type": "service",
-      "area": "media-processing",
-      "exports": [
-        "BrollAspectRatio",
-        "ComposedBrollSegment",
-        "ComposeBrollResult",
-        "isBrollRouteAvailable",
-        "segmentDurationSec",
-        "BROLL_FRAME_RATE",
-        "prepareBrollTimelineClips",
-        "composeBrollSegments",
-        "buildBrollPostProduction",
-        "BrollDeliveryResult",
-        "createBrollDelivery",
-        "PreparedBrollSegment",
-        "prepareBrollInputs",
-        "estimateSegmentSec",
-        "StartBrollDeliveryResult",
-        "startBrollDelivery",
-        "readBrollJobInput",
-        "stitchBrollLocally",
-        "CancelBrollResult",
-        "cancelBrollDelivery"
-      ],
-      "imports": [
-        "node:crypto",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "node:url",
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/storage",
-        "@/lib/schemas/unified-input",
-        "@/types/video-generation",
-        "@/lib/services/broll-plan-service",
-        "@/lib/providers/tts",
-        "@/lib/providers/stock-footage",
-        "@/lib/services/quota-refund-service",
-        "@/lib/services/single-video-cancel-service",
-        "@/lib/services/stitch-service",
-        "@/lib/video-generation/broll-segment-compose",
-        "@/lib/media/ffmpeg-bin",
-        "@/lib/media/stitch-pipeline",
-        "@/lib/media/stitch-runtime"
-      ],
-      "importantSymbols": [
-        "BrollAspectRatio",
-        "ComposedBrollSegment",
-        "ComposeBrollResult",
-        "BROLL_FRAME_RATE",
-        "BrollDeliveryResult",
-        "PreparedBrollSegment",
-        "StartBrollDeliveryResult",
-        "CancelBrollResult"
-      ],
-      "lineCount": 992,
-      "sizeBytes": 33765,
-      "notes": "Business logic service; hits Prisma DB; area=media-processing"
-    },
-    {
-      "path": "src/lib/services/broll-plan-service.ts",
-      "type": "service",
-      "area": "media-processing",
-      "exports": [
-        "brollSegmentSchema",
-        "brollPlanSchema",
-        "BrollPlan",
-        "brollPickSchema",
-        "BrollPick",
-        "BrollPlanError",
-        "buildBrollPlan",
-        "pickFootageForPlan",
-        "missingSegments"
-      ],
-      "imports": [
-        "zod",
-        "@/lib/ai",
-        "@/lib/providers/stock-footage"
-      ],
-      "importantSymbols": [
-        "BrollPlan",
-        "BrollPick",
-        "BrollPlanError",
-        "brollSegmentSchema",
-        "brollPlanSchema",
-        "brollPickSchema",
-        "buildBrollPlan",
-        "pickFootageForPlan"
-      ],
-      "lineCount": 191,
-      "sizeBytes": 6778,
-      "notes": "Business logic service; area=media-processing"
-    },
-    {
       "path": "src/lib/services/capability-probe-service.ts",
       "type": "service",
       "area": "shared",
@@ -25362,22 +24361,14 @@
         "diagnoseDrift",
         "summarizeShuyuCatalog",
         "probeShuyuCapabilities",
-        "TTS_PROBE_INTERVAL_MS",
         "CapabilityProbeDeps",
         "CapabilityProbeReportItem",
         "CapabilityProbeReport",
         "textProbeModels",
         "probeOpenAiChat",
-        "probeOpenAiTts",
-        "probeElevenLabsTts",
-        "probeTts",
         "probeOpenAiModeration",
-        "probeStockFootage",
-        "probeFirecrawl",
-        "probeCutout",
         "ShuyuBalanceOutcome",
         "shuyuCapabilityObservations",
-        "shouldProbeTts",
         "runCapabilityProbeCycle"
       ],
       "imports": [
@@ -25387,10 +24378,6 @@
         "@/lib/providers/shuyu-catalog",
         "@/lib/providers/shuyu-seedance25-probe",
         "@/lib/ai/providers/openai-provider",
-        "@/lib/providers/tts/config",
-        "@/lib/providers/tts/elevenlabs",
-        "@/lib/providers/tts/openai",
-        "@/lib/providers/tts/voices",
         "@/lib/capabilities/classify",
         "@/lib/capabilities/registry",
         "@/lib/services/capability-status-service",
@@ -25400,14 +24387,14 @@
         "CapabilityDrift",
         "ShuyuCatalogSummary",
         "ProbeResult",
-        "TTS_PROBE_INTERVAL_MS",
         "CapabilityProbeDeps",
         "CapabilityProbeReportItem",
         "CapabilityProbeReport",
-        "ShuyuBalanceOutcome"
+        "ShuyuBalanceOutcome",
+        "diagnoseDrift"
       ],
-      "lineCount": 967,
-      "sizeBytes": 41136,
+      "lineCount": 785,
+      "sizeBytes": 32927,
       "notes": "Business logic service"
     },
     {
@@ -25426,7 +24413,6 @@
         "defaultCapabilityStore",
         "isCapabilityWriteThroughEnabled",
         "capabilityConfiguration",
-        "capabilityProviders",
         "rememberCapabilityRecords",
         "__resetCapabilityCacheForTests",
         "getCapabilities",
@@ -25438,7 +24424,6 @@
       "imports": [
         "@/lib/capabilities/registry",
         "@/lib/capabilities/classify",
-        "@/lib/providers/tts/config",
         "@/lib/db",
         "@/lib/services/ops-alert-service"
       ],
@@ -25452,8 +24437,8 @@
         "prismaCapabilityStore",
         "createMemoryCapabilityStore"
       ],
-      "lineCount": 437,
-      "sizeBytes": 18086,
+      "lineCount": 420,
+      "sizeBytes": 17219,
       "notes": "Business logic service"
     },
     {
@@ -25675,50 +24660,6 @@
       "lineCount": 224,
       "sizeBytes": 8525,
       "notes": "Business logic service"
-    },
-    {
-      "path": "src/lib/services/director-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "DIRECTOR_SYSTEM_PROMPT",
-        "GenerateDirectorPlanArgs",
-        "GenerateDirectorPlanResult",
-        "DirectorSchemaError",
-        "isDirectorSchemaError",
-        "directorSchemaErrorToAPIResponse",
-        "generateAndPersistDirectorPlan",
-        "DirectorLLMInvoker",
-        "buildDirectorPlanResult",
-        "validateDirectorLLMOutput",
-        "mockDirectorPlan",
-        "__test__"
-      ],
-      "imports": [
-        "@prisma/client",
-        "zod",
-        "@/lib/db",
-        "@/lib/ai",
-        "@/lib/duration/segment-planner",
-        "@/lib/schemas/director-plan",
-        "@/lib/config/industry-defaults",
-        "@/lib/video-generation/platform-safe-zone",
-        "./ai-usage-log-service",
-        "./llm-schema-error"
-      ],
-      "importantSymbols": [
-        "DIRECTOR_SYSTEM_PROMPT",
-        "GenerateDirectorPlanArgs",
-        "GenerateDirectorPlanResult",
-        "DirectorSchemaError",
-        "DirectorLLMInvoker",
-        "isDirectorSchemaError",
-        "directorSchemaErrorToAPIResponse",
-        "generateAndPersistDirectorPlan"
-      ],
-      "lineCount": 620,
-      "sizeBytes": 24089,
-      "notes": "Business logic service; hits Prisma DB"
     },
     {
       "path": "src/lib/services/dispatch-breaker.ts",
@@ -26212,27 +25153,6 @@
       "notes": "Business logic service; hits Prisma DB"
     },
     {
-      "path": "src/lib/services/llm-schema-error.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "isLLMSchemaError",
-        "summarizeZodIssues",
-        "llmSchemaErrorToAPIResponse"
-      ],
-      "imports": [
-        "zod"
-      ],
-      "importantSymbols": [
-        "isLLMSchemaError",
-        "summarizeZodIssues",
-        "llmSchemaErrorToAPIResponse"
-      ],
-      "lineCount": 94,
-      "sizeBytes": 3143,
-      "notes": "Business logic service"
-    },
-    {
       "path": "src/lib/services/logo-fidelity-gate.ts",
       "type": "service",
       "area": "shared",
@@ -26582,8 +25502,8 @@
         "OPS_ALERT_BUCKET_PREFIX",
         "DEFAULT_SHUYU_MIN_VIDEOS"
       ],
-      "lineCount": 295,
-      "sizeBytes": 12321,
+      "lineCount": 291,
+      "sizeBytes": 12288,
       "notes": "Business logic service"
     },
     {
@@ -26637,8 +25557,8 @@
         "paidActionBucketKey",
         "assertPaidActionRateLimit"
       ],
-      "lineCount": 99,
-      "sizeBytes": 4238,
+      "lineCount": 81,
+      "sizeBytes": 3481,
       "notes": "Business logic service; area=media-processing"
     },
     {
@@ -26718,66 +25638,6 @@
       "lineCount": 200,
       "sizeBytes": 5872,
       "notes": "Business logic service"
-    },
-    {
-      "path": "src/lib/services/product-anchor-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "CreateAnchorArgs",
-        "createProductAnchor",
-        "parseStoredLogoBox",
-        "CutoutOutcome",
-        "RunCutoutDeps",
-        "RunCutoutOptions",
-        "runCutoutDetailed",
-        "runCutout",
-        "listProductAnchorsForUser",
-        "getOwnedProductAnchor",
-        "ANCHOR_CUTOUT_CRON_LIMIT",
-        "ANCHOR_CUTOUT_CRON_BUDGET_MS",
-        "ANCHOR_CUTOUT_CRON_GRACE_MS",
-        "ANCHOR_CLAIM_MIN_AGE_MS",
-        "ANCHOR_CUTOUT_LOCK_KEY",
-        "pendingAnchorWhere",
-        "ProcessPendingAnchorsResult",
-        "emptyProcessPendingAnchorsResult",
-        "PendingAnchorRunner",
-        "processPendingAnchors",
-        "isAnchorCutoutCronEnabled",
-        "AnchorCutoutSweepResult",
-        "AnchorCutoutSweepDeps",
-        "sweepProductAnchorCutouts",
-        "ReadyAnchorCutout",
-        "AnchorLookupClient",
-        "findReadyAnchorCutoutsForImages",
-        "MIN_BOX_COVERAGE",
-        "maskCoverageInBox",
-        "maskFromAlpha"
-      ],
-      "imports": [
-        "@prisma/client",
-        "sharp",
-        "@/lib/db",
-        "@/lib/storage",
-        "@/lib/providers/cutout",
-        "@/lib/capabilities/registry",
-        "@/lib/services/capability-status-service",
-        "@/lib/services/logo-fidelity-gate"
-      ],
-      "importantSymbols": [
-        "CreateAnchorArgs",
-        "CutoutOutcome",
-        "RunCutoutDeps",
-        "RunCutoutOptions",
-        "ANCHOR_CUTOUT_CRON_LIMIT",
-        "ANCHOR_CUTOUT_CRON_BUDGET_MS",
-        "ANCHOR_CUTOUT_CRON_GRACE_MS",
-        "ANCHOR_CLAIM_MIN_AGE_MS"
-      ],
-      "lineCount": 718,
-      "sizeBytes": 29521,
-      "notes": "Business logic service; hits Prisma DB"
     },
     {
       "path": "src/lib/services/product-image-facts-service.ts",
@@ -26875,8 +25735,7 @@
       "imports": [
         "node:dns/promises",
         "node:net",
-        "zod",
-        "@/lib/providers/firecrawl"
+        "zod"
       ],
       "importantSymbols": [
         "ProductLinkFacts",
@@ -26888,8 +25747,8 @@
         "isBlockedIpAddress",
         "assertPublicDestination"
       ],
-      "lineCount": 510,
-      "sizeBytes": 17127,
+      "lineCount": 484,
+      "sizeBytes": 16382,
       "notes": "Business logic service"
     },
     {
@@ -26931,25 +25790,6 @@
       ],
       "lineCount": 291,
       "sizeBytes": 11334,
-      "notes": "Business logic service; hits Prisma DB"
-    },
-    {
-      "path": "src/lib/services/prompt-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "generatePromptsForBrief"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/ai"
-      ],
-      "importantSymbols": [
-        "generatePromptsForBrief"
-      ],
-      "lineCount": 171,
-      "sizeBytes": 6448,
       "notes": "Business logic service; hits Prisma DB"
     },
     {
@@ -27040,30 +25880,6 @@
       ],
       "lineCount": 43,
       "sizeBytes": 1676,
-      "notes": "Business logic service; hits Prisma DB"
-    },
-    {
-      "path": "src/lib/services/qa-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "runAIQA",
-        "decideQA"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/ai",
-        "@/lib/services/qa-review-merge",
-        "@/lib/services/qa-review-write",
-        "@/lib/config/qa-criteria"
-      ],
-      "importantSymbols": [
-        "runAIQA",
-        "decideQA"
-      ],
-      "lineCount": 187,
-      "sizeBytes": 5965,
       "notes": "Business logic service; hits Prisma DB"
     },
     {
@@ -27317,24 +26133,6 @@
       "notes": "Business logic service"
     },
     {
-      "path": "src/lib/services/scene-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "generateScenesForBrief"
-      ],
-      "imports": [
-        "@/lib/db",
-        "@/lib/ai"
-      ],
-      "importantSymbols": [
-        "generateScenesForBrief"
-      ],
-      "lineCount": 147,
-      "sizeBytes": 4416,
-      "notes": "Business logic service"
-    },
-    {
       "path": "src/lib/services/scoring-service.ts",
       "type": "service",
       "area": "shared",
@@ -27355,25 +26153,6 @@
       ],
       "lineCount": 171,
       "sizeBytes": 4522,
-      "notes": "Business logic service; hits Prisma DB"
-    },
-    {
-      "path": "src/lib/services/script-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "generateScriptForBrief"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/ai"
-      ],
-      "importantSymbols": [
-        "generateScriptForBrief"
-      ],
-      "lineCount": 160,
-      "sizeBytes": 5989,
       "notes": "Business logic service; hits Prisma DB"
     },
     {
@@ -27458,16 +26237,12 @@
       "imports": [
         "@/lib/video-generation/brand-signoff",
         "@/types/video-generation",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
         "@/lib/db",
         "@/lib/media/stitch-pipeline",
         "@/lib/schemas/director-plan",
         "@/lib/video-generation/tail-trim",
         "./stitch-service",
         "@/lib/services/workspace-brand-package-service",
-        "@/lib/services/broll-assembly-service",
         "@/lib/video-generation/assembly-executor"
       ],
       "importantSymbols": [
@@ -27479,8 +26254,8 @@
         "resolveSignoffLogoUrl",
         "composeFinalVideoForStitch"
       ],
-      "lineCount": 280,
-      "sizeBytes": 11095,
+      "lineCount": 249,
+      "sizeBytes": 10226,
       "notes": "Business logic service; area=ffmpeg"
     },
     {
@@ -27533,6 +26308,7 @@
         "isStitchCandidateReady",
         "StitchResult",
         "ClaimedStitchTask",
+        "BROLL_ROUTE_RETIRED_MESSAGE",
         "extractBrollClaimSegments",
         "stitchTaskPayload",
         "parsePersistedPostProduction",
@@ -27554,8 +26330,7 @@
         "PreparedRestitch",
         "prepareRestitch",
         "commitRestitch",
-        "restitchReadyFinalVideo",
-        "prepareSegmentRedoStitch"
+        "restitchReadyFinalVideo"
       ],
       "imports": [
         "node:crypto",
@@ -27591,11 +26366,11 @@
         "STITCH_CANDIDATE_PAGE_SIZE",
         "StitchResult",
         "ClaimedStitchTask",
-        "StitchDecision",
-        "StitchAttemptLostError"
+        "BROLL_ROUTE_RETIRED_MESSAGE",
+        "StitchDecision"
       ],
-      "lineCount": 1839,
-      "sizeBytes": 70412,
+      "lineCount": 1852,
+      "sizeBytes": 71471,
       "notes": "Business logic service; hits Prisma DB; area=ffmpeg"
     },
     {
@@ -27763,8 +26538,8 @@
         "isCancelledOrderJobs",
         "deriveMakingProcess"
       ],
-      "lineCount": 966,
-      "sizeBytes": 36423,
+      "lineCount": 973,
+      "sizeBytes": 37042,
       "notes": "Business logic service; hits Prisma DB"
     },
     {
@@ -27923,7 +26698,6 @@
         "@/lib/db",
         "@/lib/api/customer-generation-error",
         "@/lib/config/env",
-        "@/lib/providers/remove-bg",
         "@/lib/schemas/director-plan",
         "@/lib/schemas/unified-input",
         "@/lib/video-generation/frame-qa",
@@ -27956,8 +26730,8 @@
         "CustomerBriefRenderSummary",
         "assertVideoRouteNotRetiredForRegeneration"
       ],
-      "lineCount": 2761,
-      "sizeBytes": 99820,
+      "lineCount": 2755,
+      "sizeBytes": 99767,
       "notes": "Business logic service; hits Prisma DB; NextAuth session check; area=media-processing"
     },
     {
@@ -28058,8 +26832,6 @@
         "evaluateVoiceoverDrive"
       ],
       "imports": [
-        "@/lib/capabilities/registry",
-        "@/lib/services/capability-status-service",
         "@/lib/video-generation/voiceover-drive",
         "@/lib/video-generation/video-route-registry",
         "@/types/video-generation"
@@ -28067,8 +26839,8 @@
       "importantSymbols": [
         "evaluateVoiceoverDrive"
       ],
-      "lineCount": 33,
-      "sizeBytes": 1486,
+      "lineCount": 27,
+      "sizeBytes": 1231,
       "notes": "Business logic service"
     },
     {
@@ -28884,12 +27656,11 @@
     {
       "path": "src/lib/video-generation/broll-segment-compose.ts",
       "type": "util",
-      "area": "media-processing",
+      "area": "video-generation",
       "exports": [
         "BROLL_BREATH_GAP_SEC",
         "BROLL_MIN_SEGMENT_SEC",
         "brollSegmentDurationSec",
-        "brollAspectResolution",
         "buildBrollComposeArgs",
         "BrollClaimSegment"
       ],
@@ -28899,12 +27670,11 @@
         "BROLL_MIN_SEGMENT_SEC",
         "BrollClaimSegment",
         "brollSegmentDurationSec",
-        "brollAspectResolution",
         "buildBrollComposeArgs"
       ],
-      "lineCount": 91,
-      "sizeBytes": 2607,
-      "notes": "Utility / helper module; area=media-processing"
+      "lineCount": 85,
+      "sizeBytes": 2712,
+      "notes": "Utility / helper module; area=video-generation"
     },
     {
       "path": "src/lib/video-generation/business-display-title.ts",
@@ -30058,8 +28828,6 @@
         "DesignShotCardsInput",
         "DesignShotCardsDeps",
         "buildShotCardUserPrompt",
-        "shotCardsVisionEnabled",
-        "SHOT_CARD_VISION_NOTE",
         "designStoryboardShotCards"
       ],
       "imports": [
@@ -30074,11 +28842,11 @@
         "SHOT_CARD_SYSTEM_PROMPT",
         "DesignShotCardsInput",
         "DesignShotCardsDeps",
-        "SHOT_CARD_VISION_NOTE",
-        "storyboardShotCardsEnabled"
+        "storyboardShotCardsEnabled",
+        "sameShotLocation"
       ],
-      "lineCount": 384,
-      "sizeBytes": 22379,
+      "lineCount": 303,
+      "sizeBytes": 17828,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -30180,7 +28948,7 @@
         "renderStoryInEnglish"
       ],
       "lineCount": 104,
-      "sizeBytes": 5477,
+      "sizeBytes": 5425,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -30262,40 +29030,6 @@
       ],
       "lineCount": 602,
       "sizeBytes": 34331,
-      "notes": "Utility / helper module; area=video-generation"
-    },
-    {
-      "path": "src/lib/video-generation/storyboard-direction.ts",
-      "type": "util",
-      "area": "video-generation",
-      "exports": [
-        "storyboardDirectionEnabled",
-        "STORYBOARD_DIRECTION_SYSTEM_PROMPT",
-        "StoryboardDirectionInput",
-        "StoryboardDirection",
-        "StoryboardDirectionDeps",
-        "parseStoryboardDirection",
-        "describeDirectionGaps",
-        "designStoryboardDirection"
-      ],
-      "imports": [
-        "@/lib/ai",
-        "@/lib/video-generation/shot-cards",
-        "@/lib/video-generation/story-english",
-        "@/lib/video-generation/visual-reference-analysis"
-      ],
-      "importantSymbols": [
-        "STORYBOARD_DIRECTION_SYSTEM_PROMPT",
-        "StoryboardDirectionInput",
-        "StoryboardDirection",
-        "StoryboardDirectionDeps",
-        "storyboardDirectionEnabled",
-        "parseStoryboardDirection",
-        "describeDirectionGaps",
-        "designStoryboardDirection"
-      ],
-      "lineCount": 207,
-      "sizeBytes": 12050,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -30513,7 +29247,6 @@
         "@/lib/video-generation/shot-cards",
         "@/lib/video-generation/storyboard-frame-inputs",
         "@/lib/video-generation/story-english",
-        "@/lib/video-generation/storyboard-direction",
         "@/lib/video-generation/visual-reference-analysis",
         "@/lib/video-generation/storyboard-person-refs",
         "@/lib/video-generation/planning-degradation",
@@ -30530,8 +29263,8 @@
         "STORYBOARD_RETIRED_PROVIDER_FRAME_MESSAGE",
         "PendingStoryboardSummary"
       ],
-      "lineCount": 2701,
-      "sizeBytes": 108770,
+      "lineCount": 2689,
+      "sizeBytes": 108118,
       "notes": "Utility / helper module; hits Prisma DB; area=video-generation"
     },
     {
@@ -30805,7 +29538,7 @@
         "analyzeVisualReferences"
       ],
       "lineCount": 140,
-      "sizeBytes": 7813,
+      "sizeBytes": 7712,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -30890,7 +29623,7 @@
         "checkVoiceoverDrive"
       ],
       "lineCount": 53,
-      "sizeBytes": 2133,
+      "sizeBytes": 2161,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -31141,21 +29874,6 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
-      "path": "tests/ad-edit-plan-validation.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/schemas/ad-edit-plan"
-      ],
-      "importantSymbols": [],
-      "lineCount": 80,
-      "sizeBytes": 2020,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/ad-intel-compliance.test.ts",
       "type": "test",
       "area": "tests",
@@ -31185,21 +29903,6 @@
       "importantSymbols": [],
       "lineCount": 106,
       "sizeBytes": 4316,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/ad-render-fallback.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/ad-render-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 33,
-      "sizeBytes": 922,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -31526,8 +30229,8 @@
         "../src/i18n/config"
       ],
       "importantSymbols": [],
-      "lineCount": 126,
-      "sizeBytes": 5580,
+      "lineCount": 125,
+      "sizeBytes": 5527,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -31550,8 +30253,8 @@
         "../src/lib/services/recipe-racing-service"
       ],
       "importantSymbols": [],
-      "lineCount": 426,
-      "sizeBytes": 25654,
+      "lineCount": 423,
+      "sizeBytes": 25470,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -32084,58 +30787,26 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
-      "path": "tests/broll-assembly.test.ts",
+      "path": "tests/broll-retired.test.ts",
       "type": "test",
       "area": "tests",
       "exports": [],
       "imports": [
         "node:assert/strict",
-        "node:test",
-        "../src/lib/services/broll-assembly-service",
-        "../src/lib/video-generation/broll-segment-compose",
-        "../src/lib/providers/tts",
-        "../src/lib/schemas/unified-input"
-      ],
-      "importantSymbols": [],
-      "lineCount": 138,
-      "sizeBytes": 5816,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/broll-cancel.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
         "node:test",
         "@prisma/client",
         "../src/lib/db",
-        "../src/lib/services/broll-assembly-service",
-        "../src/lib/services/exchange-readings",
-        "../src/lib/services/single-video-cancel-service",
-        "../src/lib/services/unified-library-service"
+        "../src/lib/services/stitch-service",
+        "../src/lib/services/unified-library-service",
+        "../src/lib/video-generation/broll-segment-compose",
+        "../src/lib/video-generation/restitch-patch",
+        "../src/lib/video-generation/segment-redo",
+        "../src/types/video-generation"
       ],
       "importantSymbols": [],
-      "lineCount": 252,
-      "sizeBytes": 12000,
+      "lineCount": 253,
+      "sizeBytes": 11306,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
-    },
-    {
-      "path": "tests/broll-plan.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/broll-plan-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 136,
-      "sizeBytes": 4764,
-      "notes": "Unit / integration test; area=tests"
     },
     {
       "path": "tests/business-display-title.test.ts",
@@ -32266,8 +30937,8 @@
         "../src/lib/services/capability-status-service"
       ],
       "importantSymbols": [],
-      "lineCount": 505,
-      "sizeBytes": 25093,
+      "lineCount": 443,
+      "sizeBytes": 20880,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -32284,8 +30955,8 @@
         "../src/lib/exchange/state-vocab"
       ],
       "importantSymbols": [],
-      "lineCount": 437,
-      "sizeBytes": 21696,
+      "lineCount": 456,
+      "sizeBytes": 22974,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -32315,8 +30986,8 @@
       "importantSymbols": [
         "GET"
       ],
-      "lineCount": 307,
-      "sizeBytes": 16871,
+      "lineCount": 295,
+      "sizeBytes": 15981,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -32329,13 +31000,11 @@
         "node:test",
         "../src/lib/capabilities/registry",
         "../src/lib/services/capability-status-service",
-        "../src/lib/providers/tts",
-        "../src/lib/providers/stock-footage",
         "../src/lib/providers/openai"
       ],
       "importantSymbols": [],
-      "lineCount": 271,
-      "sizeBytes": 13029,
+      "lineCount": 256,
+      "sizeBytes": 11783,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -32713,21 +31382,6 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
-      "path": "tests/creative-evidence-schema.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/schemas/creative-evidence"
-      ],
-      "importantSymbols": [],
-      "lineCount": 97,
-      "sizeBytes": 3227,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/customer-api-envelope-contract.test.ts",
       "type": "test",
       "area": "tests",
@@ -32895,8 +31549,8 @@
         "../src/lib/demo-account"
       ],
       "importantSymbols": [],
-      "lineCount": 228,
-      "sizeBytes": 8943,
+      "lineCount": 227,
+      "sizeBytes": 8916,
       "notes": "Unit / integration test; NextAuth session check; area=tests"
     },
     {
@@ -32961,12 +31615,12 @@
         "node:assert/strict",
         "node:test",
         "../src/lib/schemas/director-plan",
-        "../src/lib/services/director-service",
+        "./helpers/director-plan-fixture",
         "../src/lib/duration/segment-planner"
       ],
       "importantSymbols": [],
-      "lineCount": 459,
-      "sizeBytes": 15473,
+      "lineCount": 137,
+      "sizeBytes": 4219,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -32980,8 +31634,8 @@
         "../scripts/lib/director-plan"
       ],
       "importantSymbols": [],
-      "lineCount": 640,
-      "sizeBytes": 39715,
+      "lineCount": 655,
+      "sizeBytes": 40651,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -33041,8 +31695,8 @@
         "../src/lib/video-generation/platform-safe-zone"
       ],
       "importantSymbols": [],
-      "lineCount": 154,
-      "sizeBytes": 6786,
+      "lineCount": 150,
+      "sizeBytes": 6620,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -33658,8 +32312,8 @@
       "importantSymbols": [
         "$"
       ],
-      "lineCount": 349,
-      "sizeBytes": 11761,
+      "lineCount": 307,
+      "sizeBytes": 10577,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -33675,9 +32329,6 @@
         "next/server",
         "next-auth/next",
         "../src/lib/db.ts",
-        "../src/app/api/briefs/[id]/qa/route.ts",
-        "../src/app/api/publish/route.ts",
-        "../src/app/api/publish/[id]/route.ts",
         "../src/app/api/reports/route.ts",
         "../src/app/api/internal/reports/route.ts",
         "../src/app/api/internal/reports/[id]/route.ts",
@@ -33686,8 +32337,8 @@
         "../src/middleware.ts"
       ],
       "importantSymbols": [],
-      "lineCount": 468,
-      "sizeBytes": 15909,
+      "lineCount": 344,
+      "sizeBytes": 11113,
       "notes": "Unit / integration test; NextAuth session check; area=tests"
     },
     {
@@ -33769,6 +32420,28 @@
       "lineCount": 379,
       "sizeBytes": 13446,
       "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/helpers/director-plan-fixture.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [
+        "DirectorPlanFixtureContext",
+        "mockDirectorPlan"
+      ],
+      "imports": [
+        "@prisma/client",
+        "../../src/lib/duration/segment-planner",
+        "../../src/lib/schemas/director-plan",
+        "../../src/lib/video-generation/platform-safe-zone"
+      ],
+      "importantSymbols": [
+        "DirectorPlanFixtureContext",
+        "mockDirectorPlan"
+      ],
+      "lineCount": 143,
+      "sizeBytes": 6525,
+      "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
       "path": "tests/helpers/qa-review-cas-store.ts",
@@ -33912,22 +32585,6 @@
       "importantSymbols": [],
       "lineCount": 170,
       "sizeBytes": 5754,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/industry-defaults.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/config/industry-defaults",
-        "../src/lib/config/blanket-themes"
-      ],
-      "importantSymbols": [],
-      "lineCount": 88,
-      "sizeBytes": 3129,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -34196,8 +32853,8 @@
         "../src/lib/media/ffmpeg-bin"
       ],
       "importantSymbols": [],
-      "lineCount": 304,
-      "sizeBytes": 14672,
+      "lineCount": 302,
+      "sizeBytes": 14506,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -34291,12 +32948,12 @@
         "@prisma/client",
         "../src/lib/services/video-service",
         "../src/lib/duration/segment-planner",
-        "../src/lib/services/director-service",
+        "./helpers/director-plan-fixture",
         "../src/lib/schemas/director-plan"
       ],
       "importantSymbols": [],
-      "lineCount": 158,
-      "sizeBytes": 5561,
+      "lineCount": 157,
+      "sizeBytes": 5505,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
@@ -34310,12 +32967,12 @@
         "@prisma/client",
         "../src/lib/services/video-service",
         "../src/lib/duration/segment-planner",
-        "../src/lib/services/director-service",
+        "./helpers/director-plan-fixture",
         "../src/lib/schemas/director-plan"
       ],
       "importantSymbols": [],
-      "lineCount": 140,
-      "sizeBytes": 5077,
+      "lineCount": 139,
+      "sizeBytes": 5021,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
@@ -34484,8 +33141,8 @@
         "node:test"
       ],
       "importantSymbols": [],
-      "lineCount": 39,
-      "sizeBytes": 1729,
+      "lineCount": 41,
+      "sizeBytes": 1908,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -34708,8 +33365,8 @@
         "../src/lib/video-generation/story-english"
       ],
       "importantSymbols": [],
-      "lineCount": 1070,
-      "sizeBytes": 51868,
+      "lineCount": 1018,
+      "sizeBytes": 49671,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -34810,44 +33467,6 @@
       "notes": "Unit / integration test; NextAuth session check; area=tests"
     },
     {
-      "path": "tests/product-anchor.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:path",
-        "node:test",
-        "sharp",
-        "../src/lib/services/product-anchor-service",
-        "../src/lib/providers/cutout",
-        "next/server",
-        "../src/app/api/cron/poll-videos/route"
-      ],
-      "importantSymbols": [],
-      "lineCount": 694,
-      "sizeBytes": 31708,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/product-anchors-api.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/app/api/product-anchors/route",
-        "../src/app/api/product-anchors/[id]/retry/route",
-        "../src/lib/services/media-asset-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 198,
-      "sizeBytes": 8287,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/product-image-recovery.test.ts",
       "type": "test",
       "area": "tests",
@@ -34913,21 +33532,6 @@
       "importantSymbols": [],
       "lineCount": 54,
       "sizeBytes": 2351,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/product-link-firecrawl.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/product-link-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 79,
-      "sizeBytes": 2902,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -35082,8 +33686,8 @@
         "../src/lib/providers/provider-billing-error"
       ],
       "importantSymbols": [],
-      "lineCount": 33,
-      "sizeBytes": 2246,
+      "lineCount": 28,
+      "sizeBytes": 1895,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -35182,14 +33786,11 @@
       "imports": [
         "node:assert/strict",
         "node:test",
-        "../src/lib/db",
-        "../src/lib/services/qa-review-merge",
-        "../src/lib/services/qa-service",
-        "./helpers/qa-review-cas-store"
+        "../src/lib/services/qa-review-merge"
       ],
       "importantSymbols": [],
-      "lineCount": 114,
-      "sizeBytes": 5758,
+      "lineCount": 57,
+      "sizeBytes": 3073,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -35404,7 +34005,7 @@
         "../src/lib/db",
         "../src/lib/duration/segment-planner",
         "../src/lib/schemas/director-plan",
-        "../src/lib/services/director-service",
+        "./helpers/director-plan-fixture",
         "../src/lib/services/video-service",
         "../src/lib/services/quota-refund-service",
         "../src/lib/services/stitch-service",
@@ -35416,7 +34017,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 926,
-      "sizeBytes": 39176,
+      "sizeBytes": 39150,
       "notes": "Unit / integration test; hits Prisma DB; NextAuth session check; area=tests"
     },
     {
@@ -35476,14 +34077,16 @@
       "imports": [
         "node:assert/strict",
         "node:fs",
+        "node:path",
         "node:test",
         "../src/lib/capabilities/registry",
         "../src/lib/create/entry-policy",
+        "../src/lib/services/capability-status-service",
         "../src/lib/services/ops-alert-service"
       ],
       "importantSymbols": [],
-      "lineCount": 155,
-      "sizeBytes": 6986,
+      "lineCount": 240,
+      "sizeBytes": 11332,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -35563,7 +34166,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 345,
-      "sizeBytes": 20262,
+      "sizeBytes": 20487,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -35849,26 +34452,8 @@
         "node:test"
       ],
       "importantSymbols": [],
-      "lineCount": 37,
-      "sizeBytes": 1570,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/shot-cards-vision.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/providers/openai",
-        "../src/lib/ai",
-        "../src/lib/video-generation/shot-cards",
-        "../src/types/video-generation"
-      ],
-      "importantSymbols": [],
-      "lineCount": 169,
-      "sizeBytes": 7565,
+      "lineCount": 40,
+      "sizeBytes": 1903,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -36301,11 +34886,11 @@
         "node:fs",
         "node:os",
         "node:path",
-        "node:url",
         "node:test",
         "@prisma/client",
         "../src/lib/db",
         "../src/lib/media/ffmpeg-bin",
+        "../src/lib/media/stitch-pipeline",
         "../src/lib/services/stitch-composer",
         "../src/lib/services/stitch-service",
         "../src/types/video-generation",
@@ -36313,8 +34898,8 @@
         "./helpers/synthetic-media"
       ],
       "importantSymbols": [],
-      "lineCount": 376,
-      "sizeBytes": 17379,
+      "lineCount": 384,
+      "sizeBytes": 17260,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
@@ -36452,7 +35037,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 147,
-      "sizeBytes": 4783,
+      "sizeBytes": 4817,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
@@ -36499,12 +35084,11 @@
         "../src/lib/db",
         "../src/lib/media/stitch-runtime",
         "../src/lib/services/stitch-service",
-        "../src/lib/services/stitch-dispatch-service",
-        "node:fs/promises"
+        "../src/lib/services/stitch-dispatch-service"
       ],
       "importantSymbols": [],
-      "lineCount": 259,
-      "sizeBytes": 11801,
+      "lineCount": 252,
+      "sizeBytes": 11370,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
@@ -36540,21 +35124,6 @@
       "lineCount": 599,
       "sizeBytes": 20995,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
-    },
-    {
-      "path": "tests/stock-footage.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/providers/stock-footage"
-      ],
-      "importantSymbols": [],
-      "lineCount": 160,
-      "sizeBytes": 6326,
-      "notes": "Unit / integration test; area=tests"
     },
     {
       "path": "tests/storyboard-ack-unknown-single-retry.test.ts",
@@ -36633,22 +35202,6 @@
       "importantSymbols": [],
       "lineCount": 724,
       "sizeBytes": 30658,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/storyboard-direction.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/video-generation/storyboard-direction",
-        "../src/lib/video-generation/visual-reference-analysis"
-      ],
-      "importantSymbols": [],
-      "lineCount": 206,
-      "sizeBytes": 10797,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -36972,51 +35525,11 @@
         "../src/lib/config/quota-tiers",
         "../src/lib/services/quota-service",
         "../src/lib/services/paid-action-rate-limit",
-        "../src/lib/services/rate-limit-service",
-        "../src/app/api/product-anchors/route",
-        "../src/app/api/product-anchors/[id]/retry/route"
+        "../src/lib/services/rate-limit-service"
       ],
       "importantSymbols": [],
-      "lineCount": 236,
-      "sizeBytes": 10217,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/tts-elevenlabs.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/providers/tts",
-        "../src/lib/providers/tts/elevenlabs",
-        "../src/lib/services/capability-probe-service",
-        "../src/lib/services/capability-status-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 151,
-      "sizeBytes": 7342,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/tts-provider.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:fs",
-        "node:test",
-        "../src/lib/providers/tts",
-        "../src/lib/providers/tts/openai",
-        "../src/lib/capabilities/registry",
-        "../src/lib/services/capability-probe-service",
-        "../src/lib/services/capability-status-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 173,
-      "sizeBytes": 7867,
+      "lineCount": 170,
+      "sizeBytes": 7576,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -37428,14 +35941,14 @@
         "@prisma/client",
         "../src/lib/db",
         "../src/lib/duration/segment-planner",
-        "../src/lib/services/director-service",
+        "./helpers/director-plan-fixture",
         "../src/lib/services/video-service",
         "../src/lib/services/historical-dispatch-quarantine",
         "../src/lib/schemas/director-plan"
       ],
       "importantSymbols": [],
       "lineCount": 248,
-      "sizeBytes": 8059,
+      "sizeBytes": 8033,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
@@ -37509,12 +36022,12 @@
         "../src/lib/config/env",
         "../src/lib/content-review",
         "../src/lib/duration/segment-planner",
-        "../src/lib/services/director-service",
+        "./helpers/director-plan-fixture",
         "../src/lib/schemas/director-plan"
       ],
       "importantSymbols": [],
       "lineCount": 297,
-      "sizeBytes": 10175,
+      "sizeBytes": 10149,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
@@ -37593,14 +36106,14 @@
         "@prisma/client",
         "../src/lib/db",
         "../src/lib/duration/segment-planner",
-        "../src/lib/services/director-service",
+        "./helpers/director-plan-fixture",
         "../src/lib/services/video-service",
         "../src/lib/services/historical-dispatch-quarantine",
         "../src/lib/schemas/director-plan"
       ],
       "importantSymbols": [],
       "lineCount": 416,
-      "sizeBytes": 14535,
+      "sizeBytes": 14509,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
@@ -37738,12 +36251,11 @@
         "../src/lib/video-generation/generation-supervisor",
         "../src/lib/video-generation/voiceover-drive",
         "../src/lib/video-generation/video-route-registry",
-        "../src/lib/capabilities/registry",
         "../src/types/video-generation"
       ],
       "importantSymbols": [],
-      "lineCount": 209,
-      "sizeBytes": 9563,
+      "lineCount": 212,
+      "sizeBytes": 9961,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {

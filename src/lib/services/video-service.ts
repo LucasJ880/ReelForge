@@ -19,7 +19,6 @@ import {
   type CustomerGenerationError,
 } from "@/lib/api/customer-generation-error";
 import { isMockVideoRuntime } from "@/lib/config/env";
-import { processReferenceImages } from "@/lib/providers/remove-bg";
 import {
   parseDirectorPlan,
   type DirectorPlan,
@@ -1024,9 +1023,8 @@ export async function dispatchVideoGeneration(briefId: string) {
     data: { status: VideoBriefStatus.RENDER_QUEUED, errorMessage: null },
   });
 
-  const processed = brief.referenceImageUrls?.length
-    ? (await processReferenceImages(brief.referenceImageUrls)).map((p) => p.url)
-    : [];
+  /// 参考图原样使用（这里原来过一遍 remove-bg 的「抠图预处理」，那是个永远原样返回的空壳，2026-11-16 删）
+  const processed = brief.referenceImageUrls?.length ? [...brief.referenceImageUrls] : [];
 
   /// 没有 externalJobId 的孤立 QUEUED/RUNNING（可能上次提交失败但残留）→ 标 CANCELLED
   await db.videoJob.updateMany({
@@ -1790,11 +1788,7 @@ export async function retryFailedVideoJob(jobId: string) {
       where: { id: videoBriefId },
       select: { referenceImageUrls: true },
     });
-    const processed = briefForRefs?.referenceImageUrls?.length
-      ? (await processReferenceImages(briefForRefs.referenceImageUrls)).map(
-          (p) => p.url,
-        )
-      : [];
+    const processed = briefForRefs?.referenceImageUrls?.length ? [...briefForRefs.referenceImageUrls] : [];
     const accepted = await submitVideoJob(
       {
         providerRequestKey,

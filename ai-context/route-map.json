@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T00:27:58.142Z",
+  "generatedAt": "2026-11-17T00:44:25.770Z",
   "routes": [
     {
       "routePath": "/",
@@ -199,35 +199,8 @@
       "isDynamic": true
     },
     {
-      "routePath": "/api/briefs/[id]/ad-plan",
-      "filePath": "src/app/api/briefs/[id]/ad-plan/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
-    },
-    {
       "routePath": "/api/briefs/[id]/feedback",
       "filePath": "src/app/api/briefs/[id]/feedback/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
-    },
-    {
-      "routePath": "/api/briefs/[id]/qa",
-      "filePath": "src/app/api/briefs/[id]/qa/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
-    },
-    {
-      "routePath": "/api/briefs/[id]/render",
-      "filePath": "src/app/api/briefs/[id]/render/route.ts",
       "kind": "api",
       "httpMethods": [
         "POST"
@@ -252,42 +225,6 @@
         "POST"
       ],
       "isDynamic": true
-    },
-    {
-      "routePath": "/api/briefs/[id]/scenes",
-      "filePath": "src/app/api/briefs/[id]/scenes/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
-    },
-    {
-      "routePath": "/api/briefs/[id]/script",
-      "filePath": "src/app/api/briefs/[id]/script/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
-    },
-    {
-      "routePath": "/api/broll/cancel",
-      "filePath": "src/app/api/broll/cancel/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": false
-    },
-    {
-      "routePath": "/api/broll/dispatch",
-      "filePath": "src/app/api/broll/dispatch/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": false
     },
     {
       "routePath": "/api/capabilities",
@@ -616,25 +553,6 @@
       "isDynamic": false
     },
     {
-      "routePath": "/api/product-anchors",
-      "filePath": "src/app/api/product-anchors/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "GET",
-        "POST"
-      ],
-      "isDynamic": false
-    },
-    {
-      "routePath": "/api/product-anchors/[id]/retry",
-      "filePath": "src/app/api/product-anchors/[id]/retry/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
-    },
-    {
       "routePath": "/api/product-images",
       "filePath": "src/app/api/product-images/route.ts",
       "kind": "api",
@@ -670,15 +588,6 @@
         "POST"
       ],
       "isDynamic": true
-    },
-    {
-      "routePath": "/api/product-link",
-      "filePath": "src/app/api/product-link/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": false
     },
     {
       "routePath": "/api/products",
@@ -734,24 +643,6 @@
         "POST"
       ],
       "isDynamic": false
-    },
-    {
-      "routePath": "/api/publish",
-      "filePath": "src/app/api/publish/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "GET"
-      ],
-      "isDynamic": false
-    },
-    {
-      "routePath": "/api/publish/[id]",
-      "filePath": "src/app/api/publish/[id]/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
     },
     {
       "routePath": "/api/racing",

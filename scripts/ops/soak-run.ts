@@ -41,7 +41,9 @@
  *           「帧质检去留依据」「出方案对照」，并生成 A/B 盲评页 blind-review.html（左右随机、不显示组别，沿用评测集的盲评页）。
  *   tally   读盲评页导出的票（--votes <JSON>），揭盲算 B 组的胜 / 平 / 负；票存进运行目录，之后的 report 会带上。
  *
- * 镜头卡是怎么写的（11-10 起线上有「看图写镜头卡」开关 STORYBOARD_SHOT_CARDS_VISION，缺省关）：
+ * 镜头卡是怎么写的（11-10 到 11-16 线上有过「看图写镜头卡」开关 STORYBOARD_SHOT_CARDS_VISION，缺省关；
+ * 代码与开关 2026-11-16 已删，现在只有纯文字写卡。下面的分层与重拍轮只对那段时间留下的运行目录还有意义：
+ * report / tally 照常能读旧数据，但重拍轮不能再真提交——投出来的只会是纯文字卡）：
  *   - 报告把 A/B 对照按 A 组镜头卡的写法分层：纯文字写卡 / 看图写卡（开关生效后建的）/ 合并看图调用出了结果 / 卡没用上退回模板。
  *     开关什么时候生效脚本查不到（那是线上的环境变量，要重新部署才生效），由人用 --vision-since <带时区的 ISO 时刻> 给，
  *     给一次就记在运行目录里。看图那次调用失败时线上会静默退回纯文字写卡、库里不留标记，逐条要查线上日志。
@@ -899,11 +901,16 @@ async function commandRun(flags: Flags): Promise<void> {
 
   if (wave === null) throw new Error("真提交要说清投哪一波：--wave morning|noon|evening|all");
   if (context.baseline) {
-    /// 开关没生效就投，线上写的还是纯文字卡，这几条的钱白花。脚本查不到线上的环境变量，只能卡住时刻
+    /// 看图写镜头卡的代码与开关 2026-11-16 已删：线上只会写纯文字卡，重拍轮再投就是拿钱重拍一遍对照组。
+    /// 旧运行目录的 report / tally 不受影响（它们不走到这里）。
     const blocker = cardRerunBlocker(context.visionSince, new Date());
-    if (blocker) throw new Error(blocker);
-    console.log(
-      `[soak] 注意：脚本只核对了时刻（现在晚于 ${context.visionSince}），核对不了线上的 STORYBOARD_SHOT_CARDS_VISION 是否真的生效。投之前先确认线上日志里出现过 [shot-cards] vision design ok`,
+    throw new Error(
+      [
+        "镜头卡对照的重拍轮不能再真提交：看图写镜头卡（STORYBOARD_SHOT_CARDS_VISION）的代码已删，线上只有纯文字卡，投出来和对照轮是同一种卡。",
+        blocker ? `（另外：${blocker}）` : "",
+      ]
+        .filter(Boolean)
+        .join(""),
     );
   }
   const gate = checkBudgetGate({

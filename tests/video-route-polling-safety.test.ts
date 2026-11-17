@@ -14,7 +14,7 @@ import { HISTORICAL_DISPATCH_CUTOFF } from "../src/lib/services/historical-dispa
 import { __resetAppEnvForTests } from "../src/lib/config/env";
 import { __resetContentReviewProviderForTests } from "../src/lib/content-review";
 import { planSegments } from "../src/lib/duration/segment-planner";
-import { __test__ as directorTest } from "../src/lib/services/director-service";
+import { mockDirectorPlan } from "./helpers/director-plan-fixture";
 import { parseDirectorPlan } from "../src/lib/schemas/director-plan";
 
 function patch(
@@ -206,7 +206,7 @@ test("retry reconstructs the persisted route after the global default switches",
   });
 
   const plan = parseDirectorPlan(
-    directorTest.mockDirectorPlan({
+    mockDirectorPlan({
       targetDurationSec: 15,
       segmentSlots: planSegments(15),
       clientBrief: { businessName: "Acme", productName: "Acme Pro" },

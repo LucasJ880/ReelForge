@@ -13,7 +13,7 @@ import type { Session } from "next-auth";
 import { db } from "../src/lib/db";
 import { planSegments } from "../src/lib/duration/segment-planner";
 import { parseDirectorPlan } from "../src/lib/schemas/director-plan";
-import { __test__ as directorTest } from "../src/lib/services/director-service";
+import { mockDirectorPlan } from "./helpers/director-plan-fixture";
 import {
   buildSegmentSubmitInput,
   commitSegmentRedo,
@@ -88,7 +88,7 @@ const POST_PRODUCTION = {
 
 function directorPlan() {
   return parseDirectorPlan(
-    directorTest.mockDirectorPlan({
+    mockDirectorPlan({
       targetDurationSec: 30,
       segmentSlots: planSegments(30),
       clientBrief: { businessName: "Acme", productName: "Acme Pro" },

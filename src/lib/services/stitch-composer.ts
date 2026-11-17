@@ -1,8 +1,5 @@
 import { signoffActive } from "@/lib/video-generation/brand-signoff";
 import type { PostProductionPlan } from "@/types/video-generation";
-import { mkdir, rm } from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
 import { db } from "@/lib/db";
 import {
   StitchCompositionError,
@@ -14,6 +11,7 @@ import { DEFAULT_TAIL_TRIM_SECONDS } from "@/lib/video-generation/tail-trim";
 import type { UploadedAsset } from "@/types/video-generation";
 import {
   composeAndPersistTimeline,
+  BROLL_ROUTE_RETIRED_MESSAGE,
   extractBrollClaimSegments,
   isStitchCandidateReady,
   parsePersistedPostProduction,
@@ -25,17 +23,20 @@ import {
  * 应用内合成器的编排层（C3：生产 inprocess 与开发 local 唯一的合成入口）。
  *
  * 按 FinalVideo 的形态挑分支，组出时间线，交给 composeAndPersistTimeline：
- *   - b-roll   ：图库素材画面（循环补长）+ TTS 配音（替换素材原声，必须在），单遍合成
  *   - assembly ：unified plan 的 assemblyPlan —— AI 段 + 客户上传片段 + 客户选的品牌尾卡 /
  *                CTA 卡（现场渲染），trimToFit、字幕窗口（尾卡不背字幕）、logo 角标策略
  *   - legacy   ：没有 unified plan 的多段 / 单段 AI 视频
  * AI 生成段默认做语音安全裁尾（杀尾帧幻觉出的假名片 / 乱码电话，不切口播）；
- * b-roll、客户上传片段、尾卡不裁。
+ * 客户上传片段、尾卡不裁。
+ *
+ * 实拍图库（b-roll）线路 2026-11-16 删除：旧的 b-roll 成片照常能看能下载，但不能再重新合成——
+ * 段里存的是图库原片 + 配音文件，要先「素材 + 配音 → 段」再拼，那段代码随线路一起删了。
+ * 认出这种成片（extractBrollClaimSegments）就以 BROLL_ROUTE_RETIRED 明确失败，绝不把图库原片当成片拼出去。
  *
  * 只读数据库、不写库：结果由 runClaimedStitchAttempt 交给唯一成功写入点 finishStitchTask。
  */
 
-export type ComposeBranch = "broll" | "assembly" | "legacy";
+export type ComposeBranch = "assembly" | "legacy";
 
 export interface ComposedFinalVideo {
   stitchedVideoUrl: string;
@@ -192,42 +193,10 @@ export async function composeFinalVideoForStitch(args: {
   const ownerUserId = fv.brief?.contentAngle?.round?.deliveryOrder?.createdById ?? null;
   const signoffLogoUrl = await resolveSignoffLogoUrl(postProduction ?? null, ownerUserId);
 
-  // ---------------- b-roll ----------------
-  const brollSegments = extractBrollClaimSegments(fv.segments);
-  if (brollSegments) {
-    const brollAspect = aspectRatio === "16:9" ? "16:9" : "9:16";
-    const workDir = path.join(
-      os.tmpdir(),
-      `aivora-broll-compose-${args.finalVideoId.replace(/[^A-Za-z0-9_-]/g, "_")}-${Date.now()}`,
-    );
-    await mkdir(workDir, { recursive: true });
-    try {
-      /// 动态 import：broll-assembly-service 静态依赖 stitch-service（同步交付路径）
-      const { prepareBrollTimelineClips, BROLL_FRAME_RATE } = await import(
-        "@/lib/services/broll-assembly-service"
-      );
-      /// 素材画面 + 配音（替换素材原声）+ 段长由配音实测驱动；配音必须在（不交付哑片）
-      const clips = await prepareBrollTimelineClips({
-        segments: brollSegments,
-        workDir,
-        budget: args.budget,
-        checkpoint: args.checkpoint,
-      });
-      const result = await composeAndPersistTimeline({
-        finalVideoId: args.finalVideoId,
-        aspectRatio: brollAspect,
-        clips,
-        frameRate: BROLL_FRAME_RATE,
-        postProduction,
-        platform,
-        extractThumbnail: true,
-        budget: args.budget,
-        checkpoint: args.checkpoint,
-      });
-      return { ...result, branch: "broll", warnings };
-    } finally {
-      await rm(workDir, { recursive: true, force: true });
-    }
+  // ---------------- b-roll（线路已删）----------------
+  /// 必须排在其它分支之前：b-roll 的段是「图库原片 + 配音」，落进 legacy 分支会把没有配音的原片拼成成片。
+  if (extractBrollClaimSegments(fv.segments) !== null) {
+    throw new StitchCompositionError("BROLL_ROUTE_RETIRED", BROLL_ROUTE_RETIRED_MESSAGE);
   }
 
   // ---------------- unified assembly ----------------

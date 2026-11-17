@@ -13,7 +13,6 @@ import {
   Film,
   GalleryHorizontalEnd,
   ImagePlus,
-  Link2,
   ListChecks,
   Loader2,
   Paperclip,
@@ -33,8 +32,6 @@ import { uploadFilesToAssets } from "@/components/personal/upload-assets";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { BrollQuickCard } from "@/components/video-generation/broll-quick-card";
-import { ProductLinkPrefill } from "@/components/video-generation/product-link-prefill";
 import {
   AudioCaptionControls,
   generateVoiceoverScript,
@@ -65,11 +62,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { WorkspaceBrandPackageView } from "@/lib/services/workspace-brand-package-service";
 import { BRAND_END_CARD_ENTRY_ENABLED } from "@/lib/brand/brand-end-card-policy";
-import {
-  BROLL_ROUTE_ENTRY_ENABLED,
-  PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED,
-  PRODUCT_LINK_ENTRY_ENABLED,
-} from "@/lib/create/entry-policy";
+import { PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED } from "@/lib/create/entry-policy";
 import { HOOK_ANGLES, applyHookAngle, detectHookAngle, stripHookAngle } from "@/lib/create/hook-angles";
 import { applyProductSize, detectProductSize, PRODUCT_SIZE_MAX, stripProductSize } from "@/lib/create/product-size";
 import { BGM_CATALOG } from "@/lib/video-generation/bgm-catalog";
@@ -273,7 +266,6 @@ const ZH_COPY = {
   helpWriteDone: "写好了，可以直接改。",
   tryThese: "试试这些",
   hookAngles: "换个开头",
-  pasteLink: "贴商品链接",
   moreSettings: "更多设置",
   referenceModeHint: "全能参考：商品图和参考素材一起用；仅产品图：参考素材不参与生成。",
   rowPlan: "生成方案",
@@ -417,7 +409,6 @@ const EN_COPY: StudioCopy = {
   helpWriteDone: "Draft ready. Edit it as you like.",
   tryThese: "Try these",
   hookAngles: "Change the opening",
-  pasteLink: "Paste a product link",
   moreSettings: "More settings",
   referenceModeHint: "Use all references: product photos and references work together. Product only: references are left out.",
   rowPlan: "Generation plan",
@@ -454,7 +445,6 @@ export function StreamlinedVideoStudio({
   showInternalVideoRoutes = false,
   forceOnboarding = false,
   returningUser = false,
-  brollAvailable = false,
   capabilities = null,
   readings = null,
   contactEmail = null,
@@ -487,7 +477,6 @@ export function StreamlinedVideoStudio({
    * 顶栏问号 → 指南里的「重开新手指引」（guide=open）照旧能打开。
    */
   returningUser?: boolean;
-  brollAvailable?: boolean;
   /** C4 · 服务端读好的能力状态（纯 DTO）；缺省 = 不拦（老调用方、读失败）。 */
   capabilities?: PublicCapabilities | null;
   readings?: StudioReadings | null;
@@ -498,8 +487,7 @@ export function StreamlinedVideoStudio({
   const { locale } = useTranslation();
   const english = locale === "en-US";
   const copy = english ? EN_COPY : ZH_COPY;
-  /// C4 · 能力闸门：实拍线路要 写作 + 配音 + 图库；口播稿起草与镜头规划要写作；画面质检要看图。
-  const brollGate = featureGate(capabilities, "broll");
+  /// C4 · 能力闸门：口播稿起草与镜头规划要写作；画面质检要看图。
   const narrationFromTemplate = featureGate(capabilities, "narrationDraft").status === "blocked";
   const shotsFromTemplate = featureGate(capabilities, "scriptWriting").status === "blocked";
   const frameQaPaused = featureGate(capabilities, "frameQa").status === "blocked";
@@ -598,9 +586,8 @@ export function StreamlinedVideoStudio({
   const [quotaError, setQuotaError] = useState<string | null>(null);
   /// 「帮我写」进行中：输入框与主按钮一起锁住，免得 AI 稿盖掉刚敲的字、或拿旧描述出方案
   const [draftingPrompt, setDraftingPrompt] = useState(false);
-  /// 卡下「更多设置」与「贴商品链接」默认收起：默认值都替商家定好，不展开也能出片
+  /// 卡下「更多设置」默认收起：默认值都替商家定好，不展开也能出片
   const [moreOpen, setMoreOpen] = useState(false);
-  const [linkOpen, setLinkOpen] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const storyboardAttemptRef = useRef<StoredAttempt | null>(null);
   const dispatchAttemptRef = useRef<StoredAttempt | null>(null);
@@ -2181,7 +2168,7 @@ export function StreamlinedVideoStudio({
           </button>
         </div>
 
-        {/* 试试这些：一点就把描述填好（模板化的说法），也可以贴商品链接自动起草 */}
+        {/* 试试这些：一点就把描述填好（模板化的说法） */}
         {!storyboard ? (
           <div className="space-y-3">
             {/* 换个开头：描述写好之后才出现；点一下在描述末尾补一句「开头怎么拍」，再点一次取消。
@@ -2256,32 +2243,7 @@ export function StreamlinedVideoStudio({
                   {label}
                 </button>
               ))}
-              {/* 贴链接起片入口 A 级下线（2026-11-09 线路精简，见 lib/create/entry-policy.ts） */}
-              {PRODUCT_LINK_ENTRY_ENABLED ? (
-                <button
-                  type="button"
-                  aria-expanded={linkOpen}
-                  className={cn(CHIP_CLASS, linkOpen && "border-(--accent-line)")}
-                  disabled={locked}
-                  onClick={() => setLinkOpen((open) => !open)}
-                >
-                  <Link2 aria-hidden />
-                  {copy.pasteLink}
-                </button>
-              ) : null}
             </div>
-            {/* 链接起片（PRD O1）：有独立站的商家贴链接自动预填描述 */}
-            {PRODUCT_LINK_ENTRY_ENABLED && linkOpen ? (
-              <div className="mx-auto w-full max-w-xl">
-                <ProductLinkPrefill
-                  disabled={locked}
-                  onPrefill={(promptText) => {
-                    setRawPrompt((current) => (current.trim() ? `${current}\n${promptText}` : promptText));
-                    invalidatePlan();
-                  }}
-                />
-              </div>
-            ) : null}
           </div>
         ) : null}
 
@@ -2589,9 +2551,6 @@ export function StreamlinedVideoStudio({
           </div>
         </div>
       ) : null}
-
-      {/* 第三条线路：实拍图库 b-roll（自包含，不接故事板状态机）；能力暂停时禁用提交并写明原因 */}
-      {BROLL_ROUTE_ENTRY_ENABLED ? <BrollQuickCard available={brollAvailable} gate={brollGate} /> : null}
     </div>
   );
 }

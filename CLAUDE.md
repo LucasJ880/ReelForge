@@ -6,8 +6,8 @@
 
 ## 1. 找代码：先查索引，别扫 repo
 
-600+ 个 src 文件、90+ 个 API route、30+ 个 npm scripts（2026-11-17 瘦身进行中的实数：src 下 618 个文件 / 614 个 .ts·tsx，
-`src/app/api` 下 93 个 `route.ts`，package.json 33 个 scripts）。全 repo grep 是本项目最大的 token 漏斗。
+560+ 个 src 文件、80+ 个 API route、30+ 个 npm scripts（2026-11-17 瘦身进行中的实数：src 下 567 个文件 / 563 个 .ts·tsx，
+`src/app/api` 下 81 个 `route.ts`，package.json 33 个 scripts）。全 repo grep 是本项目最大的 token 漏斗。
 
 ```bash
 npm run context:find -- "关键词1 关键词2"   # 0.3s，给 top 10 文件 + 阅读顺序
@@ -26,7 +26,7 @@ npm run context:find -- "关键词1 关键词2"   # 0.3s，给 top 10 文件 + �
 | `src/app/page.tsx` · `(public)/` · `(auth)/` · `(wall)/` | 公开首页「展厅」/ 法务页（/persona、/showcase 2026-10-28 已删）/ 登录注册 / 行情大屏 `/wall` |
 | `src/app/l/[slug]` · `src/app/t/[code]` | 商家询盘页（匿名可访问）/ 追踪链接跳转（`route.ts`） |
 | `src/app/api/` | 路由只做鉴权 + 参数校验，业务委托 `src/lib/services/` |
-| `src/lib/services/` | 业务层（80+ service），Provider 层封装外部 API |
+| `src/lib/services/` | 业务层（70+ service），Provider 层封装外部 API |
 | `src/lib/contracts/` | 对外契约（`customer-api` / `batch-api` / …），M0 的 `/api/videos` 在这层定 |
 
 ## 3. 常用命令
@@ -66,8 +66,6 @@ npm run context:find -- "..."
 | 开关（Vercel 环境变量） | 缺省 | 作用 |
 |---|---|---|
 | `PLANNING_FULL_LLM=on` | 关 | 出方案退回完整模型链路（缺省是精简版：一条片最多 7 次模型调用） |
-| `STORYBOARD_SHOT_CARDS_VISION=on` | 关 | 看着商品图写镜头卡。11-10 盲评与纯文字卡打平，线上已关 |
-| `STORYBOARD_DIRECTION=on` | 关 | 建故事板时合并一次看图调用。首次真机只成功一部分，所以缺省关 |
 | `FRAME_QA_ENABLED=on` | 关 | 成片画面质检（依赖 OpenAI 看图）。20 条真跑 0 次拦截后缺省关 |
 | `CAPTION_SPEECH_ALIGN=on` | 关 | 合成时把 AI 段人声交给 OpenAI `whisper-1` 识别，字幕跟着人声走。要求这把 `OPENAI_API_KEY` 有 whisper-1 权限（11-10 实查没有，需在 OpenAI 项目里开通）；识别不到就照旧按字数摊，不影响出片 |
 | `OPS_ALERT_WEBHOOK_URL` | 未配 | 运维告警的群机器人地址；没配只进日志（`[ops-alert]`） |
@@ -99,7 +97,7 @@ npm run context:find -- "..."
 以及故事板帧旧 planId `runway:` 的守卫（`storyboard-service.ts`，不交给 Shuyu，提示重新生成这一帧）。
 当初走 Runway 的旧成片照常看、照常只重新合成；「重做一段」「重试失败的段」会被明确拒绝，指到「用同样的素材再做一条」。
 Shuyu 现在没有备用线路，明确失败就是失败（可重试、可免费取消）。
-抠图、商品链接抓取、素材库、配音、内容审核这几条线路已下线（`RETIRED_CAPABILITY_KEYS`）。
+抠图、商品链接抓取、实拍图库与配音这几条线路的代码 11-17 已删（瘦身第 2 批）；内容审核留着当一个默认关的可选开关（`RETIRED_CAPABILITY_KEYS` 里只剩它）。
 
 ## 5. 交付门
 

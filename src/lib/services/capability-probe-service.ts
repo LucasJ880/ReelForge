@@ -22,10 +22,6 @@ import {
 import { parseShuyuCatalog } from "@/lib/providers/shuyu-catalog";
 import { detectShuyuSeedance25 } from "@/lib/providers/shuyu-seedance25-probe";
 import { openAiProbePlan, openAiTokenLimitParam } from "@/lib/ai/providers/openai-provider";
-import { resolveTtsProviderId, type TtsProviderId } from "@/lib/providers/tts/config";
-import { ELEVENLABS_API_BASE, resolveElevenLabsTtsModel } from "@/lib/providers/tts/elevenlabs";
-import { OPENAI_TTS_ENDPOINT, OPENAI_TTS_MODEL } from "@/lib/providers/tts/openai";
-import { resolveTtsVoice } from "@/lib/providers/tts/voices";
 import { classifyHttpStatus, classifyNetworkError, safeNote } from "@/lib/capabilities/classify";
 import {
   isFailingStatus,
@@ -385,12 +381,12 @@ export async function probeShuyuCapabilities(
  *
  * 只做免费或近乎免费的探测（与 scripts/e2e-1025/route-truth-table.ts 同一批端点）：
  *  - text / vision：1 token 的 chat completion（额度用完 429 insufficient_quota → 暂停）
- *  - voice：1 个字符的 TTS，**每 24 小时最多一次**（其余时间沿用上一条；?force=1 可强制）
- *  - moderation：免费端点；图库：一次 1 条结果的搜索；抓取：查剩余额度；抠图：查账户额度
+ *  - moderation：免费端点（配了 OPENAI_API_KEY 就每轮探一次，与内容审核开没开无关）
  *  - image / video：复用上面的 Shuyu /prices 探测 + 余额
  *  - graphics（配图与 Logo）没有便宜的探测：由账户状态推断 + 生产回写
  *  - email：只看配置
  * 任何一项探测失败都只影响它自己那一行，不会抛给调用方。
+ * 配音、图库、链接抓取、抠图四条线路的探测随线路一起删了（2026-11-16）。
  * ════════════════════════════════════════════════════════════════════ */
 
 type EnvLike = NodeJS.ProcessEnv | Record<string, string | undefined>;
@@ -398,9 +394,6 @@ type EnvLike = NodeJS.ProcessEnv | Record<string, string | undefined>;
 const OPENAI_API_BASE = "https://api.openai.com/v1";
 const OPENAI_MODERATION_MODEL = "omni-moderation-latest";
 const PROBE_TIMEOUT_MS = 15_000;
-const HOUR_MS = 60 * 60_000;
-/** TTS 是唯一按次计费的探测：每 24 小时最多一次。 */
-export const TTS_PROBE_INTERVAL_MS = 24 * HOUR_MS;
 const ACCOUNT_LEVEL_REASONS: ReadonlySet<CapabilityReason> = new Set(["quota", "auth"]);
 
 export type CapabilityProbeDeps = {
@@ -413,8 +406,6 @@ export type CapabilityProbeDeps = {
   /** 没传 shuyu 时跑这个（默认真正去探 /prices，并照旧落探测历史）。 */
   probeShuyu?: () => Promise<ProbeResult>;
   getShuyuBalance?: () => Promise<{ available_points: number }>;
-  /** 把 24 小时节流的 TTS 探测也跑一遍：运维补完额度 / 权限后手动触发（cron ?force=1）。 */
-  force?: boolean;
   /** 覆盖探测用的模型（测试用）；默认与生产调用同一套解析。 */
   models?: { text?: string[]; vision?: string };
   timeoutMs?: number;
@@ -425,7 +416,7 @@ export type CapabilityProbeReportItem = {
   status: CapabilityStatus;
   reason: CapabilityReason;
   source: CapabilitySource;
-  /** 这一轮没发请求、沿用上一条（例如 TTS 24 小时节流） */
+  /** 这一轮没发请求、沿用上一条（例如邮件：配了之后的真实状态由发信回写维护） */
   kept?: boolean;
   httpStatus?: number;
 };
@@ -445,23 +436,12 @@ type HttpOutcome =
   | { ok: true; status: number; body: string }
   | { ok: false; error: unknown };
 
-async function httpProbe(
-  ctx: ProbeContext,
-  url: string,
-  init: RequestInit,
-  options: { binary?: boolean } = {},
-): Promise<HttpOutcome> {
+async function httpProbe(ctx: ProbeContext, url: string, init: RequestInit): Promise<HttpOutcome> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ctx.timeoutMs);
   try {
     const response = await ctx.fetchImpl(url, { ...init, signal: controller.signal, cache: "no-store" });
-    let body = "";
-    if (options.binary && response.ok) {
-      /// 音频直接读完丢掉：只要状态码，不留内容。
-      await response.arrayBuffer().catch(() => null);
-    } else {
-      body = (await response.text().catch(() => "")).slice(0, 4_000);
-    }
+    const body = (await response.text().catch(() => "")).slice(0, 4_000);
     return { ok: true, status: response.status, body };
   } catch (error) {
     return { ok: false, error };
@@ -552,49 +532,6 @@ export async function probeOpenAiChat(ctx: ProbeContext, models: string[]): Prom
   return last ?? { status: "degraded", reason: "unknown", detail: { provider: "openai", note: "no model candidates" } };
 }
 
-/** 1 个字符的 TTS（与 providers/tts/openai 的生产合成同一个模型与端点）。 */
-export async function probeOpenAiTts(ctx: ProbeContext): Promise<CapabilityObservation> {
-  const key = envValue(ctx, "OPENAI_API_KEY");
-  if (!key) return notConfigured();
-  const outcome = await httpProbe(
-    ctx,
-    OPENAI_TTS_ENDPOINT,
-    {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: OPENAI_TTS_MODEL,
-        voice: resolveTtsVoice("openai", null),
-        input: "a",
-        response_format: "mp3",
-      }),
-    },
-    { binary: true },
-  );
-  return fromHttp(outcome, { provider: "openai", model: OPENAI_TTS_MODEL });
-}
-
-/** ElevenLabs：GET /v1/user 只校验 key 与订阅（不耗字符额度）；401 → auth，与生产合成同一把 key。 */
-export async function probeElevenLabsTts(ctx: ProbeContext): Promise<CapabilityObservation> {
-  const key = envValue(ctx, "ELEVENLABS_API_KEY");
-  if (!key) return notConfigured();
-  const outcome = await httpProbe(ctx, `${ELEVENLABS_API_BASE}/v1/user`, {
-    method: "GET",
-    headers: { "xi-api-key": key },
-  });
-  return fromHttp(outcome, { provider: "elevenlabs", model: resolveElevenLabsTtsModel(ctx.env) });
-}
-
-const TTS_PROBES: Record<TtsProviderId, (ctx: ProbeContext) => Promise<CapabilityObservation>> = {
-  openai: probeOpenAiTts,
-  elevenlabs: probeElevenLabsTts,
-};
-
-/** 探当前 TTS_PROVIDER 选中的那一家：探测与生产必须是同一个供应商。 */
-export function probeTts(ctx: ProbeContext): Promise<CapabilityObservation> {
-  return TTS_PROBES[resolveTtsProviderId(ctx.env)](ctx);
-}
-
 export async function probeOpenAiModeration(ctx: ProbeContext): Promise<CapabilityObservation> {
   const key = envValue(ctx, "OPENAI_API_KEY");
   if (!key) return notConfigured();
@@ -604,85 +541,6 @@ export async function probeOpenAiModeration(ctx: ProbeContext): Promise<Capabili
     body: JSON.stringify({ model: OPENAI_MODERATION_MODEL, input: "ok" }),
   });
   return fromHttp(outcome, { provider: "openai", model: OPENAI_MODERATION_MODEL });
-}
-
-function firstListValue(raw: string | undefined): string | undefined {
-  return raw?.split(",").map((part) => part.trim()).find(Boolean);
-}
-
-/** 图库：Pexels 优先（一次 1 条结果的搜索，免费）；只配了 Pixabay 就探 Pixabay。 */
-export async function probeStockFootage(ctx: ProbeContext): Promise<CapabilityObservation> {
-  const pexels = firstListValue(ctx.env.PEXELS_API_KEYS);
-  if (pexels) {
-    const outcome = await httpProbe(ctx, "https://api.pexels.com/videos/search?query=nature&per_page=1", {
-      method: "GET",
-      headers: { Authorization: pexels },
-    });
-    return fromHttp(outcome, { provider: "pexels" });
-  }
-  const pixabay = firstListValue(ctx.env.PIXABAY_API_KEYS);
-  if (pixabay) {
-    const url = new URL("https://pixabay.com/api/videos/");
-    url.searchParams.set("key", pixabay);
-    url.searchParams.set("q", "nature");
-    url.searchParams.set("per_page", "3");
-    const outcome = await httpProbe(ctx, url.toString(), { method: "GET" });
-    return fromHttp(outcome, { provider: "pixabay" });
-  }
-  return notConfigured();
-}
-
-/** 抓取：查剩余额度（不消耗额度）。额度接口不存在时不拦客户——Firecrawl 只是直抓的兜底层。 */
-export async function probeFirecrawl(ctx: ProbeContext): Promise<CapabilityObservation> {
-  const key = envValue(ctx, "FIRECRAWL_API_KEY");
-  if (!key) return notConfigured();
-  const outcome = await httpProbe(ctx, "https://api.firecrawl.dev/v1/team/credit-usage", {
-    method: "GET",
-    headers: { Authorization: `Bearer ${key}` },
-  });
-  const detail: CapabilityDetail = { provider: "firecrawl" };
-  if (outcome.ok && outcome.status === 404) {
-    return withDetail(uncheckedAvailable("credit endpoint 404"), detail);
-  }
-  if (outcome.ok && outcome.status === 200) {
-    try {
-      const remaining = (JSON.parse(outcome.body) as { data?: { remaining_credits?: unknown } }).data?.remaining_credits;
-      if (typeof remaining === "number" && remaining <= 0) {
-        return { status: "unavailable", reason: "quota", detail: { ...detail, httpStatus: 200, note: "remaining_credits=0" } };
-      }
-    } catch {
-      /* 200 但解析不了：按正常处理 */
-    }
-  }
-  return fromHttp(outcome, detail);
-}
-
-/** 抠图：remove.bg 账户接口（免费）。只配了 Clipdrop 时没有免费探测，只看配置。 */
-export async function probeCutout(ctx: ProbeContext): Promise<CapabilityObservation> {
-  const key = envValue(ctx, "REMOVE_BG_API_KEY");
-  if (!key) {
-    return envValue(ctx, "CLIPDROP_API_KEY") ? withDetail(uncheckedAvailable(), { provider: "clipdrop" }) : notConfigured();
-  }
-  const outcome = await httpProbe(ctx, "https://api.remove.bg/v1.0/account", {
-    method: "GET",
-    headers: { "X-Api-Key": key },
-  });
-  const detail: CapabilityDetail = { provider: "remove_bg" };
-  if (outcome.ok && outcome.status === 200) {
-    try {
-      const attributes = (JSON.parse(outcome.body) as {
-        data?: { attributes?: { credits?: { total?: unknown }; api?: { free_calls?: unknown } } };
-      }).data?.attributes;
-      const credits = attributes?.credits?.total;
-      const freeCalls = attributes?.api?.free_calls;
-      if (typeof credits === "number" && credits <= 0 && typeof freeCalls === "number" && freeCalls <= 0) {
-        return { status: "unavailable", reason: "quota", detail: { ...detail, httpStatus: 200, note: "no credits" } };
-      }
-    } catch {
-      /* 200 但解析不了：按正常处理 */
-    }
-  }
-  return fromHttp(outcome, detail);
 }
 
 function shuyuErrorObservation(code: string | null, httpStatus: number | null): CapabilityObservation {
@@ -760,32 +618,6 @@ export function shuyuCapabilityObservations(
     image = { status: "unavailable", reason: "quota", detail: { ...base, note: `balance ${points} < ${imageCost}` } };
   }
   return { image, video };
-}
-
-/**
- * voice 这一轮要不要真的发 TTS：
- *  - 从没探过 / 强制 → 探
- *  - 距上一次真实证据（TTS 探测或生产里的 TTS 调用）满 24 小时 → 探
- *  - 上一条失败是账户层（额度 / key）而账户这一轮已恢复 → 补探一次（至多每小时一次），
- *    否则账户恢复后它会一直挂着一条过期的「额度用完」
- */
-export function shouldProbeTts(args: {
-  prev: CapabilityRecord | undefined;
-  account: CapabilityObservation | null;
-  now: Date;
-  force: boolean;
-}): boolean {
-  const { prev, account, now, force } = args;
-  if (force || !prev || prev.status === "not_configured") return true;
-  const probedAt = prev.detail?.ttsProbedAt ? Date.parse(prev.detail.ttsProbedAt) || 0 : 0;
-  const runtimeAt = prev.source === "runtime" ? Date.parse(prev.checkedAt) || 0 : 0;
-  if (now.getTime() - Math.max(probedAt, runtimeAt) >= TTS_PROBE_INTERVAL_MS) return true;
-  return (
-    prev.status === "unavailable" &&
-    ACCOUNT_LEVEL_REASONS.has(prev.reason) &&
-    account?.status === "available" &&
-    now.getTime() - probedAt >= HOUR_MS
-  );
 }
 
 type Planned =
@@ -870,12 +702,9 @@ export async function runCapabilityProbeCycle(deps: CapabilityProbeDeps = {}): P
   };
 
   const textModels = deps.models?.text ?? textProbeModels();
-  const [text, moderation, stock, scrape, cutout, shuyu] = await Promise.all([
+  const [text, moderation, shuyu] = await Promise.all([
     openAiChat ? safely(() => probeOpenAiChat(ctx, textModels)) : Promise.resolve(null),
     configured.moderation ? safely(() => probeOpenAiModeration(ctx)) : Promise.resolve(notConfigured()),
-    configured.stock ? safely(() => probeStockFootage(ctx)) : Promise.resolve(notConfigured()),
-    configured.scrape ? safely(() => probeFirecrawl(ctx)) : Promise.resolve(notConfigured()),
-    configured.cutout ? safely(() => probeCutout(ctx)) : Promise.resolve(notConfigured()),
     probeShuyuLines(ctx, deps),
   ]);
 
@@ -903,14 +732,6 @@ export async function runCapabilityProbeCycle(deps: CapabilityProbeDeps = {}): P
     else add("vision", await safely(() => probeOpenAiChat(ctx, visionModels)));
   }
 
-  // voice：每 24 小时最多一次真实 TTS；只有 OpenAI 配音才跟着 OpenAI 账户恢复补探
-  const ttsAccount = resolveTtsProviderId(ctx.env) === "openai" ? text : null;
-  if (!configured.voice) add("voice", notConfigured(), "config");
-  else if (shouldProbeTts({ prev: previous.get("voice"), account: ttsAccount, now, force: deps.force ?? false })) {
-    const observation = await safely(() => probeTts(ctx));
-    add("voice", withDetail(observation, { ttsProbedAt: now.toISOString() }));
-  } else keep("voice");
-
   // graphics：没有便宜的探测——账户恢复时把「因账户而停」的旧结论翻回来，其余交给生产回写
   const graphicsPrev = previous.get("graphics");
   if (!configured.graphics) add("graphics", notConfigured(), "config");
@@ -925,9 +746,6 @@ export async function runCapabilityProbeCycle(deps: CapabilityProbeDeps = {}): P
   } else keep("graphics");
 
   add("moderation", moderation, configured.moderation ? "probe" : "config");
-  add("stock", stock, configured.stock ? "probe" : "config");
-  add("scrape", scrape, configured.scrape ? "probe" : "config");
-  add("cutout", cutout, configured.cutout ? "probe" : "config");
   add("image", configured.image ? shuyu.image : notConfigured(), configured.image ? "probe" : "config");
   add("video", configured.video ? shuyu.video : notConfigured(), configured.video ? "probe" : "config");
 

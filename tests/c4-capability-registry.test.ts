@@ -10,6 +10,7 @@ import {
   FEATURE_KEYS,
   featureGate,
   featuresForCapability,
+  isCapabilityKey,
   nextCapabilityRecord,
   resolveCapabilities,
   type CapabilityKey,
@@ -113,7 +114,6 @@ test("C4 客户端组件不（直接或传递地）引服务端模块：OpenAI /
     "src/components/capabilities/use-capabilities.ts",
     "src/components/capabilities/capability-notice.tsx",
     "src/components/capabilities/capability-board.tsx",
-    "src/components/video-generation/broll-quick-card.tsx",
     "src/components/video-generation/audio-caption-controls.tsx",
     "src/components/platform/platform-shell.tsx",
   ];
@@ -148,11 +148,11 @@ test("没有任何 'use client' 文件传递地引到能力状态 / 探测 servi
 
 /* ── 能力与文案 ─────────────────────────────────────────────────────── */
 
-test("能力键齐全：文本 / 看图 / 产品图 / 配图 / 视频 / 配音 / 审核 / 图库 / 抓取 / 抠图 / 邮件", () => {
-  assert.deepEqual(
-    [...CAPABILITY_KEYS],
-    ["text", "vision", "image", "graphics", "video", "voice", "moderation", "stock", "scrape", "cutout", "email"],
-  );
+test("能力键齐全：文本 / 看图 / 产品图 / 配图 / 视频 / 审核 / 邮件（配音、图库、抓取、抠图 2026-11-16 随线路删除）", () => {
+  assert.deepEqual([...CAPABILITY_KEYS], ["text", "vision", "image", "graphics", "video", "moderation", "email"]);
+  for (const gone of ["voice", "stock", "scrape", "cutout"]) {
+    assert.equal(isCapabilityKey(gone), false, `${gone} 不再是能力键：库里的旧行读的时候被过滤掉`);
+  }
   assert.deepEqual([...CAPABILITY_STATUSES], ["available", "degraded", "unavailable", "not_configured"]);
 });
 
@@ -180,11 +180,17 @@ test("写作暂停：照抄验收口径——脚本与周计划先用模板生�
   assert.equal(CAPABILITY_COPY.text.messages.unavailable["zh-CN"], "AI 写作暂停：脚本与周计划先用模板生成，恢复后自动启用。");
   assert.match(CAPABILITY_COPY.text.messages.unavailable["en-US"], /templates/);
   // 暂停文案都要说「恢复后」怎么办或改用什么，不能只说「不可用」
-  for (const key of ["text", "vision", "image", "graphics", "video", "voice"] as const) {
+  for (const key of ["text", "vision", "image", "graphics", "video"] as const) {
     assert.match(CAPABILITY_COPY[key].messages.unavailable["zh-CN"], /恢复后|照常|保留|不受影响/, key);
   }
-  // 配音暂停只停实拍线路：主线视频的原生口播不受影响
-  assert.match(CAPABILITY_COPY.voice.messages.unavailable["zh-CN"], /原生口播不受影响/);
+  // 文案不再提已经删掉的线路（实拍图库 / 配音 / 链接抓取 / 抠图）
+  for (const key of CAPABILITY_KEYS) {
+    for (const status of CAPABILITY_STATUSES) {
+      const message = CAPABILITY_COPY[key].messages[status];
+      assert.doesNotMatch(message["zh-CN"], /实拍|图库|配音|抓取|抠图/, `${key}.${status}`);
+      assert.doesNotMatch(message["en-US"], /stock|voiceover|link import|cutout/i, `${key}.${status}`);
+    }
+  }
   // 画面质检暂停：成片照常生成
   assert.match(CAPABILITY_COPY.vision.messages.unavailable["zh-CN"], /成片照常生成/);
 });
@@ -227,8 +233,13 @@ test("P03-K：视频「不稳定」不承诺备用线路（生产没有可切的
   }
 });
 
-test("功能依赖写在一处：实拍线路 = 写作 + 配音 + 图库；周计划 / 口播稿 = 写作；图文配图 = Shuyu 图像、Logo = OpenAI 图像；画面质检 = 看图", () => {
-  assert.deepEqual([...FEATURES.broll.needs], ["text", "voice", "stock"]);
+test("功能依赖写在一处：周计划 / 口播稿 = 写作；图文配图 = Shuyu 图像、Logo = OpenAI 图像；画面质检 = 看图；已删线路的功能不在表里", () => {
+  for (const gone of ["broll", "linkImport", "productCutout"]) {
+    assert.equal((FEATURE_KEYS as readonly string[]).includes(gone), false, gone);
+  }
+  for (const feature of FEATURE_KEYS) {
+    for (const need of FEATURES[feature].needs) assert.ok(isCapabilityKey(need), `${feature} 依赖的 ${need} 必须是现存的能力键`);
+  }
   assert.deepEqual([...FEATURES.contentPlanWriting.needs], ["text"]);
   assert.deepEqual([...FEATURES.narrationDraft.needs], ["text"]);
   assert.deepEqual([...FEATURES.scriptWriting.needs], ["text"]);
@@ -247,7 +258,7 @@ test("功能依赖写在一处：实拍线路 = 写作 + 配音 + 图库；周�
     assert.doesNotMatch(FEATURES[feature].whenBlocked["en-US"], CJK, feature);
     assert.match(FEATURES[feature].whenBlocked["zh-CN"], CJK, feature);
   }
-  assert.deepEqual(featuresForCapability("voice"), ["broll"]);
+  assert.deepEqual(featuresForCapability("moderation"), ["uploadReview"]);
   assert.deepEqual(featuresForCapability("graphics"), ["logo"]);
   assert.ok(featuresForCapability("image").includes("imagePosts"));
 });
@@ -265,31 +276,31 @@ test("状态词典有 capability 一行：记号与颜色成对（暂停 = 失�
 
 /* ── 状态推进 ───────────────────────────────────────────────────────── */
 
-test("failingSince：进入异常记当刻、持续异常保留最早那刻、恢复清空；TTS 探测时刻跨观测保留", () => {
+test("failingSince：进入异常记当刻、持续异常保留最早那刻、恢复清空；细节只留这一次观测的", () => {
   const t0 = new Date("2026-10-25T10:00:00.000Z");
   const t1 = new Date("2026-10-25T11:00:00.000Z");
   const t2 = new Date("2026-10-25T12:00:00.000Z");
   const first = nextCapabilityRecord(
-    record("voice", { detail: { ttsProbedAt: "2026-10-25T09:00:00.000Z" } }),
-    "voice",
+    record("vision", { detail: { model: "old-model" } }),
+    "vision",
     { status: "unavailable", reason: "permission", detail: { httpStatus: 403 } },
     t0,
     "probe",
   );
   assert.equal(first.failingSince, t0.toISOString());
-  assert.equal(first.detail?.ttsProbedAt, "2026-10-25T09:00:00.000Z");
   assert.equal(first.detail?.httpStatus, 403);
+  assert.equal(first.detail?.model, undefined, "上一条观测的细节不带到下一条");
 
-  const second = nextCapabilityRecord(first, "voice", { status: "degraded", reason: "upstream" }, t1, "runtime");
+  const second = nextCapabilityRecord(first, "vision", { status: "degraded", reason: "upstream" }, t1, "runtime");
   assert.equal(second.failingSince, t0.toISOString(), "不稳定 ↔ 暂停之间不重置起点");
   assert.equal(second.source, "runtime");
-  assert.equal(second.detail?.ttsProbedAt, "2026-10-25T09:00:00.000Z");
+  assert.equal(second.detail, undefined);
 
-  const recovered = nextCapabilityRecord(second, "voice", { status: "available", reason: "ok" }, t2, "runtime");
+  const recovered = nextCapabilityRecord(second, "vision", { status: "available", reason: "ok" }, t2, "runtime");
   assert.equal(recovered.failingSince, null);
   assert.equal(recovered.checkedAt, t2.toISOString());
 
-  const notConfigured = nextCapabilityRecord(first, "voice", { status: "not_configured", reason: "not_configured" }, t2, "config");
+  const notConfigured = nextCapabilityRecord(first, "vision", { status: "not_configured", reason: "not_configured" }, t2, "config");
   assert.equal(notConfigured.failingSince, null, "未开通是配置，不是故障");
 });
 
@@ -297,23 +308,34 @@ test("failingSince：进入异常记当刻、持续异常保留最早那刻、�
 
 test("视图：配置以运行时为准（撤掉 key 即未开通）；从没检测过 = 正常但标「未检测」", () => {
   const view = resolveCapabilities({
-    records: [record("stock", { status: "available" })],
-    configured: { ...ALL_CONFIGURED, stock: false, email: false },
+    records: [record("moderation", { status: "available" })],
+    configured: { ...ALL_CONFIGURED, moderation: false, email: false },
     now: NOW,
   });
-  const stock = view.items.find((item) => item.key === "stock")!;
-  assert.equal(stock.status, "not_configured");
-  const scrape = view.items.find((item) => item.key === "scrape")!;
-  assert.equal(scrape.status, "available");
-  assert.equal(scrape.reason, "unchecked");
-  assert.equal(scrape.checkedAt, null);
+  const moderation = view.items.find((item) => item.key === "moderation")!;
+  assert.equal(moderation.status, "not_configured");
+  const image = view.items.find((item) => item.key === "image")!;
+  assert.equal(image.status, "available");
+  assert.equal(image.reason, "unchecked");
+  assert.equal(image.checkedAt, null);
   assert.equal(view.counts.not_configured, 2);
   assert.equal(view.paused, false);
   assert.equal(view.items.length, CAPABILITY_KEYS.length);
   assert.ok(view.items.every((item) => item.message["zh-CN"] === CAPABILITY_COPY[item.key].messages[item.status]["zh-CN"]));
 });
 
-test("视图：OpenAI 账户没额度（文本 quota 且更新）→ 看图 / 配图 / 配音一起显示暂停；审核端点免费不受影响", () => {
+test("视图：库里已删线路的旧行（voice / stock / scrape / cutout）不进视图、不计数、不点亮暂停", () => {
+  const stale = (["voice", "stock", "scrape", "cutout"] as const).map(
+    (key) => ({ ...record("text", { status: "unavailable", reason: "permission" }), key }) as unknown as CapabilityRecord,
+  );
+  const view = resolveCapabilities({ records: stale, configured: ALL_CONFIGURED, now: NOW });
+  assert.deepEqual(view.items.map((item) => item.key), [...CAPABILITY_KEYS]);
+  assert.equal(view.paused, false);
+  assert.equal(view.counts.unavailable, 0);
+  assert.equal(view.counts.available, CAPABILITY_KEYS.length);
+});
+
+test("视图：OpenAI 账户没额度（文本 quota 且更新）→ 看图 / 配图一起显示暂停；审核端点免费不受影响", () => {
   const view = resolveCapabilities({
     records: [
       record("text", {
@@ -322,40 +344,40 @@ test("视图：OpenAI 账户没额度（文本 quota 且更新）→ 看图 / �
         checkedAt: NOW.toISOString(),
         failingSince: new Date(NOW.getTime() - 60 * MINUTE).toISOString(),
       }),
-      record("voice", { status: "available", checkedAt: new Date(NOW.getTime() - 30 * MINUTE).toISOString() }),
+      record("graphics", { status: "available", checkedAt: new Date(NOW.getTime() - 30 * MINUTE).toISOString() }),
       record("moderation", { status: "available" }),
     ],
     configured: ALL_CONFIGURED,
     now: NOW,
   });
   const byKey = new Map(view.items.map((item) => [item.key, item]));
-  for (const key of ["vision", "graphics", "voice"] as const) {
+  for (const key of ["vision", "graphics"] as const) {
     assert.equal(byKey.get(key)?.status, "unavailable", key);
     assert.equal(byKey.get(key)?.reason, "quota", key);
     assert.equal(byKey.get(key)?.failingSince, new Date(NOW.getTime() - 60 * MINUTE).toISOString(), key);
   }
   assert.equal(byKey.get("moderation")?.status, "available");
   assert.equal(view.paused, true);
-  assert.equal(view.counts.unavailable, 4);
+  assert.equal(view.counts.unavailable, 3);
 });
 
-test("视图：账户失败之后才来的直接证据（生产里配音成功）以新证据为准", () => {
+test("视图：账户失败之后才来的直接证据（生产里出图成功）以新证据为准", () => {
   const view = resolveCapabilities({
     records: [
       record("text", { status: "unavailable", reason: "quota", checkedAt: new Date(NOW.getTime() - 30 * MINUTE).toISOString() }),
-      record("voice", { status: "available", source: "runtime", checkedAt: new Date(NOW.getTime() - 5 * MINUTE).toISOString() }),
+      record("graphics", { status: "available", source: "runtime", checkedAt: new Date(NOW.getTime() - 5 * MINUTE).toISOString() }),
     ],
     configured: ALL_CONFIGURED,
     now: NOW,
   });
-  assert.equal(view.items.find((item) => item.key === "voice")?.status, "available");
+  assert.equal(view.items.find((item) => item.key === "graphics")?.status, "available");
   // 文本自己的 403（某个模型没权限）不是账户层问题，不连坐
   const permissionOnly = resolveCapabilities({
     records: [record("text", { status: "unavailable", reason: "permission", checkedAt: NOW.toISOString() })],
     configured: ALL_CONFIGURED,
     now: NOW,
   });
-  assert.equal(permissionOnly.items.find((item) => item.key === "voice")?.status, "available");
+  assert.equal(permissionOnly.items.find((item) => item.key === "graphics")?.status, "available");
 });
 
 test("视图：只有不稳定没有暂停 → unstable；lastCheckedAt 取最近一次检测", () => {
@@ -373,30 +395,24 @@ test("视图：只有不稳定没有暂停 → unstable；lastCheckedAt 取最�
 /* ── 功能闸门 ───────────────────────────────────────────────────────── */
 
 test("闸门：没有能力视图一律放行（我们自己的状态表故障不能拦客户）", () => {
-  const gate = featureGate(null, "broll");
+  const gate = featureGate(null, "scriptWriting");
   assert.equal(gate.status, "available");
   assert.equal(gate.message, null);
 });
 
-test("闸门：实拍线路任一依赖暂停即被挡，原因写清楚是哪几项、改用什么", () => {
+test("闸门：依赖暂停即被挡，原因写清楚是哪一项、改用什么", () => {
   const view = resolveCapabilities({
-    records: [
-      record("text", { status: "unavailable", reason: "quota", checkedAt: NOW.toISOString() }),
-      record("voice", { status: "unavailable", reason: "permission", checkedAt: NOW.toISOString() }),
-    ],
+    records: [record("text", { status: "unavailable", reason: "quota", checkedAt: NOW.toISOString() })],
     configured: ALL_CONFIGURED,
     now: NOW,
   });
-  const gate = featureGate(view, "broll");
+  const gate = featureGate(view, "scriptWriting");
   assert.equal(gate.status, "blocked");
-  assert.deepEqual(gate.blockedBy, ["text", "voice"]);
-  assert.equal(
-    gate.message?.["zh-CN"],
-    "实拍图库线路暂停：AI 写作、AI 配音暂不可用。可以先用上方主线生成视频，恢复后这里自动开放。",
-  );
+  assert.deepEqual(gate.blockedBy, ["text"]);
+  assert.equal(gate.message?.["zh-CN"], "脚本与镜头规划暂停：AI 写作暂不可用。脚本与镜头先按模板规划，成片照常生成。");
   assert.equal(
     gate.message?.["en-US"],
-    "Stock footage route paused (unavailable: AI writing, AI voiceover). Use the main flow above for now; this route reopens automatically once it recovers.",
+    "Script and shot planning paused (unavailable: AI writing). Scripts and shots are planned from templates for now; videos still render.",
   );
   assert.equal(featureGate(view, "productImages").status, "available", "产品图走另一家供应商，不受影响");
 });
@@ -404,13 +420,16 @@ test("闸门：实拍线路任一依赖暂停即被挡，原因写清楚是哪�
 test("闸门：未开通与暂停分开说；不稳定只提示可能变慢、不挡", () => {
   const view = resolveCapabilities({
     records: [record("text", { status: "unavailable", reason: "quota", checkedAt: NOW.toISOString() })],
-    configured: { ...ALL_CONFIGURED, stock: false },
+    configured: { ...ALL_CONFIGURED, email: false },
     now: NOW,
   });
-  const gate = featureGate(view, "broll");
-  // 文本是账户层额度问题 → 配音一起停（同一个计费账户）；图库是没配 key
-  assert.match(gate.message?.["zh-CN"] ?? "", /AI 写作、AI 配音暂不可用；图库素材尚未开通/);
-  assert.match(gate.message?.["en-US"] ?? "", /\(unavailable: AI writing, AI voiceover; not set up: Stock footage\)/);
+  // 暂停说「暂不可用」，没配 key 说「尚未开通」
+  assert.match(featureGate(view, "narrationDraft").message?.["zh-CN"] ?? "", /AI 写作暂不可用/);
+  assert.match(featureGate(view, "narrationDraft").message?.["en-US"] ?? "", /\(unavailable: AI writing\)/);
+  const email = featureGate(view, "leadEmail");
+  assert.equal(email.status, "blocked");
+  assert.match(email.message?.["zh-CN"] ?? "", /邮件通知尚未开通/);
+  assert.match(email.message?.["en-US"] ?? "", /\(not set up: Email alerts\)/);
 
   const unstable = resolveCapabilities({
     records: [record("vision", { status: "degraded", reason: "upstream" })],

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T00:27:58.137Z",
+  "generatedAt": "2026-11-17T00:44:25.763Z",
   "package": {
     "name": "aivora",
     "version": "0.2.0"
@@ -36,32 +36,32 @@
     "bcryptjs (^3.0.3)"
   ],
   "fileTotals": {
-    "total": 1934,
+    "total": 1877,
     "byType": {
       "unknown": 418,
       "doc": 430,
       "style": 9,
       "workflow": 4,
       "config": 9,
-      "schema": 64,
+      "schema": 62,
       "prisma": 1,
       "script": 33,
       "page": 67,
       "layout": 5,
-      "api": 93,
-      "component": 121,
+      "api": 81,
+      "component": 118,
       "i18n": 17,
-      "util": 184,
-      "provider": 21,
-      "service": 86,
+      "util": 179,
+      "provider": 11,
+      "service": 74,
       "type": 2,
-      "test": 370
+      "test": 357
     },
     "byArea": {
-      "unknown": 856,
-      "media-processing": 77,
+      "unknown": 847,
+      "media-processing": 70,
       "config": 11,
-      "shared": 326,
+      "shared": 312,
       "prisma": 59,
       "auth": 25,
       "payments": 1,
@@ -71,27 +71,27 @@
       "admin": 5,
       "marketing-site": 5,
       "real-footage-ads": 1,
-      "publishing": 3,
       "metrics": 2,
       "blob-storage": 8,
-      "video-generation": 87,
+      "video-generation": 85,
       "shared-ui": 15,
       "wizard": 1,
       "i18n": 17,
       "demo": 1,
-      "ai-providers": 21,
-      "tests": 370
+      "ai-providers": 11,
+      "publishing": 1,
+      "tests": 357
     }
   },
   "routes": {
-    "total": 166,
+    "total": 154,
     "byKind": {
       "error": 18,
       "layout": 5,
       "loading": 17,
       "not-found": 2,
       "page": 30,
-      "api": 94
+      "api": 82
     }
   },
   "importantFiles": [

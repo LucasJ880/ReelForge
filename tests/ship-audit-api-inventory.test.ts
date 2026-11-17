@@ -21,8 +21,11 @@ test("API inventory accounts for every route file", () => {
 
   /// 2026-11-16 瘦身第 3 批之一：删了 /api/webhooks/stripe 与 /api/cron/founder-digest，95 → 93。
   /// qa/SHIP_AUDIT.md 这一批按约定没动：标题仍写 95/95、表里还留着那两行，等清单更新时
-  /// 把下面的标题断言一起改成 93/93。
-  assert.equal(routeFiles.length, 93);
+  /// 把下面的标题断言一起改成实际数。
+  /// 2026-11-16 瘦身第 2 批又删 12 个：/api/broll/{dispatch,cancel}、/api/product-link、
+  /// /api/product-anchors 与 /api/product-anchors/[id]/retry、/api/publish 与 /api/publish/[id]、
+  /// /api/briefs/[id]/{ad-plan,qa,render,scenes,script}，93 → 81。清单文档同样没动（表里那 12 行还在）。
+  assert.equal(routeFiles.length, 81);
   assert.equal(new Set(endpoints).size, routeFiles.length);
   for (const endpoint of endpoints) {
     assert.ok(

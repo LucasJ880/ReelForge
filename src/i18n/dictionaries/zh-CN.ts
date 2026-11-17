@@ -52,9 +52,6 @@ export const zhCN: Dictionary = {
     classicWizard: "向导（旧）",
     contentReports: "内容举报",
     internalOps: "内部运营",
-    legacySection: "旧版入口",
-    legacyProjects: "项目（旧版）",
-    legacyVideos: "视频库（旧版）",
   },
   role: {
     superAdmin: "超级管理员",

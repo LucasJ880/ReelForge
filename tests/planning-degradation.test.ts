@@ -246,8 +246,6 @@ const LLM_ENV: Record<string, string | undefined> = {
   STORYBOARD_SHOT_CARDS: undefined,
   /// 缺省 = 出方案精简（planning-mode.ts）：一致性设定与段提示词不调模型
   PLANNING_FULL_LLM: undefined,
-  /// 缺省 = 建故事板分开两次调用（storyboard-direction.ts 的合并调用缺省关）
-  STORYBOARD_DIRECTION: undefined,
 };
 
 /// 退回开关打开：四步都调模型的旧路径。下面四条「四步」用例守的是这条仍然保留的退路。
@@ -942,7 +940,8 @@ test("关着口播：精简固定写「不要旁白」；旧路径里模型给�
 });
 
 // ---------------------------------------------------------------------------
-// 出方案并成一次（第二步，storyboard-direction.ts）：建故事板一次看图调用，派发视频不再重新看图
+// 建故事板：镜头卡与英译各一次调用。「并成一次看图调用」（storyboard-direction.ts）2026-11-16 删除；
+// 开关开着那几天存下的视觉盘点还在旧故事板上，派发视频时照旧读回、不重新看图（最后一条）
 // ---------------------------------------------------------------------------
 
 const DIRECTION_REFERENCE = {
@@ -964,96 +963,45 @@ function withProductPhotos(t: TestContext) {
   });
 }
 
-test("建故事板（有商品图）：一次看图调用同时出镜头卡、英译与盘点；盘点随 run 落库", async (t) => {
-  useEnv(t, { ...LLM_ENV, STORYBOARD_DIRECTION: "on" });
+/// 有商品图的单条故事板：镜头卡与英译各一次纯文字调用，不看图、不存盘点
+async function assertTwoTextCalls(t: TestContext, idempotencyKey: string) {
   withProductPhotos(t);
   const systems: string[] = [];
+  const sawImage: boolean[] = [];
   mock.method(openai.chat.completions, "create", (async (params: CreateParams) => {
-    systems.push(String(params.messages[0]?.content ?? ""));
-    return ok({
-      shots: [CARD, CARD, CARD, CARD],
-      english: "A golden retriever runs in with a teal rope toy, plays tug of war, then naps chewing the knot.",
-      reference: DIRECTION_REFERENCE,
-    });
+    const system = String(params.messages[0]?.content ?? "");
+    systems.push(system);
+    sawImage.push(JSON.stringify(params.messages).includes("image_url"));
+    if (system.includes("You translate a small business owner's request")) {
+      return ok({ english: "A golden retriever plays tug of war with a teal rope toy." });
+    }
+    return ok({ shots: [CARD, CARD, CARD, CARD] });
   }) as never);
   t.after(() => mock.restoreAll());
   const created = captureRunCreate(t);
   await assert.rejects(
-    createStoryboardRun({ ...RUN_INPUT, idempotencyKey: "direction-run", sourceAssetIds: ["asset-1", "asset-2"] }),
+    createStoryboardRun({ ...RUN_INPUT, idempotencyKey, sourceAssetIds: ["asset-1", "asset-2"] }),
     /stop after create/,
   );
-  assert.equal(systems.length, 1, "只调一次模型（此前是镜头卡 + 英译两次，且都没看图）");
-  assert.match(systems[0] ?? "", /you can SEE the merchant's real photos/);
+  assert.equal(systems.length, 2, "镜头卡一次 + 英译一次");
+  assert.equal(systems.filter((system) => system.includes("You translate a small business owner's request")).length, 1);
+  assert.ok(systems.every((system) => !/you can SEE the merchant's real (product )?photos/i.test(system)), "没有看图的提示词");
+  assert.deepEqual(sawImage, [false, false], "两次调用都不带图片");
+  assert.equal(Object.hasOwn(created[0], "visualReference"), false, "新建的故事板不再存视觉盘点（派发时现看一遍图）");
   assert.deepEqual(created[0].planningDegradations, []);
-  assert.deepEqual(created[0].visualReference, { ...DIRECTION_REFERENCE, photoCount: 2 });
   const frames = (created[0].frames as { create: Array<{ prompt: string }> }).create;
   assert.ok(frames.every((frame) => frame.prompt.includes("SHOT CARD: ")), "镜头卡进了每一帧");
-  assert.ok(frames.every((frame) => frame.prompt.includes("A golden retriever runs in with a teal rope toy")), "英译进了每一帧");
+  assert.ok(frames.every((frame) => frame.prompt.includes("A golden retriever plays tug of war with a teal rope toy.")), "英译进了每一帧");
+}
+
+test("建故事板（有商品图）：镜头卡与英译各一次纯文字调用，不看图、不存盘点", async (t) => {
+  useEnv(t, { ...LLM_ENV, STORYBOARD_DIRECTION: undefined, STORYBOARD_SHOT_CARDS_VISION: undefined });
+  await assertTwoTextCalls(t, "two-call-run");
 });
 
-test("建故事板：合并调用只给了镜头卡 → 只补跑英译；盘点留空（派发时现看），不记降级", async (t) => {
-  useEnv(t, { ...LLM_ENV, STORYBOARD_DIRECTION: "on" });
-  withProductPhotos(t);
-  mock.method(console, "warn", () => undefined);
-  const systems: string[] = [];
-  mock.method(openai.chat.completions, "create", (async (params: CreateParams) => {
-    const system = String(params.messages[0]?.content ?? "");
-    systems.push(system);
-    if (system.includes("You translate a small business owner's request")) {
-      return ok({ english: "A golden retriever plays tug of war with a teal rope toy." });
-    }
-    return ok({ shots: [CARD, CARD, CARD, CARD] });
-  }) as never);
-  t.after(() => mock.restoreAll());
-  const created = captureRunCreate(t);
-  await assert.rejects(
-    createStoryboardRun({ ...RUN_INPUT, idempotencyKey: "partial-direction-run", sourceAssetIds: ["asset-1", "asset-2"] }),
-    /stop after create/,
-  );
-  assert.equal(systems.length, 2, "合并调用 + 只补英译；镜头卡不重跑");
-  assert.ok(systems[1]?.includes("You translate a small business owner's request"));
-  assert.equal(Object.hasOwn(created[0], "visualReference"), false, "没看出东西就不落库");
-  assert.deepEqual(created[0].planningDegradations, []);
-});
-
-test("建故事板：合并调用整次失败 → 退回原来的两次调用，结果与合并前一样；不设开关（缺省）也走原路径", async (t) => {
-  useEnv(t, { ...LLM_ENV, STORYBOARD_DIRECTION: "on" });
-  withProductPhotos(t);
-  mock.method(console, "warn", () => undefined);
-  let first = true;
-  const systems: string[] = [];
-  mock.method(openai.chat.completions, "create", (async (params: CreateParams) => {
-    const system = String(params.messages[0]?.content ?? "");
-    systems.push(system);
-    if (first) {
-      first = false;
-      throw apiError(500, "500 upstream error");
-    }
-    if (system.includes("You translate a small business owner's request")) {
-      return ok({ english: "A golden retriever plays tug of war with a teal rope toy." });
-    }
-    return ok({ shots: [CARD, CARD, CARD, CARD] });
-  }) as never);
-  t.after(() => mock.restoreAll());
-  const created = captureRunCreate(t);
-  await assert.rejects(
-    createStoryboardRun({ ...RUN_INPUT, idempotencyKey: "failed-direction-run", sourceAssetIds: ["asset-1", "asset-2"] }),
-    /stop after create/,
-  );
-  assert.equal(systems.length, 3, "失败的合并调用 + 原来的镜头卡与英译");
-  assert.deepEqual(created[0].planningDegradations, []);
-  const frames = (created[0].frames as { create: Array<{ prompt: string }> }).create;
-  assert.ok(frames.every((frame) => frame.prompt.includes("SHOT CARD: ")));
-
-  /// 缺省（不设开关）就是分开的两次调用
-  delete process.env.STORYBOARD_DIRECTION;
-  systems.length = 0;
-  await assert.rejects(
-    createStoryboardRun({ ...RUN_INPUT, idempotencyKey: "legacy-run", sourceAssetIds: ["asset-1", "asset-2"] }),
-    /stop after create/,
-  );
-  assert.equal(systems.length, 2);
-  assert.ok(systems.every((system) => !system.includes("you can SEE the merchant's real photos")), "开关关着不走合并调用");
+test("建故事板：旧开关 STORYBOARD_DIRECTION / STORYBOARD_SHOT_CARDS_VISION 设成 on 也不起作用（代码 2026-11-16 删除）", async (t) => {
+  useEnv(t, { ...LLM_ENV, STORYBOARD_DIRECTION: "on", STORYBOARD_SHOT_CARDS_VISION: "on" });
+  await assertTwoTextCalls(t, "two-call-run-flags-on");
 });
 
 test("派发视频：带上故事板存的盘点就不再重新看图，商品描述用存下来的那一句", async (t) => {

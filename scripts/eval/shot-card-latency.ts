@@ -4,34 +4,28 @@
  * 为什么有这个脚本：11-09 把「建故事板一次看图调用」没量过就缺省打开，线上首跑只用上三样里的一样、耗时 59 秒。
  * 之后的做法是：新的模型调用先用评测集的 10 个品类量一遍，再决定开不开、要不要真机实验。
  *
- * 量三种写法（同一批用例、同样的四个节拍）：
- *   text       纯文字写镜头卡（现状）
- *   vision     镜头卡那一次调用带上商品图，用 fast 档看图（STORYBOARD_SHOT_CARDS_VISION=on 的行为）
- *   direction  镜头卡 + 原话英译 + 视觉盘点捆成一次看图调用（STORYBOARD_DIRECTION=on 的行为）
+ * 现在只量线上在用的那一种：text——纯文字写镜头卡。脚本按「写法」组织，新的写法加一个 Mode 就能并排量。
+ * 当初一起量过的另外两种（看着商品图写卡 STORYBOARD_SHOT_CARDS_VISION、镜头卡 + 英译 + 盘点捆成一次看图调用
+ * STORYBOARD_DIRECTION）都判了不值得，代码与开关 2026-11-16 删除；它们的量测结果留在下面备查。
  *
- * 用法（仓库根目录；需要 .env.local 里的 OPENAI_API_KEY，花费是每种写法每个用例一次模型调用）：
- *   npm run eval:shot-cards                      # 三种都量
- *   npm run eval:shot-cards -- --modes text,vision --cases bottle,serum --concurrency 2
+ * 用法（仓库根目录；需要 .env.local 里的 OPENAI_API_KEY，花费是每个用例一次模型调用）：
+ *   npm run eval:shot-cards
+ *   npm run eval:shot-cards -- --cases bottle,serum --concurrency 2
  *
  * 2026-11-10 的一次结果（每种 10 个用例各一次，本机并发 3）：
  *   text      10/10 合格，中位 14.4 秒，P90 31.3 秒
- *   vision    10/10 合格，0 次退回纯文字，中位 16.3 秒，P90 32.2 秒
- *   direction 三样齐全 9/10，中位 46.6 秒，P90 56.7 秒，1 次超过线上 55 秒超时线
+ *   vision    10/10 合格，0 次退回纯文字，中位 16.3 秒，P90 32.2 秒（已删）
+ *   direction 三样齐全 9/10，中位 46.6 秒，P90 56.7 秒，1 次超过线上 55 秒超时线（已删）
  */
-import { analyzeImages, chatJsonByTier } from "../../src/lib/ai";
+import { chatJsonByTier } from "../../src/lib/ai";
 import { designStoryboardShotCards } from "../../src/lib/video-generation/shot-cards";
-import {
-  describeDirectionGaps,
-  designStoryboardDirection,
-  parseStoryboardDirection,
-} from "../../src/lib/video-generation/storyboard-direction";
 import casesFile from "./golden-set.cases.json";
 
-type Mode = "text" | "vision" | "direction";
-const ALL_MODES: Mode[] = ["text", "vision", "direction"];
+type Mode = "text";
+const ALL_MODES: Mode[] = ["text"];
 const BEATS = ["0-4s · 开场钩子", "4-8s · 使用商品", "8-12s · 效果兑现", "12-15s · 收尾定格"];
 /// 与线上一致的超时线，用来数「会撞上超时」的次数；量测本身不按它截断
-const PRODUCTION_TIMEOUT_SEC: Record<Mode, number> = { text: 40, vision: 40, direction: 55 };
+const PRODUCTION_TIMEOUT_SEC: Record<Mode, number> = { text: 40 };
 
 interface GoldenCase {
   id: string;
@@ -72,50 +66,21 @@ function shotInput(item: GoldenCase) {
     productImageCount: item.productImages.length,
     personImageCount: 0,
     voiceoverScript: item.voiceoverScript ?? item.voiceover ?? null,
-    productImageUrls: item.productImages,
   };
 }
 
-async function measure(mode: Mode, item: GoldenCase): Promise<Row> {
+async function measure(_mode: Mode, item: GoldenCase): Promise<Row> {
   const input = shotInput(item);
   const started = Date.now();
   const seconds = () => Math.round((Date.now() - started) / 100) / 10;
-  if (mode === "direction") {
-    let raw: unknown = null;
-    const direction = await designStoryboardDirection(input, {
-      enabled: true,
-      llmAvailable: () => true,
-      timeoutMs: 180_000,
-      analyze: (async (...args: Parameters<typeof analyzeImages>) => {
-        const result = await analyzeImages(...args);
-        raw = result.data;
-        return result;
-      }) as typeof analyzeImages,
-    });
-    const parsed = direction ?? parseStoryboardDirection(raw, { story: input.story, beatCount: BEATS.length, photoCount: Math.min(8, item.productImages.length) });
-    const complete = Boolean(parsed.cards && parsed.storyEnglish && parsed.visualReference);
-    return {
-      id: item.id,
-      sec: seconds(),
-      ok: complete,
-      note: complete ? "" : direction ? JSON.stringify(describeDirectionGaps(raw, direction)) : "调用失败或超时",
-    };
-  }
-  let usedText = false;
   const cards = await designStoryboardShotCards(input, {
     enabled: true,
     llmAvailable: () => true,
-    vision: mode === "vision",
     timeoutMs: 180_000,
-    visionTimeoutMs: 180_000,
-    chat: (async (...args: Parameters<typeof chatJsonByTier>) => {
-      usedText = true;
-      return chatJsonByTier(...args);
-    }) as typeof chatJsonByTier,
+    chat: chatJsonByTier,
   });
-  const fellBack = mode === "vision" && usedText;
   const sample = cards?.[0] ? `${cards[0].startState} | ${cards[0].action}` : "";
-  return { id: item.id, sec: seconds(), ok: Boolean(cards) && !fellBack, note: fellBack ? "看图没用上，退回了纯文字" : sample.slice(0, 140) };
+  return { id: item.id, sec: seconds(), ok: Boolean(cards), note: sample.slice(0, 140) };
 }
 
 async function main() {

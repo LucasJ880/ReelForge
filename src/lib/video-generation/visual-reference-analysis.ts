@@ -45,7 +45,7 @@ export interface VisualReferenceAnalysis {
   photoCount: number;
 }
 
-/// 视觉盘点的字段说明（analyzeVisualReferences 与 storyboard-direction 的合并调用共用同一份措辞）
+/// 视觉盘点的字段说明
 export const VISUAL_REFERENCE_JSON_SPEC = `{
   "isRealLocation": true/false — true if the photos show a real place (storefront, shop interior, restaurant, venue...),
   "locationDescription": "if isRealLocation: one dense English paragraph (50-90 words) describing the place exactly as photographed: storefront facade (materials, colors, sign), interior layout, furniture with materials and colors, flooring, lighting fixtures, decor. Be faithful — never invent items not visible. null if not a location",
@@ -69,7 +69,7 @@ RULES:
 
 /**
  * 模型返回的视觉盘点 → VisualReferenceAnalysis（只收认得的字段，其余丢弃）。
- * 也给 storyboard-direction 的合并调用、以及从 StoryboardRun.visualReference 读回用。
+ * 也给从 StoryboardRun.visualReference 读回用（旧故事板上存着的盘点）。
  */
 export function normalizeVisualReference(data: Record<string, unknown>, photoCount: number): VisualReferenceAnalysis {
   const str = (v: unknown): string | null =>

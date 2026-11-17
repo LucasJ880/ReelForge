@@ -21,7 +21,7 @@ import { customerApiErrorSchema } from "../src/lib/contracts/customer-api";
 import { middleware } from "../src/middleware";
 
 /**
- * C4 · 界面只在指定几处把能力状态诚实地摆出来：实拍线路卡、口播稿起草、本周内容页头、
+ * C4 · 界面只在指定几处把能力状态诚实地摆出来：口播稿起草、本周内容页头、
  * 创作页的质检说明、壳层状态栏 + /app/status。另有 GET /api/capabilities 的鉴权边界。
  */
 
@@ -44,12 +44,9 @@ function view(records: Array<Partial<CapabilityRecord> & { key: CapabilityKey }>
   });
 }
 
-/** 1025 真机现状：OpenAI 没额度（文本 quota），TTS 没权限；其余正常；邮件没配。 */
+/** 1025 真机现状：OpenAI 没额度（文本 quota）；其余正常；邮件没配。（当时还有 TTS 没权限，配音线路 2026-11-16 已删。） */
 const PRODUCTION_1025 = view(
-  [
-    { key: "text", status: "unavailable", reason: "quota", failingSince: NOW.toISOString() },
-    { key: "voice", status: "unavailable", reason: "permission", failingSince: NOW.toISOString() },
-  ],
+  [{ key: "text", status: "unavailable", reason: "quota", failingSince: NOW.toISOString() }],
   { ...ALL, email: false },
 );
 const ALL_GOOD = view([]);
@@ -83,33 +80,22 @@ test("API DYNAMIC：未登录请求被中间件拦成统一的 AUTH_REQUIRED", a
   }
 });
 
-/* ── 实拍线路卡 ────────────────────────────────────────────────────── */
+/* ── 创作页接线 ────────────────────────────────────────────────────── */
 
-test("实拍线路卡：被挡住时禁用提交并写明原因（不再「提交后才 503」）；取消入口不受影响", () => {
-  const card = read("src/components/video-generation/broll-quick-card.tsx");
-  assert.match(card, /gate\?: FeatureGate \| null;/);
-  assert.match(card, /const blocked = gate\?\.status === "blocked";/);
-  assert.match(card, /disabled=\{blocked \|\| busy !== null \|\| script\.trim\(\)\.length < 20\}/);
-  assert.match(card, /data-testid="broll-capability-blocked"/);
-  assert.match(card, /href="\/app\/status"/);
-  // 铁律 #7：已提交那一条的取消按钮只看自己的忙碌态，不被能力闸门禁用
-  assert.match(card, /disabled=\{busy === "cancel"\}/);
-  const studio = read("src/components/video-generation/streamlined-video-studio.tsx");
-  assert.match(studio, /const brollGate = featureGate\(capabilities, "broll"\);/);
-  assert.match(studio, /<BrollQuickCard available=\{brollAvailable\} gate=\{brollGate\} \/>/);
+test("创作页：服务端读好能力状态传给创作台；实拍图库线路卡与它的派发接口已删（2026-11-16）", () => {
   const page = read("src/app/(platform)/app/create/page.tsx");
   assert.match(page, /getCapabilities\(\)/);
   assert.match(page, /capabilities=\{capabilities\}/);
-});
-
-test("服务端也挡：实拍线路派发在拆段 / TTS 花钱之前查能力闸门，返回能力暂停的人话", () => {
-  const route = read("src/app/api/broll/dispatch/route.ts");
-  const gate = route.indexOf('featureGate(await getCapabilities(), "broll")');
-  const spend = route.indexOf("startBrollDelivery({");
-  const limit = route.indexOf("assertPaidActionRateLimit({");
-  assert.ok(gate > 0 && gate < limit && gate < spend, "闸门在限流与花钱之前");
-  assert.match(route, /code: "CAPABILITY_UNAVAILABLE"/);
-  assert.match(route, /brollGate\.message\?\.\[locale\]/);
+  assert.doesNotMatch(page, /broll/i);
+  const studio = read("src/components/video-generation/streamlined-video-studio.tsx");
+  assert.doesNotMatch(studio, /BrollQuickCard|brollGate|brollAvailable|ProductLinkPrefill/);
+  for (const gone of [
+    "src/components/video-generation/broll-quick-card.tsx",
+    "src/app/api/broll/dispatch/route.ts",
+    "src/app/api/broll/cancel/route.ts",
+  ]) {
+    assert.equal(existsSync(gone), false, gone);
+  }
 });
 
 /* ── 口播稿起草 ────────────────────────────────────────────────────── */
@@ -235,7 +221,7 @@ test("壳层：状态栏挂能力提示（首屏用服务端值）；layout 传�
   const paused = renderToStaticMarkup(React.createElement(CapabilityIndicator, { initial: PRODUCTION_1025, locale: "zh-CN" }));
   assert.match(paused, /部分 AI 能力暂停/);
   assert.match(paused, /href="\/app\/status"/);
-  assert.match(paused, /tabular-nums[^>]*>4</, "暂停 4 项：写作、看图、配图（账户）+ 配音");
+  assert.match(paused, /tabular-nums[^>]*>3</, "暂停 3 项：写作、看图、配图（同一个账户）");
   assert.equal(renderToStaticMarkup(React.createElement(CapabilityIndicator, { initial: ALL_GOOD, locale: "zh-CN" })), "");
   const unstable = renderToStaticMarkup(
     React.createElement(CapabilityIndicator, {
@@ -290,14 +276,16 @@ test("状态页：行情头读数（零就写零）+ 每个能力一格（Status
   assert.match(html, /data-state="unavailable"/);
   assert.match(html, /AI 写作暂停：脚本与周计划先用模板生成，恢复后自动启用。/);
   assert.match(html, /影响/);
-  assert.match(html, /实拍图库线路/);
+  assert.match(html, /周计划撰写/);
+  assert.doesNotMatch(html, /实拍图库|AI 配音|图库素材|链接抓取|产品抠图/, "已删的线路不再出现在状态页");
   assert.match(html, /tabular-nums/);
   // 没有主行动、没有眉题：一页最多一枚实心钮，这页一枚都不需要
   assert.doesNotMatch(html, /<button/);
   assert.doesNotMatch(html, /kicker|eyebrow/i);
   // 严重的排前面
   const order = orderCapabilities(PRODUCTION_1025.items).map((item) => item.status);
-  assert.deepEqual(order.slice(0, 4), ["unavailable", "unavailable", "unavailable", "unavailable"]);
+  assert.deepEqual(order.slice(0, 3), ["unavailable", "unavailable", "unavailable"]);
+  assert.notEqual(order[3], "unavailable");
   assert.equal(order.at(-1), "available");
 
   const en = renderToStaticMarkup(React.createElement(CapabilityBoard, { capabilities: PRODUCTION_1025, locale: "en-US" }));

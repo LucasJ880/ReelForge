@@ -7,13 +7,11 @@ import {
   classifyRuntimeFailure,
   safeNote,
 } from "../src/lib/capabilities/classify";
-import { resolveCapabilities, type CapabilityRecord } from "../src/lib/capabilities/registry";
+import { CAPABILITY_KEYS, resolveCapabilities } from "../src/lib/capabilities/registry";
 import {
   runCapabilityProbeCycle,
-  shouldProbeTts,
   shuyuCapabilityObservations,
   summarizeShuyuCatalog,
-  TTS_PROBE_INTERVAL_MS,
   type ProbeResult,
 } from "../src/lib/services/capability-probe-service";
 import {
@@ -173,43 +171,16 @@ test("Shuyu 目录摘要：最便宜的图与 15 秒视频（与审计同一套�
   });
 });
 
-/* ── TTS 节流 ───────────────────────────────────────────────────────── */
+/* ── 一整轮（OpenAI 没额度、其余正常、邮件未配置） ── */
 
-test("TTS 每 24 小时最多一次：刚探过不探；满 24 小时再探；强制随时探；从没探过就探", () => {
-  const probed = (hoursAgo: number, overrides: Partial<CapabilityRecord> = {}): CapabilityRecord => ({
-    key: "voice",
-    status: "unavailable",
-    reason: "permission",
-    source: "probe",
-    checkedAt: new Date(NOW.getTime() - hoursAgo * HOUR).toISOString(),
-    failingSince: null,
-    detail: { ttsProbedAt: new Date(NOW.getTime() - hoursAgo * HOUR).toISOString() },
-    ...overrides,
-  });
-  const healthy = { status: "available" as const, reason: "ok" as const };
-  assert.equal(shouldProbeTts({ prev: undefined, account: healthy, now: NOW, force: false }), true);
-  assert.equal(shouldProbeTts({ prev: probed(2), account: healthy, now: NOW, force: false }), false);
-  assert.equal(shouldProbeTts({ prev: probed(2), account: healthy, now: NOW, force: true }), true);
-  assert.equal(shouldProbeTts({ prev: probed(24), account: healthy, now: NOW, force: false }), true);
-  assert.equal(TTS_PROBE_INTERVAL_MS, 24 * HOUR);
-  // 生产里刚有真实 TTS 调用（runtime 证据）也算新证据，不再花钱探
-  const runtime = probed(30, { source: "runtime", checkedAt: new Date(NOW.getTime() - HOUR).toISOString() });
-  assert.equal(shouldProbeTts({ prev: runtime, account: healthy, now: NOW, force: false }), false);
-  // 上一条是账户层额度失败、账户这一轮已恢复 → 补探（至多每小时一次）
-  const quota = probed(3, { reason: "quota" });
-  assert.equal(shouldProbeTts({ prev: quota, account: healthy, now: NOW, force: false }), true);
-  assert.equal(shouldProbeTts({ prev: quota, account: { status: "unavailable", reason: "quota" }, now: NOW, force: false }), false);
-  assert.equal(shouldProbeTts({ prev: probed(0.5, { reason: "quota" }), account: healthy, now: NOW, force: false }), false);
-});
-
-/* ── 一整轮（1025 真机现状：OpenAI 没额度、TTS 没权限、其余正常、邮件未配置） ── */
-
+/// 已删线路的 key 故意留在环境里：配着也不该再有任何请求发给它们（下面的假 fetch 遇到没见过的地址就抛）
 const ENV = {
   OPENAI_API_KEY: "sk-test-key-0000000000",
   SHUYU_API_KEY: "shuyu-test",
   PEXELS_API_KEYS: "pexels-test",
   FIRECRAWL_API_KEY: "fc-test",
   REMOVE_BG_API_KEY: "rb-test",
+  ELEVENLABS_API_KEY: "el-test",
 } as const;
 
 type Call = { url: string; method: string; body: Record<string, unknown> | null };
@@ -218,7 +189,7 @@ function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 }
 
-function fakeProviders(overrides: Partial<Record<"chat" | "tts" | "moderation" | "pexels" | "firecrawl" | "removebg", () => Response>> = {}) {
+function fakeProviders(overrides: Partial<Record<"chat" | "moderation", () => Response>> = {}) {
   const calls: Call[] = [];
   const fetchImpl = (async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input);
@@ -227,15 +198,7 @@ function fakeProviders(overrides: Partial<Record<"chat" | "tts" | "moderation" |
     if (url.endsWith("/chat/completions")) {
       return overrides.chat?.() ?? json(429, { error: { code: "insufficient_quota", type: "insufficient_quota", message: "You exceeded your current quota" } });
     }
-    if (url.endsWith("/audio/speech")) {
-      return overrides.tts?.() ?? json(403, { error: { code: "model_not_found", message: "Project proj_x does not have access to model tts-1" } });
-    }
     if (url.endsWith("/moderations")) return overrides.moderation?.() ?? json(200, { id: "modr", results: [] });
-    if (url.includes("api.pexels.com")) return overrides.pexels?.() ?? json(200, { videos: [] });
-    if (url.includes("firecrawl.dev")) return overrides.firecrawl?.() ?? json(200, { success: true, data: { remaining_credits: 480 } });
-    if (url.includes("remove.bg")) {
-      return overrides.removebg?.() ?? json(200, { data: { attributes: { credits: { total: 12 }, api: { free_calls: 50 } } } });
-    }
     throw new Error(`unexpected fetch ${url}`);
   }) as typeof fetch;
   return { calls, fetchImpl };
@@ -269,7 +232,7 @@ function cycle(store: ReturnType<typeof createMemoryCapabilityStore>, now: Date,
   };
 }
 
-test("一整轮：OpenAI 429 额度 → 写作 / 看图暂停；TTS 403 → 配音暂停；其余正常；邮件未开通", async () => {
+test("一整轮：OpenAI 429 额度 → 写作 / 看图暂停；其余正常；邮件未开通；已删线路（配音 / 图库 / 抓取 / 抠图）不探也不落库", async () => {
   const store = createMemoryCapabilityStore();
   const { providers, run } = cycle(store, NOW);
   const report = await run;
@@ -277,27 +240,27 @@ test("一整轮：OpenAI 429 额度 → 写作 / 看图暂停；TTS 403 → 配�
 
   assert.deepEqual([byKey.get("text")?.status, byKey.get("text")?.reason], ["unavailable", "quota"]);
   assert.deepEqual([byKey.get("vision")?.status, byKey.get("vision")?.reason], ["unavailable", "quota"]);
-  assert.deepEqual([byKey.get("voice")?.status, byKey.get("voice")?.reason], ["unavailable", "permission"]);
-  for (const key of ["moderation", "stock", "scrape", "cutout", "image", "video"] as const) {
+  for (const key of ["moderation", "image", "video"] as const) {
     assert.equal(byKey.get(key)?.status, "available", key);
   }
+  assert.deepEqual(report.items.map((item) => item.key).sort(), [...CAPABILITY_KEYS].sort(), "报告只有现存的能力键");
   assert.equal(byKey.get("email")?.status, "not_configured");
   assert.equal(byKey.get("graphics")?.source, "derived", "配图没有便宜的探测：由账户推断");
 
-  // 1 token、1 个字符：探测本身几乎不花钱
+  // 1 token：探测本身几乎不花钱
   const chat = providers.calls.find((call) => call.url.endsWith("/chat/completions"));
   assert.equal(chat?.body?.max_completion_tokens, 1);
   assert.equal(chat?.body?.model, "gpt-5.6-terra");
-  const tts = providers.calls.filter((call) => call.url.endsWith("/audio/speech"));
-  assert.equal(tts.length, 1);
-  assert.equal(tts[0]?.body?.input, "a");
-  assert.equal(tts[0]?.body?.model, "tts-1");
   // 看图与文本同一个模型：沿用文本结论，不重复花钱
   assert.equal(providers.calls.filter((call) => call.url.endsWith("/chat/completions")).length, 1);
+  // 整轮只打两个地址：写作探测与审核探测（Shuyu 走注入的结果）
+  assert.deepEqual(
+    providers.calls.map((call) => new URL(call.url).pathname).sort(),
+    ["/v1/chat/completions", "/v1/moderations"],
+  );
 
-  // 落库：每个能力一行，配音记下 TTS 探测时刻
-  assert.equal(store.records.size, 11);
-  assert.equal(store.records.get("voice")?.detail?.ttsProbedAt, NOW.toISOString());
+  // 落库：每个能力一行
+  assert.equal(store.records.size, CAPABILITY_KEYS.length);
   assert.equal(store.records.get("text")?.failingSince, NOW.toISOString());
 
   // 客户视图：账户没额度 → 配图也显示暂停（推断值是「未检测的正常」，被账户状态盖过）
@@ -306,24 +269,14 @@ test("一整轮：OpenAI 429 额度 → 写作 / 看图暂停；TTS 403 → 配�
   assert.equal(view.paused, true);
 });
 
-test("下一轮（1 小时后）：TTS 沿用上一条不再花钱；24 小时后再探；?force 随时探", async () => {
+test("下一轮（1 小时后）：持续失败保留最早时刻；审核每轮都探一次（免费端点，与内容审核开没开无关）", async () => {
   const store = createMemoryCapabilityStore();
   await cycle(store, NOW).run;
 
   const later = cycle(store, new Date(NOW.getTime() + HOUR));
-  const report = await later.run;
-  assert.equal(later.providers.calls.filter((call) => call.url.endsWith("/audio/speech")).length, 0);
-  assert.equal(report.items.find((item) => item.key === "voice")?.kept, true);
-  assert.equal(store.records.get("voice")?.status, "unavailable", "沿用上一条");
+  await later.run;
   assert.equal(store.records.get("text")?.failingSince, NOW.toISOString(), "持续失败保留最早时刻");
-
-  const nextDay = cycle(store, new Date(NOW.getTime() + 25 * HOUR));
-  await nextDay.run;
-  assert.equal(nextDay.providers.calls.filter((call) => call.url.endsWith("/audio/speech")).length, 1);
-
-  const forced = cycle(store, new Date(NOW.getTime() + 26 * HOUR), { force: true });
-  await forced.run;
-  assert.equal(forced.providers.calls.filter((call) => call.url.endsWith("/audio/speech")).length, 1);
+  assert.equal(later.providers.calls.filter((call) => call.url.endsWith("/moderations")).length, 1);
 });
 
 test("账户恢复：文本 200 → 写作恢复、failingSince 清空；配图「因账户而停」的旧结论翻回正常", async () => {
@@ -335,15 +288,6 @@ test("账户恢复：文本 200 → 写作恢复、failingSince 清空；配图�
       source: "runtime",
       checkedAt: new Date(NOW.getTime() - HOUR).toISOString(),
       failingSince: new Date(NOW.getTime() - 5 * HOUR).toISOString(),
-    },
-    {
-      key: "voice",
-      status: "unavailable",
-      reason: "permission",
-      source: "probe",
-      checkedAt: new Date(NOW.getTime() - 2 * HOUR).toISOString(),
-      failingSince: new Date(NOW.getTime() - 2 * HOUR).toISOString(),
-      detail: { ttsProbedAt: new Date(NOW.getTime() - 2 * HOUR).toISOString() },
     },
   ]);
   const providers = fakeProviders({ chat: () => json(200, { choices: [{ message: { content: "" } }] }) });
@@ -360,9 +304,6 @@ test("账户恢复：文本 200 → 写作恢复、failingSince 清空；配图�
   assert.equal(store.records.get("text")?.failingSince, null);
   assert.equal(store.records.get("graphics")?.status, "available");
   assert.equal(store.records.get("graphics")?.source, "derived");
-  // 配音的 403 是模型权限问题、不是账户层：2 小时前刚探过，不补探，继续显示暂停
-  assert.equal(providers.calls.filter((call) => call.url.endsWith("/audio/speech")).length, 0);
-  assert.equal(store.records.get("voice")?.status, "unavailable");
 });
 
 test("邮件配好之后：生产发信回写的结论不被探测覆盖；没配 → 未开通", async () => {
@@ -390,14 +331,13 @@ test("邮件配好之后：生产发信回写的结论不被探测覆盖；没�
   assert.equal(store.records.get("email")?.status, "unavailable");
 });
 
-test("单项探测挂了只影响它自己：Pexels 网络错误 → 图库不稳定；Firecrawl 额度为 0 → 抓取暂停；整轮不抛", async () => {
+test("单项探测挂了只影响它自己：审核端点网络错误 → 审核不稳定；写作照常；整轮不抛", async () => {
   const store = createMemoryCapabilityStore();
   const providers = fakeProviders({
-    pexels: () => {
+    chat: () => json(200, { choices: [{ message: { content: "" } }] }),
+    moderation: () => {
       throw new TypeError("fetch failed");
     },
-    firecrawl: () => json(200, { success: true, data: { remaining_credits: 0 } }),
-    removebg: () => json(200, { data: { attributes: { credits: { total: 0 }, api: { free_calls: 0 } } } }),
   });
   const report = await runCapabilityProbeCycle({
     env: ENV,
@@ -409,10 +349,9 @@ test("单项探测挂了只影响它自己：Pexels 网络错误 → 图库不�
     models: { text: ["gpt-5.6-terra"], vision: "gpt-5.6-terra" },
   });
   const byKey = new Map(report.items.map((item) => [item.key, item]));
-  assert.deepEqual([byKey.get("stock")?.status, byKey.get("stock")?.reason], ["degraded", "upstream"]);
-  assert.deepEqual([byKey.get("scrape")?.status, byKey.get("scrape")?.reason], ["unavailable", "quota"]);
-  assert.deepEqual([byKey.get("cutout")?.status, byKey.get("cutout")?.reason], ["unavailable", "quota"]);
-  assert.equal(byKey.get("moderation")?.status, "available");
+  assert.deepEqual([byKey.get("moderation")?.status, byKey.get("moderation")?.reason], ["degraded", "upstream"]);
+  assert.equal(byKey.get("text")?.status, "available");
+  assert.equal(byKey.get("video")?.status, "available");
 });
 
 test("模型不存在（404）才换下一个候选，与生产回退链一致；看图模型不同就单独 1 token 探", async () => {
@@ -484,7 +423,7 @@ test("没配 key 的能力不发请求，直接记未开通", async () => {
     getShuyuBalance: async () => ({ available_points: 9_000 }),
   });
   assert.equal(providers.calls.length, 0);
-  for (const key of ["text", "vision", "graphics", "voice", "moderation", "stock", "scrape", "cutout", "email"] as const) {
+  for (const key of ["text", "vision", "graphics", "moderation", "email"] as const) {
     assert.equal(store.records.get(key)?.status, "not_configured", key);
   }
   assert.equal(store.records.get("video")?.status, "available");
@@ -496,9 +435,8 @@ test("cron：机器鉴权在先；同一轮先探 Shuyu 再探全部能力（复
   const route = readFileSync("src/app/api/cron/capability-probe/route.ts", "utf8");
   const auth = route.indexOf("machineAuthFailure(req)");
   const shuyu = route.indexOf("probeShuyuCapabilities()");
-  const all = route.indexOf("runCapabilityProbeCycle({ shuyu: result, force })");
+  const all = route.indexOf("runCapabilityProbeCycle({ shuyu: result })");
   assert.ok(auth > 0 && shuyu > auth && all > shuyu, "顺序：鉴权 → Shuyu → 全能力");
-  assert.match(route, /searchParams\.get\("force"\) === "1"/);
   assert.match(route, /status: result\.ok \? 200 : 503/);
   assert.match(route, /\.catch\(\(error: unknown\) =>/);
 });

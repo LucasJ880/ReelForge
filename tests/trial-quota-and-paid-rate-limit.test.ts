@@ -15,8 +15,6 @@ import {
   paidActionHourlyLimit,
 } from "../src/lib/services/paid-action-rate-limit";
 import { RateLimitExceededError } from "../src/lib/services/rate-limit-service";
-import { createProductAnchorPostHandler } from "../src/app/api/product-anchors/route";
-import { createProductAnchorRetryHandler } from "../src/app/api/product-anchors/[id]/retry/route";
 
 /**
  * A4 5.2 / D5：本轮上线后自助注册的新账号进「试用」额度；付费入口按用户直接发起次数限流。
@@ -97,15 +95,18 @@ test("注册路由给新账号写试用标记，Workspace 仍是 starter（外�
 
 test("付费入口限流：默认值、环境变量覆盖与上下限", () => {
   assert.equal(paidActionHourlyLimit("content-plan", {}), PAID_ACTION_RATE_LIMITS["content-plan"].perHour);
-  assert.equal(paidActionHourlyLimit("broll", { BROLL_RATE_LIMIT_PER_HOUR: "2" }), 2);
-  assert.equal(paidActionHourlyLimit("broll", { BROLL_RATE_LIMIT_PER_HOUR: "0" }), 1, "不能被配成 0 把入口关死");
-  assert.equal(paidActionHourlyLimit("broll", { BROLL_RATE_LIMIT_PER_HOUR: "100000" }), 200);
-  assert.equal(paidActionHourlyLimit("broll", { BROLL_RATE_LIMIT_PER_HOUR: "abc" }), PAID_ACTION_RATE_LIMITS.broll.perHour);
-  assert.equal(paidActionBucketKey("product-link", "u1"), "paid:product-link:user:u1");
+  assert.equal(paidActionHourlyLimit("content-plan", { CONTENT_PLAN_RATE_LIMIT_PER_HOUR: "2" }), 2);
+  assert.equal(paidActionHourlyLimit("content-plan", { CONTENT_PLAN_RATE_LIMIT_PER_HOUR: "0" }), 1, "不能被配成 0 把入口关死");
+  assert.equal(paidActionHourlyLimit("content-plan", { CONTENT_PLAN_RATE_LIMIT_PER_HOUR: "100000" }), 200);
+  assert.equal(
+    paidActionHourlyLimit("content-plan", { CONTENT_PLAN_RATE_LIMIT_PER_HOUR: "abc" }),
+    PAID_ACTION_RATE_LIMITS["content-plan"].perHour,
+  );
+  assert.equal(paidActionBucketKey("content-post-render", "u1"), "paid:content-post-render:user:u1");
 });
 
 test("🔴 生产强制：同一用户同一小时超过上限抛 RateLimitExceededError，并按用户分桶", async (t) => {
-  withEnv(t, { QUOTA_ENFORCE: "true", PRODUCT_LINK_RATE_LIMIT_PER_HOUR: "2" });
+  withEnv(t, { QUOTA_ENFORCE: "true", CONTENT_POST_RENDER_RATE_LIMIT_PER_HOUR: "2" });
   const buckets = new Map<string, number>();
   patch(t, db.rateLimitBucket, {
     upsert: async (args: { where: { bucketKey_windowKey: { bucketKey: string; windowKey: string } } }) => {
@@ -116,20 +117,20 @@ test("🔴 生产强制：同一用户同一小时超过上限抛 RateLimitExcee
     },
   });
   const now = new Date("2026-10-25T10:15:00Z");
-  await assertPaidActionRateLimit({ action: "product-link", userId: "u1", now });
-  await assertPaidActionRateLimit({ action: "product-link", userId: "u1", now });
+  await assertPaidActionRateLimit({ action: "content-post-render", userId: "u1", now });
+  await assertPaidActionRateLimit({ action: "content-post-render", userId: "u1", now });
   await assert.rejects(
-    assertPaidActionRateLimit({ action: "product-link", userId: "u1", now }),
-    (err: unknown) => err instanceof RateLimitExceededError && /链接抓取过于频繁/.test(err.message),
+    assertPaidActionRateLimit({ action: "content-post-render", userId: "u1", now }),
+    (err: unknown) => err instanceof RateLimitExceededError && /配图生成过于频繁/.test(err.message),
   );
   /// 另一个用户不受影响；下一个小时重新计
-  await assertPaidActionRateLimit({ action: "product-link", userId: "u2", now });
+  await assertPaidActionRateLimit({ action: "content-post-render", userId: "u2", now });
   await assertPaidActionRateLimit({
-    action: "product-link",
+    action: "content-post-render",
     userId: "u1",
     now: new Date("2026-10-25T11:01:00Z"),
   });
-  assert.ok(buckets.has("paid:product-link:user:u1|2026-10-25T10"));
+  assert.ok(buckets.has("paid:content-post-render:user:u1|2026-10-25T10"));
 });
 
 test("开发环境默认不强制（与产品图限流同一口径），不碰数据库", async (t) => {
@@ -142,14 +143,10 @@ test("开发环境默认不强制（与产品图限流同一口径），不碰�
   await assertPaidActionRateLimit({ action: "content-plan", userId: "u1" });
 });
 
-test("付费入口路由都接了限流：内容计划 / 出图 / 链接抓取 / 产品锚点 / b-roll", async () => {
+test("付费入口路由都接了限流：内容计划 / 出图（链接抓取、产品锚点、b-roll 的路由 2026-11-16 已删）", async () => {
   const expectations: Array<[string, string]> = [
     ["src/app/api/content-plans/route.ts", "content-plan"],
     ["src/app/api/content-plans/[id]/posts/[postId]/render/route.ts", "content-post-render"],
-    ["src/app/api/product-link/route.ts", "product-link"],
-    ["src/app/api/product-anchors/route.ts", "product-anchor"],
-    ["src/app/api/product-anchors/[id]/retry/route.ts", "product-anchor"],
-    ["src/app/api/broll/dispatch/route.ts", "broll"],
   ];
   for (const [file, action] of expectations) {
     const source = await readFile(file, "utf8");
@@ -162,74 +159,11 @@ test("付费入口路由都接了限流：内容计划 / 出图 / 链接抓取 /
   }
 });
 
-const VALID_BOX = { x: 0.1, y: 0.2, width: 0.5, height: 0.7 };
-
-function anchorRequest(): Request {
-  return new Request("http://localhost/api/product-anchors", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ sku: "roman-shade", sourceAssetId: "asset-1", logoBox: VALID_BOX }),
-  });
-}
-
-test("🔴 产品锚点超限：429 RATE_LIMITED，且不调付费抠图", async () => {
-  const calls: string[] = [];
-  const handler = createProductAnchorPostHandler({
-    requireAuth: async () => ({
-      ok: true as const,
-      session: { user: { id: "user-1", email: "merchant@example.test" } } as never,
-    }),
-    listProductAnchorsForUser: async () => [],
-    resolveOwnedImageAssets: async () => [{ url: "https://assets.example.test/a.png" }] as never,
-    assertPaidActionRateLimit: async () => {
-      calls.push("rate-limit");
-      throw new RateLimitExceededError("产品抠图操作过于频繁，请一小时后再试。");
-    },
-    createProductAnchor: async () => {
-      calls.push("create");
-      return {} as never;
-    },
-  });
-  const response = await handler(anchorRequest() as never);
-  assert.equal(response.status, 429);
-  const body = await response.json();
-  assert.equal(body.code, "RATE_LIMITED");
-  assert.deepEqual(calls, ["rate-limit"]);
-});
-
-test("锚点续跑：READY 短路不占限流次数；未完成的才计数", async () => {
-  const counted: string[] = [];
-  const anchor = (status: string) =>
-    ({
-      id: "anchor-1",
-      userId: "user-1",
-      sku: "roman-shade",
-      brandName: null,
-      sourceImageUrl: "https://assets.example.test/source.png",
-      cutoutUrl: null,
-      maskUrl: null,
-      logoBoxJson: VALID_BOX,
-      status,
-      cutoutProvider: null,
-      failureReason: null,
-      createdAt: new Date("2026-08-03T00:00:00Z"),
-      updatedAt: new Date("2026-08-03T00:00:00Z"),
-    }) as never;
-  const make = (status: string) =>
-    createProductAnchorRetryHandler({
-      requireAuth: async () => ({
-        ok: true as const,
-        session: { user: { id: "user-1", email: "merchant@example.test" } } as never,
-      }),
-      getOwnedProductAnchor: async () => anchor(status),
-      assertPaidActionRateLimit: async ({ action }) => {
-        counted.push(action);
-      },
-      runCutout: async () => anchor("READY"),
-    });
-  const context = { params: Promise.resolve({ id: "anchor-1" }) };
-  await make("READY")(new Request("http://localhost/x", { method: "POST" }) as never, context);
-  assert.deepEqual(counted, []);
-  await make("FAILED")(new Request("http://localhost/x", { method: "POST" }) as never, context);
-  assert.deepEqual(counted, ["product-anchor"]);
+test("限流表里不再有已删线路的入口：链接抓取、产品锚点（抠图）、实拍图库（2026-11-16 随线路删除）", () => {
+  assert.deepEqual(Object.keys(PAID_ACTION_RATE_LIMITS).sort(), [
+    "content-plan",
+    "content-post-render",
+    "douyin-kit-copy",
+    "douyin-kit-render",
+  ]);
 });

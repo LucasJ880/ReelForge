@@ -3,10 +3,10 @@
  *   HTTP 503 {"type":"reference_validation_unavailable",
  *             "message":"Reference-image validation is temporarily unavailable. Retry with the same
  *                        Idempotency-Key; no generation points were charged."}
- * 旧分类只认 4xx 与退款声明，把它当成「不知道建没建单」：视频直接失败，既不重试也不改交 Runway。
+ * 旧分类只认 4xx 与退款声明，把它当成「不知道建没建单」：视频直接失败，也不重试。
  *
  * 现在视频提交按错误类型判「确定未创建 + 可重试」，适配器用同一个键、同一份请求体退避重投，
- * 次数与时间窗封顶；用完原样抛出，单条视频由派发入口改交 Runway（全流程见 runway-fallback.test.ts）。
+ * 次数与时间窗封顶；用完原样抛出（2026-11-16 起没有备用线路：这一条明确失败，可重试、可免费取消）。
  */
 
 import assert from "node:assert/strict";
@@ -232,7 +232,7 @@ test("适配器：被拒一次后同键重投成功——两次提交的键与�
   }
 });
 
-test("适配器：一直被拒——同键重投两次（等 2s、5s）后原样抛出「确定未创建、可重试」，交给上层改交 Runway", async () => {
+test("适配器：一直被拒——同键重投两次（等 2s、5s）后原样抛出「确定未创建、可重试」，上层按明确失败处理", async () => {
   __testVideoPlans__.resetVideoPlanCache();
   try {
     const submissions: Submission[] = [];

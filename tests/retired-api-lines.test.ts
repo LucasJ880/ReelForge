@@ -1,7 +1,7 @@
 /**
- * 线路精简（2026-11-09，Lucas 定）：对外线路只留 Shuyu（出图 / 出片）、Runway（出片备选）与只做出方案的 OpenAI。
+ * 线路精简（2026-11-09，Lucas 定）：对外线路只留 Shuyu（出图 / 出片）与只做出方案的 OpenAI（Runway 出片备选 2026-11-16 整段删除）。
  * 这里守住 A 级下线的三件事：入口关着、已下线的线路不进客户视图、它们出错不叫醒人。
- * 出片兜底只在 Shuyu ⇄ Runway 之间的断言在 customer-route-failover.test.ts。
+ * 出片没有兜底线路（Shuyu 不可用就按原原因拒绝）的断言在 batch-route-failover.test.ts。
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";

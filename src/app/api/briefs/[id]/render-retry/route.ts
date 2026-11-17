@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/api-auth";
 import { checkBriefAccess } from "@/lib/services/brief-access";
 import { db } from "@/lib/db";
 import {
+  assertVideoRouteNotRetiredForRegeneration,
   commitSegmentRedo,
   prepareSegmentRedo,
   retryFailedVideoJob,
@@ -55,6 +56,9 @@ function canSeeRenderDebug(userType: string | null | undefined): boolean {
  *
  * 重做候选行（还没换挂上成片的）与被替换掉的旧行：all:true 只重试每段最新的那条失败候选行，
  * 按候选行补扣（不走 brief 的补扣）；旧行一律不重试。
+ *
+ * 当初走已下线线路（Runway，2026-11-16 下线）的旧视频：重做某一段、重试失败的段都回 409 INVALID_STATE，
+ * 文案指到「用同样的素材再做一条」，而且拒绝发生在补扣额度之前；只重拼与合成失败续跑不调供应商，照常可用。
  *
  * 安全门禁（与 Seedance 计费安全相关）：
  * 1. 调用方必须是该 brief 的 owner（unified-input 流程：DeliveryOrder.createdById），
@@ -157,6 +161,8 @@ export async function POST(
         orderBy: { createdAt: "asc" },
       });
       const { current: failed, candidates } = selectAllRetryTargets(rows);
+      /// 先看线路再补扣：这些段当初走的线路已下线就整单拒绝，一分不扣
+      for (const job of [...failed, ...candidates]) assertVideoRouteNotRetiredForRegeneration(job);
       if (failed.length > 0) await rechargeIfRefunded();
       for (const job of failed) {
         await retryFailedVideoJob(job.id);
@@ -216,6 +222,8 @@ export async function POST(
       if (isSupersededSegmentJob(job)) {
         throw new SegmentRedoRejectedError("INVALID_STATE", "这一段已经换成了重做后的新版本，旧版本不能重试。");
       }
+      /// 先看线路再补扣（同上）
+      assertVideoRouteNotRetiredForRegeneration(job);
       if (isSegmentRedoCandidate(job)) {
         if (job.status === VideoJobStatus.FAILED) await retryRedoCandidate(body.jobId);
         else await retryFailedVideoJob(body.jobId);

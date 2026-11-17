@@ -19,14 +19,6 @@ import {
   submitShuyuImageTask,
 } from "@/lib/providers/shuyu-image-provider";
 import { SHUYU_MAX_REFERENCE_IMAGES } from "@/lib/providers/shuyu";
-import {
-  fetchRunwayStoryboardImage,
-  pollRunwayStoryboardImage,
-  RUNWAY_STORYBOARD_IMAGE_MODEL,
-  RUNWAY_STORYBOARD_PLAN_ID,
-  runwayStoryboardImagesForUser,
-  submitRunwayStoryboardImage,
-} from "@/lib/video-generation/runway-storyboard-images";
 import type { VideoProviderAdapterSnapshot } from "@/lib/video-generation/video-route-registry";
 import type { PlanningStage } from "@/types/video-generation";
 import {
@@ -224,21 +216,12 @@ interface StoryboardRuntimeDependencies {
   createAsset: typeof createOwnedMediaAsset;
   reviewFrames: typeof reviewStoryboardFrames;
   visionAvailable: () => boolean;
-  /// Runway 出图（灰度名单先用，2026-10-28 晚）：分镜行 planId = RUNWAY_STORYBOARD_PLAN_ID 时整条链路走这四个
-  runwayForOwner: typeof runwayStoryboardImagesForUser;
-  runwaySubmitImage: typeof submitRunwayStoryboardImage;
-  runwayPollImage: typeof pollRunwayStoryboardImage;
-  runwayFetchOutput: typeof fetchRunwayStoryboardImage;
 }
 
 const defaultRuntime: StoryboardRuntimeDependencies = {
   submitTask: submitShuyuImageTask,
   pollTask: pollShuyuImageTask,
   fetchOutput: fetchShuyuOutputImage,
-  runwayForOwner: runwayStoryboardImagesForUser,
-  runwaySubmitImage: submitRunwayStoryboardImage,
-  runwayPollImage: pollRunwayStoryboardImage,
-  runwayFetchOutput: fetchRunwayStoryboardImage,
   storage: getStorageProvider,
   createAsset: createOwnedMediaAsset,
   reviewFrames: reviewStoryboardFrames,
@@ -491,14 +474,31 @@ async function bumpStoryboardRateLimit(
   }
 }
 
+/**
+ * 帧行没有「供应商」列：2026-10-28 ~ 11-16 走 Runway 出图的帧把 planId 记成字面量 "runway:gpt_image_2"。
+ * 那条线路的代码 11-16 删了，这类旧帧只读不调：planId 不当 Shuyu 套餐快照交出去，任务号不拿去问 Shuyu
+ * （那是 Runway 的任务号）；碰到就把这一帧落成失败并提示重新生成——重做会建一条不带 planId 的新帧，走 Shuyu。
+ */
+const RETIRED_STORYBOARD_FRAME_PLAN_PREFIX = "runway:";
+export const STORYBOARD_RETIRED_PROVIDER_FRAME_CODE = "PROVIDER_RETIRED";
+export const STORYBOARD_RETIRED_PROVIDER_FRAME_MESSAGE =
+  "这一帧当初用的出图线路已经下线，接不上原来的任务了，请重新生成这一帧。";
+
+export function isRetiredStoryboardFramePlan(planId: string | null | undefined): boolean {
+  return typeof planId === "string" && planId.startsWith(RETIRED_STORYBOARD_FRAME_PLAN_PREFIX);
+}
+
 export function canRegenerateStoryboardFrame(frame: {
   status: StoryboardFrameStatus | string;
   submissionState: ProviderSubmissionState | string;
   lastProviderStatus?: string | null;
   externalTaskId: string | null;
+  planId?: string | null;
 }): boolean {
   if (frame.status === StoryboardFrameStatus.SUCCEEDED) return true;
   if (frame.status !== StoryboardFrameStatus.FAILED) return false;
+  /// 已下线线路的失败帧没有可核对的真实状态（任务号问不了任何人）：一律允许重做，不卡在「等核对」
+  if (isRetiredStoryboardFramePlan(frame.planId)) return true;
   if (frame.submissionState === ProviderSubmissionState.REJECTED) return true;
   if (frame.submissionState === ProviderSubmissionState.ACK_UNKNOWN) {
     // 任务号已知时真实状态可查，由 reconcile 复活或落地，禁止抢先重生成；
@@ -859,6 +859,25 @@ async function submitStoryboardFrame(frameId: string): Promise<void> {
     frame.storyboardRun.status === StoryboardRunStatus.CANCELLED
   ) return;
   const run = frame.storyboardRun;
+  /// 旧线路的帧（见 isRetiredStoryboardFramePlan）不提交：它的 planId 不是 Shuyu 套餐，交出去只会换来一次莫名的拒单
+  if (isRetiredStoryboardFramePlan(frame.planId)) {
+    await db.storyboardFrame.updateMany({
+      where: {
+        id: frame.id,
+        isCurrent: true,
+        status: StoryboardFrameStatus.QUEUED,
+        submissionState: ProviderSubmissionState.NOT_STARTED,
+      },
+      data: {
+        status: StoryboardFrameStatus.FAILED,
+        submissionState: ProviderSubmissionState.REJECTED,
+        completedAt: new Date(),
+        errorCode: STORYBOARD_RETIRED_PROVIDER_FRAME_CODE,
+        errorMessage: STORYBOARD_RETIRED_PROVIDER_FRAME_MESSAGE,
+      },
+    });
+    return;
+  }
   /// 重试沿用首次选定的套餐快照；帧行没存 input_images_max，按默认上限 6 兜底（E1：图像档全部 = 6，P02-B2）。
   const planSnapshot =
     frame.planId && frame.modelSnapshot && frame.resolutionSnapshot && frame.pointsSnapshot != null
@@ -904,11 +923,6 @@ async function submitStoryboardFrame(frameId: string): Promise<void> {
       `frame ${frame.ordinal + 1} prompt trimmed from ${aligned.length} to ${prompt.length} chars`,
     );
   }
-
-  /// 出图供应商：已记过 Runway 的帧（重试 / 恢复）永远走 Runway，记过 Shuyu 套餐的永远走 Shuyu；
-  /// 还没选过的按发起人的灰度判（名单 / 全员开关 + 配了 key）。
-  const viaRunway = frame.planId === RUNWAY_STORYBOARD_PLAN_ID
-    || (!frame.planId && await runtime().runwayForOwner(run.userId));
 
   const submittedAt = new Date();
   // 取消会把 QUEUED 帧就地落成终态；这里的帧级 CAS 与它互斥，外加 run 级
@@ -969,32 +983,6 @@ async function submitStoryboardFrame(frameId: string): Promise<void> {
       },
     });
   try {
-    if (viaRunway) {
-      /// 先记供应商再提交：提交后任何本地失败（确认未知、恢复、重试）都能按 planId 找回 Runway 任务
-      const marked = await db.storyboardFrame.updateMany({
-        where: {
-          id: frame.id,
-          providerRequestKey: frame.providerRequestKey,
-          submissionState: ProviderSubmissionState.SUBMITTING,
-        },
-        data: {
-          planId: RUNWAY_STORYBOARD_PLAN_ID,
-          modelSnapshot: RUNWAY_STORYBOARD_IMAGE_MODEL,
-          resolutionSnapshot: "2K",
-          pointsSnapshot: 0,
-        },
-      });
-      if (marked.count !== 1) throw new StoryboardLeaseLostError();
-      const submitted = await runtime().runwaySubmitImage({
-        prompt,
-        aspectRatio: frame.storyboardRun.aspectRatio,
-        inputImages,
-      });
-      acknowledgedTaskId = submitted.externalTaskId;
-      const accepted = await acceptFrameSubmission(submitted.externalTaskId);
-      if (accepted.count !== 1) throw new StoryboardLeaseLostError();
-      return;
-    }
     const submitted = await runtime().submitTask({
       requestKey: frame.providerRequestKey,
       prompt,
@@ -1034,7 +1022,7 @@ async function submitStoryboardFrame(frameId: string): Promise<void> {
     }
     const failure = asProviderSubmissionError({
       error,
-      providerId: viaRunway ? "runway" : "shuyu",
+      providerId: "shuyu",
       evidence: acknowledgedTaskId ? { stage: "persistence" } : undefined,
     });
     const unknown = failure.disposition === "acknowledgement_unknown";
@@ -1046,9 +1034,7 @@ async function submitStoryboardFrame(frameId: string): Promise<void> {
       ? acknowledgedTaskId
         ? "该分镜任务已被合作方接收，系统稍后会自动核对真实进度，无需重新提交。"
         : "该分镜的提交确认未知，系统会自动按新尝试重新生成这一帧；其余分镜不受影响。"
-      : viaRunway
-        ? `Runway 拒绝了该分镜任务（${failure.message}），可重新生成这一帧。`
-        : "Shuyu 明确拒绝了该分镜任务，可重新生成这一帧。";
+      : "Shuyu 明确拒绝了该分镜任务，可重新生成这一帧。";
     // Only this frame fails here. The run settles in advanceRun once every
     // sibling reaches a terminal state, so in-flight paid frames still finish.
     await db.storyboardFrame.updateMany({
@@ -1099,12 +1085,26 @@ async function reconcileStoryboardFrame(frameId: string): Promise<void> {
   const leaseOwner = randomUUID();
   const frame = await claimFrame(frameId, leaseOwner);
   if (!frame?.externalTaskId) return;
-  const viaRunway = frame.planId === RUNWAY_STORYBOARD_PLAN_ID;
-  let result: Awaited<ReturnType<typeof pollShuyuImageTask>> & { failure?: string };
+  /// 旧线路的帧（见 isRetiredStoryboardFramePlan）：任务号是那家供应商的，不拿去问 Shuyu；这一帧就此落成失败，可重做
+  if (isRetiredStoryboardFramePlan(frame.planId)) {
+    const now = new Date();
+    await db.storyboardFrame.updateMany({
+      where: { id: frame.id, leaseOwner, leaseExpiresAt: { gt: now } },
+      data: {
+        status: StoryboardFrameStatus.FAILED,
+        lastCheckedAt: now,
+        completedAt: now,
+        errorCode: STORYBOARD_RETIRED_PROVIDER_FRAME_CODE,
+        errorMessage: STORYBOARD_RETIRED_PROVIDER_FRAME_MESSAGE,
+        leaseOwner: null,
+        leaseExpiresAt: null,
+      },
+    });
+    return;
+  }
+  let result: Awaited<ReturnType<typeof pollShuyuImageTask>>;
   try {
-    result = viaRunway
-      ? await runtime().runwayPollImage(frame.externalTaskId)
-      : await runtime().pollTask(frame.externalTaskId);
+    result = await runtime().pollTask(frame.externalTaskId);
   } catch {
     const now = new Date();
     await db.storyboardFrame.updateMany({
@@ -1143,14 +1143,11 @@ async function reconcileStoryboardFrame(frameId: string): Promise<void> {
     const now = new Date();
     const refunded = result.rawStatus === "refunded";
     const refundError = result.rawStatus === "refund_error";
-    /// Runway 没有合作方那套退款状态：失败就是失败，写清原因，可以直接重画这一帧
-    const message = viaRunway
-      ? `分镜出图失败${result.failure ? `（${result.failure}）` : ""}，可重新生成这一帧。`
-      : refundError
-        ? "故事板生成失败且退款状态异常。为避免重复计费，请联系支持核对。"
-        : refunded
-          ? "故事板分镜生成失败，合作方已确认退款，可重新生成这一帧。"
-          : "故事板分镜生成失败，但退款状态尚未确认。为避免重复计费，请联系支持核对。";
+    const message = refundError
+      ? "故事板生成失败且退款状态异常。为避免重复计费，请联系支持核对。"
+      : refunded
+        ? "故事板分镜生成失败，合作方已确认退款，可重新生成这一帧。"
+        : "故事板分镜生成失败，但退款状态尚未确认。为避免重复计费，请联系支持核对。";
     // Frame-level failure only; advanceRun settles the run after every
     // sibling reaches a terminal state so completed frames stay harvestable.
     await db.storyboardFrame.updateMany({
@@ -1174,10 +1171,8 @@ async function reconcileStoryboardFrame(frameId: string): Promise<void> {
   }
 
   const outputUrl = result.outputUrls[0];
-  if (!outputUrl) throw new Error(`${viaRunway ? "Runway" : "Shuyu"} storyboard completed without an image`);
-  const generated = viaRunway
-    ? await runtime().runwayFetchOutput(outputUrl)
-    : await runtime().fetchOutput(outputUrl);
+  if (!outputUrl) throw new Error("Shuyu storyboard completed without an image");
+  const generated = await runtime().fetchOutput(outputUrl);
   const storage = runtime().storage();
   if (!storage.isConfigured()) throw new Error("故事板存储暂不可用");
   const extension = generated.mimeType === "image/png"

@@ -26,7 +26,7 @@ test("single video creation exposes the full Aivora workflow and four-frame appr
   // 1025 · B2.5：故事板标签是「AI 故事板」，不露内部模型名
   assert.doesNotMatch(panel, /Image 2/);
   assert.match(panel, /AI 故事板/);
-  /// 10-29：客户的线路卡（标准 = Aivora 视频通道 / 高质量 = Runway）挪进 customer-route-picker
+  /// 10-29：客户的线路卡（标准 = Aivora 视频通道，11-16 起只有这一条）挪进 customer-route-picker
   assert.match(studio, /<CustomerRoutePicker/);
   assert.match(await readFile("src/components/video-generation/customer-route-picker.tsx", "utf8"), /Aivora 视频通道/);
 

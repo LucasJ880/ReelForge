@@ -362,7 +362,7 @@ test("validateDeploymentEnv: explicit legacy CN profile 只接受旧 credential 
 });
 
 // ---------------------------------------------------------------------------
-// 线路精简（2026-11-09）：客户出片只走 Shuyu / Runway，直连密钥缺失不该再让健康检查 503
+// 线路精简（2026-11-09；11-16 起客户出片只走 Shuyu），直连密钥缺失不该再让健康检查 503
 // ---------------------------------------------------------------------------
 
 const PROD_LIKE: EnvMap = {
@@ -383,13 +383,13 @@ test("validateDeploymentEnv: 火山直连密钥删掉后，只要 Shuyu 配着�
   assert.ok(r.warnings.some((w) => /ARK_API_KEY 未配置/.test(w) && /走 Shuyu 不受影响/.test(w)));
 });
 
-test("validateDeploymentEnv: 2026-11-16 Runway 出片下线，只配 Runway 不再算有客户线路", () => {
+test("validateDeploymentEnv: 2026-11-16 Runway 出片的代码已删，线上残留的 RUNWAYML_API_SECRET 不算有客户线路", () => {
   const r = validateDeploymentEnv({ ...PROD_LIKE, RUNWAYML_API_SECRET: "runway-key" });
   assert.equal(r.ok, false);
   assert.ok(r.missing.some((m) => /ARK_API_KEY/.test(m)));
 });
 
-test("validateDeploymentEnv: 直连、Shuyu、Runway 都没配 → 照旧 fail closed（真的没有线路能出片）", () => {
+test("validateDeploymentEnv: 直连、Shuyu 都没配 → 照旧 fail closed（真的没有线路能出片）", () => {
   const r = validateDeploymentEnv(PROD_LIKE);
   assert.equal(r.ok, false);
   assert.ok(r.missing.some((m) => /ARK_API_KEY/.test(m)));

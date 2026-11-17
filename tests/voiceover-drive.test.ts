@@ -100,10 +100,10 @@ test("dispatch：能力闸在幂等登记、扣额与供应商提交之前，返
   const window = source.slice(gate, gate + 400);
   assert.match(window, /dispatchErrorResponse\(422/);
   assert.match(window, /code: "VALIDATION_FAILED"/);
-  /// 降级换线路后按新线路复核
-  const failover = source.indexOf("if (routeResolution.failedOver)");
-  const recheck = source.indexOf("evaluateVoiceoverDrive({ voiceover, routeSnapshot: videoRouteSnapshot })", failover);
-  assert.ok(failover > 0 && recheck > failover);
+  /// 2026-11-16 起没有「不可用时换线路」这一步：线路快照选定后不再改写，能力闸只需要判这一次
+  assert.doesNotMatch(source, /routeResolution|failedOver/);
+  assert.doesNotMatch(source, /\n\s*videoRouteSnapshot = (?!selectVideoRouteSnapshot\()/, "快照只在选线路时赋值一次");
+  assert.equal(source.split("evaluateVoiceoverDrive({ voiceover, routeSnapshot: videoRouteSnapshot })").length - 1, 1);
 });
 
 /* ── createBatchJob：真跑到闸门，零提交、零事务 ─────────────────────────── */

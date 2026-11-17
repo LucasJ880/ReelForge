@@ -44,7 +44,7 @@ import { z } from "zod";
 import { videoGenerationRuntimeReadiness } from "@/lib/config/env";
 import {
   canVideoRouteOverrideDefaultRuntimeFailure,
-  resolveRouteWithFailover,
+  getVideoRouteSnapshotRuntimeAvailability,
   selectVideoRouteSnapshot,
   VideoRouteSelectionError,
 } from "@/lib/video-generation/video-route-selection";
@@ -253,8 +253,6 @@ export async function POST(req: NextRequest) {
       // `/app/create` is a customer-facing production surface even when an
       // operator is rehearsing it. Never inherit a legacy provider default.
       isInternalStaff: false,
-      /// Runway 灰度名单按发起人判（runway-rollout.ts）
-      account: { userId: session.user.id, email: session.user.email ?? null },
     });
   } catch (error) {
     if (error instanceof VideoRouteSelectionError) {
@@ -575,58 +573,31 @@ export async function POST(req: NextRequest) {
       buddyPerVideoPoints = undefined;
     }
   }
-  /// 备用线路也不行时，照旧 503，用户可以用「取消这一轮」免费退出。
-  const routeResolution = await resolveRouteWithFailover({
+  /// 没有备用线路：这条线路此刻接不了单就 503，用户可以用「取消这一轮」免费退出。
+  const selectedRouteAvailability = await getVideoRouteSnapshotRuntimeAvailability({
     snapshot: videoRouteSnapshot,
     shuyuRequiredPoints:
       buddyPerVideoPoints !== undefined
         ? batchCount * buddyPerVideoPoints
         : undefined,
-    allowFailover: true,
   });
-  const selectedRouteAvailability = routeResolution.primaryAvailability;
   if (!selectedRouteAvailability.available) {
     console.error("[dispatch] selected video route unavailable", {
       videoRouteId: videoRouteSnapshot.videoRouteSnapshot,
       reason: selectedRouteAvailability.reason,
     });
   }
-  if (routeResolution.failedOver) {
-    console.warn("[dispatch] failing over to backup video route", {
-      from: videoRouteSnapshot.videoRouteSnapshot,
-      to: routeResolution.snapshot.videoRouteSnapshot,
-      reason: selectedRouteAvailability.reason,
-    });
-    /// 快照在此处改写；requestHash 仍按原始请求计算，
-    /// 因为「同一个创作请求」的幂等身份不该随线路变化而分裂。
-    videoRouteSnapshot = routeResolution.snapshot;
-    const failoverDriveCheck = await evaluateVoiceoverDrive({ voiceover, routeSnapshot: videoRouteSnapshot });
-    if (!failoverDriveCheck.ok) {
-      return finalResponse(
-        toCustomerVideoDispatchError({
-          code: "VALIDATION_FAILED",
-          message: failoverDriveCheck.message,
-          retryable: false,
-          action: "fix_request",
-        }),
-        422,
-      );
-    }
-  }
   if (
     !selectedRouteAvailability.available &&
-    (videoRouteSnapshot.videoRouteSnapshot === "buddy" ||
-      videoRouteSnapshot.videoRouteSnapshot === "runway")
+    videoRouteSnapshot.videoRouteSnapshot === "buddy"
   ) {
     return finalResponse(
       toCustomerVideoDispatchError({
         code: "SERVICE_UNAVAILABLE",
         message:
-          videoRouteSnapshot.videoRouteSnapshot === "runway"
-            ? "视频生成服务暂时不可用，请稍后重试；若持续发生，请联系支持。"
-            : selectedRouteAvailability.reason === "insufficient_balance"
-              ? "合作方视频线路暂时余额不足，请稍后重试；若持续发生，请联系支持。"
-              : "合作方视频生成服务暂时不可用，请稍后重试；若持续发生，请联系支持。",
+          selectedRouteAvailability.reason === "insufficient_balance"
+            ? "合作方视频线路暂时余额不足，请稍后重试；若持续发生，请联系支持。"
+            : "合作方视频生成服务暂时不可用，请稍后重试；若持续发生，请联系支持。",
         retryable: true,
         action: "retry",
       }),

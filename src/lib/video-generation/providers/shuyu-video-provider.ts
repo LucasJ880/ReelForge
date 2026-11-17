@@ -52,7 +52,7 @@ function requestedShuyuVideoPlanTier(
  * 同键重投（Shuyu 明说没建任务、没扣点、要求用同一个 Idempotency-Key 重试的拒单，见
  * isShuyuSameKeyRetryable）：退避 2s、5s，最多重投两次，且必须在首次提交后 15s 内开始——
  * 批量任务的提交租约只有 60s（单次提交的确认上限 45s），单条派发是客户在等的同步请求。
- * 用完仍被拒就原样抛出（确认未建任务、可重试）：单条视频由派发入口改交 Runway，
+ * 用完仍被拒就原样抛出（确认未建任务、可重试）：单条视频这一条明确失败（没有备用线路，可重试、可免费取消），
  * 批量由队列按自己的上限换新键退避。
  */
 const SAME_KEY_RETRY_DELAYS_MS: readonly number[] = [2_000, 5_000];

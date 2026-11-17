@@ -125,7 +125,7 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | POST | `/api/video-generation/plan` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
 | POST | `/api/video-generation/classify-asset` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
 | GET | `/api/video-generation/routes` | Session; read-only | VERIFIED strict: returns only sanitized direct/Shuyu availability; raw supplier balance and credentials are excluded |
-| GET | `/api/video-generation/routes/catalog` | Session; read-only | Customer route card (2026-10-29): standard (Shuyu) / high-quality (Runway) availability + every Shuyu video family with integrated flag; no supplier prices, balance or credentials |
+| GET | `/api/video-generation/routes/catalog` | Session; read-only | Customer route card (2026-10-29; standard route only since 2026-11-16, when the Runway high-quality option was deleted): standard (Shuyu) availability + every Shuyu video family with integrated flag; no supplier prices, balance or credentials |
 | POST | `/api/video-generation/dispatch` | Session; idempotency required | VERIFIED H1 strict: complete success DTO, closed error schema, replay/CAS and ambiguous-billing fail-closed tests |
 | POST | `/api/video-generation/storyboards` | Session; idempotency required | VERIFIED: owner-scoped durable Shuyu Image 2 storyboard creation |
 | POST | `/api/video-generation/voiceover-draft` | Session (generation persona) | 2026-10-28: AI voice-over draft from the merchant description; returns null → client keeps the template draft; no quota, no generation |

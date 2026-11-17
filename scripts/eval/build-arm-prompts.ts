@@ -61,7 +61,7 @@ async function loadKelinMethod() {
   };
 }
 
-/// Kling 官方接口的提示词上限（Runway 侧 10-28 实测同值）；Shuyu 转发 Kling 时按它写，免得尾巴被截
+/// Kling 官方接口的提示词上限（2026-10-28 在当时的 Runway 线路上实测同值，那条线路已下线）；Shuyu 转发 Kling 时按它写，免得尾巴被截
 const KLING_PROMPT_LIMIT = 2500;
 
 async function promptsForCase(item: EvalCase, options: { characterSheet: boolean; klingPlanId: string | null }) {

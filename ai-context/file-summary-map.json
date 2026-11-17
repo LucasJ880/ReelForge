@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T00:09:46.315Z",
+  "generatedAt": "2026-11-17T00:12:06.565Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -9468,7 +9468,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 0,
-      "sizeBytes": 17246,
+      "sizeBytes": 16719,
       "notes": "area=config"
     },
     {
@@ -9816,8 +9816,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 127,
-      "sizeBytes": 12321,
+      "lineCount": 130,
+      "sizeBytes": 12669,
       "notes": "Documentation"
     },
     {
@@ -13710,7 +13710,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 355,
-      "sizeBytes": 40918,
+      "sizeBytes": 40981,
       "notes": "Documentation; area=media-processing"
     },
     {
@@ -13761,7 +13761,7 @@
         "nodeVersionProblem"
       ],
       "lineCount": 33,
-      "sizeBytes": 1578,
+      "sizeBytes": 1557,
       "notes": "Maintenance / one-off script (run via tsx); area=scripts"
     },
     {
@@ -13908,7 +13908,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 208,
-      "sizeBytes": 9977,
+      "sizeBytes": 10024,
       "notes": "Maintenance / one-off script (run via tsx); area=scripts"
     },
     {
@@ -14177,16 +14177,15 @@
         "SOAK_WAVES",
         "SoakWave",
         "SOAK_WAVE_LABELS",
-        "SoakRoute",
         "SoakItem",
         "expandSoakItems",
         "selectSoakItems",
-        "assignRunwayRoutes",
         "parseWave",
         "soakPrompt",
         "soakStoryboardBody",
         "soakDispatchBody",
         "SoakManifest",
+        "assertNoRetiredRouteItems",
         "assertManifestMatches",
         "SoakFrameFact",
         "SoakJobFact",
@@ -14194,7 +14193,8 @@
         "SoakRecord",
         "blankSoakAttempt",
         "initialSoakRecord",
-        "soakIdempotencyKey"
+        "soakIdempotencyKey",
+        "SoakOutcome"
       ],
       "imports": [
         "./experiment-budget",
@@ -14210,8 +14210,8 @@
         "SoakAngleId",
         "SOAK_GROUPS"
       ],
-      "lineCount": 1351,
-      "sizeBytes": 69734,
+      "lineCount": 1301,
+      "sizeBytes": 65905,
       "notes": "Maintenance / one-off script (run via tsx); area=scripts"
     },
     {
@@ -14416,14 +14416,13 @@
         "@/lib/schemas/unified-input",
         "@/lib/services/media-asset-service",
         "@/lib/video-generation/generation-supervisor",
-        "@/lib/video-generation/runway-rollout",
         "@/lib/providers/shuyu",
         "@/lib/providers/shuyu-catalog",
         "@/lib/ai"
       ],
       "importantSymbols": [],
-      "lineCount": 1302,
-      "sizeBytes": 71142,
+      "lineCount": 1266,
+      "sizeBytes": 68203,
       "notes": "Maintenance / one-off script (run via tsx); NextAuth session check; area=media-processing"
     },
     {
@@ -16582,8 +16581,8 @@
       "importantSymbols": [
         "POST"
       ],
-      "lineCount": 302,
-      "sizeBytes": 12680,
+      "lineCount": 310,
+      "sizeBytes": 13325,
       "notes": "Next.js API route handler; hits Prisma DB; area=media-processing"
     },
     {
@@ -18284,8 +18283,8 @@
       "importantSymbols": [
         "POST"
       ],
-      "lineCount": 1165,
-      "sizeBytes": 41789,
+      "lineCount": 1136,
+      "sizeBytes": 40489,
       "notes": "Next.js API route handler; hits Prisma DB; area=video-generation"
     },
     {
@@ -18358,8 +18357,8 @@
         "runtime",
         "dynamic"
       ],
-      "lineCount": 22,
-      "sizeBytes": 872,
+      "lineCount": 20,
+      "sizeBytes": 769,
       "notes": "Next.js API route handler; area=video-generation"
     },
     {
@@ -21402,7 +21401,6 @@
       "type": "component",
       "area": "video-generation",
       "exports": [
-        "CustomerRouteChoice",
         "CustomerRoutePicker"
       ],
       "imports": [
@@ -21412,11 +21410,10 @@
         "@/lib/utils"
       ],
       "importantSymbols": [
-        "CustomerRouteChoice",
         "CustomerRoutePicker"
       ],
-      "lineCount": 189,
-      "sizeBytes": 8274,
+      "lineCount": 148,
+      "sizeBytes": 6289,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -21567,8 +21564,8 @@
         "StudioReadings",
         "StreamlinedVideoStudio"
       ],
-      "lineCount": 2988,
-      "sizeBytes": 134304,
+      "lineCount": 2977,
+      "sizeBytes": 133853,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -22610,7 +22607,7 @@
         "CapabilityReason"
       ],
       "lineCount": 804,
-      "sizeBytes": 34630,
+      "sizeBytes": 34636,
       "notes": "Utility / helper module"
     },
     {
@@ -22770,7 +22767,7 @@
         "VideoGenerationRuntimeUnavailableReason"
       ],
       "lineCount": 428,
-      "sizeBytes": 14351,
+      "sizeBytes": 14360,
       "notes": "Utility / helper module"
     },
     {
@@ -23591,8 +23588,8 @@
         "videoRouteFamilySchema",
         "videoRouteCatalogSchema"
       ],
-      "lineCount": 56,
-      "sizeBytes": 2500,
+      "lineCount": 46,
+      "sizeBytes": 2170,
       "notes": "Utility / helper module"
     },
     {
@@ -23677,7 +23674,7 @@
         "PRODUCT_ANCHOR_ENTRY_ENABLED"
       ],
       "lineCount": 24,
-      "sizeBytes": 1360,
+      "sizeBytes": 1392,
       "notes": "Utility / helper module"
     },
     {
@@ -24641,56 +24638,6 @@
       "notes": "External API provider wrapper; area=ai-providers"
     },
     {
-      "path": "src/lib/providers/runway.ts",
-      "type": "provider",
-      "area": "ai-providers",
-      "exports": [
-        "RUNWAY_API_BASE_URL",
-        "RUNWAY_API_VERSION",
-        "RUNWAY_USD_PER_CREDIT",
-        "RunwayFetchOptions",
-        "runwayApiKey",
-        "runwayVideoResolution",
-        "runwayBaseUrl",
-        "RUNWAY_VIDEO_MODELS",
-        "RunwayVideoModel",
-        "isRunwayVideoModel",
-        "RunwayPromptImage",
-        "RunwayVideoRequest",
-        "RunwayApiError",
-        "RunwayTask",
-        "RunwayTaskStatus",
-        "RunwayImageRequest",
-        "RUNWAY_IMAGE_REFERENCES_MAX",
-        "runwayImageRatio",
-        "createRunwayTask",
-        "getRunwayTask",
-        "cancelRunwayTask",
-        "getRunwayCreditBalance",
-        "runwayRatio",
-        "RUNWAY_MODEL_LIMITS",
-        "isKlingRunwayModel",
-        "runwayCreditsToUsd",
-        "fetchRunwayOutputImage"
-      ],
-      "imports": [
-        "zod"
-      ],
-      "importantSymbols": [
-        "RUNWAY_API_BASE_URL",
-        "RUNWAY_API_VERSION",
-        "RUNWAY_USD_PER_CREDIT",
-        "RunwayFetchOptions",
-        "RUNWAY_VIDEO_MODELS",
-        "RunwayVideoModel",
-        "RunwayPromptImage",
-        "RunwayVideoRequest"
-      ],
-      "lineCount": 312,
-      "sizeBytes": 13179,
-      "notes": "External API provider wrapper; area=ai-providers"
-    },
-    {
       "path": "src/lib/providers/seedance.ts",
       "type": "provider",
       "area": "ai-providers",
@@ -25590,8 +25537,8 @@
         "BatchDispatchNotAuthorizedError",
         "CreateBatchInput"
       ],
-      "lineCount": 2716,
-      "sizeBytes": 96491,
+      "lineCount": 2715,
+      "sizeBytes": 96496,
       "notes": "Business logic service; hits Prisma DB; NextAuth session check"
     },
     {
@@ -27554,7 +27501,7 @@
         "isQuotaEnforced"
       ],
       "lineCount": 964,
-      "sizeBytes": 33544,
+      "sizeBytes": 33572,
       "notes": "Business logic service; hits Prisma DB; NextAuth session check"
     },
     {
@@ -28224,7 +28171,6 @@
       "type": "service",
       "area": "shared",
       "exports": [
-        "RUNWAY_PREMIUM_MODEL_LABEL",
         "shuyuFamilyLabel",
         "buildVideoRouteCatalog",
         "loadVideoRouteCatalog",
@@ -28232,21 +28178,18 @@
       ],
       "imports": [
         "@/lib/contracts/video-route-catalog",
-        "@/lib/providers/runway",
         "@/lib/providers/shuyu",
-        "@/lib/video-generation/runway-rollout",
         "@/lib/video-generation/shuyu-runtime",
         "zod"
       ],
       "importantSymbols": [
-        "RUNWAY_PREMIUM_MODEL_LABEL",
         "shuyuFamilyLabel",
         "buildVideoRouteCatalog",
         "loadVideoRouteCatalog",
         "__testVideoRouteCatalog__"
       ],
-      "lineCount": 136,
-      "sizeBytes": 5571,
+      "lineCount": 112,
+      "sizeBytes": 4688,
       "notes": "Business logic service"
     },
     {
@@ -28281,8 +28224,9 @@
       "area": "media-processing",
       "exports": [
         "HistoricalVideoRouteUnknownError",
+        "RETIRED_VIDEO_ROUTE_REGENERATION_MESSAGE",
+        "assertVideoRouteNotRetiredForRegeneration",
         "dispatchVideoForBrief",
-        "RunwayFallbackDeps",
         "dispatchMultiSegmentGeneration",
         "segmentReferenceImageLimit",
         "buildSegmentSubmitInput",
@@ -28332,27 +28276,26 @@
         "@/lib/video-generation/brief-delivery-state",
         "next-auth",
         "@/lib/demo-account",
-        "@/lib/storage/trusted-media-url",
         "@/lib/video-generation/segment-redo",
         "./quota-service",
         "./quota-refund-service",
         "@/lib/video-generation/storyboard-service",
         "@/lib/video-generation/storyboard-beats",
-        "@/lib/providers/runway",
-        "@/lib/providers/shuyu"
+        "./ops-alert-service",
+        "./stitch-service"
       ],
       "importantSymbols": [
         "HistoricalVideoRouteUnknownError",
-        "RunwayFallbackDeps",
+        "RETIRED_VIDEO_ROUTE_REGENERATION_MESSAGE",
         "PreparedSegmentRedo",
         "CommitSegmentRedoOptions",
         "BriefRenderSummary",
         "BriefRenderUserStatus",
         "CustomerBriefRenderSummary",
-        "dispatchVideoForBrief"
+        "assertVideoRouteNotRetiredForRegeneration"
       ],
-      "lineCount": 3011,
-      "sizeBytes": 111742,
+      "lineCount": 2761,
+      "sizeBytes": 99820,
       "notes": "Business logic service; hits Prisma DB; NextAuth session check; area=media-processing"
     },
     {
@@ -30196,6 +30139,7 @@
       "type": "util",
       "area": "video-generation",
       "exports": [
+        "RetiredVideoRouteError",
         "getVideoProvider",
         "createVideoProvider",
         "createVideoProviderById",
@@ -30209,12 +30153,11 @@
         "./mock-video-provider",
         "./byteplus-video-provider",
         "./shuyu-video-provider",
-        "./runway-video-provider",
-        "@/lib/providers/runway",
         "./types",
         "../video-route-registry"
       ],
       "importantSymbols": [
+        "RetiredVideoRouteError",
         "getVideoProvider",
         "createVideoProvider",
         "createVideoProviderById",
@@ -30222,8 +30165,8 @@
         "__resetVideoProviderForTests",
         "normalizeStatusBuiltin"
       ],
-      "lineCount": 103,
-      "sizeBytes": 3502,
+      "lineCount": 108,
+      "sizeBytes": 3727,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -30249,31 +30192,6 @@
       "notes": "Utility / helper module; area=media-processing"
     },
     {
-      "path": "src/lib/video-generation/providers/runway-video-provider.ts",
-      "type": "util",
-      "area": "video-generation",
-      "exports": [
-        "buildRunwayVideoRequest",
-        "normalizeRunwayStatus",
-        "runwaySubmissionError",
-        "RunwayVideoProvider"
-      ],
-      "imports": [
-        "@/lib/providers/runway",
-        "./submission-error",
-        "./types"
-      ],
-      "importantSymbols": [
-        "RunwayVideoProvider",
-        "buildRunwayVideoRequest",
-        "normalizeRunwayStatus",
-        "runwaySubmissionError"
-      ],
-      "lineCount": 272,
-      "sizeBytes": 11843,
-      "notes": "Utility / helper module; area=video-generation"
-    },
-    {
       "path": "src/lib/video-generation/providers/shuyu-video-provider.ts",
       "type": "util",
       "area": "video-generation",
@@ -30293,7 +30211,7 @@
         "ShuyuVideoProvider"
       ],
       "lineCount": 412,
-      "sizeBytes": 16166,
+      "sizeBytes": 16213,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -30356,7 +30274,7 @@
         "VideoProvider"
       ],
       "lineCount": 163,
-      "sizeBytes": 6152,
+      "sizeBytes": 6141,
       "notes": "Utility / helper module; area=media-processing"
     },
     {
@@ -30418,106 +30336,6 @@
       "lineCount": 106,
       "sizeBytes": 4349,
       "notes": "Utility / helper module; area=ffmpeg"
-    },
-    {
-      "path": "src/lib/video-generation/runway-fallback.ts",
-      "type": "util",
-      "area": "video-generation",
-      "exports": [
-        "PROVIDER_FAILED_ERROR_PREFIX",
-        "RunwayFallbackJob",
-        "RunwayFallbackTrigger",
-        "RunwayFallbackDecision",
-        "RouteFallbackPrimary",
-        "routeFallbackDecision",
-        "runwayFallbackDecision",
-        "directorPlanBeforeGrounding"
-      ],
-      "imports": [
-        "@/lib/schemas/director-plan",
-        "@/types/video-generation",
-        "./plan-to-director"
-      ],
-      "importantSymbols": [
-        "PROVIDER_FAILED_ERROR_PREFIX",
-        "RunwayFallbackJob",
-        "RunwayFallbackTrigger",
-        "RunwayFallbackDecision",
-        "RouteFallbackPrimary",
-        "routeFallbackDecision",
-        "runwayFallbackDecision",
-        "directorPlanBeforeGrounding"
-      ],
-      "lineCount": 123,
-      "sizeBytes": 5995,
-      "notes": "Utility / helper module; area=video-generation"
-    },
-    {
-      "path": "src/lib/video-generation/runway-rollout.ts",
-      "type": "util",
-      "area": "video-generation",
-      "exports": [
-        "RUNWAY_RETIRED",
-        "RolloutAccount",
-        "runwayPilotAccounts",
-        "isRunwayGlobalRollout",
-        "isRunwayPilotAccount",
-        "usesRunwayVideo",
-        "RunwayPremiumMode",
-        "runwayPremiumMode",
-        "canChooseRunwayPremium",
-        "shuyuFallbackToRunwayEnabled",
-        "usesRunwayStoryboardImages"
-      ],
-      "imports": [
-        "@/lib/providers/runway"
-      ],
-      "importantSymbols": [
-        "RUNWAY_RETIRED",
-        "RolloutAccount",
-        "RunwayPremiumMode",
-        "runwayPilotAccounts",
-        "isRunwayGlobalRollout",
-        "isRunwayPilotAccount",
-        "usesRunwayVideo",
-        "runwayPremiumMode"
-      ],
-      "lineCount": 89,
-      "sizeBytes": 5101,
-      "notes": "Utility / helper module; area=video-generation"
-    },
-    {
-      "path": "src/lib/video-generation/runway-storyboard-images.ts",
-      "type": "util",
-      "area": "video-generation",
-      "exports": [
-        "RUNWAY_STORYBOARD_PLAN_ID",
-        "RUNWAY_STORYBOARD_IMAGE_MODEL",
-        "RunwayStoryboardImageResult",
-        "submitRunwayStoryboardImage",
-        "pollRunwayStoryboardImage",
-        "fetchRunwayStoryboardImage",
-        "runwayStoryboardImagesForUser"
-      ],
-      "imports": [
-        "@/lib/db",
-        "@/lib/providers/runway",
-        "./providers/submission-error",
-        "./providers/runway-video-provider",
-        "./runway-rollout"
-      ],
-      "importantSymbols": [
-        "RUNWAY_STORYBOARD_PLAN_ID",
-        "RUNWAY_STORYBOARD_IMAGE_MODEL",
-        "RunwayStoryboardImageResult",
-        "submitRunwayStoryboardImage",
-        "pollRunwayStoryboardImage",
-        "fetchRunwayStoryboardImage",
-        "runwayStoryboardImagesForUser"
-      ],
-      "lineCount": 91,
-      "sizeBytes": 3526,
-      "notes": "Utility / helper module; area=video-generation"
     },
     {
       "path": "src/lib/video-generation/segment-planner-adapter.ts",
@@ -30785,10 +30603,6 @@
         "StoryboardReferenceLayout",
         "readStoryboardReferenceLayout",
         "groundSegmentPromptInStoryboard",
-        "KLING_VIDEO_PROMPT_LIMIT",
-        "storyboardOpeningFrameOrdinal",
-        "storyboardOpeningFrameUrl",
-        "groundSegmentPromptForOpeningFrame",
         "shuyuOpeningFramePromptEnabled",
         "SEEDANCE_OPENING_FRAME_MARKER",
         "groundSegmentPromptForSeedanceOpeningFrame"
@@ -30806,8 +30620,8 @@
         "NEGATIVE_CONSTRAINTS_SEPARATOR",
         "StoryboardReferenceLayout"
       ],
-      "lineCount": 764,
-      "sizeBytes": 44039,
+      "lineCount": 602,
+      "sizeBytes": 34331,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -31019,6 +30833,9 @@
         "buildStoryboardFramePlans",
         "buildRegeneratedStoryboardFramePrompt",
         "storyboardRunView",
+        "STORYBOARD_RETIRED_PROVIDER_FRAME_CODE",
+        "STORYBOARD_RETIRED_PROVIDER_FRAME_MESSAGE",
+        "isRetiredStoryboardFramePlan",
         "canRegenerateStoryboardFrame",
         "createStoryboardRun",
         "reconcileStoryboardRun",
@@ -31036,10 +30853,7 @@
         "SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT",
         "singleVideoReferenceImageLimitForAdapter",
         "SINGLE_VIDEO_GUARANTEED_PRODUCT_PHOTOS",
-        "SingleVideoReferenceGroups",
-        "composeSingleVideoReferenceGroups",
-        "composeSingleVideoReferenceImages",
-        "requireApprovedStoryboardVideoReferencesForBrief"
+        "SingleVideoReferenceGroups"
       ],
       "imports": [
         "node:crypto",
@@ -31049,7 +30863,6 @@
         "@/lib/services/vision-budget-context",
         "@/lib/providers/shuyu-image-provider",
         "@/lib/providers/shuyu",
-        "@/lib/video-generation/runway-storyboard-images",
         "@/lib/video-generation/video-route-registry",
         "@/types/video-generation",
         "@/lib/services/media-asset-service",
@@ -31073,12 +30886,12 @@
         "StoryboardRunView",
         "ResumableStoryboardContext",
         "StoryboardRequestError",
-        "PendingStoryboardSummary",
-        "SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT",
-        "SINGLE_VIDEO_GUARANTEED_PRODUCT_PHOTOS"
+        "STORYBOARD_RETIRED_PROVIDER_FRAME_CODE",
+        "STORYBOARD_RETIRED_PROVIDER_FRAME_MESSAGE",
+        "PendingStoryboardSummary"
       ],
-      "lineCount": 2706,
-      "sizeBytes": 109057,
+      "lineCount": 2701,
+      "sizeBytes": 108770,
       "notes": "Utility / helper module; hits Prisma DB; area=video-generation"
     },
     {
@@ -31253,7 +31066,7 @@
         "resolveVideoRouteCostSnapshot"
       ],
       "lineCount": 58,
-      "sizeBytes": 2266,
+      "sizeBytes": 2263,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -31262,6 +31075,7 @@
       "area": "video-generation",
       "exports": [
         "VIDEO_ROUTE_IDS",
+        "RETIRED_VIDEO_ROUTE_IDS",
         "VideoRouteId",
         "EnabledVideoRouteId",
         "VideoProviderAdapterSnapshot",
@@ -31271,6 +31085,7 @@
         "PersistedVideoRouteSnapshotInput",
         "ReadVideoRouteSnapshot",
         "getVideoRouteContract",
+        "isRetiredVideoRouteId",
         "isEnabledVideoRouteId",
         "createVideoRouteSnapshot",
         "readVideoRouteSnapshot"
@@ -31278,16 +31093,16 @@
       "imports": [],
       "importantSymbols": [
         "VIDEO_ROUTE_IDS",
+        "RETIRED_VIDEO_ROUTE_IDS",
         "VideoRouteId",
         "EnabledVideoRouteId",
         "VideoProviderAdapterSnapshot",
         "VideoRouteContract",
         "VIDEO_ROUTE_REGISTRY",
-        "VideoRouteSnapshot",
-        "PersistedVideoRouteSnapshotInput"
+        "VideoRouteSnapshot"
       ],
-      "lineCount": 192,
-      "sizeBytes": 6650,
+      "lineCount": 208,
+      "sizeBytes": 7405,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -31296,42 +31111,34 @@
       "area": "video-generation",
       "exports": [
         "STAFF_SELECTABLE_VIDEO_ROUTE_IDS",
-        "CustomerVideoRouteId",
-        "customerVideoRouteId",
         "StaffSelectableVideoRouteId",
         "VideoRouteSelectionError",
         "selectCustomerVideoRouteSnapshot",
-        "customerFailoverRouteSnapshot",
         "selectVideoRouteSnapshot",
         "isVideoRouteSnapshotRuntimeReady",
         "canVideoRouteOverrideDefaultRuntimeFailure",
         "getVideoRouteSnapshotRuntimeAvailability",
-        "VideoRouteRuntimeAvailability",
-        "RouteFailoverDeps",
-        "RouteFailoverResolution",
-        "resolveRouteWithFailover"
+        "VideoRouteRuntimeAvailability"
       ],
       "imports": [
         "@/lib/config/env",
         "@/lib/config/seedance-runtime",
-        "@/lib/providers/runway",
-        "./runway-rollout",
         "@/lib/providers/shuyu",
         "./shuyu-runtime",
         "./video-route-registry"
       ],
       "importantSymbols": [
         "STAFF_SELECTABLE_VIDEO_ROUTE_IDS",
-        "CustomerVideoRouteId",
         "StaffSelectableVideoRouteId",
         "VideoRouteSelectionError",
         "VideoRouteRuntimeAvailability",
-        "RouteFailoverDeps",
-        "RouteFailoverResolution",
-        "customerVideoRouteId"
+        "selectCustomerVideoRouteSnapshot",
+        "selectVideoRouteSnapshot",
+        "isVideoRouteSnapshotRuntimeReady",
+        "canVideoRouteOverrideDefaultRuntimeFailure"
       ],
-      "lineCount": 353,
-      "sizeBytes": 12847,
+      "lineCount": 216,
+      "sizeBytes": 6706,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -32306,8 +32113,8 @@
         "../src/lib/video-generation/shuyu-runtime"
       ],
       "importantSymbols": [],
-      "lineCount": 260,
-      "sizeBytes": 9211,
+      "lineCount": 274,
+      "sizeBytes": 9993,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
@@ -32992,7 +32799,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 405,
-      "sizeBytes": 13746,
+      "sizeBytes": 13765,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -33483,23 +33290,6 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
-      "path": "tests/customer-route-failover.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test",
-        "../src/lib/video-generation/video-route-registry",
-        "../src/lib/video-generation/video-route-selection"
-      ],
-      "importantSymbols": [],
-      "lineCount": 240,
-      "sizeBytes": 8821,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/customer-route-states.test.ts",
       "type": "test",
       "area": "tests",
@@ -33587,7 +33377,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 423,
-      "sizeBytes": 12676,
+      "sizeBytes": 12710,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
@@ -34537,25 +34327,6 @@
       "importantSymbols": [],
       "lineCount": 88,
       "sizeBytes": 3129,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/kling-storyboard-prompt.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test",
-        "../src/lib/video-generation/storyboard-beats",
-        "../src/lib/providers/runway",
-        "../src/lib/video-generation/prompt-intelligence",
-        "../src/lib/video-generation/shot-cards"
-      ],
-      "importantSymbols": [],
-      "lineCount": 176,
-      "sizeBytes": 13792,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -36091,7 +35862,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 155,
-      "sizeBytes": 6943,
+      "sizeBytes": 6986,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -36193,90 +35964,34 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
-      "path": "tests/runway-fallback.test.ts",
+      "path": "tests/runway-retired-legacy-rows.test.ts",
       "type": "test",
       "area": "tests",
       "exports": [],
       "imports": [
         "node:assert/strict",
+        "node:fs/promises",
+        "node:module",
         "node:test",
         "@prisma/client",
+        "next/server",
         "../src/lib/db",
-        "../src/lib/providers/shuyu",
-        "../src/lib/schemas/unified-input",
+        "../src/lib/auth",
+        "../src/app/api/briefs/[id]/render-retry/route",
+        "../src/lib/services/stitch-service",
         "../src/lib/services/video-service",
-        "../src/lib/services/video-watchdog",
-        "../src/lib/video-generation/generation-supervisor",
-        "../src/lib/video-generation/plan-to-director",
-        "../src/lib/video-generation/providers/shuyu-video-provider",
-        "../src/lib/video-generation/providers/submission-error",
-        "../src/lib/video-generation/providers/types",
-        "../src/lib/video-generation/runway-fallback",
-        "../src/lib/video-generation/storyboard-beats",
-        "../src/lib/video-generation/video-route-registry",
-        "../src/types/video-generation"
-      ],
-      "importantSymbols": [],
-      "lineCount": 667,
-      "sizeBytes": 28926,
-      "notes": "Unit / integration test; hits Prisma DB; area=tests"
-    },
-    {
-      "path": "tests/runway-provider.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/providers/runway",
-        "../src/lib/video-generation/providers/runway-video-provider",
-        "../src/lib/video-generation/providers/submission-error"
-      ],
-      "importantSymbols": [],
-      "lineCount": 272,
-      "sizeBytes": 13128,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/runway-route.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/providers/runway",
         "../src/lib/video-generation/providers",
-        "../src/lib/video-generation/providers/runway-video-provider",
-        "../src/lib/video-generation/video-route-cost",
+        "../src/lib/video-generation/segment-redo",
+        "../src/lib/video-generation/storyboard-service",
         "../src/lib/video-generation/video-route-registry",
         "../src/lib/video-generation/video-route-selection",
-        "../src/lib/video-generation/runway-rollout"
+        "../src/types/video-generation",
+        "next-auth/next"
       ],
       "importantSymbols": [],
-      "lineCount": 151,
-      "sizeBytes": 8291,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/runway-storyboard-images.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/db",
-        "../src/lib/video-generation/storyboard-service",
-        "../src/lib/video-generation/runway-storyboard-images",
-        "../src/lib/providers/runway",
-        "../src/lib/video-generation/providers/runway-video-provider"
-      ],
-      "importantSymbols": [],
-      "lineCount": 231,
-      "sizeBytes": 9582,
-      "notes": "Unit / integration test; area=tests"
+      "lineCount": 582,
+      "sizeBytes": 26292,
+      "notes": "Unit / integration test; hits Prisma DB; NextAuth session check; area=tests"
     },
     {
       "path": "tests/scheduler-heartbeat-collector.test.mjs",
@@ -36367,8 +36082,8 @@
         "../src/lib/video-generation/character-sheet"
       ],
       "importantSymbols": [],
-      "lineCount": 300,
-      "sizeBytes": 17153,
+      "lineCount": 298,
+      "sizeBytes": 17044,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -36617,8 +36332,8 @@
         "../src/lib/video-generation/video-route-selection"
       ],
       "importantSymbols": [],
-      "lineCount": 366,
-      "sizeBytes": 14555,
+      "lineCount": 369,
+      "sizeBytes": 15040,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -36746,7 +36461,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 342,
-      "sizeBytes": 12824,
+      "sizeBytes": 12814,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -36872,7 +36587,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 87,
-      "sizeBytes": 4274,
+      "sizeBytes": 4280,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -36893,8 +36608,8 @@
         "../src/lib/video-generation/storyboard-service"
       ],
       "importantSymbols": [],
-      "lineCount": 814,
-      "sizeBytes": 51614,
+      "lineCount": 788,
+      "sizeBytes": 49442,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -37344,8 +37059,8 @@
         "../src/lib/video-generation/storyboard-service"
       ],
       "importantSymbols": [],
-      "lineCount": 234,
-      "sizeBytes": 15124,
+      "lineCount": 233,
+      "sizeBytes": 15084,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -38119,7 +37834,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 45,
-      "sizeBytes": 2083,
+      "sizeBytes": 2060,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -38154,8 +37869,8 @@
         "../src/lib/services/video-route-catalog-service"
       ],
       "importantSymbols": [],
-      "lineCount": 123,
-      "sizeBytes": 6204,
+      "lineCount": 115,
+      "sizeBytes": 6504,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -38192,8 +37907,8 @@
         "../src/lib/video-generation/video-route-registry"
       ],
       "importantSymbols": [],
-      "lineCount": 120,
-      "sizeBytes": 3855,
+      "lineCount": 149,
+      "sizeBytes": 5218,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -38407,7 +38122,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 209,
-      "sizeBytes": 9401,
+      "sizeBytes": 9563,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {

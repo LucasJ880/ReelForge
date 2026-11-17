@@ -305,7 +305,7 @@ export function parseAppEnv(env: NodeJS.ProcessEnv | Record<string, string | und
  */
 /**
  * 客户出片线路是否配了凭据。只看 env、不发请求。
- * 2026-11-16 Runway 出片下线后客户线路只剩 Shuyu：只配了 RUNWAYML_API_SECRET 不再算「有线路」。
+ * 客户线路只有 Shuyu（Runway 出片 2026-11-16 下线、代码已删）：线上残留的 RUNWAYML_API_SECRET 不算「有线路」。
  */
 function hasCustomerVideoRouteCredential(
   env: NodeJS.ProcessEnv | Record<string, string | undefined>,
@@ -359,7 +359,7 @@ export function validateDeploymentEnv(
       !seedanceApiKey(app.seedanceRuntimeProfile, env) &&
       !isMockVideoRuntime(env)
     ) {
-      /// 线路精简（2026-11-09；11-16 Runway 下线后只剩 Shuyu）：客户出片只走 Shuyu，派发与批量在默认直连线路没配好时
+      /// 线路精简（2026-11-09；11-16 起只剩 Shuyu）：客户出片只走 Shuyu，派发与批量在默认直连线路没配好时
       /// 本来就放行它（canVideoRouteOverrideDefaultRuntimeFailure）。所以只要客户线路配好了，
       /// 直连密钥缺失就只是提醒，不再让 /api/health 报 503——否则这把已欠费账户的密钥永远删不掉。
       /// 客户线路没配时照旧 fail closed：那时真的没有任何线路能出片。

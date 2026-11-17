@@ -94,8 +94,11 @@ npm run context:find -- "..."
 | 只重新合成（换字幕 / BGM / 落款，不扣额度） | `src/lib/video-generation/restitch-patch.ts`、`stitch-service` 的 `prepareRestitch` / `commitRestitch` |
 
 供应商现状（2026-11-16）：生产只留 Shuyu（出图、出片）、OpenAI（出方案、导演线路的故事板图；开关打开时另做字幕的语音识别）两把付费密钥。
-**Runway 出片 11-16 由 CEO 决定彻底下线**：四个入口（「高质量」选项、Shuyu 失败改交、灰度账号故事板出图、全员切换）在 `runway-rollout.ts` 用常量 `RUNWAY_RETIRED` 关死，
-不看环境变量；适配器与改交机制的代码保留（A 级下线），重新启用要改代码。Shuyu 现在没有备用线路，明确失败就是失败（可重试、可免费取消）。
+**Runway 出片 11-16 由 CEO 决定彻底下线，出片与出图的代码当天已全部删除**（适配器、「高质量」选项、Shuyu 失败改交、灰度账号故事板出图、全员切换）。
+只留读旧记录用的部分：`video-route-registry.ts` 里的 `runway` 线路定义（`enabled: false`，建不出新快照、供应商调用一律拒绝），
+以及故事板帧旧 planId `runway:` 的守卫（`storyboard-service.ts`，不交给 Shuyu，提示重新生成这一帧）。
+当初走 Runway 的旧成片照常看、照常只重新合成；「重做一段」「重试失败的段」会被明确拒绝，指到「用同样的素材再做一条」。
+Shuyu 现在没有备用线路，明确失败就是失败（可重试、可免费取消）。
 抠图、商品链接抓取、素材库、配音、内容审核这几条线路已下线（`RETIRED_CAPABILITY_KEYS`）。
 
 ## 5. 交付门

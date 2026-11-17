@@ -3,7 +3,6 @@ import {
   type VideoRouteCatalog,
   type VideoRouteFamily,
 } from "@/lib/contracts/video-route-catalog";
-import { runwayVideoResolution } from "@/lib/providers/runway";
 import {
   auditShuyuVideoPlan,
   defaultAuditedShuyuVideoPlan,
@@ -12,16 +11,10 @@ import {
   shuyuVideoPlanPointsForDuration,
   type shuyuPriceSchema,
 } from "@/lib/providers/shuyu";
-import {
-  canChooseRunwayPremium,
-  shuyuFallbackToRunwayEnabled,
-  type RolloutAccount,
-} from "@/lib/video-generation/runway-rollout";
 import { getShuyuRouteRuntimeAvailability } from "@/lib/video-generation/shuyu-runtime";
 import type { z } from "zod";
 
 type ShuyuPrice = z.infer<typeof shuyuPriceSchema>;
-type Env = NodeJS.ProcessEnv | Record<string, string | undefined>;
 
 /**
  * GET /api/video-generation/routes/catalog 的业务层（2026-10-29）。
@@ -30,7 +23,6 @@ type Env = NodeJS.ProcessEnv | Record<string, string | undefined>;
  * （「SY Kling 4.0 · 1080P · 方案 108」）：家族 = 第一个「·」之前、去掉「SY 」前缀。
  * 已接入 = 过得了我们的审计（auditShuyuVideoPlan：目前只有 Seedance 2.0 / 2.5）；其余只展示，不能选。
  */
-export const RUNWAY_PREMIUM_MODEL_LABEL = "Kling O3 Pro";
 const RESOLUTION_ORDER = ["480P", "720P", "768P", "1080P", "2K", "4K"];
 
 export function shuyuFamilyLabel(displayName: string): string {
@@ -47,9 +39,6 @@ function resolutionRank(resolution: string): number {
 export function buildVideoRouteCatalog(args: {
   prices: ReadonlyArray<ShuyuPrice>;
   standardAvailable: boolean;
-  fallsBackToPremium: boolean;
-  premiumOffered: boolean;
-  premiumResolution: "720p" | "1080p";
 }): VideoRouteCatalog {
   const videoPlans = args.prices.filter((plan) => plan.kind === "video");
   const defaultPlan = defaultAuditedShuyuVideoPlan(listAuditedShuyuVideoPlans(videoPlans));
@@ -86,12 +75,6 @@ export function buildVideoRouteCatalog(args: {
       available: args.standardAvailable,
       defaultFamily: defaultPlan ? shuyuFamilyLabel(defaultPlan.displayName) : null,
       defaultResolution: defaultPlan?.resolution ?? null,
-      fallsBackToPremium: args.fallsBackToPremium,
-    },
-    premium: {
-      offered: args.premiumOffered,
-      model: RUNWAY_PREMIUM_MODEL_LABEL,
-      resolution: args.premiumResolution,
     },
     families: families.slice(0, 40),
   });
@@ -108,8 +91,7 @@ async function cachedShuyuPrices(): Promise<ShuyuPrice[]> {
   return data;
 }
 
-export async function loadVideoRouteCatalog(args: { account: RolloutAccount; env?: Env }): Promise<VideoRouteCatalog> {
-  const env = args.env ?? process.env;
+export async function loadVideoRouteCatalog(): Promise<VideoRouteCatalog> {
   /// 价目表拿不到：目录照样给（家族为空），标准线路的可用性仍按运行时探针如实报
   const prices = await cachedShuyuPrices().catch(() => []);
   const defaultPlan = defaultAuditedShuyuVideoPlan(
@@ -119,13 +101,7 @@ export async function loadVideoRouteCatalog(args: { account: RolloutAccount; env
     timeoutMs: 3_000,
     requiredPoints: defaultPlan ? shuyuVideoPlanPointsForDuration(defaultPlan, 15) : undefined,
   });
-  return buildVideoRouteCatalog({
-    prices,
-    standardAvailable: availability.available,
-    fallsBackToPremium: shuyuFallbackToRunwayEnabled(env),
-    premiumOffered: canChooseRunwayPremium(args.account, env),
-    premiumResolution: runwayVideoResolution(env),
-  });
+  return buildVideoRouteCatalog({ prices, standardAvailable: availability.available });
 }
 
 export const __testVideoRouteCatalog__ = {

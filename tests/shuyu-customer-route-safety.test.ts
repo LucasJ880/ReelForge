@@ -317,7 +317,9 @@ test("direct dispatch replays before provider checks and checks the whole batch 
     "src/app/api/video-generation/dispatch/route.ts",
     "utf8",
   );
-  const availabilityIndex = source.indexOf("await resolveRouteWithFailover");
+  const availabilityIndex = source.indexOf("await getVideoRouteSnapshotRuntimeAvailability");
+  assert.equal(source.match(/await getVideoRouteSnapshotRuntimeAvailability/g)?.length, 1, "只查一次、只查选定的这条线路");
+  assert.doesNotMatch(source, /resolveRouteWithFailover|failedOver|allowFailover/, "没有换线路这一层");
   const claimIndex = source.indexOf("await claimVideoDispatchRequest");
   const quotaIndex = source.indexOf("await assertQuotaBatchForSession");
   assert.ok(availabilityIndex > 0);
@@ -353,9 +355,10 @@ test("Shuyu adapters preserve content review and batch provider preflight bounda
   assert.ok(reviewIndex > 0 && reviewIndex < submitIndex);
 
   const replayIndex = batchSource.indexOf("if (existing)");
-  const availabilityIndex = batchSource.indexOf("await resolveRouteWithFailover");
-  assert.equal(batchSource.match(/await resolveRouteWithFailover/g)?.length, 1);
-  assert.match(batchSource, /allowFailover:\s*false/);
+  const availabilityIndex = batchSource.indexOf("await getVideoRouteSnapshotRuntimeAvailability");
+  assert.equal(batchSource.match(/await getVideoRouteSnapshotRuntimeAvailability/g)?.length, 1);
+  /// 批量从不换线路：2026-11-16 起连「换线路」这一层都没有了，只剩对建批次时选定的那条线路做一次可用性检查
+  assert.doesNotMatch(batchSource, /resolveRouteWithFailover|failedOver|allowFailover/);
   assert.ok(replayIndex < availabilityIndex);
   const transactionIndex = batchSource.indexOf("return await db.$transaction");
   assert.ok(replayIndex > 0 && replayIndex < availabilityIndex);

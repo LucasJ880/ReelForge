@@ -12,8 +12,15 @@ export const VIDEO_ROUTE_IDS = [
   "volcengine_cn_legacy",
   "mock",
   "buddy",
+  /// 只为读旧记录留着（见 ROUTES.runway）
   "runway",
 ] as const;
+
+/**
+ * 已下线的线路：出片代码已经删了，登记只为读旧记录——readVideoRouteSnapshot 遇到认不得的线路 id 会抛，
+ * 而旧的 brief / 段任务 / 批次上还记着它。不能再建新快照，也不再调供应商。
+ */
+export const RETIRED_VIDEO_ROUTE_IDS: readonly VideoRouteId[] = ["runway"];
 
 export type VideoRouteId = (typeof VIDEO_ROUTE_IDS)[number];
 export type EnabledVideoRouteId = VideoRouteId;
@@ -64,13 +71,12 @@ const ROUTES = {
     model: "studio-video",
     processingRegion: null,
   },
-  /// 2026-10-28 CEO 批的 Runway 开发者 API（官方计费）。模型是 Kling O3 Pro：原生 1080p、首帧 + 最多 7 张参考图、$0.17/秒。
-  /// 当晚灰度真机：Seedance 2.5 把故事板里的写实人脸参考图整单拦下（INPUT_PREPROCESSING.SAFETY.THIRD_PARTY，字节的审核，已退款），
-  /// 同一组帧换 Kling O3 Pro 正常出片、logo 不变形——故事板多半有人，所以换掉。Seedance 仍留在适配器里。
-  /// 注册不等于可用：没有 RUNWAYML_API_SECRET 时运行就绪检查不过；客户默认线路由 VIDEO_CUSTOMER_ROUTE 决定（默认仍是 buddy）。
+  /// 只读（2026-11-16 起）：Runway 出片 2026-10-28 ~ 11-16 用过（Kling O3 Pro），11-16 下线并删掉了全部出片代码。
+  /// 这条定义、上面的线路 id 与适配器名 "runway" 只为读旧记录留着；enabled=false，所以建新快照会抛、
+  /// 供应商调用一律被拒。旧成片照常看、照常只重新合成；重做 / 重试某一段会被明确拒绝（video-service）。
   runway: {
     id: "runway",
-    enabled: true,
+    enabled: false,
     providerAdapter: "runway",
     model: "klingO3_pro",
     processingRegion: null,
@@ -123,6 +129,11 @@ export function getVideoRouteContract(routeId: VideoRouteId): VideoRouteContract
   return VIDEO_ROUTE_REGISTRY[routeId];
 }
 
+/** 这条线路 id 是不是登记在册、但已经下线（只读旧记录）。认不得的 id 返回 false：那是数据错误，由 readVideoRouteSnapshot 报。 */
+export function isRetiredVideoRouteId(routeId: string | null | undefined): boolean {
+  return typeof routeId === "string" && RETIRED_VIDEO_ROUTE_IDS.some((retired) => retired === routeId);
+}
+
 export function isEnabledVideoRouteId(
   routeId: VideoRouteId,
 ): routeId is EnabledVideoRouteId {
@@ -134,6 +145,11 @@ export function createVideoRouteSnapshot(
   routeId: VideoRouteId,
 ): VideoRouteSnapshot {
   const route = getVideoRouteContract(routeId);
+  if (isRetiredVideoRouteId(routeId)) {
+    throw new Error(
+      `Video route ${routeId} is retired: it stays registered only so historical records can be read, and no new snapshot may be created`,
+    );
+  }
   if (!isEnabledVideoRouteId(routeId) || route.model === null) {
     throw new Error(
       `Video route ${routeId} is registered but disabled until its provider model contract is confirmed`,

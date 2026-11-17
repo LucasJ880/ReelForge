@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 /**
- * 创作台给客户看的线路目录（2026-10-29 Evan：Shuyu 作默认线路，Shuyu 开放给我们的类别全部展示在前端；
- * Runway 作更高质量的备选）。
+ * 创作台给客户看的线路目录（2026-10-29 Evan：Shuyu 作默认线路，Shuyu 开放给我们的类别全部展示在前端）。
+ * 2026-11-16 起只有标准线路一条：「高质量」备选随那条出片线路一起删了。
  *
  * 纯 zod 模块：'use client' 的线路选择卡也引用它，不得引入服务端依赖。
  * 只给展示必需的字段：不给积分单价、余额与原始价目结构（那是我们的进货价，不是客户的价格）。
@@ -34,16 +34,6 @@ export const videoRouteCatalogSchema = z
         /// 默认出片的模型家族与清晰度；拿不到价目表时为 null
         defaultFamily: z.string().min(1).max(120).nullable(),
         defaultResolution: z.string().min(1).max(20).nullable(),
-        /// 标准线路明确失败时会不会自动改交高质量线路重拍（SHUYU_FALLBACK_TO_RUNWAY）
-        fallsBackToPremium: z.boolean(),
-      })
-      .strict(),
-    premium: z
-      .object({
-        /// 这个账号能不能选「高质量（Runway）」
-        offered: z.boolean(),
-        model: z.string().min(1).max(120),
-        resolution: z.enum(["720p", "1080p"]),
       })
       .strict(),
     /// Shuyu 开放给我们的全部视频类别：默认的在最前，已接入的其次

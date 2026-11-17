@@ -56,8 +56,6 @@
  *   --run-key <名字>            必填，小写字母 / 数字 / 连字符，如 soak-1110
  *   --wave morning|noon|evening|all   这次投哪一波（真提交时必填；all = 不分波，冒烟用）
  *   --arms / --cases / --angles / --limit N   只跑子集（第一次真提交时定下来，之后不用再给）；--limit 2 = 第一对的 A 与 B
- *   --runway <n>                其中 n 条（偶数，按对）点名走 Runway；要同时给 --runway-usd-per-video <单价> 与 --max-usd <上限>
- *   --runway-usd-per-frame <单价>   账号的故事板帧走 Runway 出图时必填（估算会说明走哪家），同样要给 --max-usd
  *   --confirm-spend --max-points <上限>   真提交
  *   --base-url <线上地址>       真提交与取消时必填（或环境变量 SOAK_BASE_URL），如 https://reelforge-delta.vercel.app
  *   --account-file <路径>       测试账号文件，缺省 tmp/ceo-test-account.txt（两行：email: … / password: …）；不用 demo 账号
@@ -88,7 +86,7 @@ import {
   SOAK_WAVES,
   SOAK_WAVE_LABELS,
   assertManifestMatches,
-  assignRunwayRoutes,
+  assertNoRetiredRouteItems,
   cardRerunBlocker,
   deriveSoakOutcome,
   estimateSoakSpend,
@@ -227,7 +225,7 @@ function runContext(flags: Flags): RunContext {
   const cases = parseGoldenSetCases(readJson(existsSync(snapshot) ? snapshot : CASES_FILE));
   const manifestPath = join(runDir, "manifest.json");
   const manifest = existsSync(manifestPath) ? readJson<SoakManifest>(manifestPath) : null;
-  const selecting = ["arms", "cases", "angles", "limit", "runway"].some((name) => flags[name] !== undefined);
+  const selecting = ["arms", "cases", "angles", "limit"].some((name) => flags[name] !== undefined);
   const settingsPath = join(runDir, "settings.json");
   type Settings = { visionSince?: string | null; directionUntil?: string | null };
   const settings = existsSync(settingsPath) ? readJson<Settings>(settingsPath) : {};
@@ -245,19 +243,16 @@ function runContext(flags: Flags): RunContext {
   const baseline = baselineKey ? { runKey: baselineKey, records: loadRunRecords(baselineKey) } : null;
   let items = manifest?.items ?? [];
   if (baseline && !manifest) {
-    if (selecting) throw new Error("重拍轮（--baseline）只用 --pairs 定对数，不和 --arms / --cases / --angles / --limit / --runway 混用");
+    if (selecting) throw new Error("重拍轮（--baseline）只用 --pairs 定对数，不和 --arms / --cases / --angles / --limit 混用");
     items = selectCardRerunItems(baseline.records, visionSince, intFlag(flags, "pairs", 4), directionUntil);
   } else if (!manifest || selecting) {
     const limit = flag(flags, "limit");
-    items = assignRunwayRoutes(
-      selectSoakItems(expandSoakItems(cases), {
-        arms: flag(flags, "arms"),
-        cases: flag(flags, "cases"),
-        angles: flag(flags, "angles"),
-        limit: limit === null ? null : Number(limit),
-      }),
-      intFlag(flags, "runway", 0),
-    );
+    items = selectSoakItems(expandSoakItems(cases), {
+      arms: flag(flags, "arms"),
+      cases: flag(flags, "cases"),
+      angles: flag(flags, "angles"),
+      limit: limit === null ? null : Number(limit),
+    });
     if (manifest) assertManifestMatches(manifest, items);
   }
   return { runKey, runDir, cases: new Map(cases.map((item) => [item.id, item])), items, persisted: manifest !== null, baseline, visionSince, directionUntil };
@@ -755,7 +750,7 @@ async function runLane(lane: LaneContext, record: SoakRecord): Promise<"finished
 
     if (step.kind === "dispatch") {
       const key = soakIdempotencyKey(context.runKey, record, "dispatch");
-      const base = { item, angleId: record.angleId, assetIds, storyboardRunId: attempt.storyboard.runId!, route: record.route };
+      const base = { item, angleId: record.angleId, assetIds, storyboardRunId: attempt.storyboard.runId! };
       if (record.group === "B" && attempt.dispatch.confirmedPrompts === null) {
         /// B 组：本机不调模型算一遍段提示词，落盘后随请求交上去；算不出来或放不进字段就记失败，不退回去用线上调模型的那份
         try {
@@ -789,7 +784,7 @@ async function runLane(lane: LaneContext, record: SoakRecord): Promise<"finished
             code: null,
             error: null,
           });
-          console.log(`[soak] ${record.id} 已派发（${record.route === "runway" ? "点名 Runway" : "默认线路"}${record.group === "B" ? "，段提示词用本机不调模型算的" : ""}）brief ${body.briefId}`);
+          console.log(`[soak] ${record.id} 已派发（默认线路${record.group === "B" ? "，段提示词用本机不调模型算的" : ""}）brief ${body.briefId}`);
         } else if (body?.code === "REQUEST_IN_PROGRESS" || !body) {
           /// 上一次请求还在处理，或答复读不出来：保持同一个键，等一圈再看库
           await sleep(POLL_MS);
@@ -819,31 +814,6 @@ async function runLane(lane: LaneContext, record: SoakRecord): Promise<"finished
   return "paused";
 }
 
-/**
- * 这个账号的故事板帧走哪家出图。看账号不看视频线路：在 Runway 灰度名单里（或全员切 Runway）的账号，帧走 Runway、
- * 按美元计，不扣 Shuyu 点数——11-10 冒烟才发现测试账号就是这样，8 帧花了 160 credits（$1.60），不在点数估算里。
- * 这里按本机的环境变量判（与线上判法同一个函数）；线上配置若不同，以报告里「故事板出图走的套餐」为准。
- */
-async function storyboardFrameRoute(flags: Flags): Promise<{ route: "shuyu" | "runway"; note: string }> {
-  const file = resolve(REPO, flag(flags, "account-file") ?? "tmp/ceo-test-account.txt");
-  if (!existsSync(file)) {
-    return { route: "shuyu", note: "没找到测试账号文件，判断不了故事板帧走哪家出图，先按 Shuyu 估（真提交前必须能读到账号文件）" };
-  }
-  const { email } = loadCredentials(flags);
-  const { usesRunwayStoryboardImages } = await import("@/lib/video-generation/runway-rollout");
-  const { db } = await import("@/lib/db");
-  const user = await db.adminUser
-    .findUnique({ where: { email: email.trim().toLowerCase() }, select: { id: true } })
-    .catch(() => null)
-    .finally(() => db.$disconnect());
-  return usesRunwayStoryboardImages({ userId: user?.id ?? null, email })
-    ? {
-        route: "runway",
-        note: "这个测试账号的故事板帧走 Runway 出图（在灰度名单里或全员切了 Runway）：按美元计、不扣 Shuyu 点数，单价用 --runway-usd-per-frame 给（11-10 冒烟实测每帧 20 credits = 0.2 美元），上限用 --max-usd",
-      }
-    : { route: "shuyu", note: "这个测试账号的故事板帧走 Shuyu 出图，按点数计" };
-}
-
 async function livePrices() {
   const { getAvailableShuyuImagePlans, getShuyuBalance, resolveShuyuVideoPlan, shuyuVideoPlanPointsForDuration } =
     await import("@/lib/providers/shuyu");
@@ -862,6 +832,7 @@ async function livePrices() {
 
 async function commandRun(flags: Flags): Promise<void> {
   const context = runContext(flags);
+  assertNoRetiredRouteItems(context.runKey, context.items);
   loadEnv();
   const waveFlag = flag(flags, "wave");
   const wave = waveFlag === null ? null : parseWave(waveFlag);
@@ -887,25 +858,17 @@ async function commandRun(flags: Flags): Promise<void> {
   const scope = [...resumable, ...queue];
 
   const prices = await livePrices();
-  const runwayUnitUsd = parsePositiveLimit(flag(flags, "runway-usd-per-video"));
-  const runwayFrameUnitUsd = parsePositiveLimit(flag(flags, "runway-usd-per-frame"));
-  const frameRoute = await storyboardFrameRoute(flags);
   const estimateOf = (subset: readonly SoakRecord[]) =>
     estimateSoakSpend({
       records: subset,
       frameUnitPoints: prices.frameUnitPoints,
       shuyuVideoUnitPoints: prices.videoUnitPoints,
-      runwayVideoUnitUsd: runwayUnitUsd,
-      frameRoute: frameRoute.route,
-      runwayFrameUnitUsd,
     });
   const estimate = estimateOf(scope);
-  const runwayCount = context.items.filter((item) => item.route === "runway").length;
 
   const groupCounts = SOAK_GROUPS.map((group) => `${group.id} 组 ${context.items.filter((item) => item.group === group.id).length}`).join(" / ");
-  console.log(`[soak] ${context.runKey}：共 ${context.items.length} 条（${groupCounts}；Shuyu ${context.items.length - runwayCount} / Runway ${runwayCount}），${SOAK_DURATION_SEC} 秒 9:16 中文口播，每条 ${SOAK_FRAMES_PER_ITEM} 帧故事板 + 1 条视频`);
+  console.log(`[soak] ${context.runKey}：共 ${context.items.length} 条（${groupCounts}），${SOAK_DURATION_SEC} 秒 9:16 中文口播，每条 ${SOAK_FRAMES_PER_ITEM} 帧故事板 + 1 条视频`);
   console.log(`[soak] 出帧套餐 ${prices.imagePlan.planId}（${prices.frameUnitPoints ?? "?"} 点/张），视频套餐 ${prices.videoPlan.planId} ${prices.videoPlan.displayName}（${SOAK_DURATION_SEC} 秒 ${prices.videoUnitPoints} 点）`);
-  console.log(`[soak] ${frameRoute.note}`);
   if (context.baseline) {
     console.log(
       `[soak] 镜头卡对照的重拍轮：对照 ${context.baseline.runKey}，只投 A 组 ${context.items.length} 条（${context.items.map((item) => item.pairId).join("、")}）；看图写卡生效时刻 ${context.visionSince ?? "还没给（--vision-since）"}`,
@@ -914,15 +877,15 @@ async function commandRun(flags: Flags): Promise<void> {
   for (const name of SOAK_WAVES) {
     const subset = records.filter((record) => record.wave === name);
     const sub = estimateOf(subset);
-    console.log(`[soak]   ${SOAK_WAVE_LABELS[name]}（${name}）${subset.length} 条，其中还要花钱的部分约 ${sub.totalPoints} 点${sub.totalUsd > 0 ? ` + $${sub.totalUsd}` : ""}`);
+    console.log(`[soak]   ${SOAK_WAVE_LABELS[name]}（${name}）${subset.length} 条，其中还要花钱的部分约 ${sub.totalPoints} 点`);
   }
   console.log(`[soak] 这次的范围：${wave === null ? "全部三波" : wave === "all" ? "不分波" : `${SOAK_WAVE_LABELS[wave]}这一波`}，新投 ${queue.length} 条，续跑在途 ${resumable.length} 条${retried > 0 ? `（含重试 ${retried} 条）` : ""}`);
   for (const line of estimate.lines.filter((entry) => entry.count > 0)) {
-    const unit = line.unitPoints !== null ? `${line.unitPoints} 点` : line.unitUsd !== null ? `$${line.unitUsd}` : "未定价";
-    console.log(`[soak]   ${line.armId}：${line.count} × ${unit} = ${line.unitPoints !== null ? `${line.points} 点` : line.unitUsd !== null ? `$${Math.round(line.usd * 100) / 100}` : "?"}`);
+    const unit = line.unitPoints !== null ? `${line.unitPoints} 点` : "未定价";
+    console.log(`[soak]   ${line.armId}：${line.count} × ${unit} = ${line.unitPoints !== null ? `${line.points} 点` : "?"}`);
   }
-  console.log(`[soak] 合计预估 ${estimate.totalPoints} 点${estimate.totalUsd > 0 ? ` + $${estimate.totalUsd}（Runway 另计）` : ""}（实扣以 Shuyu 为准）`);
-  console.log("[soak] 估算不含的部分：故事板帧提交确认未知时线上自动重提的那一帧；Shuyu 明确失败后线上自动改交 Runway 的那条视频（美元计）。");
+  console.log(`[soak] 合计预估 ${estimate.totalPoints} 点（实扣以 Shuyu 为准）`);
+  console.log("[soak] 估算不含的部分：故事板帧提交确认未知时线上自动重提的那一帧。");
   const reservePoints = parsePositiveLimit(flag(flags, "reserve-points")) ?? SHUYU_RESERVE_POINTS_DEFAULT;
   console.log(
     prices.availablePoints !== null
@@ -946,7 +909,8 @@ async function commandRun(flags: Flags): Promise<void> {
   const gate = checkBudgetGate({
     estimate,
     maxPoints: parsePositiveLimit(flag(flags, "max-points")),
-    maxUsd: parsePositiveLimit(flag(flags, "max-usd")),
+    /// 帧与视频都按 Shuyu 点数计，没有美元项
+    maxUsd: null,
     availablePoints: prices.availablePoints,
     reservePoints,
   });

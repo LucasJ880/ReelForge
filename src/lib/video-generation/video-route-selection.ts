@@ -7,13 +7,6 @@ import {
   resolveSeedanceRuntimeProfile,
   seedanceApiKey,
 } from "@/lib/config/seedance-runtime";
-import { runwayApiKey } from "@/lib/providers/runway";
-import {
-  canChooseRunwayPremium,
-  shuyuFallbackToRunwayEnabled,
-  usesRunwayVideo,
-  type RolloutAccount,
-} from "./runway-rollout";
 import { shuyuApiKey } from "@/lib/providers/shuyu";
 import { getShuyuRouteRuntimeAvailability } from "./shuyu-runtime";
 import {
@@ -21,28 +14,12 @@ import {
   type VideoRouteSnapshot,
 } from "./video-route-registry";
 
-/// 2026-11-16 Runway 出片下线：内部也不能再点名 runway（历史快照照常可读，见 video-route-registry）。
+/// 内部可点名的线路。runway 不在其中：那条线路 2026-11-16 下线，只剩读旧记录用的线路定义（见 video-route-registry）。
 export const STAFF_SELECTABLE_VIDEO_ROUTE_IDS = [
   "byteplus_international",
   "volcengine_cn_legacy",
   "buddy",
 ] as const;
-
-/**
- * 2026-11-16 起客户线路只有 buddy（Shuyu 的 Seedance）：Runway 出片下线（runway-rollout.ts 的 RUNWAY_RETIRED），
- * 下面说的「全员切换」「高质量」都已关死，点名 runway 一律 FORBIDDEN。以下是下线前的说明：
- *
- * 客户的视频线路（2026-10-29 起）：默认一律 buddy（Shuyu）；VIDEO_CUSTOMER_ROUTE=runway 是全员切到 Runway 的运维开关。
- * 客户可以主动选「高质量」= runway（开关与名单见 runway-rollout.ts 的 canChooseRunwayPremium）；
- * 任何时候都能显式点名 buddy，任何时候都不能点名直连线路。
- */
-export type CustomerVideoRouteId = "buddy" | "runway";
-
-export function customerVideoRouteId(
-  env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
-): CustomerVideoRouteId {
-  return usesRunwayVideo(env) ? "runway" : "buddy";
-}
 
 export type StaffSelectableVideoRouteId =
   (typeof STAFF_SELECTABLE_VIDEO_ROUTE_IDS)[number];
@@ -63,11 +40,13 @@ function isStaffSelectableRouteId(
   return STAFF_SELECTABLE_VIDEO_ROUTE_IDS.some((routeId) => routeId === value);
 }
 
+/**
+ * 客户的视频线路只有 buddy（Shuyu 的 Seedance）一条：不点名就是它，点名也只能点它。
+ * 点名别的（直连线路、已下线的 runway、任何认不得的值）一律 FORBIDDEN。
+ */
 export function selectCustomerVideoRouteSnapshot(args: {
   requestedRouteId?: unknown;
   env?: NodeJS.ProcessEnv | Record<string, string | undefined>;
-  /// 发起人：「高质量（Runway）」在 RUNWAY_PREMIUM=pilot 时按灰度名单判（邮箱或 user id）
-  account?: RolloutAccount | null;
 }): VideoRouteSnapshot {
   const env = args.env ?? process.env;
   if (isMockVideoRuntime(env)) {
@@ -79,50 +58,13 @@ export function selectCustomerVideoRouteSnapshot(args: {
     }
     return createVideoRouteSnapshot("mock");
   }
-  const customerRoute = customerVideoRouteId(env);
-  if (args.requestedRouteId === undefined) return createVideoRouteSnapshot(customerRoute);
-  if (args.requestedRouteId === "buddy") return createVideoRouteSnapshot("buddy");
-  if (
-    args.requestedRouteId === "runway" &&
-    (customerRoute === "runway" || canChooseRunwayPremium(args.account, env))
-  ) {
-    return createVideoRouteSnapshot("runway");
+  if (args.requestedRouteId === undefined || args.requestedRouteId === "buddy") {
+    return createVideoRouteSnapshot("buddy");
   }
   throw new VideoRouteSelectionError(
     "FORBIDDEN",
     "Customers may only use the platform's customer video route",
   );
-}
-
-/**
- * 客户线路的自动降级（PRD C1）。
- *
- * 边界：客户**仍然不能自己选**直连线路 —— `selectCustomerVideoRouteSnapshot` 对 buddy / runway
- * 以外的显式请求照旧抛 FORBIDDEN。降级是平台在主线路不可用时替客户做的决定，不是把选择权交出去。
- *
- * 2026-11-09 线路精简：备用只在 Shuyu（buddy）与 Runway 之间互换。此前「其余情况」会降到
- * volcengine_cn_legacy（火山引擎直连）——那条线路的账户已欠费、近期零用量，留着只会把客户
- * 丢进必死的提交。火山 / BytePlus 直连线路仍在 STAFF_SELECTABLE_VIDEO_ROUTE_IDS 里，只供
- * 历史快照读取与内部脚本点名（A 级下线：撤客户入口，代码与数据保留）。
- *
- *  - 2026-11-16 Runway 下线后：Shuyu 是唯一线路，Shuyu 不可用时没有备用（返回 null，走提前告知 + 免费取消）；
- *    下线前已经交给 Runway 的任务失败时仍然改交 Shuyu。
- *  - 主线路 Runway → 备用 Shuyu；
- *  - 主线路 Shuyu（或没指明、或内部点名的直连线路）→ 备用 Runway，SHUYU_FALLBACK_TO_RUNWAY=off
- *    或没配 Runway key 时没有备用；
- *  - 备用线路自己没配好时返回 null，由调用方走「提前告知不可用 + 免费取消」。
- */
-export function customerFailoverRouteSnapshot(
-  env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
-  primaryRouteId?: string,
-): VideoRouteSnapshot | null {
-  /// mock 演练不参与降级：演练线路必须保持确定性
-  if (isMockVideoRuntime(env)) return null;
-  const backupRouteId: CustomerVideoRouteId | null =
-    primaryRouteId === "runway" ? "buddy" : shuyuFallbackToRunwayEnabled(env) ? "runway" : null;
-  if (!backupRouteId) return null;
-  const snapshot = createVideoRouteSnapshot(backupRouteId);
-  return isVideoRouteSnapshotRuntimeReady(snapshot, env) ? snapshot : null;
 }
 
 /**
@@ -134,7 +76,6 @@ export function selectVideoRouteSnapshot(args: {
   requestedRouteId?: unknown;
   isInternalStaff: boolean;
   env?: NodeJS.ProcessEnv | Record<string, string | undefined>;
-  account?: RolloutAccount | null;
 }): VideoRouteSnapshot {
   const env = args.env ?? process.env;
   if (!args.isInternalStaff) {
@@ -143,7 +84,6 @@ export function selectVideoRouteSnapshot(args: {
         ? { requestedRouteId: args.requestedRouteId }
         : {}),
       env,
-      account: args.account ?? null,
     });
   }
   const hasOverride = args.requestedRouteId !== undefined;
@@ -186,9 +126,8 @@ export function isVideoRouteSnapshotRuntimeReady(
   if (snapshot.videoRouteSnapshot === "buddy") {
     return Boolean(shuyuApiKey(env));
   }
-  if (snapshot.videoRouteSnapshot === "runway") {
-    return Boolean(runwayApiKey(env));
-  }
+  /// 已下线的线路（只剩读旧记录用的定义）永远不算就绪
+  if (snapshot.videoRouteSnapshot === "runway") return false;
   if (!seedanceApiKey(snapshot.videoRouteSnapshot, env)) return false;
   try {
     resolveSeedanceArkBaseUrl(
@@ -221,16 +160,6 @@ export function canVideoRouteOverrideDefaultRuntimeFailure(
 
   if (snapshot.videoRouteSnapshot === "buddy") {
     return byteplusFailure || volcengineFailure;
-  }
-  /// Runway 自有 key：默认运行时（Shuyu / Seedance 直连）的配置问题都不归它管
-  if (snapshot.videoRouteSnapshot === "runway") {
-    return (
-      reason === "shuyu_key_missing" ||
-      reason === "shuyu_insufficient_balance" ||
-      reason === "shuyu_unavailable" ||
-      byteplusFailure ||
-      volcengineFailure
-    );
   }
   if (snapshot.videoRouteSnapshot === "byteplus_international") {
     return reason === "shuyu_key_missing" || volcengineFailure;
@@ -284,69 +213,3 @@ export async function getVideoRouteSnapshotRuntimeAvailability(args: {
 export type VideoRouteRuntimeAvailability = Awaited<
   ReturnType<typeof getVideoRouteSnapshotRuntimeAvailability>
 >;
-
-export interface RouteFailoverDeps {
-  getAvailability: (args: {
-    snapshot: VideoRouteSnapshot;
-    shuyuRequiredPoints?: number;
-  }) => Promise<VideoRouteRuntimeAvailability>;
-  /// 按主线路给备用（Runway ⇄ Shuyu 互为备用；没有第三条线路）
-  failoverSnapshot: (primary: VideoRouteSnapshot) => VideoRouteSnapshot | null;
-}
-
-const DEFAULT_ROUTE_FAILOVER_DEPS: RouteFailoverDeps = {
-  getAvailability: (args) => getVideoRouteSnapshotRuntimeAvailability(args),
-  failoverSnapshot: (primary) => customerFailoverRouteSnapshot(process.env, primary.videoRouteSnapshot),
-};
-
-export interface RouteFailoverResolution {
-  /// 原线路的可用性：调用方的拒绝文案/原因必须按它给，不按备用线路
-  primaryAvailability: VideoRouteRuntimeAvailability;
-  /// 最终用于提交的快照；未切换时与入参是同一个对象
-  snapshot: VideoRouteSnapshot;
-  failedOver: boolean;
-}
-
-/**
- * 主线路可用性检查 + 自动降级（PRD C1）。
- *
- * 客户依然无权自己选线路 —— 这是平台替客户做的决定。降级前必须确认备用线路
- * 真的可用，否则只是把必死的提交换了个地方死。备用线路也不行时保持原快照，
- * 由调用方按原线路的不可用原因拒绝。
- *
- * 余额不足不降级：那是账户问题，换线路只会把成本转嫁到另一条线上。
- *
- * 批量必须 `allowFailover:false`：批次的线路、计价与快照在建批次时一次定死，
- * 不可用就按原原因拒绝，绝不换线路。
- */
-export async function resolveRouteWithFailover(args: {
-  snapshot: VideoRouteSnapshot;
-  shuyuRequiredPoints?: number;
-  allowFailover: boolean;
-  deps?: Partial<RouteFailoverDeps>;
-}): Promise<RouteFailoverResolution> {
-  const deps = { ...DEFAULT_ROUTE_FAILOVER_DEPS, ...args.deps };
-  const primaryAvailability = await deps.getAvailability({
-    snapshot: args.snapshot,
-    shuyuRequiredPoints: args.shuyuRequiredPoints,
-  });
-  const unchanged = {
-    primaryAvailability,
-    snapshot: args.snapshot,
-    failedOver: false,
-  };
-  if (
-    primaryAvailability.available ||
-    !args.allowFailover ||
-    primaryAvailability.reason === "insufficient_balance"
-  ) {
-    return unchanged;
-  }
-  const failoverSnapshot = deps.failoverSnapshot(args.snapshot);
-  if (!failoverSnapshot) return unchanged;
-  const failoverAvailability = await deps.getAvailability({
-    snapshot: failoverSnapshot,
-  });
-  if (!failoverAvailability.available) return unchanged;
-  return { primaryAvailability, snapshot: failoverSnapshot, failedOver: true };
-}

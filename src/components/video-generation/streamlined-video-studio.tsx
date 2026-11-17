@@ -54,10 +54,7 @@ import {
   VideoRouteSelector,
   type VideoRouteOverride,
 } from "@/components/video-generation/video-route-selector";
-import {
-  CustomerRoutePicker,
-  type CustomerRouteChoice,
-} from "@/components/video-generation/customer-route-picker";
+import { CustomerRoutePicker } from "@/components/video-generation/customer-route-picker";
 import { useTranslation } from "@/i18n/useTranslation";
 import { featureGate, type PublicCapabilities } from "@/lib/capabilities/registry";
 import type { CustomerVideoDispatchResponse } from "@/lib/api/customer-video-dispatch";
@@ -545,8 +542,6 @@ export function StreamlinedVideoStudio({
   /// 尾卡入口也已 A 级下线（BRAND_END_CARD_ENTRY_ENABLED），入口关着时这里恒为 null。
   const [selectedBrandPackageId, setSelectedBrandPackageId] = useState<string | null>(null);
   const [selectedVideoRouteId, setSelectedVideoRouteId] = useState<VideoRouteOverride>("");
-  /// 客户的线路卡：标准（Shuyu，默认）/ 高质量（Runway）。只影响派发，不影响方案与故事板。
-  const [customerRoute, setCustomerRoute] = useState<CustomerRouteChoice>("buddy");
   const [selectedRouteAvailable, setSelectedRouteAvailable] = useState<
     boolean | null
   >(true);
@@ -1552,11 +1547,7 @@ export function StreamlinedVideoStudio({
       const dispatchBody = {
         request,
         storyboardRunId: storyboard.id,
-        ...(canSelectVideoRoute && selectedVideoRouteId
-          ? { videoRouteId: selectedVideoRouteId }
-          : !canSelectVideoRoute && customerRoute === "runway"
-            ? { videoRouteId: "runway" }
-            : {}),
+        ...(canSelectVideoRoute && selectedVideoRouteId ? { videoRouteId: selectedVideoRouteId } : {}),
       };
       const dispatchFingerprint = JSON.stringify(dispatchBody);
       if (dispatchAttemptRef.current?.fingerprint !== dispatchFingerprint) {
@@ -2350,8 +2341,6 @@ export function StreamlinedVideoStudio({
               />
             ) : (
               <CustomerRoutePicker
-                value={customerRoute}
-                onChange={setCustomerRoute}
                 disabled={finishingLocked}
                 active={moreOpen}
                 english={english}

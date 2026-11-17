@@ -42,6 +42,7 @@ import {
 } from "@/lib/video-generation/providers/submission-error";
 import {
   createVideoRouteSnapshot,
+  isRetiredVideoRouteId,
   readVideoRouteSnapshot,
   type PersistedVideoRouteSnapshotInput,
   type VideoRouteSnapshot,
@@ -63,7 +64,6 @@ import { CUSTOMER_CANCELLED_CLASS } from "./single-video-cancel-service";
 import { isDeliveredBriefStatus } from "@/lib/video-generation/brief-delivery-state";
 import type { Session } from "next-auth";
 import { isDemoAccountEmail } from "@/lib/demo-account";
-import { fetchMediaBytes } from "@/lib/storage/trusted-media-url";
 import {
   composeSegmentRedoPrompt,
   isCurrentSegmentJob,
@@ -90,27 +90,12 @@ import {
   singleVideoReferenceImageLimitForAdapter,
 } from "@/lib/video-generation/storyboard-service";
 import {
-  groundSegmentPromptForOpeningFrame,
   groundSegmentPromptForSeedanceOpeningFrame,
   groundSegmentPromptInStoryboard,
   readStoryboardReferenceLayout,
   shuyuOpeningFramePromptEnabled,
-  storyboardOpeningFrameUrl,
   type StoryboardReferenceLayout,
 } from "@/lib/video-generation/storyboard-beats";
-import { isKlingRunwayModel } from "@/lib/providers/runway";
-import { resolveShuyuVideoPlan, shuyuVideoPlanPointsForDuration } from "@/lib/providers/shuyu";
-import {
-  directorPlanBeforeGrounding,
-  PROVIDER_FAILED_ERROR_PREFIX,
-  routeFallbackDecision,
-} from "@/lib/video-generation/runway-fallback";
-import {
-  customerFailoverRouteSnapshot,
-  getVideoRouteSnapshotRuntimeAvailability,
-  type VideoRouteRuntimeAvailability,
-} from "@/lib/video-generation/video-route-selection";
-import { evaluateVoiceoverDrive } from "./voiceover-drive-service";
 const I2V_MODEL_OVERRIDE = process.env.ARK_VIDEO_I2V_MODEL || undefined;
 
 /// Provider 状态查询的可注入 seam；null 时按 VideoJob.provider 路由。
@@ -152,12 +137,31 @@ let statusFetcherOverride:
   | null = null;
 let submitterOverride: DirectSubmitterOverride | null = null;
 
+/// reconcileVideoJob 记「供应商自己回报失败」的 errorMessage 前缀；dispatch-breaker 与 batch-service 按同一个字面量读
+const PROVIDER_FAILED_ERROR_PREFIX = "[provider:failed]";
+
 export class HistoricalVideoRouteUnknownError extends Error {
   constructor() {
     super(
       "历史视频任务缺少不可变线路快照；已禁止 provider 调用，请转人工对账",
     );
     this.name = "HistoricalVideoRouteUnknownError";
+  }
+}
+
+/// 旧成片当初走的线路已下线（线路定义只为读旧记录留着）时，「重做一段」「重试失败的段」给商家的话
+export const RETIRED_VIDEO_ROUTE_REGENERATION_MESSAGE =
+  "这条视频当初用的出片线路已经下线，不能再重做或重试其中的片段。可以在成片详情里点「用同样的素材再做一条」，按现在的线路重新出一条。";
+
+/**
+ * 旧记录的线路已下线就拒绝再生成（重做一段 / 重试失败的段）。用 render-retry 认得的类型抛，商家看到的是一句
+ * 明确的话（409），不是 500；必须在补扣额度与任何供应商调用之前调。只重新合成不调供应商，不经过这里。
+ */
+export function assertVideoRouteNotRetiredForRegeneration(
+  input: Pick<PersistedVideoRouteSnapshotInput, "videoRouteSnapshot" | "videoProviderAdapterSnapshot">,
+): void {
+  if (isRetiredVideoRouteId(input.videoRouteSnapshot) || input.videoProviderAdapterSnapshot === "runway") {
+    throw new SegmentRedoRejectedError("INVALID_STATE", RETIRED_VIDEO_ROUTE_REGENERATION_MESSAGE);
   }
 }
 
@@ -169,16 +173,14 @@ function requiredVideoRouteSnapshot(
     throw new HistoricalVideoRouteUnknownError();
   }
   if (!read.route.enabled) {
-    throw new Error("持久化视频线路尚未启用，拒绝 provider 调用");
+    throw new Error(
+      isRetiredVideoRouteId(read.videoRouteSnapshot)
+        ? "持久化视频线路已下线，拒绝 provider 调用"
+        : "持久化视频线路尚未启用，拒绝 provider 调用",
+    );
   }
-  const expectedAdapter =
-    read.videoRouteSnapshot === "mock"
-      ? "mock"
-      : read.videoRouteSnapshot === "buddy"
-        ? "shuyu"
-        : read.videoRouteSnapshot === "runway"
-          ? "runway"
-          : "byteplus";
+  /// 适配器名以线路登记为准（mock → mock、buddy → shuyu、两条直连 → byteplus）
+  const expectedAdapter = read.route.providerAdapter;
   if (read.videoProviderAdapterSnapshot !== expectedAdapter) {
     throw new Error("持久化视频线路与 adapter 快照不一致，拒绝 provider 调用");
   }
@@ -272,48 +274,11 @@ async function fetchVideoJobStatus(
   ) {
     throw new Error("VideoJob provider 与持久化路线快照不一致");
   }
-  const status = toDirectProviderStatus(
+  return toDirectProviderStatus(
     await createVideoProviderByRouteSnapshot(snapshot).getVideoJobStatus(
       job.externalJobId,
     ),
   );
-  /// Runway 的产出地址 24–48 小时就过期：成功时先转存到自己的存储再交给下游——重拼、换字幕、
-  /// 重做一段几天后还要用这一段。转存失败就抛，这一轮按轮询异常记，下一轮再试（原地址还能用一整天）。
-  if (
-    snapshot.videoProviderAdapterSnapshot === "runway" &&
-    status.status === "completed" &&
-    status.videoUrl
-  ) {
-    return {
-      ...status,
-      videoUrl: await mirrorEphemeralProviderVideo(job.externalJobId, status.videoUrl),
-    };
-  }
-  return status;
-}
-
-/// 单段视频转存上限：15 秒 1080p 远小于它，超过就是异常响应
-const PROVIDER_VIDEO_MIRROR_MAX_BYTES = 400 * 1024 * 1024;
-
-async function mirrorEphemeralProviderVideo(providerJobId: string, url: string): Promise<string> {
-  const { getStorageProvider } = await import("@/lib/storage");
-  const storage = getStorageProvider();
-  if (!storage.isConfigured()) {
-    throw new Error(`Storage provider "${storage.id}" not configured; refusing to mirror provider output`);
-  }
-  const bytes = await fetchMediaBytes(url, {
-    maxBytes: PROVIDER_VIDEO_MIRROR_MAX_BYTES,
-    /// 地址来自供应商的任务结果、由服务端写入，不是用户给的 URL（同 trusted-media-url 的约定）
-    followRedirects: true,
-    timeoutMs: 120_000,
-  });
-  const stored = await storage.uploadBuffer("renders", bytes, {
-    key: `renders/provider-outputs/runway/${encodeURIComponent(providerJobId)}.mp4`,
-    access: "public",
-    contentType: "video/mp4",
-    overwrite: true,
-  });
-  return stored.url;
 }
 
 function isUniqueConstraintError(error: unknown): boolean {
@@ -500,28 +465,10 @@ const POLL_ERROR_THRESHOLD = Number(
  * 调用方应优先用 dispatchVideoForBrief，让 video-service 自己决定路径，
  * 避免在路由里重复判断逻辑。
  *
- * 主线路当场拒单（一定没建任务）时这条视频改交备用线路重新派发（fallBackBriefToBackupRoute：
- * Runway → Shuyu、Shuyu → Runway），返回备用线路的段任务；备用接不了就原样返回被拒的任务，
- * 调用方照旧按「明确未创建」返还额度并报错。
+ * 按 brief 上持久化的线路派发，故事板改写与参考图上限都按这条线路来。没有备用线路（2026-11-16）：
+ * 线路当场拒单就原样返回被拒的任务，调用方按「明确未创建」返还额度并报错。
  */
 export async function dispatchVideoForBrief(
-  briefId: string,
-  options: { referenceImageLimit?: number } = {},
-) {
-  const jobs = await dispatchBriefOnPersistedRoute(briefId, options);
-  const rows: ReadonlyArray<{ status: VideoJobStatus; videoProviderAdapterSnapshot: string | null }> = jobs;
-  const allRejected =
-    rows.length > 0 &&
-    rows.every(
-      (job) =>
-        (job.videoProviderAdapterSnapshot === "runway" || job.videoProviderAdapterSnapshot === "shuyu") &&
-        job.status === VideoJobStatus.FAILED,
-    );
-  return allRejected ? ((await fallBackBriefToBackupRoute(briefId)) ?? jobs) : jobs;
-}
-
-/** 按 brief 上持久化的线路派发：单段 / 多段自动选，故事板改写与参考图上限都按这条线路来 */
-async function dispatchBriefOnPersistedRoute(
   briefId: string,
   options: { referenceImageLimit?: number } = {},
 ) {
@@ -563,11 +510,6 @@ async function dispatchBriefOnPersistedRoute(
     } catch {
       plan = null;
     }
-    /// Runway Kling（图生视频、提示词上限 2500 字）按开场帧版改写（2026-10-28 灰度真机）
-    const klingRoute =
-      routeRead.state === "persisted"
-      && routeRead.videoProviderAdapterSnapshot === "runway"
-      && isKlingRunwayModel(routeRead.videoModelSnapshot);
     /// Shuyu 单段按首帧版改写（10-29，Kelin 团队做法）：参考图只带开场帧，剧情交给英文时间线。多段照旧逐帧。
     /// `SHUYU_OPENING_FRAME_PROMPT=off` 一键退回逐帧版（没经评测集验证就上线，留个不用回滚代码的退路）。
     const seedanceOpeningFrame =
@@ -580,11 +522,9 @@ async function dispatchBriefOnPersistedRoute(
       limit: referenceImageLimit,
       openingFrameOnly: seedanceOpeningFrame,
     });
-    const groundSegment = klingRoute
-      ? groundSegmentPromptForOpeningFrame
-      : seedanceOpeningFrame
-        ? groundSegmentPromptForSeedanceOpeningFrame
-        : groundSegmentPromptInStoryboard;
+    const groundSegment = seedanceOpeningFrame
+      ? groundSegmentPromptForSeedanceOpeningFrame
+      : groundSegmentPromptInStoryboard;
     const groundedPlan: DirectorPlan | null = plan && {
       ...plan,
       segmentPlan: plan.segmentPlan.map((segment) => ({
@@ -625,153 +565,6 @@ async function dispatchBriefOnPersistedRoute(
     return dispatchMultiSegmentGeneration(briefId, { referenceImageLimit });
   }
   return dispatchVideoGeneration(briefId);
-}
-
-/// 主线路失败改交备用线路之前要问外面的几件事（测试经 __setRunwayFallbackDepsForTests 注入；缺省走真实配置与供应商）
-export interface RunwayFallbackDeps {
-  /// 主线路的备用线路快照（Runway → Shuyu，Shuyu → Runway）；没配好、开关关着或在 mock 演练里返回 null
-  backupSnapshot: (primaryRouteId: string) => VideoRouteSnapshot | null;
-  /// 备用线路此刻接不接得了这一条：配置、鉴权（Shuyu 还看积分够不够这条的时长）
-  backupAvailability: (snapshot: VideoRouteSnapshot, durationSec: number) => Promise<VideoRouteRuntimeAvailability>;
-  voiceoverDrive: typeof evaluateVoiceoverDrive;
-  /// 重新派发要重读已确认的故事板：换线路之前先确认它还在、还完整
-  storyboardReady: (briefId: string) => Promise<boolean>;
-}
-
-const DEFAULT_RUNWAY_FALLBACK_DEPS: RunwayFallbackDeps = {
-  backupSnapshot: (primaryRouteId) => customerFailoverRouteSnapshot(process.env, primaryRouteId),
-  backupAvailability: async (snapshot, durationSec) => {
-    /// 与派发入口同一口径：套餐解析不出来就不按积分挡，交给提交时的真实结果
-    let shuyuRequiredPoints: number | undefined;
-    try {
-      shuyuRequiredPoints = shuyuVideoPlanPointsForDuration(await resolveShuyuVideoPlan(), durationSec);
-    } catch {
-      shuyuRequiredPoints = undefined;
-    }
-    return getVideoRouteSnapshotRuntimeAvailability({ snapshot, shuyuRequiredPoints });
-  },
-  voiceoverDrive: evaluateVoiceoverDrive,
-  storyboardReady: (briefId) =>
-    requireApprovedStoryboardVideoInputsForBrief(briefId).then(
-      () => true,
-      () => false,
-    ),
-};
-let runwayFallbackDepsOverride: Partial<RunwayFallbackDeps> | null = null;
-
-class RunwayFallbackJobsChangedError extends Error {}
-
-const ROUTE_FALLBACK_DISPATCH_FAILED_MESSAGE =
-  "视频任务未能开始生成，请重新生成故事板后再提交；若持续发生，请联系支持。";
-
-/// 线路快照 → 段任务上记的适配器名（判据与「换过一次」都按它比）
-const FALLBACK_ROUTE_ADAPTER: Record<"runway" | "buddy", "runway" | "shuyu"> = { runway: "runway", buddy: "shuyu" };
-const FALLBACK_ROUTE_NAME: Record<"runway" | "shuyu", string> = { runway: "Runway", shuyu: "Shuyu" };
-
-/**
- * 主线路失败 → 这条视频改交备用线路（判据见 runway-fallback.ts）：10-28 晚 Runway 拒单改交 Shuyu；
- * 10-29 Evan：Shuyu 是默认线路，Shuyu 失败再换 Runway（SHUYU_FALLBACK_TO_RUNWAY=off 关）。
- * 两个入口：派发当场被拒（dispatchVideoForBrief）、任务受理后被供应商判失败（reconcileVideoJob）。
- *
- * 换之前先确认换得了：备用线路配好且接得了这一条、口播方式备用线路做得到、改写前的计划还原得出来、故事板仍已确认且完整。
- * 一条视频只换一次：已经从备用线路换过来的（有备用线路的旧行被摘下）不再换回去，免得两家来回扣费。
- * 一个事务里换：brief 的线路快照改成备用线路、段计划还原成改写前的原版；主线路的旧行写 supersededAt、摘下成片、
- * 清掉 logicalJobKey（段任务幂等键，新行要用）——行与报错都留档，不删。然后按备用线路重新派发：
- * 参考图上限与故事板改写都按备用线路来（Runway 是 Kling 开场帧版）；额度不动（还是这一条）。
- *
- * 返回备用线路的段任务；不换（不够格 / 备用接不了 / 另一路已经换过）返回 null，一切照旧。
- * 换完后派发若抛错（数据库故障等），brief 置 RENDER_FAILED，不留没有任务的「生成中」，再把错误抛给调用方。
- */
-async function fallBackBriefToBackupRoute(
-  briefId: string,
-): Promise<Awaited<ReturnType<typeof dispatchBriefOnPersistedRoute>> | null> {
-  const brief = await db.videoBrief.findUnique({
-    where: { id: briefId },
-    select: {
-      directorPlan: true,
-      videoGenerationPlan: true,
-      targetDurationSec: true,
-      videoRouteSnapshot: true,
-    },
-  });
-  const primaryRouteId = brief?.videoRouteSnapshot;
-  if (!brief || (primaryRouteId !== "runway" && primaryRouteId !== "buddy")) return null;
-  const primary = FALLBACK_ROUTE_ADAPTER[primaryRouteId];
-  const backupAdapter = primary === "runway" ? "shuyu" : "runway";
-  const allJobs = await db.videoJob.findMany({ where: { videoBriefId: briefId } });
-  const current = allJobs.filter(isCurrentSegmentJob);
-  const decision = routeFallbackDecision(current, primary);
-  const skip = (reason: string) => {
-    console.warn(`[video-route-fallback] ${FALLBACK_ROUTE_NAME[primary]} 失败，未改交 ${FALLBACK_ROUTE_NAME[backupAdapter]}`, {
-      briefId,
-      reason,
-    });
-    return null;
-  };
-  if (!decision.fallback) return skip(decision.reason);
-  if (allJobs.some((job) => job.supersededAt != null && job.videoProviderAdapterSnapshot === backupAdapter)) {
-    return skip("already_switched_once");
-  }
-
-  const { backupSnapshot, backupAvailability, voiceoverDrive, storyboardReady } = {
-    ...DEFAULT_RUNWAY_FALLBACK_DEPS,
-    ...runwayFallbackDepsOverride,
-  };
-  const backup = backupSnapshot(primaryRouteId);
-  if (!backup || backup.videoProviderAdapterSnapshot !== backupAdapter) return skip("backup_not_configured");
-  const directorPlan = directorPlanBeforeGrounding(brief);
-  if (!directorPlan) return skip("plan_not_restorable");
-  const postProduction = postProductionPlanSchema.safeParse(
-    (brief.videoGenerationPlan as { postProduction?: unknown } | null)?.postProduction,
-  );
-  const drive = await voiceoverDrive({
-    voiceover: postProduction.success ? postProduction.data.audio.voiceover : null,
-    routeSnapshot: backup,
-  });
-  if (!drive.ok) return skip(`voiceover_drive_${drive.reason}`);
-  const availability = await backupAvailability(backup, brief.targetDurationSec);
-  if (!availability.available) return skip(`backup_unavailable_${availability.reason ?? "unknown"}`);
-  if (!(await storyboardReady(briefId))) return skip("storyboard_not_ready");
-
-  const retiredAt = new Date();
-  const jobIds = current.map((job) => job.id);
-  let switched: boolean;
-  try {
-    switched = await db.$transaction(async (tx) => {
-      const moved = await tx.videoBrief.updateMany({
-        where: { id: briefId, videoRouteSnapshot: primaryRouteId },
-        data: { ...backup, directorPlan: directorPlan as unknown as Prisma.InputJsonValue },
-      });
-      if (moved.count !== 1) return false;
-      const retired = await tx.videoJob.updateMany({
-        where: { id: { in: jobIds }, videoBriefId: briefId, status: VideoJobStatus.FAILED, supersededAt: null },
-        data: { supersededAt: retiredAt, finalVideoId: null, logicalJobKey: null },
-      });
-      if (retired.count !== jobIds.length) throw new RunwayFallbackJobsChangedError();
-      return true;
-    });
-  } catch (error) {
-    if (error instanceof RunwayFallbackJobsChangedError) return skip("jobs_changed_concurrently");
-    throw error;
-  }
-  if (!switched) return null;
-  console.warn(`[video-route-fallback] ${FALLBACK_ROUTE_NAME[primary]} 失败，这条视频改交 ${FALLBACK_ROUTE_NAME[backupAdapter]}`, {
-    briefId,
-    trigger: decision.trigger,
-    primaryJobIds: jobIds,
-    primaryErrors: current.map((job) => (job.errorMessage ?? "").slice(0, 300)),
-  });
-  try {
-    return await dispatchBriefOnPersistedRoute(briefId);
-  } catch (error) {
-    await db.videoBrief
-      .update({
-        where: { id: briefId },
-        data: { status: VideoBriefStatus.RENDER_FAILED, errorMessage: ROUTE_FALLBACK_DISPATCH_FAILED_MESSAGE },
-      })
-      .catch(() => undefined);
-    throw error;
-  }
 }
 
 /**
@@ -922,7 +715,6 @@ export async function dispatchMultiSegmentGeneration(
       segment,
       segmentCount: plan.segmentPlan.length,
       referenceImageUrls,
-      openingFrameUrl: segmentOpeningFrameUrl(routeSnapshot.videoModelSnapshot, brief.directorPlan, plan, segment, referenceImageUrls),
       generateAudio,
       routeSnapshot,
     });
@@ -960,8 +752,6 @@ async function submitSegmentJob(params: {
   segmentCount: number;
   /// 产品参考图（Omni-Reference 模式传给 Seedance 2.0，产品外观跨镜头一致）
   referenceImageUrls?: string[];
-  /// Runway Kling 的开场帧（本段第一张关键帧，标 first_frame）；其余模型为空
-  openingFrameUrl?: string | null;
   generateAudio?: boolean;
   routeSnapshot: VideoRouteSnapshot;
 }) {
@@ -972,7 +762,6 @@ async function submitSegmentJob(params: {
     segment,
     segmentCount,
     referenceImageUrls,
-    openingFrameUrl,
     generateAudio,
     routeSnapshot,
   } = params;
@@ -1029,9 +818,9 @@ async function submitSegmentJob(params: {
         model: routeSnapshot.videoModelSnapshot,
         generateAudio: generateAudio ?? false,
         negativePrompt: segment.negativePrompt || undefined,
-        /// 有产品图 → Omni-Reference 模式（产品外观锚定）；无图 → 纯 T2V。Kling 的开场帧标 first_frame
+        /// 有产品图 → Omni-Reference 模式（产品外观锚定）；无图 → 纯 T2V
         referenceImages: hasRefs
-          ? referenceImageUrls?.map((url) => ({ url, role: url === openingFrameUrl ? ("first_frame" as const) : ("content" as const) }))
+          ? referenceImageUrls?.map((url) => ({ url, role: "content" as const }))
           : undefined,
         referenceMode: hasRefs ? "reference" : undefined,
         /// 质量对齐：显式要求 1080p（Seedance 2.0 默认更低档位）
@@ -1107,24 +896,6 @@ export function segmentReferenceImageLimit(directorPlan: unknown, override?: num
 }
 
 /**
- * Runway Kling 是图生视频：本段的开场帧 = 帧组里本段第一张关键帧（参考图按 实拍 → 切片 → 主播 → 帧 排，
- * referenceLayout 记了各组张数）。其他模型、没有故事板布局时返回 null（全部照旧作参考）。
- */
-function segmentOpeningFrameUrl(
-  model: string | null | undefined,
-  directorPlan: unknown,
-  plan: DirectorPlan,
-  segment: SegmentPlan,
-  referenceUrls: readonly string[] | undefined,
-): string | null {
-  if (!isKlingRunwayModel(model) || !referenceUrls?.length) return null;
-  return storyboardOpeningFrameUrl(referenceUrls, readStoryboardReferenceLayout(directorPlan), {
-    totalDurationSec: Math.max(0, ...plan.segmentPlan.map((item) => item.toSec)),
-    fromSec: segment.fromSec,
-  });
-}
-
-/**
  * 分段重提的供应商参数（失败段重试、成功段重做、重做候选行重试共用一份）：
  * 段计划按 segmentIndex 从 directorPlan 取——计划是唯一来源，重提永远不在上一次的提示词上累加；
  * 与首次 dispatch 同参：参考图 Omni-Reference + 1080p + 口播开关。
@@ -1184,12 +955,7 @@ export function buildSegmentSubmitInput(args: {
       model: args.model,
       generateAudio,
       negativePrompt: segment.negativePrompt || undefined,
-      referenceImages: hasRefs
-        ? (() => {
-            const opening = segmentOpeningFrameUrl(args.model, args.brief.directorPlan, plan, segment, refs);
-            return refs.map((url) => ({ url, role: url === opening ? ("first_frame" as const) : ("content" as const) }));
-          })()
-        : undefined,
+      referenceImages: hasRefs ? refs.map((url) => ({ url, role: "content" as const })) : undefined,
       referenceMode: hasRefs ? "reference" : undefined,
       resolution: "1080p",
       mockHints: {
@@ -1611,7 +1377,7 @@ export async function reconcileVideoJob(jobId: string) {
       to: VideoJobStatus.FAILED,
       reason: `provider_failed (${result.rawProviderStatus}): ${result.errorMessage ?? ""}`,
     });
-    const marked = await db.videoJob.updateMany({
+    await db.videoJob.updateMany({
       where: {
         id: jobId,
         status: { in: [VideoJobStatus.RUNNING, VideoJobStatus.QUEUED] },
@@ -1630,22 +1396,6 @@ export async function reconcileVideoJob(jobId: string) {
         pollErrors: 0,
       },
     });
-    /// 供应商受理后自己判失败（Runway FAILED、Shuyu 退回积分）且整条视频已没有能用的段：改交备用线路重拍，
-    /// 商家看到的仍是「生成中」。换不了（还有段能用、备用接不了、已经换过一次）就照旧失败，等商家重试。
-    /// 成片后重做某一段的候选行不在此列：成片还在，换线路会让同一条成片出自两家。
-    if (
-      marked.count === 1 &&
-      job.videoBriefId &&
-      (job.videoProviderAdapterSnapshot === "runway" || job.videoProviderAdapterSnapshot === "shuyu") &&
-      !isSegmentRedoCandidate(job)
-    ) {
-      await fallBackBriefToBackupRoute(job.videoBriefId).catch((error: unknown) => {
-        console.error("[video-route-fallback] 任务失败后改交备用线路出错", {
-          briefId: job.videoBriefId,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      });
-    }
     return db.videoJob.findUnique({ where: { id: jobId } });
   }
 
@@ -1776,6 +1526,8 @@ export async function retryFailedVideoJob(jobId: string) {
   if (!job.videoBriefId) {
     throw new Error("批量 VideoJob 请使用 batch retry 接口");
   }
+  /// 这一段当初走的线路已下线：明确拒绝，不去查状态、不重提
+  assertVideoRouteNotRetiredForRegeneration(job);
   if (isHistoricalDispatchQuarantined(job)) {
     throw new Error("历史任务仍处于派发隔离栏，请先由管理员显式放行");
   }
@@ -2219,6 +1971,8 @@ export async function prepareSegmentRedo(
     },
   });
   if (!brief) throw new SegmentRedoRejectedError("RESOURCE_NOT_FOUND", "生成记录不存在。");
+  /// 这条成片当初走的线路已下线：新段没处生成，在限频与扣费之前就拒绝
+  assertVideoRouteNotRetiredForRegeneration(brief);
   if (!brief.finalVideoId || !brief.directorPlan) {
     throw new SegmentRedoRejectedError(
       "INVALID_STATE",
@@ -2991,10 +2745,6 @@ export const __test__ = {
   persistAcceptedSubmission,
   claimFailedJobForRetry,
   submitSegmentJob,
-  fallBackBriefToBackupRoute,
-  __setRunwayFallbackDepsForTests(deps: Partial<RunwayFallbackDeps> | null): void {
-    runwayFallbackDepsOverride = deps;
-  },
   __setStatusFetcherForTests(
     fn: ((providerJobId: string) => Promise<DirectProviderStatus>) | null,
   ): void {

@@ -320,7 +320,7 @@ test("ambiguous or externally-created jobs fail closed before marker or ledger m
   assert.equal(logCalls, 0);
 });
 
-test("Runway 拒单改交 Shuyu 又被拒：被替换的 Runway 行不占段数，但同样必须「一定没建」", async (t) => {
+test("历史数据：当初 Runway 拒单改交 Shuyu 又被拒的 brief——被替换的 Runway 行不占段数，但同样必须「一定没建」", async (t) => {
   const request = {
     state: VideoDispatchRequestState.PROCESSING,
     quotaConsumedAt: new Date("2026-10-28T10:00:00.000Z") as Date | null,

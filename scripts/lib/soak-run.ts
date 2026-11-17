@@ -45,9 +45,6 @@ export const SOAK_WAVES = ["morning", "noon", "evening"] as const;
 export type SoakWave = (typeof SOAK_WAVES)[number];
 export const SOAK_WAVE_LABELS: Record<SoakWave, string> = { morning: "早", noon: "午", evening: "晚" };
 
-/// buddy = Shuyu（客户默认线路）；runway = 备用线路，派发时按请求点名
-export type SoakRoute = "buddy" | "runway";
-
 export interface SoakItem {
   /// `<用例>-<角度>-<a|b>`，目录名、幂等键、报告里都用它
   id: string;
@@ -57,7 +54,6 @@ export interface SoakItem {
   angleId: SoakAngleId;
   group: SoakGroup;
   wave: SoakWave;
-  route: SoakRoute;
 }
 
 /**
@@ -78,7 +74,6 @@ export function expandSoakItems(cases: ReadonlyArray<Pick<GoldenSetCase, "id">>)
           angleId: angle.id,
           group: group.id,
           wave: SOAK_WAVES[(caseIndex + angleIndex) % SOAK_WAVES.length],
-          route: "buddy",
         });
       }
     });
@@ -121,35 +116,6 @@ export function selectSoakItems(
   return filter.limit ? selected.slice(0, filter.limit) : selected;
 }
 
-/**
- * `--runway n`：在选中的条目里挑 n 条走 Runway，其余走 Shuyu。按对挑（n 要是偶数）：一对的 A、B 走同一条线路，
- * 否则线路的差别会混进两组的对比。逐对挑「时段、角度、品类重复得最少」的第一对；同样的输入永远挑同样的几对。
- */
-export function assignRunwayRoutes(items: readonly SoakItem[], count: number): SoakItem[] {
-  if (!Number.isInteger(count) || count < 0) throw new Error("--runway 要给非负整数");
-  if (count % 2 !== 0) throw new Error("--runway 要给偶数：一对的 A、B 两条走同一条线路");
-  const pairs = [...new Set(items.map((item) => item.pairId))]
-    .map((pairId) => items.filter((item) => item.pairId === pairId))
-    .filter((members) => SOAK_GROUPS.every((group) => members.some((item) => item.group === group.id)));
-  if (count / 2 > pairs.length) throw new Error(`--runway ${count} 超过了选中的 ${pairs.length} 对（${pairs.length * 2} 条）`);
-  const picked = new Set<string>();
-  const used = new Map<string, number>();
-  const seen = (key: string) => used.get(key) ?? 0;
-  for (let round = 0; round < count / 2; round++) {
-    let best: { pair: SoakItem; score: number[] } | null = null;
-    for (const [pair] of pairs) {
-      if (picked.has(pair.pairId)) continue;
-      const score = [seen(`wave:${pair.wave}`), seen(`angle:${pair.angleId}`), seen(`case:${pair.caseId}`)];
-      const differs = best === null ? -1 : score.findIndex((value, position) => value !== best!.score[position]);
-      if (best === null || (differs >= 0 && score[differs] < best.score[differs])) best = { pair, score };
-    }
-    const chosen = best!.pair;
-    picked.add(chosen.pairId);
-    for (const key of [`wave:${chosen.wave}`, `angle:${chosen.angleId}`, `case:${chosen.caseId}`]) used.set(key, seen(key) + 1);
-  }
-  return items.map((item) => ({ ...item, route: picked.has(item.pairId) ? "runway" : "buddy" }));
-}
-
 export function parseWave(raw: string | null | undefined): SoakWave | "all" {
   if (raw === "all") return "all";
   const wave = SOAK_WAVES.find((value) => value === raw);
@@ -182,7 +148,7 @@ export function soakStoryboardBody(
 
 /**
  * 「生成视频」的请求体：与创作页的缺省设置一致——中文口播（原生口播）、逐词字幕、不配乐、不做品牌封装。
- * Shuyu 条目不点名线路（和浏览器一样走平台给客户的默认线路）；Runway 条目点名 runway，账号没开放就由服务端 403。
+ * 不点名线路：和浏览器一样走平台给客户的默认线路（Shuyu，唯一一条）。
  * confirmedPrompts 只给 B 组：创作页「确认脚本」用的同一个字段，把线上方案里 AI 段的提示词正文换成本机不调模型算出来的那一份。
  */
 export function soakDispatchBody(args: {
@@ -190,7 +156,6 @@ export function soakDispatchBody(args: {
   angleId: SoakAngleId;
   assetIds: readonly string[];
   storyboardRunId: string;
-  route: SoakRoute;
   confirmedPrompts?: ReadonlyArray<{ segmentOrder: number; prompt: string }> | null;
 }) {
   return {
@@ -222,13 +187,12 @@ export function soakDispatchBody(args: {
       captions: { enabled: true, style: "word_by_word" as const, language: SOAK_LANGUAGE, position: "bottom" as const, exportSrt: true },
     },
     storyboardRunId: args.storyboardRunId,
-    ...(args.route === "runway" ? { videoRouteId: "runway" as const } : {}),
     ...(args.confirmedPrompts ? { confirmedPrompts: args.confirmedPrompts.map((entry) => ({ ...entry })) } : {}),
   };
 }
 
 // ---------------------------------------------------------------------------
-// 运行清单：第一次估算时把「选了哪些条、各走哪一波哪条线路」定下来，之后每次都得对得上
+// 运行清单：第一次估算时把「选了哪些条、各走哪一波」定下来，之后每次都得对得上
 // ---------------------------------------------------------------------------
 
 export interface SoakManifest {
@@ -240,19 +204,31 @@ export interface SoakManifest {
   baseline?: { runKey: string } | null;
 }
 
-/** 同一个 run-key 换了筛选条件或 Runway 条数就拒绝：线路与分波一旦定了不能中途变。 */
+/**
+ * 2026-11-16 之前建的清单每条还带着 route。当初点名过已下线线路的那种运行可以照常出报告，
+ * 但不能接着投：接着投会悄悄改走 Shuyu，和清单上记的不是一回事。
+ */
+export function assertNoRetiredRouteItems(runKey: string, items: readonly SoakItem[]): void {
+  const retired = items.filter((entry) => {
+    const route = (entry as { route?: unknown }).route;
+    return route !== undefined && route !== "buddy";
+  }).length;
+  if (retired > 0) {
+    throw new Error(`${runKey} 的清单里有 ${retired} 条当初点名了已下线的线路，这一轮不能接着投：换 --run-key 重新开一轮`);
+  }
+}
+
+/** 同一个 run-key 换了筛选条件就拒绝：分波一旦定了不能中途变。 */
 export function assertManifestMatches(manifest: SoakManifest, items: readonly SoakItem[]): void {
   const same =
     manifest.items.length === items.length &&
     manifest.items.every((entry, index) => {
       const item = items[index];
-      return entry.id === item.id && entry.group === item.group && entry.wave === item.wave && entry.route === item.route;
+      return entry.id === item.id && entry.group === item.group && entry.wave === item.wave;
     });
   if (!same) {
     throw new Error(
-      `${manifest.runKey} 已经按另一组条目建过清单（${manifest.items.length} 条，Runway ${
-        manifest.items.filter((entry) => entry.route === "runway").length
-      } 条）：筛选条件与 --runway 要和第一次一致，或者换 --run-key`,
+      `${manifest.runKey} 已经按另一组条目建过清单（${manifest.items.length} 条）：筛选条件要和第一次一致，或者换 --run-key`,
     );
   }
 }
@@ -276,7 +252,7 @@ export interface SoakJobFact {
   status: string;
   submissionState: string;
   submissionErrorClass: string | null;
-  /// 这一段实际走的线路（VideoJob.videoRouteSnapshot）：Shuyu 失败改交 Runway 时会和计划的不一样
+  /// 这一段实际走的线路（VideoJob.videoRouteSnapshot）
   route: string | null;
   frameQaStatus: string | null;
   /// 这一段累计被帧质检拦了几次（frameQaDetail.blockCount，跨重抽累计）
@@ -289,7 +265,7 @@ export interface SoakJobFact {
   submitAttempts: number;
   submittedAt: string | null;
   finishedAt: string | null;
-  /// 被重做 / 改交换下去的旧段
+  /// 被重做换下去的旧段
   superseded: boolean;
   unitPoints: number | null;
   unitUsd: number | null;
@@ -389,7 +365,7 @@ const currentJobs = (attempt: SoakAttempt) => attempt.video.jobs.filter((job) =>
 
 /**
  * 从事实判终态；null = 还在途（或还没开始）。
- * 段失败不立刻判死：Shuyu 明确失败会改交 Runway 重拍，只有 brief 被置成失败、且没有还在跑的段才算。
+ * 段失败不立刻判死：只有 brief 被置成失败、且没有还在跑的段才算。
  */
 export function deriveSoakOutcome(attempt: SoakAttempt): SoakOutcome | null {
   if (attempt.video.finalVideoStatus === "READY") return { kind: "succeeded" };
@@ -470,40 +446,24 @@ export function pendingSoakSpend(record: Pick<SoakRecord, "current">): { frames:
   return { frames: step.kind === "create_storyboard" ? SOAK_FRAMES_PER_ITEM : 0, videos: 1 };
 }
 
-/**
- * 估算，两组分开列：Shuyu 的故事板帧与视频按实时套餐单价算点数；Runway 没有可查的价目，单价（美元）由调用方给，
- * 没给就是「未定价」，预算闸会拒绝花钱。
- * 故事板帧走哪家出图看账号，不看这条视频走哪条线路：在 Runway 灰度名单里的账号（或全员切 Runway 时）帧走 Runway、
- * 按美元计，不扣 Shuyu 点数（11-10 冒烟实测：测试账号的 8 帧全走 Runway，每帧 20 credits = $0.20）。
- */
+/** 估算，两组分开列：故事板帧与视频都走 Shuyu，按实时套餐单价算点数；拿不到单价就是「未定价」，预算闸会拒绝花钱。 */
 export function estimateSoakSpend(args: {
-  records: ReadonlyArray<Pick<SoakRecord, "current" | "route" | "group">>;
+  records: ReadonlyArray<Pick<SoakRecord, "current" | "group">>;
   frameUnitPoints: number | null;
   shuyuVideoUnitPoints: number | null;
-  runwayVideoUnitUsd: number | null;
-  /// 这个账号的故事板帧走哪家出图；缺省 shuyu
-  frameRoute?: "shuyu" | "runway";
-  /// 帧走 Runway 时的单价（美元 / 帧）
-  runwayFrameUnitUsd?: number | null;
 }): SpendEstimate {
-  const runwayFrames = args.frameRoute === "runway";
   return estimateSpend(
     SOAK_GROUPS.flatMap((group) => {
       let frames = 0;
-      let shuyuVideos = 0;
-      let runwayVideos = 0;
+      let videos = 0;
       for (const record of args.records.filter((entry) => entry.group === group.id)) {
         const pending = pendingSoakSpend(record);
         frames += pending.frames;
-        if (record.route === "runway") runwayVideos += pending.videos;
-        else shuyuVideos += pending.videos;
+        videos += pending.videos;
       }
       return [
-        runwayFrames
-          ? { armId: `${group.id} 组·故事板帧（Runway 出图）`, count: frames, unitPoints: null, unitUsd: args.runwayFrameUnitUsd ?? null }
-          : { armId: `${group.id} 组·故事板帧`, count: frames, unitPoints: args.frameUnitPoints, unitUsd: null },
-        { armId: `${group.id} 组·Shuyu 视频`, count: shuyuVideos, unitPoints: args.shuyuVideoUnitPoints, unitUsd: null },
-        { armId: `${group.id} 组·Runway 视频`, count: runwayVideos, unitPoints: null, unitUsd: args.runwayVideoUnitUsd },
+        { armId: `${group.id} 组·故事板帧`, count: frames, unitPoints: args.frameUnitPoints, unitUsd: null },
+        { armId: `${group.id} 组·Shuyu 视频`, count: videos, unitPoints: args.shuyuVideoUnitPoints, unitUsd: null },
       ];
     }),
   );
@@ -645,7 +605,7 @@ export function selectCardRerunItems(
     return record.group === "A" && attempt.video.finalVideoStatus === "READY" && shotCardSource(attempt, visionSince, directionUntil) === "text";
   });
   if (eligible.length === 0) throw new Error("对照轮里还没有「纯文字写卡、已成片」的 A 组条目，没法配对");
-  return eligible.slice(0, count).map(({ id, pairId, caseId, angleId, group, wave }) => ({ id, pairId, caseId, angleId, group, wave, route: "buddy" }));
+  return eligible.slice(0, count).map(({ id, pairId, caseId, angleId, group, wave }) => ({ id, pairId, caseId, angleId, group, wave }));
 }
 
 /**
@@ -862,15 +822,12 @@ export interface SoakSummary {
     cancelled: number;
     ackUnknown: number;
     failureRate: number | null;
-    /// 各出图套餐的帧数（StoryboardFrame.planId；runway: 开头的是 Runway 出图、按美元计）
+    /// 各出图套餐的帧数（StoryboardFrame.planId）
     byPlan: Record<string, number>;
   };
   /// 帧质检各状态的段数；没写状态的记在「(未写入)」
   frameQa: Record<string, number>;
-  /// 计划走 Shuyu、实际有段落到别的线路（失败改交）的条数
-  rerouted: number;
   byWave: SoakGroupStats[];
-  byRoute: SoakGroupStats[];
   gates: SoakGate[];
   frameQaEvidence: SoakFrameQaEvidence;
   planComparison: SoakPlanComparison;
@@ -1094,11 +1051,7 @@ export function summarizeSoak(
       }, {}),
     },
     frameQa,
-    rerouted: started.filter(
-      ({ record, attempt }) => record.route === "buddy" && currentJobs(attempt).some((job) => job.route !== null && job.route !== "buddy"),
-    ).length,
     byWave: group((record) => record.wave, SOAK_WAVES),
-    byRoute: group((record) => record.route, ["buddy", "runway"]),
     gates: [
       {
         name: "成功率",
@@ -1326,16 +1279,13 @@ export function renderSoakReport(runKey: string, summary: SoakSummary, generated
       Object.keys(summary.frames.byPlan).length === 0
         ? "还没有帧"
         : Object.entries(summary.frames.byPlan).map(([plan, count]) => `${plan} ${count} 帧`).join("，")
-    }${Object.keys(summary.frames.byPlan).some((plan) => plan.startsWith("runway:")) ? "（runway: 开头的按 Runway 美元计费，不扣 Shuyu 点数）" : ""}`,
+    }`,
     `- 帧质检：${qa.length === 0 ? "还没有段" : qa.map(([status, count]) => `${status} ${count}`).join("，")}`,
     (summary.frameQa.SKIPPED ?? 0) + (summary.frameQa["(未写入)"] ?? 0) > 0
       ? "- 注意：有段是 SKIPPED 或没写质检状态。没检不等于通过，先查原因（门禁没开、没给视频地址，还是轮 1 的 UNVERIFIED 改动没上线）。"
       : "",
-    summary.rerouted > 0 ? `- 计划走 Shuyu、实际改交到别的线路：${summary.rerouted} 条（另有 Runway 费用，不在点数估算里）` : "",
     "",
     ...groupTable("时段", summary.byWave, (key) => SOAK_WAVE_LABELS[key as SoakWave] ?? key),
-    "",
-    ...groupTable("计划线路", summary.byRoute, (key) => (key === "buddy" ? "Shuyu" : "Runway")),
     "",
     ...frameQaSection(summary.frameQaEvidence),
     ...(summary.cardComparison

@@ -613,8 +613,8 @@ export async function compensateDirectDispatchQuota(
             failureStages = jobs.map((job) =>
               directDispatchFailureStage(job.submissionErrorClass),
             );
-            /// 段数只数当前段：Runway 当场拒单改交 Shuyu 后，被替换的 Runway 行（supersededAt）留档在同一 brief 下，
-            /// 它们同样必须「一定没建、没受理」（下面的 every 照查），但不占这一单扣的段数。
+            /// 段数只数当前段：被换下去的旧行（supersededAt；2026-11-16 之前「拒单改交另一条线路」留下的那种）
+            /// 留档在同一 brief 下，它们同样必须「一定没建、没受理」（下面的 every 照查），但不占这一单扣的段数。
             const evidenceIsSafe =
               jobs.filter(isCurrentSegmentJob).length === params.seedanceSegmentAmount &&
               representedBriefIds.size === uniqueBriefIds.length &&

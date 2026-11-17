@@ -4,7 +4,6 @@ import test from "node:test";
 import { formatShotCard, formatShotCardSequence, normalizeShotCards } from "../src/lib/video-generation/shot-cards";
 import {
   SEEDANCE_OPENING_FRAME_MARKER,
-  groundSegmentPromptForOpeningFrame,
   groundSegmentPromptForSeedanceOpeningFrame,
   groundSegmentPromptInStoryboard,
   shuyuOpeningFramePromptEnabled,
@@ -275,7 +274,6 @@ test("Shuyu 首帧版：有主播照时开场帧排在主播后面；改写过�
   };
   assert.equal(groundSegmentPromptForSeedanceOpeningFrame(once, input), once);
   assert.equal(groundSegmentPromptInStoryboard(once, input), once);
-  assert.equal(groundSegmentPromptForOpeningFrame(once, input), once);
 });
 
 test("Shuyu 首帧版：没有镜头卡的镜头退回节奏句；超长台词与负面也装得下 5000 字，台词一字不动", () => {

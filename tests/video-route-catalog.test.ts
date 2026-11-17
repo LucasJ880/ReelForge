@@ -2,14 +2,11 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { videoRouteCatalogSchema } from "../src/lib/contracts/video-route-catalog";
-import {
-  RUNWAY_PREMIUM_MODEL_LABEL,
-  buildVideoRouteCatalog,
-  shuyuFamilyLabel,
-} from "../src/lib/services/video-route-catalog-service";
+import { buildVideoRouteCatalog, shuyuFamilyLabel } from "../src/lib/services/video-route-catalog-service";
 
 /**
- * 2026-10-29 Evan：Shuyu 作默认线路，Shuyu 开放给我们的类别全部展示在前端；Runway 作高质量备选。
+ * 2026-10-29 Evan：Shuyu 作默认线路，Shuyu 开放给我们的类别全部展示在前端。
+ * 2026-11-16：「高质量」备选随那条出片线路一起删了，目录里只剩标准线路。
  * 夹具取自当天 /prices 实拉的几档（105 档里的代表）：Seedance 2.5 特价 / VIP、Kling 4.0、Wan 3.0、Seedance 2.0 VIP 4K。
  */
 const plan = (
@@ -56,13 +53,7 @@ test("家族名：第一个「·」之前、去掉 SY 前缀", () => {
 });
 
 test("目录：只列视频档；默认家族排第一、已接入的其次；未过审计的家族照样展示但标待接入；不带积分单价", () => {
-  const catalog = buildVideoRouteCatalog({
-    prices: PRICES,
-    standardAvailable: true,
-    fallsBackToPremium: true,
-    premiumOffered: true,
-    premiumResolution: "1080p",
-  });
+  const catalog = buildVideoRouteCatalog({ prices: PRICES, standardAvailable: true });
   assert.deepEqual(
     catalog.families.map((family) => [family.label, family.integrated, family.isDefault]),
     [
@@ -84,32 +75,33 @@ test("目录：只列视频档；默认家族排第一、已接入的其次；�
   assert.equal(catalog.families.find((family) => family.label === "Kling 4.0")?.maxDurationSec, 30);
   assert.equal(catalog.standard.defaultFamily, "Seedance 2.5 特价");
   assert.equal(catalog.standard.defaultResolution, "720P");
-  assert.equal(catalog.standard.fallsBackToPremium, true);
-  assert.deepEqual(catalog.premium, { offered: true, model: RUNWAY_PREMIUM_MODEL_LABEL, resolution: "1080p" });
+  assert.deepEqual(Object.keys(catalog).sort(), ["families", "ok", "standard"], "没有第二条线路");
+  assert.deepEqual(Object.keys(catalog.standard).sort(), ["available", "defaultFamily", "defaultResolution"]);
   assert.doesNotMatch(JSON.stringify(catalog), /sale_points|unitSalePoints|pointsPer15s|1500|144|116/, "不给进货价");
 });
 
-test("价目表拿不到：目录照给（家族为空、默认为空），高质量开不开照实报", () => {
-  const catalog = buildVideoRouteCatalog({
-    prices: [],
-    standardAvailable: false,
-    fallsBackToPremium: false,
-    premiumOffered: false,
-    premiumResolution: "720p",
-  });
+test("价目表拿不到：目录照给（家族为空、默认为空），标准线路不可用照实报", () => {
+  const catalog = buildVideoRouteCatalog({ prices: [], standardAvailable: false });
   assert.deepEqual(catalog.families, []);
   assert.equal(catalog.standard.defaultFamily, null);
-  assert.equal(catalog.premium.offered, false);
+  assert.equal(catalog.standard.available, false);
   assert.equal(videoRouteCatalogSchema.safeParse({ ...catalog, extra: 1 }).success, false, "契约 strict");
+  /// 旧版页面缓存里带着的「高质量」那一格，新契约不再认
+  assert.equal(
+    videoRouteCatalogSchema.safeParse({ ...catalog, premium: { offered: false, model: "x", resolution: "720p" } }).success,
+    false,
+  );
 });
 
-test("接线：客户的线路卡只在选了高质量时派发带 runway；卡片只引用纯契约（不进服务端模块）", async () => {
+test("接线：客户的线路卡不带线路 id 派发（只有标准线路）；卡片只引用纯契约（不进服务端模块）", async () => {
   const [studio, picker, route] = await Promise.all([
     readFile("src/components/video-generation/streamlined-video-studio.tsx", "utf8"),
     readFile("src/components/video-generation/customer-route-picker.tsx", "utf8"),
     readFile("src/app/api/video-generation/routes/catalog/route.ts", "utf8"),
   ]);
-  assert.match(studio, /!canSelectVideoRoute && customerRoute === "runway"\s*\? \{ videoRouteId: "runway" \}/);
+  assert.match(studio, /\.\.\.\(canSelectVideoRoute && selectedVideoRouteId \? \{ videoRouteId: selectedVideoRouteId \} : \{\}\)/);
+  assert.doesNotMatch(studio, /videoRouteId: "runway"|customerRoute/);
+  assert.doesNotMatch(picker, /premium|fallsBackToPremium|高质量/);
   assert.match(studio, /<CustomerRoutePicker[\s\S]*?active=\{moreOpen\}/);
   assert.match(picker, /^"use client";/);
   assert.match(picker, /fetch\("\/api\/video-generation\/routes\/catalog"/);

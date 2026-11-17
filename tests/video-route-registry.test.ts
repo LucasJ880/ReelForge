@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  RETIRED_VIDEO_ROUTE_IDS,
   VIDEO_ROUTE_IDS,
   VIDEO_ROUTE_REGISTRY,
   createVideoRouteSnapshot,
   getVideoRouteContract,
   isEnabledVideoRouteId,
+  isRetiredVideoRouteId,
   readVideoRouteSnapshot,
 } from "../src/lib/video-generation/video-route-registry";
 
@@ -15,7 +17,7 @@ test("video route registry explicitly allowlists audited routes", () => {
     "volcengine_cn_legacy",
     "mock",
     "buddy",
-    /// 2026-10-28 CEO 批的 Runway 开发者 API（官方计费）；客户默认仍是 buddy，VIDEO_CUSTOMER_ROUTE 切换
+    /// 2026-11-16 下线、出片代码已删；只为读旧记录留着这条登记
     "runway",
   ]);
   assert.deepEqual(Object.keys(VIDEO_ROUTE_REGISTRY), VIDEO_ROUTE_IDS);
@@ -35,13 +37,40 @@ test("video route registry explicitly allowlists audited routes", () => {
     processingRegion: "cn-beijing",
   });
   assert.equal(isEnabledVideoRouteId("mock"), true);
+});
+
+test("已下线的 runway 线路：登记只为读旧记录——旧快照照常读得出来，但不能建新快照", () => {
   assert.deepEqual(getVideoRouteContract("runway"), {
     id: "runway",
-    enabled: true,
+    enabled: false,
     providerAdapter: "runway",
     model: "klingO3_pro",
     processingRegion: null,
   });
+  assert.deepEqual(RETIRED_VIDEO_ROUTE_IDS, ["runway"]);
+  assert.equal(isRetiredVideoRouteId("runway"), true);
+  assert.equal(isEnabledVideoRouteId("runway"), false);
+  for (const routeId of VIDEO_ROUTE_IDS.filter((id) => id !== "runway")) {
+    assert.equal(isRetiredVideoRouteId(routeId), false, routeId);
+    assert.equal(isEnabledVideoRouteId(routeId), true, routeId);
+  }
+  assert.equal(isRetiredVideoRouteId(null), false);
+  assert.equal(isRetiredVideoRouteId("invented"), false, "认不得的 id 不是「已下线」，是数据错误");
+
+  /// 旧的 brief / 段任务 / 批次上记着的两种模型都读得出来，模型原样保留
+  for (const model of ["klingO3_pro", "seedance2"]) {
+    const read = readVideoRouteSnapshot({
+      videoRouteSnapshot: "runway",
+      videoModelSnapshot: model,
+      videoProviderAdapterSnapshot: "runway",
+    });
+    assert.equal(read.state, "persisted");
+    assert.equal(read.videoRouteSnapshot, "runway");
+    assert.equal(read.videoModelSnapshot, model);
+    assert.equal(read.videoProviderAdapterSnapshot, "runway");
+    assert.equal(read.route?.enabled, false);
+  }
+  assert.throws(() => createVideoRouteSnapshot("runway"), /Video route runway is retired/);
 });
 
 test("Shuyu partner route is enabled only for the audited studio-video contract", () => {

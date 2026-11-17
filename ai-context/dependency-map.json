@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T00:09:46.320Z",
+  "generatedAt": "2026-11-17T00:12:06.570Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -4763,7 +4763,6 @@
         "@/lib/schemas/unified-input",
         "@/lib/services/media-asset-service",
         "@/lib/video-generation/generation-supervisor",
-        "@/lib/video-generation/runway-rollout",
         "@/lib/providers/shuyu",
         "@/lib/providers/shuyu-catalog",
         "@/lib/ai"
@@ -4779,7 +4778,6 @@
         "@/lib/schemas/unified-input",
         "@/lib/services/media-asset-service",
         "@/lib/video-generation/generation-supervisor",
-        "@/lib/video-generation/runway-rollout",
         "@/lib/providers/shuyu",
         "@/lib/providers/shuyu-catalog",
         "@/lib/ai"
@@ -11758,16 +11756,6 @@
       ]
     },
     {
-      "file": "src/lib/providers/runway.ts",
-      "imports": [
-        "zod"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "zod"
-      ]
-    },
-    {
       "file": "src/lib/providers/seedance.ts",
       "imports": [
         "@/lib/config/dry-run",
@@ -13515,17 +13503,13 @@
       "file": "src/lib/services/video-route-catalog-service.ts",
       "imports": [
         "@/lib/contracts/video-route-catalog",
-        "@/lib/providers/runway",
         "@/lib/providers/shuyu",
-        "@/lib/video-generation/runway-rollout",
         "@/lib/video-generation/shuyu-runtime",
         "zod"
       ],
       "localImports": [
         "@/lib/contracts/video-route-catalog",
-        "@/lib/providers/runway",
         "@/lib/providers/shuyu",
-        "@/lib/video-generation/runway-rollout",
         "@/lib/video-generation/shuyu-runtime"
       ],
       "externalImports": [
@@ -13574,14 +13558,13 @@
         "@/lib/video-generation/brief-delivery-state",
         "next-auth",
         "@/lib/demo-account",
-        "@/lib/storage/trusted-media-url",
         "@/lib/video-generation/segment-redo",
         "./quota-service",
         "./quota-refund-service",
         "@/lib/video-generation/storyboard-service",
         "@/lib/video-generation/storyboard-beats",
-        "@/lib/providers/runway",
-        "@/lib/providers/shuyu"
+        "./ops-alert-service",
+        "./stitch-service"
       ],
       "localImports": [
         "@/lib/video-generation/video-route-cost",
@@ -13603,14 +13586,13 @@
         "./single-video-cancel-service",
         "@/lib/video-generation/brief-delivery-state",
         "@/lib/demo-account",
-        "@/lib/storage/trusted-media-url",
         "@/lib/video-generation/segment-redo",
         "./quota-service",
         "./quota-refund-service",
         "@/lib/video-generation/storyboard-service",
         "@/lib/video-generation/storyboard-beats",
-        "@/lib/providers/runway",
-        "@/lib/providers/shuyu"
+        "./ops-alert-service",
+        "./stitch-service"
       ],
       "externalImports": [
         "node:crypto",
@@ -14406,8 +14388,6 @@
         "./mock-video-provider",
         "./byteplus-video-provider",
         "./shuyu-video-provider",
-        "./runway-video-provider",
-        "@/lib/providers/runway",
         "./types",
         "../video-route-registry"
       ],
@@ -14417,8 +14397,6 @@
         "./mock-video-provider",
         "./byteplus-video-provider",
         "./shuyu-video-provider",
-        "./runway-video-provider",
-        "@/lib/providers/runway",
         "./types",
         "../video-route-registry"
       ],
@@ -14440,20 +14418,6 @@
       "externalImports": [
         "node:crypto"
       ]
-    },
-    {
-      "file": "src/lib/video-generation/providers/runway-video-provider.ts",
-      "imports": [
-        "@/lib/providers/runway",
-        "./submission-error",
-        "./types"
-      ],
-      "localImports": [
-        "@/lib/providers/runway",
-        "./submission-error",
-        "./types"
-      ],
-      "externalImports": []
     },
     {
       "file": "src/lib/video-generation/providers/shuyu-video-provider.ts",
@@ -14509,48 +14473,6 @@
       "externalImports": [
         "zod"
       ]
-    },
-    {
-      "file": "src/lib/video-generation/runway-fallback.ts",
-      "imports": [
-        "@/lib/schemas/director-plan",
-        "@/types/video-generation",
-        "./plan-to-director"
-      ],
-      "localImports": [
-        "@/lib/schemas/director-plan",
-        "@/types/video-generation",
-        "./plan-to-director"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/lib/video-generation/runway-rollout.ts",
-      "imports": [
-        "@/lib/providers/runway"
-      ],
-      "localImports": [
-        "@/lib/providers/runway"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/lib/video-generation/runway-storyboard-images.ts",
-      "imports": [
-        "@/lib/db",
-        "@/lib/providers/runway",
-        "./providers/submission-error",
-        "./providers/runway-video-provider",
-        "./runway-rollout"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/providers/runway",
-        "./providers/submission-error",
-        "./providers/runway-video-provider",
-        "./runway-rollout"
-      ],
-      "externalImports": []
     },
     {
       "file": "src/lib/video-generation/segment-planner-adapter.ts",
@@ -14707,7 +14629,6 @@
         "@/lib/services/vision-budget-context",
         "@/lib/providers/shuyu-image-provider",
         "@/lib/providers/shuyu",
-        "@/lib/video-generation/runway-storyboard-images",
         "@/lib/video-generation/video-route-registry",
         "@/types/video-generation",
         "@/lib/services/media-asset-service",
@@ -14731,7 +14652,6 @@
         "@/lib/services/vision-budget-context",
         "@/lib/providers/shuyu-image-provider",
         "@/lib/providers/shuyu",
-        "@/lib/video-generation/runway-storyboard-images",
         "@/lib/video-generation/video-route-registry",
         "@/types/video-generation",
         "@/lib/services/media-asset-service",
@@ -14817,8 +14737,6 @@
       "imports": [
         "@/lib/config/env",
         "@/lib/config/seedance-runtime",
-        "@/lib/providers/runway",
-        "./runway-rollout",
         "@/lib/providers/shuyu",
         "./shuyu-runtime",
         "./video-route-registry"
@@ -14826,8 +14744,6 @@
       "localImports": [
         "@/lib/config/env",
         "@/lib/config/seedance-runtime",
-        "@/lib/providers/runway",
-        "./runway-rollout",
         "@/lib/providers/shuyu",
         "./shuyu-runtime",
         "./video-route-registry"
@@ -16945,25 +16861,6 @@
       ]
     },
     {
-      "file": "tests/customer-route-failover.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test",
-        "../src/lib/video-generation/video-route-registry",
-        "../src/lib/video-generation/video-route-selection"
-      ],
-      "localImports": [
-        "../src/lib/video-generation/video-route-registry",
-        "../src/lib/video-generation/video-route-selection"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/customer-route-states.test.ts",
       "imports": [
         "node:assert/strict",
@@ -17995,29 +17892,6 @@
       ],
       "externalImports": [
         "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/kling-storyboard-prompt.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test",
-        "../src/lib/video-generation/storyboard-beats",
-        "../src/lib/providers/runway",
-        "../src/lib/video-generation/prompt-intelligence",
-        "../src/lib/video-generation/shot-cards"
-      ],
-      "localImports": [
-        "../src/lib/video-generation/storyboard-beats",
-        "../src/lib/providers/runway",
-        "../src/lib/video-generation/prompt-intelligence",
-        "../src/lib/video-generation/shot-cards"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:fs/promises",
         "node:test"
       ]
     },
@@ -19860,115 +19734,48 @@
       ]
     },
     {
-      "file": "tests/runway-fallback.test.ts",
+      "file": "tests/runway-retired-legacy-rows.test.ts",
       "imports": [
         "node:assert/strict",
+        "node:fs/promises",
+        "node:module",
         "node:test",
         "@prisma/client",
+        "next/server",
         "../src/lib/db",
-        "../src/lib/providers/shuyu",
-        "../src/lib/schemas/unified-input",
+        "../src/lib/auth",
+        "../src/app/api/briefs/[id]/render-retry/route",
+        "../src/lib/services/stitch-service",
         "../src/lib/services/video-service",
-        "../src/lib/services/video-watchdog",
-        "../src/lib/video-generation/generation-supervisor",
-        "../src/lib/video-generation/plan-to-director",
-        "../src/lib/video-generation/providers/shuyu-video-provider",
-        "../src/lib/video-generation/providers/submission-error",
-        "../src/lib/video-generation/providers/types",
-        "../src/lib/video-generation/runway-fallback",
-        "../src/lib/video-generation/storyboard-beats",
+        "../src/lib/video-generation/providers",
+        "../src/lib/video-generation/segment-redo",
+        "../src/lib/video-generation/storyboard-service",
         "../src/lib/video-generation/video-route-registry",
-        "../src/types/video-generation"
+        "../src/lib/video-generation/video-route-selection",
+        "../src/types/video-generation",
+        "next-auth/next"
       ],
       "localImports": [
         "../src/lib/db",
-        "../src/lib/providers/shuyu",
-        "../src/lib/schemas/unified-input",
+        "../src/lib/auth",
+        "../src/app/api/briefs/[id]/render-retry/route",
+        "../src/lib/services/stitch-service",
         "../src/lib/services/video-service",
-        "../src/lib/services/video-watchdog",
-        "../src/lib/video-generation/generation-supervisor",
-        "../src/lib/video-generation/plan-to-director",
-        "../src/lib/video-generation/providers/shuyu-video-provider",
-        "../src/lib/video-generation/providers/submission-error",
-        "../src/lib/video-generation/providers/types",
-        "../src/lib/video-generation/runway-fallback",
-        "../src/lib/video-generation/storyboard-beats",
+        "../src/lib/video-generation/providers",
+        "../src/lib/video-generation/segment-redo",
+        "../src/lib/video-generation/storyboard-service",
         "../src/lib/video-generation/video-route-registry",
+        "../src/lib/video-generation/video-route-selection",
         "../src/types/video-generation"
       ],
       "externalImports": [
         "node:assert/strict",
+        "node:fs/promises",
+        "node:module",
         "node:test",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "tests/runway-provider.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/providers/runway",
-        "../src/lib/video-generation/providers/runway-video-provider",
-        "../src/lib/video-generation/providers/submission-error"
-      ],
-      "localImports": [
-        "../src/lib/providers/runway",
-        "../src/lib/video-generation/providers/runway-video-provider",
-        "../src/lib/video-generation/providers/submission-error"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/runway-route.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/providers/runway",
-        "../src/lib/video-generation/providers",
-        "../src/lib/video-generation/providers/runway-video-provider",
-        "../src/lib/video-generation/video-route-cost",
-        "../src/lib/video-generation/video-route-registry",
-        "../src/lib/video-generation/video-route-selection",
-        "../src/lib/video-generation/runway-rollout"
-      ],
-      "localImports": [
-        "../src/lib/providers/runway",
-        "../src/lib/video-generation/providers",
-        "../src/lib/video-generation/providers/runway-video-provider",
-        "../src/lib/video-generation/video-route-cost",
-        "../src/lib/video-generation/video-route-registry",
-        "../src/lib/video-generation/video-route-selection",
-        "../src/lib/video-generation/runway-rollout"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/runway-storyboard-images.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/db",
-        "../src/lib/video-generation/storyboard-service",
-        "../src/lib/video-generation/runway-storyboard-images",
-        "../src/lib/providers/runway",
-        "../src/lib/video-generation/providers/runway-video-provider"
-      ],
-      "localImports": [
-        "../src/lib/db",
-        "../src/lib/video-generation/storyboard-service",
-        "../src/lib/video-generation/runway-storyboard-images",
-        "../src/lib/providers/runway",
-        "../src/lib/video-generation/providers/runway-video-provider"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
+        "@prisma/client",
+        "next/server",
+        "next-auth/next"
       ]
     },
     {

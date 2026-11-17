@@ -9,17 +9,15 @@ import {
 import { __testVideoPlans__ } from "../src/lib/providers/shuyu";
 import { createBatchJob } from "../src/lib/services/batch-service";
 import { createVideoRouteSnapshot } from "../src/lib/video-generation/video-route-registry";
-import {
-  customerFailoverRouteSnapshot,
-} from "../src/lib/video-generation/video-route-selection";
+import * as routeSelection from "../src/lib/video-generation/video-route-selection";
 import { __resetShuyuRuntimeProbeForTests } from "../src/lib/video-generation/shuyu-runtime";
 
 /**
- * P03-C1 · 批量永不降级。
+ * P03-C1 · 批量的线路在建批次时一次定死，不可用就按原原因拒绝。
  *
- * 单条 dispatch 在 Shuyu 不可用时会切到备用线路；批量的线路、计价、快照在建批次时
- * 一次定死，上游不可用就按原原因抛错、零建批次。这里故意把备用线路配齐
- * （ARK_API_KEY），证明「没降级」是 allowFailover:false 的结果，而不是备用线路恰好不可用。
+ * 2026-11-16 起没有备用线路这回事（Runway 出片的代码整段删了，「不可用时换线路」那一层一起删）：
+ * 批量与单条都只做一次可用性检查。这里故意把下线前的环境变量留在夹具里（线上的 Vercel 配置可能还没清），
+ * 证明它们什么都打不开：Shuyu 不可用时零建批次、零提交、除 Shuyu 外一个网络请求都不发。
  *
  * fetch 整体打桩、db 打桩：零网络、零库、零供应商提交。
  */
@@ -84,8 +82,8 @@ function patch(
   });
 }
 
-/// 非生产、真实引擎、客户线路 = buddy；备用线路 Runway 凭据齐全。
-function realEnvWithBackup(t: TestContext) {
+/// 非生产、真实引擎、客户线路 = buddy；下线前那几个环境变量照旧留着。
+function realEnvWithLeftovers(t: TestContext) {
   const values: Record<string, string | undefined> = {
     VERCEL_ENV: "preview",
     VIDEO_PROVIDER: "byteplus",
@@ -93,9 +91,11 @@ function realEnvWithBackup(t: TestContext) {
     AIVORA_DRY_RUN: "false",
     SHUYU_API_KEY: "test-only",
     SHUYU_ALLOW_FINAL_TIER: undefined,
-    /// 2026-11-09 线路精简：Shuyu 的备用只有 Runway
+    /// 已下线线路残留的配置：代码里已经没有读它们的地方
     RUNWAYML_API_SECRET: "test-runway-key",
-    SHUYU_FALLBACK_TO_RUNWAY: undefined,
+    VIDEO_CUSTOMER_ROUTE: "runway",
+    RUNWAY_PREMIUM: "on",
+    SHUYU_FALLBACK_TO_RUNWAY: "on",
   };
   const originals = new Map<string, string | undefined>();
   for (const [key, value] of Object.entries(values)) {
@@ -201,15 +201,29 @@ function pickSnapshot(record: Record<string, unknown>) {
   );
 }
 
-test("前提：2026-11-16 Runway 下线后 Shuyu 没有备用线路（下面的用例继续守「批量绝不换线路」这条机制）", (t) => {
-  realEnvWithBackup(t);
-  /// 夹具里 Runway 的 key 仍然配着：下线是代码里关死的，不靠删 key
-  assert.equal(customerFailoverRouteSnapshot(process.env, "buddy"), null);
-  assert.equal(customerFailoverRouteSnapshot(process.env, "runway")?.videoRouteSnapshot, "buddy");
+test("前提：没有备用线路——选择模块不再导出任何换线路的入口，残留的环境变量也改不了客户线路", (t) => {
+  realEnvWithLeftovers(t);
+  for (const name of ["customerFailoverRouteSnapshot", "resolveRouteWithFailover", "customerVideoRouteId"]) {
+    assert.equal(name in routeSelection, false, `${name} 已删`);
+  }
+  assert.deepEqual(routeSelection.selectVideoRouteSnapshot({ isInternalStaff: false }), BUDDY_SNAPSHOT);
+  assert.throws(
+    () => routeSelection.selectVideoRouteSnapshot({ isInternalStaff: false, requestedRouteId: "runway" }),
+    (error: unknown) => error instanceof routeSelection.VideoRouteSelectionError && error.code === "FORBIDDEN",
+  );
+  /// 已下线线路的旧快照问可用性：恒不可用，不看那把残留的 key
+  assert.equal(
+    routeSelection.isVideoRouteSnapshotRuntimeReady({
+      videoRouteSnapshot: "runway",
+      videoModelSnapshot: "klingO3_pro",
+      videoProviderAdapterSnapshot: "runway",
+    }),
+    false,
+  );
 });
 
 test("Shuyu 上游不可用：批量按原原因 shuyu_unavailable 拒绝，零建批次、零换线路", async (t) => {
-  realEnvWithBackup(t);
+  realEnvWithLeftovers(t);
   const calls = stubShuyuFetch(t, "down");
   const writes = stubBatchWrites(t);
 
@@ -227,7 +241,7 @@ test("Shuyu 上游不可用：批量按原原因 shuyu_unavailable 拒绝，零�
 });
 
 test("Shuyu 余额不足：按 shuyu_insufficient_balance 拒绝，零建批次", async (t) => {
-  realEnvWithBackup(t);
+  realEnvWithLeftovers(t);
   const calls = stubShuyuFetch(t, "broke");
   const writes = stubBatchWrites(t);
 
@@ -242,7 +256,7 @@ test("Shuyu 余额不足：按 shuyu_insufficient_balance 拒绝，零建批次"
 });
 
 test("Shuyu 可用：批次与每一行写入的线路快照与原始选择逐字段一致", async (t) => {
-  realEnvWithBackup(t);
+  realEnvWithLeftovers(t);
   const calls = stubShuyuFetch(t, "healthy");
   const writes = stubBatchWrites(t);
 

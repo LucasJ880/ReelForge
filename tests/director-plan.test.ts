@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   buildFramePrompt,
   buildVideoPrompt,
+  cornerLogoFilter,
   cornerLogoGeometry,
   directorParts,
   directorRequestKey,
@@ -627,13 +628,27 @@ test("别的品类不误报：表盘 / 洁面产品不是人脸，型号（model
   assert.match(shotLint('A hand turns the box so the words "CleanCube" face the lens.'), /镜头 1 的 action 里有引号/);
 });
 
-test("角标 Logo：要 Logo 就默认右上角；竖片宽 28%、躲开顶部界面，不贴边、不出画", () => {
-  const withLogo = parseDirectorJob(fmcgJob({ post: { logo: "assets/mengxin/logo-horizontal.png" } }));
+test("角标 Logo：默认右上角、透明、浅色；图形标小、带字的横排标宽，不贴边、不出画", () => {
+  const withLogo = parseDirectorJob(fmcgJob({ post: { logo: "assets/mengxin/logo-icon.png" } }));
   assert.equal(withLogo.post?.logoPosition, "top-right");
+  assert.equal(withLogo.post?.logoTone, "light");
   assert.equal(withLogo.post?.captions, true, "带 Logo 的交付默认也带字幕");
-  assert.deepEqual(cornerLogoGeometry(1080, 1920), { logoWidth: 302, x: 730, y: 120 });
-  assert.deepEqual(cornerLogoGeometry(1080, 1920, "top-left"), { logoWidth: 302, x: 48, y: 120 });
+  /// 图形标（方形）：竖片宽 12% 左右
+  assert.deepEqual(cornerLogoGeometry(1080, 1920), { logoWidth: 132, logoHeight: 132, x: 900, y: 120 });
+  assert.deepEqual(cornerLogoGeometry(1080, 1920, "top-left"), { logoWidth: 132, logoHeight: 132, x: 48, y: 120 });
+  /// 带字的横排标（3.3 : 1）
+  assert.deepEqual(cornerLogoGeometry(1080, 1920, "top-right", 3.3), { logoWidth: 302, logoHeight: 92, x: 730, y: 120 });
   const wide = cornerLogoGeometry(1920, 1080);
-  assert.ok(wide.x + wide.logoWidth < 1920 && wide.x > 1920 / 2 && wide.y > 0);
+  assert.ok(wide.x + wide.logoWidth < 1920 && wide.x > 1920 / 2 && wide.y > 0 && wide.logoWidth % 2 === 0);
   assert.throws(() => parseDirectorJob(fmcgJob({ post: { logo: "x.png", logoPosition: "bottom" } })));
+
+  /// 滤镜：白底变透明（按线稿深浅取透明度），浅色标填白垫暗边，深色标填藏青垫白边；没有白底板
+  const geometry = cornerLogoGeometry(1080, 1920);
+  const light = cornerLogoFilter({ geometry, tone: "light" });
+  assert.match(light, /negate/);
+  assert.match(light, /color=c=0xFFFFFF:s=164x164/);
+  assert.match(light, /color=c=0x000000/);
+  assert.match(light, /overlay=x=884:y=104:shortest=1,format=yuv420p\[v\]$/);
+  assert.doesNotMatch(light, /drawbox|white@/);
+  assert.match(cornerLogoFilter({ geometry, tone: "dark" }), /color=c=0x2F4657/);
 });

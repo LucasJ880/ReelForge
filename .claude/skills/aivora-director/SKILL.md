@@ -230,12 +230,14 @@ npm run director -- status tmp/director/<任务名>
 
 | 做给谁 | 交付 | `job.json` 里写 |
 |---|---|---|
-| **梦馨家纺**（用户或 CEO 说了是梦馨的商品 / 给梦馨的） | 带字幕 + 右上角 Logo | `"post": { "captions": true, "logo": "assets/mengxin/logo-horizontal.png" }` |
+| **梦馨家纺**（用户或 CEO 说了是梦馨的商品 / 给梦馨的） | 带字幕 + 右上角透明图形 Logo | `"post": { "captions": true, "logo": "assets/mengxin/logo-icon.png" }` |
 | 没说给谁（测试片、样片、别的客户） | 和以前一样：原片 + 带字幕版，不加 Logo | `"post": { "captions": true }` |
 
-- **要 Logo 就默认放右上角**（`logoPosition` 缺省 `top-right`），全程挂着，大小和位置脚本定好了。白底的 Logo 图直接用，不用抠图。
-- 梦馨的 Logo 在仓库里：`assets/mengxin/logo-horizontal.png`（横排，带中文名，角标用这张）、`logo-icon.png`（只有图形）。
-  这两张是从截图里裁的，够角标用；要放大用得跟客户要原文件。
+- **要 Logo 就默认放右上角、只放图形不带字、透明的**（`logoPosition` 缺省 `top-right`，`logoTone` 缺省 `light`）：
+  白色半透明的线稿加一圈很淡的暗边，像水印，全程挂着，不抢画面。白底深色线稿的 Logo 图直接用，脚本自己把白底变透明，不用抠图。
+  11-17 第一版是带白底板的横排字标，CEO 说太 low、太突兀，改成了现在这样；别再用白底板，也别带字。
+  画面整体很亮、想让品牌色更显时可以写 `"logoTone": "dark"`（藏青色加淡白边）。
+- 梦馨的 Logo 在仓库里：`assets/mengxin/logo-icon.png`（只有图形，角标用这张）、`logo-horizontal.png`（横排带中文名，备用）。
 - 没人说要 Logo 的片不要自己加；别的客户要 Logo，问清用哪张图，放法照旧是右上角。
 - Logo 只在后期叠，不写进提示词、不画进故事板帧：11-16 试过让它印在商品上跟着走，正反两面都冒出来，还有错字。
 - 交付时两个文件都给：原片（`…-take1.mp4`）和成品（`…-take1-post.mp4`）。
@@ -255,7 +257,7 @@ npm run director -- status tmp/director/<任务名>
 - **本地后期 `post`**：
 
   ```json
-  "post": { "captions": true, "logo": "assets/mengxin/logo-horizontal.png",
+  "post": { "captions": true, "logo": "assets/mengxin/logo-icon.png",
             "signoff": { "brandName": "暖窝家居", "cta": "点下方链接 今天带走" } }
   ```
 

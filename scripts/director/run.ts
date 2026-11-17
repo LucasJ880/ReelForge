@@ -30,6 +30,7 @@ import { loadEnvConfig } from "@next/env";
 import {
   buildFramePrompt,
   buildVideoPrompt,
+  cornerLogoFilter,
   cornerLogoGeometry,
   directorParts,
   directorRequestKey,
@@ -671,13 +672,18 @@ async function commandPost(workspace: Workspace, flags: Flags): Promise<void> {
     const output = join(workspace.dir, `${job.id}-take${attempt.attempt}${suffix}-post.mp4`);
     let cornerLogo = false;
     if (cornerLogoPath) {
-      /// 角标 Logo：合成之后再叠一道（合成器里的 Logo 位只管片尾落款）。白底的图略带透明直接压，不用抠图
+      /// 角标 Logo：合成之后再叠一道（合成器里的 Logo 位只管片尾落款）。白底变透明，只留线稿
       const size = probeVideo(composed.videoPath);
-      const geometry = cornerLogoGeometry(size.width ?? 1080, size.height ?? 1920, job.post?.logoPosition ?? "top-right");
+      const mark = probeVideo(cornerLogoPath);
+      const geometry = cornerLogoGeometry(
+        size.width ?? 1080,
+        size.height ?? 1920,
+        job.post?.logoPosition ?? "top-right",
+        mark.width && mark.height ? mark.width / mark.height : 1,
+      );
       execFileSync(ffmpegBin(), [
         "-v", "error", "-y", "-i", composed.videoPath, "-loop", "1", "-i", cornerLogoPath,
-        "-filter_complex",
-        `[1:v]scale=${geometry.logoWidth}:-2:flags=lanczos,format=rgba,colorchannelmixer=aa=0.94[logo];[0:v][logo]overlay=x=${geometry.x}:y=${geometry.y}:shortest=1[v]`,
+        "-filter_complex", cornerLogoFilter({ geometry, tone: job.post?.logoTone ?? "light" }),
         "-map", "[v]", "-map", "0:a?", "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p", "-c:a", "copy", "-movflags", "+faststart", output,
       ]);
       cornerLogo = true;

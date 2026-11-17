@@ -118,10 +118,12 @@ const postSchema = z
   .object({
     /// 把台词烧成字幕（按脚本里每句台词所在镜头的时间；开通了语音识别就跟着人声走）
     captions: z.boolean().default(true),
-    /// 角标 Logo：全程挂在画面一角的品牌 Logo 图（本地 png / jpg / webp，白底的图直接用，不用抠图）。
-    /// 2026-11-17 定：要 Logo 就默认放右上角；Logo 永远不交给视频模型画
+    /// 角标 Logo：全程挂在画面一角的品牌 Logo 图（本地 png / jpg / webp；白底深色线稿的图直接用，脚本把白底变透明）。
+    /// 2026-11-17 定：要 Logo 就默认放右上角、只放图形不带字、透明的（白底板那版被说太 low）；Logo 永远不交给视频模型画
     logo: z.string().trim().min(1).max(2_000).optional(),
     logoPosition: z.enum(["top-right", "top-left"]).default("top-right"),
+    /// light = 白色半透明 + 一圈很淡的暗边（缺省，像水印，亮暗画面都看得清）；dark = 深色 + 一圈淡白边（画面整体很亮、想更显品牌色时用）
+    logoTone: z.enum(["light", "dark"]).default("light"),
     /// 片尾落款：最后约两秒压品牌名 + 一句行动指引（可以是中文）
     signoff: z
       .object({
@@ -406,19 +408,51 @@ export function scriptSpeechWords(
 }
 
 /**
- * 角标 Logo 的大小与位置（像素）。竖片宽度占画面 28%、离上沿 6.25%（躲开平台顶部的界面），横片与方片小一号。
- * x / y 是 Logo 左上角。
+ * 角标 Logo 的大小与位置（像素）。接近方形的图形标占竖片宽度的 12%，带字的横排标占 28%；离上沿 6.25%（躲开平台顶部的界面），
+ * 横片与方片按比例小一号。x / y 是 Logo 左上角，尺寸都取偶数。
  */
 export function cornerLogoGeometry(
   width: number,
   height: number,
   position: "top-right" | "top-left" = "top-right",
-): { logoWidth: number; x: number; y: number } {
+  /// Logo 图自己的宽高比（宽 ÷ 高）；缺省按方形图标
+  logoAspect = 1,
+): { logoWidth: number; logoHeight: number; x: number; y: number } {
   const portrait = height > width;
-  const logoWidth = 2 * Math.round((width * (portrait ? 0.28 : 0.18)) / 2);
+  const wide = logoAspect >= 1.6;
+  const share = (wide ? 0.28 : 0.122) * (portrait ? 1 : 0.62);
+  const logoWidth = 2 * Math.round((width * share) / 2);
+  const logoHeight = 2 * Math.round(logoWidth / Math.max(0.2, logoAspect) / 2);
   const margin = Math.round(width * (portrait ? 0.044 : 0.03));
   const y = Math.round(height * (portrait ? 0.0625 : 0.05));
-  return { logoWidth, x: position === "top-left" ? margin : width - logoWidth - margin, y };
+  return { logoWidth, logoHeight, x: position === "top-left" ? margin : width - logoWidth - margin, y };
+}
+
+/**
+ * 把白底深色线稿的 Logo 变成透明角标并叠到画面上的滤镜串（纯函数）。输入 0 是成片，输入 1 是循环的 Logo 图。
+ * 线稿越深越不透明；填成一个颜色（浅色标 = 白，深色标 = 藏青），底下垫一圈模糊的反色边，亮暗画面都读得出来。
+ */
+export function cornerLogoFilter(args: {
+  geometry: { logoWidth: number; logoHeight: number; x: number; y: number };
+  tone: "light" | "dark";
+}): string {
+  const { logoWidth, logoHeight, x, y } = args.geometry;
+  const pad = 16;
+  const size = `${logoWidth + pad * 2}x${logoHeight + pad * 2}`;
+  const fill = args.tone === "light" ? "0xFFFFFF" : "0x2F4657";
+  const edge = args.tone === "light" ? "0x000000" : "0xFFFFFF";
+  const edgeGain = args.tone === "light" ? 0.9 : 1.2;
+  return [
+    `[1:v]scale=${logoWidth}:${logoHeight}:flags=lanczos,format=gray,negate,lutyuv=y='clip(val*2.2,0,255)',pad=${logoWidth + pad * 2}:${logoHeight + pad * 2}:${pad}:${pad}:black,split=2[la][lb]`,
+    `color=c=${fill}:s=${size},format=rgb24[lfill]`,
+    `[la]lutyuv=y='val*0.92'[lalpha]`,
+    `[lfill][lalpha]alphamerge[lmark]`,
+    `color=c=${edge}:s=${size},format=rgb24[efill]`,
+    `[lb]gblur=sigma=4,lutyuv=y='clip(val*${edgeGain},0,255)'[ealpha]`,
+    `[efill][ealpha]alphamerge[ledge]`,
+    `[0:v][ledge]overlay=x=${x - pad}:y=${y - pad + 2}:shortest=1[withedge]`,
+    `[withedge][lmark]overlay=x=${x - pad}:y=${y - pad}:shortest=1,format=yuv420p[v]`,
+  ].join(";");
 }
 
 /** 这一条的口播稿（烧字幕用）：属于这一条的台词按先后连起来。 */

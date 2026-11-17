@@ -128,8 +128,8 @@ export const DIRECTOR_STYLES: readonly DirectorStyle[] = [
     id: "tpl_offer_promo",
     zh: "促销快讯",
     en: "Offer spot",
-    hintZh: "先让人看懂值在哪，再说优惠；价格只在口播里说，画面不出字",
-    hintEn: "Show the value first, then the offer; prices are only spoken, never drawn",
+    hintZh: "描述里写清优惠；先看值在哪再说优惠，价格只口播、画面不出字",
+    hintEn: "Put the offer in your description: value first, then the deal; prices are only spoken, never drawn",
     genre: "fmcg",
     group: "sell",
     brief:
@@ -271,8 +271,8 @@ export const DIRECTOR_STYLES: readonly DirectorStyle[] = [
     id: "tpl_place_tour",
     zh: "探厂探店",
     en: "Factory or store tour",
-    hintZh: "带买家走一遍真实的厂房或门店：大门、车间、做工特写，最后落到商品",
-    hintEn: "Walk the buyer through the real factory or store: entrance, floor, close-ups of the work, ending on the product",
+    hintZh: "上传场地照片，带买家走一遍真实的厂房或门店，最后落到商品",
+    hintEn: "Upload photos of the place: a walk through the real factory or store, ending on the product",
     genre: "fmcg",
     group: "place",
     brief:

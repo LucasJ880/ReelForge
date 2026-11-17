@@ -35,7 +35,8 @@ export default async function WelcomePage() {
         title={copy.title}
         subtitle={copy.subtitle}
         primaryAction={null}
-        secondaryActions={<OnboardingExit mode="skip" locale={locale} />}
+        /// 两步都做完了就只剩页面底下那一个「完成上手」，不再并排摆一个「先跳过」
+        secondaryActions={done === total ? null : <OnboardingExit mode="skip" locale={locale} />}
         readingsLabel={copy.readingsLabel}
         readings={[
           { label: copy.readingSteps, value: `${done} / ${total}`, tone: done === total ? "filled" : "neutral" },

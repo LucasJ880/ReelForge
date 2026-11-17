@@ -29,10 +29,3 @@ test("RF-009 login fallback is the final workspace route, not a redirect hop", a
   assert.match(login, /"\/app\/create"/);
   assert.doesNotMatch(login, /searchParams\.get\("from"\) \|\| "\/"/);
 });
-
-test("RF-009 golden path continuously samples branded transition frames", async () => {
-  const golden = await readFile(path.join(ROOT, "e2e/golden-path.spec.ts"), "utf8");
-  assert.match(golden, /auth-transition-continuity/);
-  assert.match(golden, /requestAnimationFrame/);
-  assert.match(golden, /blankFrames/);
-});

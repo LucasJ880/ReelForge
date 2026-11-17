@@ -2,7 +2,7 @@ import type { UsageResource } from "@prisma/client";
 
 /**
  * starter/studio are the Phase 1 product plans. free/pro remain accepted as
- * transition aliases while the legacy Stripe and billing pages are retired.
+ * aliases for accounts created before those plans existed.
  * trial（D5，2026-10-25）：本轮上线后自助注册的新账号，额度见 TRIAL_LIMITS。
  */
 export type QuotaPlanId = "trial" | "starter" | "studio" | "free" | "pro";
@@ -53,8 +53,8 @@ export const QUOTA_LIMITS: Record<
  *
  * 为什么不是 Workspace.planId = "trial"：planId 外键指向 PlanEntitlement，
  * 本轮不加数据迁移就没有 trial 那一行。subscriptionTier 的默认值是 "free"，
- * 所以存量账号（含脚本建的验收账号）一律不受影响；Stripe 订阅成功会把它改写成
- * free / pro，试用随之结束。超管手工转正：把该账号的 subscriptionTier 改回 "free"。
+ * 所以存量账号（含脚本建的验收账号）一律不受影响。
+ * 转正只有超管手工一条路：把该账号的 subscriptionTier 改回 "free"（线上收款 2026-11-16 定了不做）。
  */
 export const TRIAL_SUBSCRIPTION_TIER = "trial";
 
@@ -78,8 +78,6 @@ export function quotaPlanFromWorkspace(
   if (workspace?.owner?.subscriptionTier === TRIAL_SUBSCRIPTION_TIER) return "trial";
   return "starter";
 }
-
-export const STRIPE_PRO_PRICE_LABEL = "Aivora Pro — monthly";
 
 export const REGISTER_RATE_LIMIT = {
   perIpPerHour: 8,

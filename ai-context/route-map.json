@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-16T23:56:28.480Z",
+  "generatedAt": "2026-11-17T00:09:46.320Z",
   "routes": [
     {
       "routePath": "/",
@@ -334,16 +334,6 @@
       "kind": "api",
       "httpMethods": [
         "GET"
-      ],
-      "isDynamic": false
-    },
-    {
-      "routePath": "/api/cron/founder-digest",
-      "filePath": "src/app/api/cron/founder-digest/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "GET",
-        "POST"
       ],
       "isDynamic": false
     },
@@ -950,15 +940,6 @@
       "kind": "api",
       "httpMethods": [
         "GET"
-      ],
-      "isDynamic": false
-    },
-    {
-      "routePath": "/api/webhooks/stripe",
-      "filePath": "src/app/api/webhooks/stripe/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
       ],
       "isDynamic": false
     },

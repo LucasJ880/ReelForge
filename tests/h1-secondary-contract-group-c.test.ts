@@ -3,7 +3,6 @@ import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import test, { type TestContext } from "node:test";
 import { NextRequest } from "next/server";
-import Stripe from "stripe";
 
 const require = createRequire(import.meta.url);
 
@@ -29,7 +28,6 @@ const reportsRoute = require("../src/app/api/reports/route.ts") as MutableRecord
 const internalReportsRoute = require("../src/app/api/internal/reports/route.ts") as MutableRecord;
 const internalReportRoute = require("../src/app/api/internal/reports/[id]/route.ts") as MutableRecord;
 const waitlistRoute = require("../src/app/api/demo/real-footage-ads/waitlist/route.ts") as MutableRecord;
-const stripeWebhookRoute = require("../src/app/api/webhooks/stripe/route.ts") as MutableRecord;
 const nextAuthRoute = require("../src/app/api/auth/[...nextauth]/route.ts") as MutableRecord;
 const { middleware } = require("../src/middleware.ts") as {
   middleware: (request: NextRequest) => Promise<Response>;
@@ -419,102 +417,26 @@ test("H1 secondary contracts group C", async (t) => {
 
 
 
-  await t.test("Stripe webhook locks missing/invalid signatures and offline valid receipt", async (st) => {
-    const previousKey = process.env.STRIPE_SECRET_KEY;
-    const previousSecret = process.env.STRIPE_WEBHOOK_SECRET;
-    const originalConsoleError = console.error;
-    const loggedErrors: unknown[][] = [];
-    process.env.STRIPE_SECRET_KEY = "sk_test_contract";
-    process.env.STRIPE_WEBHOOK_SECRET = "whsec_contract";
-    console.error = (...args: unknown[]) => loggedErrors.push(args);
-    st.after(() => {
-      console.error = originalConsoleError;
-      if (previousKey === undefined) delete process.env.STRIPE_SECRET_KEY;
-      else process.env.STRIPE_SECRET_KEY = previousKey;
-      if (previousSecret === undefined) delete process.env.STRIPE_WEBHOOK_SECRET;
-      else process.env.STRIPE_WEBHOOK_SECRET = previousSecret;
-    });
-
-    const post = handler<(request: NextRequest) => Promise<Response>>(stripeWebhookRoute, "POST");
-    const payload = JSON.stringify({
-      id: "evt_contract",
-      object: "event",
-      api_version: "2024-06-20",
-      created: 1,
-      data: { object: {} },
-      livemode: false,
-      pending_webhooks: 0,
-      request: null,
-      type: "ping",
-    });
-
-    await assertJson(
-      await post(
-        new NextRequest("http://localhost/api/webhooks/stripe", {
-          method: "POST",
-          body: payload,
-        }),
-      ),
-      400,
-      { error: "缺少签名" },
-    );
-
-    const badSignature = await post(
-      new NextRequest("http://localhost/api/webhooks/stripe", {
-        method: "POST",
-        headers: { "stripe-signature": "invalid" },
-        body: payload,
-      }),
-    );
-    assert.equal(badSignature.status, 400);
-    assert.match(
-      String((await badSignature.json() as { error: string }).error),
-      /timestamp|signature/i,
-    );
-    assert.equal(loggedErrors.length, 1);
-
-    const signature = Stripe.webhooks.generateTestHeaderString({
-      payload,
-      secret: "whsec_contract",
-    });
-    await assertJson(
-      await post(
-        new NextRequest("http://localhost/api/webhooks/stripe", {
-          method: "POST",
-          headers: { "stripe-signature": signature },
-          body: payload,
-        }),
-      ),
-      200,
-      { received: true },
-    );
-  });
-
-  await t.test("Stripe webhook is exactly reachable through middleware while sibling paths stay protected", async (st) => {
+  await t.test("removed Stripe webhook path is no longer let through middleware", async (st) => {
+    /// 2026-11-16 线上收款定了不做，webhook 路由已删；放行名单里也不能留着这一条。
     const previousAuthSecret = process.env.AUTH_SECRET;
-    process.env.AUTH_SECRET = "stripe-middleware-contract-secret";
+    process.env.AUTH_SECRET = "removed-webhook-middleware-contract-secret";
     st.after(() => {
       if (previousAuthSecret === undefined) delete process.env.AUTH_SECRET;
       else process.env.AUTH_SECRET = previousAuthSecret;
     });
 
-    const webhook = await middleware(
-      new NextRequest("https://app.aivora.example/api/webhooks/stripe", {
-        method: "POST",
-      }),
-    );
-    assert.equal(webhook.status, 200);
-    assert.equal(webhook.headers.get("x-middleware-next"), "1");
-
-    await assertJson(
-      await middleware(
-        new NextRequest("https://app.aivora.example/api/webhooks/stripe/extra", {
-          method: "POST",
-        }),
-      ),
-      401,
-      AUTH_REQUIRED,
-    );
+    for (const path of ["/api/webhooks/stripe", "/api/webhooks/stripe/extra"]) {
+      await assertJson(
+        await middleware(
+          new NextRequest(`https://app.aivora.example${path}`, {
+            method: "POST",
+          }),
+        ),
+        401,
+        AUTH_REQUIRED,
+      );
+    }
   });
 
   await t.test("route-method matrix and NextAuth handler wiring are explicit", async () => {
@@ -526,7 +448,6 @@ test("H1 secondary contracts group C", async (t) => {
       ["/api/internal/reports", internalReportsRoute, ["GET"]],
       ["/api/internal/reports/[id]", internalReportRoute, ["PATCH"]],
       ["/api/demo/real-footage-ads/waitlist", waitlistRoute, ["POST"]],
-      ["/api/webhooks/stripe", stripeWebhookRoute, ["POST"]],
       ["/api/auth/[...nextauth]", nextAuthRoute, ["GET", "POST"]],
     ];
     const httpMethods = new Set(["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]);

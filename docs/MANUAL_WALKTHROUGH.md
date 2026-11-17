@@ -112,7 +112,7 @@ npm run dev:mock
 | 4b.2 | 本地设 `QUOTA_ENFORCE=true` 重启 dev，连续 dispatch 直到超额 | API 返回 429 + 中文友好文案；UI 显示限额提示 |
 | 4b.3 | 内部 OPERATOR 账号 | `/api/me/usage` 显示 `exempt: true`，不限额 |
 
-生产环境默认强制配额；dev mock 默认**不**扣配额（`walkthrough:mock` 不受影响）。
+生产环境默认强制配额；dev mock 默认**不**扣配额。
 
 ---
 
@@ -131,12 +131,8 @@ npm run dev:mock
 ## 5. 自动化补充（30s）
 
 ```bash
-# 无浏览器：C 15s + B 30s 服务层全链路（推荐每次改 video/stitch 后跑）
-npm run walkthrough:mock
-npm run sunny:merchant-journey   # Sunny Shutter 商家：2 条窗帘广告 + TikTok 流量 + 智能建议种子
-npm run acceptance:mock   # typecheck + 客户文案审计 + i18n + C/B mock 管线
-
-# 这些每次大改后都该跑
+# 这些每次大改后都该跑（旧的 walkthrough:mock / acceptance:mock 脚本与整套浏览器验收已删；
+# 线上只跑发布后冒烟 npm run test:prod-smoke，由 GitHub Actions 在每次生产部署后自动触发）
 npm run typecheck   # 0 错误
 npm run lint        # 0 错误（仅 6 个无关 warnings 是历史遗留）
 npm test            # 350+ ✅

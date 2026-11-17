@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
       role: "CUSTOMER",
       // Temporary compatibility discriminator; removed after test-map review.
       userType: "PERSONAL",
-      /// D5 试用额度标记；Stripe 订阅成功或超管手工转正时改写。
+      /// D5 试用额度标记；超管手工转正时改写。
       subscriptionTier: TRIAL_SUBSCRIPTION_TIER,
       termsAcceptedAt: new Date(),
       termsVersion: TERMS_VERSION,

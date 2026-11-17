@@ -6,7 +6,6 @@ import { GET as pollVideos } from "../src/app/api/cron/poll-videos/route";
 import { GET as stitchVideos } from "../src/app/api/cron/stitch-videos/route";
 import { GET as stitchDispatch } from "../src/app/api/cron/stitch-dispatch/route";
 import { GET as sweepStuckTasks } from "../src/app/api/cron/sweep-stuck-tasks/route";
-import { GET as founderDigest } from "../src/app/api/cron/founder-digest/route";
 import { POST as claimStitch } from "../src/app/api/internal/stitch/claim/route";
 import { POST as completeStitch } from "../src/app/api/internal/stitch/complete/route";
 
@@ -18,7 +17,6 @@ const endpoints: Array<{ name: string; path: string; method: "GET" | "POST"; han
   { name: "stitch videos", path: "/api/cron/stitch-videos", method: "GET", handler: stitchVideos },
   { name: "stitch dispatch", path: "/api/cron/stitch-dispatch", method: "GET", handler: stitchDispatch },
   { name: "sweep stuck tasks", path: "/api/cron/sweep-stuck-tasks", method: "GET", handler: sweepStuckTasks },
-  { name: "founder digest", path: "/api/cron/founder-digest", method: "GET", handler: founderDigest },
   { name: "claim stitch", path: "/api/internal/stitch/claim", method: "POST", handler: claimStitch },
   { name: "complete stitch", path: "/api/internal/stitch/complete", method: "POST", handler: completeStitch },
 ];

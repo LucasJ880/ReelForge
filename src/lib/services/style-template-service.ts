@@ -100,15 +100,12 @@ export async function seedBatchStyleTemplates(): Promise<number> {
   return created;
 }
 
-export async function listActiveStyleTemplates(options: {
-  includeAcceptanceFixtures?: boolean;
-} = {}): Promise<StyleTemplate[]> {
+/// 「自动化验收」是旧的整套浏览器验收往库里种的夹具模板（验收 2026-11-16 已删，行还在库里），不给客户看。
+export async function listActiveStyleTemplates(): Promise<StyleTemplate[]> {
   return db.styleTemplate.findMany({
     where: {
       status: StyleTemplateStatus.ACTIVE,
-      ...(options.includeAcceptanceFixtures
-        ? {}
-        : { category: { not: "自动化验收" } }),
+      category: { not: "自动化验收" },
     },
     orderBy: [{ category: "asc" }, { nameZh: "asc" }],
   });

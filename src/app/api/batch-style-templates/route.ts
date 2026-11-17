@@ -18,9 +18,7 @@ export async function GET() {
   if (!guard.ok) return guard.response;
   try {
     const [templates, locale] = await Promise.all([
-      listActiveStyleTemplates({
-        includeAcceptanceFixtures: Boolean(process.env.FINAL_ACCEPTANCE_RUN_ID),
-      }),
+      listActiveStyleTemplates(),
       getServerLocale(),
     ]);
     return NextResponse.json(

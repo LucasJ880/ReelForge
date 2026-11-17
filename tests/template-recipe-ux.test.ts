@@ -24,10 +24,6 @@ const service = readFileSync(
   path.join(root, "src/lib/services/style-template-service.ts"),
   "utf8",
 );
-const acceptanceConfig = readFileSync(
-  path.join(root, "playwright.final-acceptance.config.ts"),
-  "utf8",
-);
 
 test("模板样片只在封面属于当前模板时对客户展示", () => {
   assert.equal(
@@ -79,12 +75,6 @@ test("批量风格步骤使用内部滚动紧凑列表并保留配方详情", ()
 
 test("自动化验收模板默认对客户隔离", () => {
   assert.match(service, /category:\s*\{\s*not:\s*"自动化验收"\s*\}/);
-});
-
-test("最终验收强制把 DATABASE_URL 指向显式演练分支", () => {
-  assert.match(acceptanceConfig, /NEON_REHEARSAL_DATABASE_URL/);
-  assert.match(acceptanceConfig, /process\.env\.DATABASE_URL = rehearsalDatabaseUrl/);
-  assert.match(acceptanceConfig, /DATABASE_URL=\"\$NEON_REHEARSAL_DATABASE_URL\"/);
 });
 
 test("模板库与高级创作统一使用 canonical commerce slugs", () => {

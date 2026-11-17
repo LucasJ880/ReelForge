@@ -6,8 +6,8 @@
 
 ## 1. 找代码：先查索引，别扫 repo
 
-600+ 个 src 文件、近百个 API route、40 个 npm scripts（2026-11-16 瘦身第 0 批之后的实数：src 下 622 个文件 / 618 个 .ts·tsx，
-`src/app/api` 下 95 个 `route.ts`，package.json 41 个 scripts）。全 repo grep 是本项目最大的 token 漏斗。
+600+ 个 src 文件、90+ 个 API route、30+ 个 npm scripts（2026-11-17 瘦身进行中的实数：src 下 618 个文件 / 614 个 .ts·tsx，
+`src/app/api` 下 93 个 `route.ts`，package.json 33 个 scripts）。全 repo grep 是本项目最大的 token 漏斗。
 
 ```bash
 npm run context:find -- "关键词1 关键词2"   # 0.3s，给 top 10 文件 + 阅读顺序
@@ -38,7 +38,6 @@ npm run lint
 npm test               # node --test tests/*.test.ts；要 Node 22+（pretest 会核对，旧版本有假失败）
 npm run db:migrate:deploy  # 迁移唯一正路（owner 直连生产，见 §4）
 # db:migrate / db:push / db:seed 有确认闸：CONFIRM_PRODUCTION_DB=<脚本名> 才放行
-# npx playwright test 的视觉夹具默认不写生产库：给专用库 E2E_DATABASE_URL，或 CONFIRM_PRODUCTION_DB=e2e:seed
 npm run context:find -- "..."
 ```
 

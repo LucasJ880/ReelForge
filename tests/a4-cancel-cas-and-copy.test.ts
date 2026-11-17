@@ -11,7 +11,7 @@ import {
 } from "../src/lib/services/content-plan-service";
 
 /**
- * A4 5.5：产品图取消加 CAS；Stripe 支付回跳不再指向已下线的页面。
+ * A4 5.5：产品图取消加 CAS。
  * A4 5.6：本周内容兜底文案不替商家做承诺、不把 AI 图说成实拍，CTA 指向主页链接。
  */
 

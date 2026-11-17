@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-16T23:56:28.474Z",
+  "generatedAt": "2026-11-17T00:09:46.315Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -42,7 +42,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 121,
-      "sizeBytes": 10509,
+      "sizeBytes": 10529,
       "notes": "Documentation; area=media-processing"
     },
     {
@@ -9468,7 +9468,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 0,
-      "sizeBytes": 17674,
+      "sizeBytes": 17246,
       "notes": "area=config"
     },
     {
@@ -9816,8 +9816,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 128,
-      "sizeBytes": 12456,
+      "lineCount": 127,
+      "sizeBytes": 12321,
       "notes": "Documentation"
     },
     {
@@ -10462,8 +10462,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 169,
-      "sizeBytes": 7023,
+      "lineCount": 165,
+      "sizeBytes": 6871,
       "notes": "Documentation"
     },
     {
@@ -10484,8 +10484,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 52,
-      "sizeBytes": 3457,
+      "lineCount": 51,
+      "sizeBytes": 3231,
       "notes": "Documentation"
     },
     {
@@ -11242,113 +11242,6 @@
       "notes": "Documentation"
     },
     {
-      "path": "e2e/golden-path-fixture.ts",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [
-        "GOLDEN_PATH_EMAIL",
-        "GOLDEN_PATH_PASSWORD",
-        "GOLDEN_PATH_NAME",
-        "GOLDEN_PATH_FIXTURE_PATH",
-        "assertRehearsalDatabase",
-        "assertGoldenPathPrerequisites",
-        "cleanupGoldenPathAccount"
-      ],
-      "imports": [
-        "node:fs/promises",
-        "node:path",
-        "../src/lib/db"
-      ],
-      "importantSymbols": [
-        "GOLDEN_PATH_EMAIL",
-        "GOLDEN_PATH_PASSWORD",
-        "GOLDEN_PATH_NAME",
-        "GOLDEN_PATH_FIXTURE_PATH",
-        "assertRehearsalDatabase",
-        "assertGoldenPathPrerequisites",
-        "cleanupGoldenPathAccount"
-      ],
-      "lineCount": 80,
-      "sizeBytes": 2420,
-      "notes": ""
-    },
-    {
-      "path": "e2e/golden-path-global-setup.ts",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [
-        "goldenPathGlobalSetup",
-        "default"
-      ],
-      "imports": [
-        "../src/lib/db",
-        "./golden-path-fixture"
-      ],
-      "importantSymbols": [
-        "goldenPathGlobalSetup",
-        "default"
-      ],
-      "lineCount": 15,
-      "sizeBytes": 332,
-      "notes": ""
-    },
-    {
-      "path": "e2e/golden-path-global-teardown.ts",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [
-        "goldenPathGlobalTeardown",
-        "default"
-      ],
-      "imports": [
-        "../src/lib/db",
-        "./golden-path-fixture"
-      ],
-      "importantSymbols": [
-        "goldenPathGlobalTeardown",
-        "default"
-      ],
-      "lineCount": 11,
-      "sizeBytes": 256,
-      "notes": ""
-    },
-    {
-      "path": "e2e/golden-path-network-identity.ts",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [
-        "rehearsalClientIpForRun"
-      ],
-      "imports": [
-        "node:crypto"
-      ],
-      "importantSymbols": [
-        "rehearsalClientIpForRun"
-      ],
-      "lineCount": 8,
-      "sizeBytes": 382,
-      "notes": ""
-    },
-    {
-      "path": "e2e/golden-path.spec.ts",
-      "type": "unknown",
-      "area": "media-processing",
-      "exports": [],
-      "imports": [
-        "node:crypto",
-        "node:fs/promises",
-        "node:path",
-        "@playwright/test",
-        "@prisma/client",
-        "../src/lib/db",
-        "./golden-path-fixture"
-      ],
-      "importantSymbols": [],
-      "lineCount": 335,
-      "sizeBytes": 13733,
-      "notes": "area=media-processing"
-    },
-    {
       "path": "e2e/prod-smoke-helpers.ts",
       "type": "unknown",
       "area": "unknown",
@@ -11520,8 +11413,8 @@
         "runtimeTracingExcludes",
         "default"
       ],
-      "lineCount": 163,
-      "sizeBytes": 8948,
+      "lineCount": 162,
+      "sizeBytes": 8905,
       "notes": "Build / runtime config; area=media-processing"
     },
     {
@@ -11531,8 +11424,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 96,
-      "sizeBytes": 4771,
+      "lineCount": 86,
+      "sizeBytes": 3840,
       "notes": "Build / runtime config; area=config"
     },
     {
@@ -11794,78 +11687,6 @@
       "lineCount": 33,
       "sizeBytes": 4150,
       "notes": "Stylesheet"
-    },
-    {
-      "path": "playwright.config.ts",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [
-        "default"
-      ],
-      "imports": [
-        "@playwright/test"
-      ],
-      "importantSymbols": [
-        "default"
-      ],
-      "lineCount": 66,
-      "sizeBytes": 2253,
-      "notes": ""
-    },
-    {
-      "path": "playwright.final-acceptance.config.ts",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [
-        "default"
-      ],
-      "imports": [
-        "node:crypto",
-        "@playwright/test"
-      ],
-      "importantSymbols": [
-        "default"
-      ],
-      "lineCount": 109,
-      "sizeBytes": 3437,
-      "notes": ""
-    },
-    {
-      "path": "playwright.golden-path.config.ts",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [
-        "default"
-      ],
-      "imports": [
-        "node:crypto",
-        "@playwright/test",
-        "./e2e/golden-path-network-identity"
-      ],
-      "importantSymbols": [
-        "default"
-      ],
-      "lineCount": 87,
-      "sizeBytes": 2737,
-      "notes": ""
-    },
-    {
-      "path": "playwright.phase34.config.ts",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [
-        "default"
-      ],
-      "imports": [
-        "node:crypto",
-        "@playwright/test"
-      ],
-      "importantSymbols": [
-        "default"
-      ],
-      "lineCount": 73,
-      "sizeBytes": 2102,
-      "notes": ""
     },
     {
       "path": "playwright.prod-smoke.config.ts",
@@ -16492,7 +16313,7 @@
         "POST"
       ],
       "lineCount": 158,
-      "sizeBytes": 5666,
+      "sizeBytes": 5644,
       "notes": "Next.js API route handler; NextAuth session check; area=auth"
     },
     {
@@ -16515,8 +16336,8 @@
       "importantSymbols": [
         "GET"
       ],
-      "lineCount": 59,
-      "sizeBytes": 1910,
+      "lineCount": 57,
+      "sizeBytes": 1820,
       "notes": "Next.js API route handler"
     },
     {
@@ -17065,31 +16886,6 @@
       ],
       "lineCount": 40,
       "sizeBytes": 1870,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/cron/founder-digest/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "runtime",
-        "dynamic",
-        "GET",
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/machine-auth",
-        "@/lib/services/founder-digest-service"
-      ],
-      "importantSymbols": [
-        "GET",
-        "POST",
-        "runtime",
-        "dynamic"
-      ],
-      "lineCount": 28,
-      "sizeBytes": 1261,
       "notes": "Next.js API route handler"
     },
     {
@@ -18750,26 +18546,6 @@
       "lineCount": 37,
       "sizeBytes": 1350,
       "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/webhooks/stripe/route.ts",
-      "type": "api",
-      "area": "payments",
-      "exports": [
-        "runtime",
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/services/stripe-billing-service"
-      ],
-      "importantSymbols": [
-        "POST",
-        "runtime"
-      ],
-      "lineCount": 24,
-      "sizeBytes": 696,
-      "notes": "Next.js API route handler; area=payments"
     },
     {
       "path": "src/app/error.tsx",
@@ -23098,7 +22874,6 @@
         "TRIAL_SUBSCRIPTION_TIER",
         "QUOTA_PLAN_WORKSPACE_SELECT",
         "quotaPlanFromWorkspace",
-        "STRIPE_PRO_PRICE_LABEL",
         "REGISTER_RATE_LIMIT",
         "USAGE_RESOURCE_LABELS"
       ],
@@ -23110,13 +22885,12 @@
         "QUOTA_LIMITS",
         "TRIAL_SUBSCRIPTION_TIER",
         "QUOTA_PLAN_WORKSPACE_SELECT",
-        "STRIPE_PRO_PRICE_LABEL",
         "REGISTER_RATE_LIMIT",
         "USAGE_RESOURCE_LABELS",
         "quotaPlanFromWorkspace"
       ],
-      "lineCount": 96,
-      "sizeBytes": 3448,
+      "lineCount": 94,
+      "sizeBytes": 3352,
       "notes": "Utility / helper module; hits Prisma DB"
     },
     {
@@ -26578,49 +26352,6 @@
       "notes": "Business logic service"
     },
     {
-      "path": "src/lib/services/founder-digest-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "FOUNDER_DIGEST_WINDOW_HOURS",
-        "FOUNDER_DIGEST_BUCKET",
-        "FOUNDER_DIGEST_LIST_LIMIT",
-        "FounderDigestData",
-        "FounderDigestCounts",
-        "digestCounts",
-        "loadFounderDigestData",
-        "maskEmail",
-        "buildFounderDigest",
-        "FounderDigestOutcome",
-        "FounderDigestDeps",
-        "runFounderDigest"
-      ],
-      "imports": [
-        "@/lib/db",
-        "@/i18n/growth-copy",
-        "@/lib/api/customer-generation-error",
-        "@/lib/config/contact",
-        "@/lib/services/exchange-readings",
-        "@/lib/services/notification-service",
-        "@/lib/contracts/video-feedback",
-        "@/i18n/platform-copy",
-        "@/lib/services/rate-limit-service"
-      ],
-      "importantSymbols": [
-        "FOUNDER_DIGEST_WINDOW_HOURS",
-        "FOUNDER_DIGEST_BUCKET",
-        "FOUNDER_DIGEST_LIST_LIMIT",
-        "FounderDigestData",
-        "FounderDigestCounts",
-        "FounderDigestOutcome",
-        "FounderDigestDeps",
-        "digestCounts"
-      ],
-      "lineCount": 611,
-      "sizeBytes": 25263,
-      "notes": "Business logic service"
-    },
-    {
       "path": "src/lib/services/frame-qa-gate.ts",
       "type": "service",
       "area": "shared",
@@ -27243,7 +26974,7 @@
         "DEFAULT_SHUYU_MIN_VIDEOS"
       ],
       "lineCount": 295,
-      "sizeBytes": 12386,
+      "sizeBytes": 12321,
       "notes": "Business logic service"
     },
     {
@@ -28259,30 +27990,6 @@
       "notes": "Business logic service; hits Prisma DB; area=ffmpeg"
     },
     {
-      "path": "src/lib/services/stripe-billing-service.ts",
-      "type": "service",
-      "area": "payments",
-      "exports": [
-        "isStripeConfigured",
-        "createProCheckoutSession",
-        "applyStripeSubscriptionToUser",
-        "handleStripeWebhookEvent"
-      ],
-      "imports": [
-        "stripe",
-        "@/lib/db"
-      ],
-      "importantSymbols": [
-        "isStripeConfigured",
-        "createProCheckoutSession",
-        "applyStripeSubscriptionToUser",
-        "handleStripeWebhookEvent"
-      ],
-      "lineCount": 131,
-      "sizeBytes": 3821,
-      "notes": "Business logic service; area=payments"
-    },
-    {
       "path": "src/lib/services/style-template-service.ts",
       "type": "service",
       "area": "shared",
@@ -28312,8 +28019,8 @@
         "createStyleTemplateVersion",
         "__test__"
       ],
-      "lineCount": 229,
-      "sizeBytes": 7287,
+      "lineCount": 226,
+      "sizeBytes": 7317,
       "notes": "Business logic service; hits Prisma DB"
     },
     {
@@ -31784,8 +31491,8 @@
         "middleware",
         "config"
       ],
-      "lineCount": 176,
-      "sizeBytes": 7444,
+      "lineCount": 172,
+      "sizeBytes": 7203,
       "notes": ""
     },
     {
@@ -31983,7 +31690,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 140,
-      "sizeBytes": 5318,
+      "sizeBytes": 5266,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -32258,8 +31965,8 @@
         "node:test"
       ],
       "importantSymbols": [],
-      "lineCount": 39,
-      "sizeBytes": 1595,
+      "lineCount": 32,
+      "sizeBytes": 1275,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -34031,27 +33738,6 @@
       "notes": "Unit / integration test; calls Seedance video generator; area=tests"
     },
     {
-      "path": "tests/e2e-seed-guard.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:child_process",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "node:test",
-        "node:util",
-        "./e2e/e2e-db-guard",
-        "../../src/lib/db"
-      ],
-      "importantSymbols": [],
-      "lineCount": 122,
-      "sizeBytes": 6387,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/e2e/.auth/personal.json",
       "type": "test",
       "area": "tests",
@@ -34061,125 +33747,6 @@
       "lineCount": 14,
       "sizeBytes": 206,
       "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/e2e/auth.setup.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "@playwright/test"
-      ],
-      "importantSymbols": [],
-      "lineCount": 22,
-      "sizeBytes": 1087,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/e2e/e2e-db-guard.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [
-        "E2E_SEED_CONFIRM",
-        "PRODUCTION_DATABASE_URL_KEYS",
-        "E2eSeedTarget",
-        "databaseIdentity",
-        "parseEnvFile",
-        "readProductionDatabaseUrls",
-        "decideE2eSeedTarget"
-      ],
-      "imports": [
-        "node:fs",
-        "node:path"
-      ],
-      "importantSymbols": [
-        "E2E_SEED_CONFIRM",
-        "PRODUCTION_DATABASE_URL_KEYS",
-        "E2eSeedTarget",
-        "databaseIdentity",
-        "parseEnvFile",
-        "readProductionDatabaseUrls",
-        "decideE2eSeedTarget"
-      ],
-      "lineCount": 128,
-      "sizeBytes": 5234,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/e2e/editorial-fixtures.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [
-        "EditorialRoute",
-        "EDITORIAL_ROUTES",
-        "ensureAuthenticated",
-        "createBatchFixture",
-        "resolveRoute",
-        "stabilizePage",
-        "attachDomAudit"
-      ],
-      "imports": [
-        "@playwright/test"
-      ],
-      "importantSymbols": [
-        "EditorialRoute",
-        "EDITORIAL_ROUTES",
-        "ensureAuthenticated",
-        "createBatchFixture",
-        "resolveRoute",
-        "stabilizePage",
-        "attachDomAudit"
-      ],
-      "lineCount": 174,
-      "sizeBytes": 5878,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/e2e/editorial.a11y.spec.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "@axe-core/playwright",
-        "@playwright/test",
-        "./editorial-fixtures"
-      ],
-      "importantSymbols": [],
-      "lineCount": 120,
-      "sizeBytes": 4509,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/e2e/editorial.visual.spec.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "@playwright/test",
-        "./editorial-fixtures"
-      ],
-      "importantSymbols": [],
-      "lineCount": 39,
-      "sizeBytes": 1121,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/e2e/seed-visual-fixture.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "bcryptjs",
-        "@prisma/client",
-        "../../src/lib/video-generation/batch-style-templates",
-        "../../src/lib/demo-account",
-        "./e2e-db-guard",
-        "../../src/lib/db"
-      ],
-      "importantSymbols": [],
-      "lineCount": 92,
-      "sizeBytes": 3560,
-      "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
       "path": "tests/editorial-source-compliance.test.ts",
@@ -34238,12 +33805,11 @@
         "../src/lib/db",
         "../src/lib/experiments/run-key",
         "../src/lib/services/exchange-readings",
-        "../src/lib/services/first-pass-rate-service",
-        "../src/lib/services/founder-digest-service"
+        "../src/lib/services/first-pass-rate-service"
       ],
       "importantSymbols": [],
-      "lineCount": 212,
-      "sizeBytes": 10869,
+      "lineCount": 175,
+      "sizeBytes": 8886,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -34265,36 +33831,6 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
-      "path": "tests/final-acceptance-global-teardown-import.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "./final-acceptance/global-teardown"
-      ],
-      "importantSymbols": [],
-      "lineCount": 11,
-      "sizeBytes": 321,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/final-acceptance-rehearsal-safety.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "./final-acceptance/rehearsal-safety"
-      ],
-      "importantSymbols": [],
-      "lineCount": 40,
-      "sizeBytes": 1149,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/final-acceptance/.auth/personal.json",
       "type": "test",
       "area": "tests",
@@ -34304,240 +33840,6 @@
       "lineCount": 55,
       "sizeBytes": 2119,
       "notes": "Unit / integration test; NextAuth session check; area=tests"
-    },
-    {
-      "path": "tests/final-acceptance/auth.setup.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:fs/promises",
-        "node:path",
-        "@playwright/test"
-      ],
-      "importantSymbols": [],
-      "lineCount": 45,
-      "sizeBytes": 1812,
-      "notes": "Unit / integration test; NextAuth session check; area=tests"
-    },
-    {
-      "path": "tests/final-acceptance/fixture-data.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [
-        "FINAL_ACCEPTANCE_EMAIL",
-        "FINAL_ACCEPTANCE_PASSWORD",
-        "FINAL_ACCEPTANCE_TEMPLATE_NAME",
-        "FINAL_ACCEPTANCE_TEMPLATE_SLUG",
-        "FINAL_ACCEPTANCE_ASSET_PREFIX",
-        "FINAL_ACCEPTANCE_ASSET_COUNT",
-        "RUN_STATE_PATH"
-      ],
-      "imports": [
-        "node:path"
-      ],
-      "importantSymbols": [
-        "FINAL_ACCEPTANCE_EMAIL",
-        "FINAL_ACCEPTANCE_PASSWORD",
-        "FINAL_ACCEPTANCE_TEMPLATE_NAME",
-        "FINAL_ACCEPTANCE_TEMPLATE_SLUG",
-        "FINAL_ACCEPTANCE_ASSET_PREFIX",
-        "FINAL_ACCEPTANCE_ASSET_COUNT",
-        "RUN_STATE_PATH"
-      ],
-      "lineCount": 13,
-      "sizeBytes": 553,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/final-acceptance/framework.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [
-        "TERMINAL_BATCH_STATUSES",
-        "BatchJob",
-        "Batch",
-        "EvidenceCollector",
-        "test",
-        "browserFetch",
-        "getAcceptanceTemplate",
-        "acceptanceAssetIds",
-        "registerBatch",
-        "dispatchCurrentSingleVideo",
-        "createBatch",
-        "getBatch",
-        "tickBatch",
-        "waitForTerminal",
-        "sampleFps",
-        "sampleScrollFps",
-        "runKey",
-        "FINAL_ACCEPTANCE_EMAIL",
-        "FINAL_ACCEPTANCE_PASSWORD",
-        "FINAL_ACCEPTANCE_TEMPLATE_NAME",
-        "FINAL_ACCEPTANCE_TEMPLATE_SLUG",
-        "expect"
-      ],
-      "imports": [
-        "node:fs/promises",
-        "@playwright/test",
-        "../../src/lib/db",
-        "./fixture-data"
-      ],
-      "importantSymbols": [
-        "TERMINAL_BATCH_STATUSES",
-        "BatchJob",
-        "Batch",
-        "EvidenceCollector",
-        "FINAL_ACCEPTANCE_EMAIL",
-        "FINAL_ACCEPTANCE_PASSWORD",
-        "FINAL_ACCEPTANCE_TEMPLATE_NAME",
-        "FINAL_ACCEPTANCE_TEMPLATE_SLUG"
-      ],
-      "lineCount": 659,
-      "sizeBytes": 20253,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/final-acceptance/global-teardown.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [
-        "globalTeardown",
-        "default"
-      ],
-      "imports": [
-        "node:fs/promises",
-        "@prisma/client",
-        "../../src/lib/db",
-        "../../src/lib/storage",
-        "./fixture-data"
-      ],
-      "importantSymbols": [
-        "globalTeardown",
-        "default"
-      ],
-      "lineCount": 73,
-      "sizeBytes": 2299,
-      "notes": "Unit / integration test; hits Prisma DB; area=tests"
-    },
-    {
-      "path": "tests/final-acceptance/journeys.spec.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "./framework",
-        "@playwright/test",
-        "../../src/lib/db"
-      ],
-      "importantSymbols": [],
-      "lineCount": 893,
-      "sizeBytes": 31864,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/final-acceptance/onboarding.spec.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "../../src/lib/db",
-        "./framework"
-      ],
-      "importantSymbols": [],
-      "lineCount": 138,
-      "sizeBytes": 4486,
-      "notes": "Unit / integration test; NextAuth session check; area=tests"
-    },
-    {
-      "path": "tests/final-acceptance/product-images.spec.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:path",
-        "./framework"
-      ],
-      "importantSymbols": [],
-      "lineCount": 47,
-      "sizeBytes": 2532,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/final-acceptance/rehearsal-safety.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [
-        "FinalAcceptanceRehearsalEnv",
-        "assertFinalAcceptanceRehearsal"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "FinalAcceptanceRehearsalEnv",
-        "assertFinalAcceptanceRehearsal"
-      ],
-      "lineCount": 36,
-      "sizeBytes": 1215,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/final-acceptance/resilience.spec.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "@prisma/client",
-        "../../src/lib/db",
-        "../../src/lib/services/batch-service",
-        "../../src/lib/services/dispatch-breaker",
-        "./framework"
-      ],
-      "importantSymbols": [],
-      "lineCount": 231,
-      "sizeBytes": 7544,
-      "notes": "Unit / integration test; hits Prisma DB; area=tests"
-    },
-    {
-      "path": "tests/final-acceptance/seed-fixture.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [
-        "FINAL_ACCEPTANCE_EMAIL",
-        "FINAL_ACCEPTANCE_PASSWORD",
-        "FINAL_ACCEPTANCE_TEMPLATE_SLUG",
-        "RUN_STATE_PATH"
-      ],
-      "imports": [
-        "node:fs/promises",
-        "node:path",
-        "bcryptjs",
-        "@prisma/client",
-        "../../src/lib/db",
-        "./fixture-data",
-        "./rehearsal-safety"
-      ],
-      "importantSymbols": [
-        "FINAL_ACCEPTANCE_EMAIL",
-        "FINAL_ACCEPTANCE_PASSWORD",
-        "FINAL_ACCEPTANCE_TEMPLATE_SLUG",
-        "RUN_STATE_PATH"
-      ],
-      "lineCount": 178,
-      "sizeBytes": 5636,
-      "notes": "Unit / integration test; hits Prisma DB; area=tests"
-    },
-    {
-      "path": "tests/final-acceptance/smoke.spec.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "./framework"
-      ],
-      "importantSymbols": [],
-      "lineCount": 43,
-      "sizeBytes": 1209,
-      "notes": "Unit / integration test; area=tests"
     },
     {
       "path": "tests/final-frame-qa.test.ts",
@@ -34676,27 +33978,6 @@
       "importantSymbols": [],
       "lineCount": 59,
       "sizeBytes": 1579,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/founder-digest.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [
-        "GET"
-      ],
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test",
-        "../src/lib/db",
-        "../src/lib/services/founder-digest-service"
-      ],
-      "importantSymbols": [
-        "GET"
-      ],
-      "lineCount": 319,
-      "sizeBytes": 16802,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -34861,21 +34142,6 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
-      "path": "tests/golden-path-network-identity.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../e2e/golden-path-network-identity"
-      ],
-      "importantSymbols": [],
-      "lineCount": 13,
-      "sizeBytes": 494,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/growth-lead-service.test.ts",
       "type": "test",
       "area": "tests",
@@ -35030,7 +34296,6 @@
         "node:module",
         "node:test",
         "next/server",
-        "stripe",
         "next-auth/next",
         "../src/lib/db.ts",
         "../src/app/api/briefs/[id]/qa/route.ts",
@@ -35040,13 +34305,12 @@
         "../src/app/api/internal/reports/route.ts",
         "../src/app/api/internal/reports/[id]/route.ts",
         "../src/app/api/demo/real-footage-ads/waitlist/route.ts",
-        "../src/app/api/webhooks/stripe/route.ts",
         "../src/app/api/auth/[...nextauth]/route.ts",
         "../src/middleware.ts"
       ],
       "importantSymbols": [],
-      "lineCount": 547,
-      "sizeBytes": 18447,
+      "lineCount": 468,
+      "sizeBytes": 15909,
       "notes": "Unit / integration test; NextAuth session check; area=tests"
     },
     {
@@ -35306,8 +34570,8 @@
         "node:test"
       ],
       "importantSymbols": [],
-      "lineCount": 56,
-      "sizeBytes": 2214,
+      "lineCount": 43,
+      "sizeBytes": 1717,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -35422,13 +34686,12 @@
         "../src/app/api/cron/stitch-videos/route",
         "../src/app/api/cron/stitch-dispatch/route",
         "../src/app/api/cron/sweep-stuck-tasks/route",
-        "../src/app/api/cron/founder-digest/route",
         "../src/app/api/internal/stitch/claim/route",
         "../src/app/api/internal/stitch/complete/route"
       ],
       "importantSymbols": [],
-      "lineCount": 67,
-      "sizeBytes": 3208,
+      "lineCount": 65,
+      "sizeBytes": 3024,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -35562,7 +34825,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 304,
-      "sizeBytes": 14696,
+      "sizeBytes": 14672,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -36021,150 +35284,6 @@
       "lineCount": 55,
       "sizeBytes": 2112,
       "notes": "Unit / integration test; NextAuth session check; area=tests"
-    },
-    {
-      "path": "tests/phase34/agent-chat-ux.spec.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "@playwright/test"
-      ],
-      "importantSymbols": [],
-      "lineCount": 85,
-      "sizeBytes": 4360,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/phase34/all-routes-matrix.spec.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:crypto",
-        "node:fs/promises",
-        "node:path",
-        "next-auth/jwt",
-        "@playwright/test",
-        "../../src/lib/db",
-        "../../src/lib/auth-role-policy",
-        "../final-acceptance/framework",
-        "../final-acceptance/fixture-data"
-      ],
-      "importantSymbols": [],
-      "lineCount": 296,
-      "sizeBytes": 12387,
-      "notes": "Unit / integration test; NextAuth session check; area=tests"
-    },
-    {
-      "path": "tests/phase34/auth-role-persona.spec.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "next-auth/jwt",
-        "@playwright/test",
-        "../../src/lib/db"
-      ],
-      "importantSymbols": [],
-      "lineCount": 59,
-      "sizeBytes": 2134,
-      "notes": "Unit / integration test; NextAuth session check; area=tests"
-    },
-    {
-      "path": "tests/phase34/auth.setup.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:fs/promises",
-        "node:path",
-        "@playwright/test"
-      ],
-      "importantSymbols": [],
-      "lineCount": 39,
-      "sizeBytes": 1331,
-      "notes": "Unit / integration test; NextAuth session check; area=tests"
-    },
-    {
-      "path": "tests/phase34/customer-route-states.spec.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "@playwright/test"
-      ],
-      "importantSymbols": [],
-      "lineCount": 56,
-      "sizeBytes": 2206,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/phase34/layout-overflow.spec.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "next-auth/jwt",
-        "@playwright/test",
-        "../../src/lib/db"
-      ],
-      "importantSymbols": [],
-      "lineCount": 113,
-      "sizeBytes": 4035,
-      "notes": "Unit / integration test; NextAuth session check; area=tests"
-    },
-    {
-      "path": "tests/phase34/locale-switch.spec.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "@playwright/test"
-      ],
-      "importantSymbols": [],
-      "lineCount": 98,
-      "sizeBytes": 4192,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/phase34/plan-timeline.spec.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "@playwright/test"
-      ],
-      "importantSymbols": [],
-      "lineCount": 66,
-      "sizeBytes": 2493,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/phase34/showcase-freeze.spec.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "@playwright/test"
-      ],
-      "importantSymbols": [],
-      "lineCount": 56,
-      "sizeBytes": 1835,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/phase34/wins-page.spec.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "@playwright/test"
-      ],
-      "importantSymbols": [],
-      "lineCount": 39,
-      "sizeBytes": 1838,
-      "notes": "Unit / integration test; area=tests"
     },
     {
       "path": "tests/plain-language-copy.test.ts",
@@ -37195,8 +36314,8 @@
       "importantSymbols": [
         "GET"
       ],
-      "lineCount": 92,
-      "sizeBytes": 3786,
+      "lineCount": 90,
+      "sizeBytes": 3577,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -37394,8 +36513,8 @@
         "node:test"
       ],
       "importantSymbols": [],
-      "lineCount": 34,
-      "sizeBytes": 1288,
+      "lineCount": 37,
+      "sizeBytes": 1570,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -38482,8 +37601,8 @@
         "../src/lib/video-generation/template-sample"
       ],
       "importantSymbols": [],
-      "lineCount": 106,
-      "sizeBytes": 3835,
+      "lineCount": 96,
+      "sizeBytes": 3406,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -38522,8 +37641,8 @@
         "../src/app/api/product-anchors/[id]/retry/route"
       ],
       "importantSymbols": [],
-      "lineCount": 239,
-      "sizeBytes": 10448,
+      "lineCount": 236,
+      "sizeBytes": 10217,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -39432,8 +38551,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 26,
-      "sizeBytes": 501,
+      "lineCount": 22,
+      "sizeBytes": 415,
       "notes": "Build / runtime config; area=config"
     }
   ]

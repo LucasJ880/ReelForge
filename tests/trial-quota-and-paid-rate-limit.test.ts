@@ -93,9 +93,6 @@ test("注册路由给新账号写试用标记，Workspace 仍是 starter（外�
   const source = await readFile("src/app/api/auth/register/route.ts", "utf8");
   assert.match(source, /subscriptionTier:\s*TRIAL_SUBSCRIPTION_TIER/);
   assert.match(source, /planId:\s*"starter"/);
-  /// Stripe 订阅成功会把 tier 改写成 free / pro —— 试用随之结束
-  const stripe = await readFile("src/lib/services/stripe-billing-service.ts", "utf8");
-  assert.match(stripe, /subscriptionTier:\s*params\.tier/);
 });
 
 test("付费入口限流：默认值、环境变量覆盖与上下限", () => {

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-16T23:56:28.480Z",
+  "generatedAt": "2026-11-17T00:09:46.320Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -4135,78 +4135,6 @@
       "externalImports": []
     },
     {
-      "file": "e2e/golden-path-fixture.ts",
-      "imports": [
-        "node:fs/promises",
-        "node:path",
-        "../src/lib/db"
-      ],
-      "localImports": [
-        "../src/lib/db"
-      ],
-      "externalImports": [
-        "node:fs/promises",
-        "node:path"
-      ]
-    },
-    {
-      "file": "e2e/golden-path-global-setup.ts",
-      "imports": [
-        "../src/lib/db",
-        "./golden-path-fixture"
-      ],
-      "localImports": [
-        "../src/lib/db",
-        "./golden-path-fixture"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "e2e/golden-path-global-teardown.ts",
-      "imports": [
-        "../src/lib/db",
-        "./golden-path-fixture"
-      ],
-      "localImports": [
-        "../src/lib/db",
-        "./golden-path-fixture"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "e2e/golden-path-network-identity.ts",
-      "imports": [
-        "node:crypto"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "node:crypto"
-      ]
-    },
-    {
-      "file": "e2e/golden-path.spec.ts",
-      "imports": [
-        "node:crypto",
-        "node:fs/promises",
-        "node:path",
-        "@playwright/test",
-        "@prisma/client",
-        "../src/lib/db",
-        "./golden-path-fixture"
-      ],
-      "localImports": [
-        "../src/lib/db",
-        "./golden-path-fixture"
-      ],
-      "externalImports": [
-        "node:crypto",
-        "node:fs/promises",
-        "node:path",
-        "@playwright/test",
-        "@prisma/client"
-      ]
-    },
-    {
       "file": "e2e/prod-smoke-helpers.ts",
       "imports": [
         "node:fs",
@@ -4339,55 +4267,6 @@
         "./assets/xtermModule-CsJ4vdCR.js"
       ],
       "externalImports": []
-    },
-    {
-      "file": "playwright.config.ts",
-      "imports": [
-        "@playwright/test"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@playwright/test"
-      ]
-    },
-    {
-      "file": "playwright.final-acceptance.config.ts",
-      "imports": [
-        "node:crypto",
-        "@playwright/test"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "node:crypto",
-        "@playwright/test"
-      ]
-    },
-    {
-      "file": "playwright.golden-path.config.ts",
-      "imports": [
-        "node:crypto",
-        "@playwright/test",
-        "./e2e/golden-path-network-identity"
-      ],
-      "localImports": [
-        "./e2e/golden-path-network-identity"
-      ],
-      "externalImports": [
-        "node:crypto",
-        "@playwright/test"
-      ]
-    },
-    {
-      "file": "playwright.phase34.config.ts",
-      "imports": [
-        "node:crypto",
-        "@playwright/test"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "node:crypto",
-        "@playwright/test"
-      ]
     },
     {
       "file": "playwright.prod-smoke.config.ts",
@@ -6997,21 +6876,6 @@
       ]
     },
     {
-      "file": "src/app/api/cron/founder-digest/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/machine-auth",
-        "@/lib/services/founder-digest-service"
-      ],
-      "localImports": [
-        "@/lib/machine-auth",
-        "@/lib/services/founder-digest-service"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
       "file": "src/app/api/cron/poll-videos/route.ts",
       "imports": [
         "next/server",
@@ -8340,19 +8204,6 @@
         "@/lib/machine-auth",
         "@/lib/contracts/videos-api",
         "@/lib/services/videos-sync-service"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/webhooks/stripe/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/services/stripe-billing-service"
-      ],
-      "localImports": [
-        "@/lib/services/stripe-billing-service"
       ],
       "externalImports": [
         "next/server"
@@ -12742,32 +12593,6 @@
       "externalImports": []
     },
     {
-      "file": "src/lib/services/founder-digest-service.ts",
-      "imports": [
-        "@/lib/db",
-        "@/i18n/growth-copy",
-        "@/lib/api/customer-generation-error",
-        "@/lib/config/contact",
-        "@/lib/services/exchange-readings",
-        "@/lib/services/notification-service",
-        "@/lib/contracts/video-feedback",
-        "@/i18n/platform-copy",
-        "@/lib/services/rate-limit-service"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/i18n/growth-copy",
-        "@/lib/api/customer-generation-error",
-        "@/lib/config/contact",
-        "@/lib/services/exchange-readings",
-        "@/lib/services/notification-service",
-        "@/lib/contracts/video-feedback",
-        "@/i18n/platform-copy",
-        "@/lib/services/rate-limit-service"
-      ],
-      "externalImports": []
-    },
-    {
       "file": "src/lib/services/frame-qa-gate.ts",
       "imports": [
         "@prisma/client",
@@ -13550,19 +13375,6 @@
         "path",
         "url",
         "@prisma/client"
-      ]
-    },
-    {
-      "file": "src/lib/services/stripe-billing-service.ts",
-      "imports": [
-        "stripe",
-        "@/lib/db"
-      ],
-      "localImports": [
-        "@/lib/db"
-      ],
-      "externalImports": [
-        "stripe"
       ]
     },
     {
@@ -17423,114 +17235,6 @@
       ]
     },
     {
-      "file": "tests/e2e-seed-guard.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:child_process",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "node:test",
-        "node:util",
-        "./e2e/e2e-db-guard",
-        "../../src/lib/db"
-      ],
-      "localImports": [
-        "./e2e/e2e-db-guard",
-        "../../src/lib/db"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:child_process",
-        "node:fs/promises",
-        "node:os",
-        "node:path",
-        "node:test",
-        "node:util"
-      ]
-    },
-    {
-      "file": "tests/e2e/auth.setup.ts",
-      "imports": [
-        "@playwright/test"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@playwright/test"
-      ]
-    },
-    {
-      "file": "tests/e2e/e2e-db-guard.ts",
-      "imports": [
-        "node:fs",
-        "node:path"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "node:fs",
-        "node:path"
-      ]
-    },
-    {
-      "file": "tests/e2e/editorial-fixtures.ts",
-      "imports": [
-        "@playwright/test"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@playwright/test"
-      ]
-    },
-    {
-      "file": "tests/e2e/editorial.a11y.spec.ts",
-      "imports": [
-        "@axe-core/playwright",
-        "@playwright/test",
-        "./editorial-fixtures"
-      ],
-      "localImports": [
-        "./editorial-fixtures"
-      ],
-      "externalImports": [
-        "@axe-core/playwright",
-        "@playwright/test"
-      ]
-    },
-    {
-      "file": "tests/e2e/editorial.visual.spec.ts",
-      "imports": [
-        "@playwright/test",
-        "./editorial-fixtures"
-      ],
-      "localImports": [
-        "./editorial-fixtures"
-      ],
-      "externalImports": [
-        "@playwright/test"
-      ]
-    },
-    {
-      "file": "tests/e2e/seed-visual-fixture.ts",
-      "imports": [
-        "bcryptjs",
-        "@prisma/client",
-        "../../src/lib/video-generation/batch-style-templates",
-        "../../src/lib/demo-account",
-        "./e2e-db-guard",
-        "../../src/lib/db"
-      ],
-      "localImports": [
-        "../../src/lib/video-generation/batch-style-templates",
-        "../../src/lib/demo-account",
-        "./e2e-db-guard",
-        "../../src/lib/db"
-      ],
-      "externalImports": [
-        "bcryptjs",
-        "@prisma/client"
-      ]
-    },
-    {
       "file": "tests/editorial-source-compliance.test.ts",
       "imports": [
         "node:fs",
@@ -17583,15 +17287,13 @@
         "../src/lib/db",
         "../src/lib/experiments/run-key",
         "../src/lib/services/exchange-readings",
-        "../src/lib/services/first-pass-rate-service",
-        "../src/lib/services/founder-digest-service"
+        "../src/lib/services/first-pass-rate-service"
       ],
       "localImports": [
         "../src/lib/db",
         "../src/lib/experiments/run-key",
         "../src/lib/services/exchange-readings",
-        "../src/lib/services/first-pass-rate-service",
-        "../src/lib/services/founder-digest-service"
+        "../src/lib/services/first-pass-rate-service"
       ],
       "externalImports": [
         "node:assert/strict",
@@ -17618,188 +17320,6 @@
         "node:fs",
         "node:test"
       ]
-    },
-    {
-      "file": "tests/final-acceptance-global-teardown-import.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "./final-acceptance/global-teardown"
-      ],
-      "localImports": [
-        "./final-acceptance/global-teardown"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/final-acceptance-rehearsal-safety.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "./final-acceptance/rehearsal-safety"
-      ],
-      "localImports": [
-        "./final-acceptance/rehearsal-safety"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/final-acceptance/auth.setup.ts",
-      "imports": [
-        "node:fs/promises",
-        "node:path",
-        "@playwright/test"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "node:fs/promises",
-        "node:path",
-        "@playwright/test"
-      ]
-    },
-    {
-      "file": "tests/final-acceptance/fixture-data.ts",
-      "imports": [
-        "node:path"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "node:path"
-      ]
-    },
-    {
-      "file": "tests/final-acceptance/framework.ts",
-      "imports": [
-        "node:fs/promises",
-        "@playwright/test",
-        "../../src/lib/db",
-        "./fixture-data"
-      ],
-      "localImports": [
-        "../../src/lib/db",
-        "./fixture-data"
-      ],
-      "externalImports": [
-        "node:fs/promises",
-        "@playwright/test"
-      ]
-    },
-    {
-      "file": "tests/final-acceptance/global-teardown.ts",
-      "imports": [
-        "node:fs/promises",
-        "@prisma/client",
-        "../../src/lib/db",
-        "../../src/lib/storage",
-        "./fixture-data"
-      ],
-      "localImports": [
-        "../../src/lib/db",
-        "../../src/lib/storage",
-        "./fixture-data"
-      ],
-      "externalImports": [
-        "node:fs/promises",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "tests/final-acceptance/journeys.spec.ts",
-      "imports": [
-        "./framework",
-        "@playwright/test",
-        "../../src/lib/db"
-      ],
-      "localImports": [
-        "./framework",
-        "../../src/lib/db"
-      ],
-      "externalImports": [
-        "@playwright/test"
-      ]
-    },
-    {
-      "file": "tests/final-acceptance/onboarding.spec.ts",
-      "imports": [
-        "../../src/lib/db",
-        "./framework"
-      ],
-      "localImports": [
-        "../../src/lib/db",
-        "./framework"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "tests/final-acceptance/product-images.spec.ts",
-      "imports": [
-        "node:path",
-        "./framework"
-      ],
-      "localImports": [
-        "./framework"
-      ],
-      "externalImports": [
-        "node:path"
-      ]
-    },
-    {
-      "file": "tests/final-acceptance/resilience.spec.ts",
-      "imports": [
-        "@prisma/client",
-        "../../src/lib/db",
-        "../../src/lib/services/batch-service",
-        "../../src/lib/services/dispatch-breaker",
-        "./framework"
-      ],
-      "localImports": [
-        "../../src/lib/db",
-        "../../src/lib/services/batch-service",
-        "../../src/lib/services/dispatch-breaker",
-        "./framework"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "tests/final-acceptance/seed-fixture.ts",
-      "imports": [
-        "node:fs/promises",
-        "node:path",
-        "bcryptjs",
-        "@prisma/client",
-        "../../src/lib/db",
-        "./fixture-data",
-        "./rehearsal-safety"
-      ],
-      "localImports": [
-        "../../src/lib/db",
-        "./fixture-data",
-        "./rehearsal-safety"
-      ],
-      "externalImports": [
-        "node:fs/promises",
-        "node:path",
-        "bcryptjs",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "tests/final-acceptance/smoke.spec.ts",
-      "imports": [
-        "./framework"
-      ],
-      "localImports": [
-        "./framework"
-      ],
-      "externalImports": []
     },
     {
       "file": "tests/final-frame-qa.test.ts",
@@ -17896,25 +17416,6 @@
       ],
       "externalImports": [
         "node:crypto"
-      ]
-    },
-    {
-      "file": "tests/founder-digest.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test",
-        "../src/lib/db",
-        "../src/lib/services/founder-digest-service"
-      ],
-      "localImports": [
-        "../src/lib/db",
-        "../src/lib/services/founder-digest-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test"
       ]
     },
     {
@@ -18105,21 +17606,6 @@
       ]
     },
     {
-      "file": "tests/golden-path-network-identity.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../e2e/golden-path-network-identity"
-      ],
-      "localImports": [
-        "../e2e/golden-path-network-identity"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/growth-lead-service.test.ts",
       "imports": [
         "node:assert/strict",
@@ -18294,7 +17780,6 @@
         "node:module",
         "node:test",
         "next/server",
-        "stripe",
         "next-auth/next",
         "../src/lib/db.ts",
         "../src/app/api/briefs/[id]/qa/route.ts",
@@ -18304,7 +17789,6 @@
         "../src/app/api/internal/reports/route.ts",
         "../src/app/api/internal/reports/[id]/route.ts",
         "../src/app/api/demo/real-footage-ads/waitlist/route.ts",
-        "../src/app/api/webhooks/stripe/route.ts",
         "../src/app/api/auth/[...nextauth]/route.ts",
         "../src/middleware.ts"
       ],
@@ -18317,7 +17801,6 @@
         "../src/app/api/internal/reports/route.ts",
         "../src/app/api/internal/reports/[id]/route.ts",
         "../src/app/api/demo/real-footage-ads/waitlist/route.ts",
-        "../src/app/api/webhooks/stripe/route.ts",
         "../src/app/api/auth/[...nextauth]/route.ts",
         "../src/middleware.ts"
       ],
@@ -18327,7 +17810,6 @@
         "node:module",
         "node:test",
         "next/server",
-        "stripe",
         "next-auth/next"
       ]
     },
@@ -18663,7 +18145,6 @@
         "../src/app/api/cron/stitch-videos/route",
         "../src/app/api/cron/stitch-dispatch/route",
         "../src/app/api/cron/sweep-stuck-tasks/route",
-        "../src/app/api/cron/founder-digest/route",
         "../src/app/api/internal/stitch/claim/route",
         "../src/app/api/internal/stitch/complete/route"
       ],
@@ -18673,7 +18154,6 @@
         "../src/app/api/cron/stitch-videos/route",
         "../src/app/api/cron/stitch-dispatch/route",
         "../src/app/api/cron/sweep-stuck-tasks/route",
-        "../src/app/api/cron/founder-digest/route",
         "../src/app/api/internal/stitch/claim/route",
         "../src/app/api/internal/stitch/complete/route"
       ],
@@ -19336,137 +18816,6 @@
         "node:assert/strict",
         "node:test",
         "@prisma/client"
-      ]
-    },
-    {
-      "file": "tests/phase34/agent-chat-ux.spec.ts",
-      "imports": [
-        "@playwright/test"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@playwright/test"
-      ]
-    },
-    {
-      "file": "tests/phase34/all-routes-matrix.spec.ts",
-      "imports": [
-        "node:crypto",
-        "node:fs/promises",
-        "node:path",
-        "next-auth/jwt",
-        "@playwright/test",
-        "../../src/lib/db",
-        "../../src/lib/auth-role-policy",
-        "../final-acceptance/framework",
-        "../final-acceptance/fixture-data"
-      ],
-      "localImports": [
-        "../../src/lib/db",
-        "../../src/lib/auth-role-policy",
-        "../final-acceptance/framework",
-        "../final-acceptance/fixture-data"
-      ],
-      "externalImports": [
-        "node:crypto",
-        "node:fs/promises",
-        "node:path",
-        "next-auth/jwt",
-        "@playwright/test"
-      ]
-    },
-    {
-      "file": "tests/phase34/auth-role-persona.spec.ts",
-      "imports": [
-        "next-auth/jwt",
-        "@playwright/test",
-        "../../src/lib/db"
-      ],
-      "localImports": [
-        "../../src/lib/db"
-      ],
-      "externalImports": [
-        "next-auth/jwt",
-        "@playwright/test"
-      ]
-    },
-    {
-      "file": "tests/phase34/auth.setup.ts",
-      "imports": [
-        "node:fs/promises",
-        "node:path",
-        "@playwright/test"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "node:fs/promises",
-        "node:path",
-        "@playwright/test"
-      ]
-    },
-    {
-      "file": "tests/phase34/customer-route-states.spec.ts",
-      "imports": [
-        "@playwright/test"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@playwright/test"
-      ]
-    },
-    {
-      "file": "tests/phase34/layout-overflow.spec.ts",
-      "imports": [
-        "next-auth/jwt",
-        "@playwright/test",
-        "../../src/lib/db"
-      ],
-      "localImports": [
-        "../../src/lib/db"
-      ],
-      "externalImports": [
-        "next-auth/jwt",
-        "@playwright/test"
-      ]
-    },
-    {
-      "file": "tests/phase34/locale-switch.spec.ts",
-      "imports": [
-        "@playwright/test"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@playwright/test"
-      ]
-    },
-    {
-      "file": "tests/phase34/plan-timeline.spec.ts",
-      "imports": [
-        "@playwright/test"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@playwright/test"
-      ]
-    },
-    {
-      "file": "tests/phase34/showcase-freeze.spec.ts",
-      "imports": [
-        "@playwright/test"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@playwright/test"
-      ]
-    },
-    {
-      "file": "tests/phase34/wins-page.spec.ts",
-      "imports": [
-        "@playwright/test"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@playwright/test"
       ]
     },
     {

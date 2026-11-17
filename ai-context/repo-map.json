@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-16T23:56:28.472Z",
+  "generatedAt": "2026-11-17T00:09:46.314Z",
   "package": {
     "name": "aivora",
     "version": "0.2.0"
@@ -23,8 +23,7 @@
     "scripts",
     "src",
     "test-results",
-    "tests",
-    "visual-baseline"
+    "tests"
   ],
   "stack": [
     "Next.js (16.2.10)",
@@ -38,9 +37,9 @@
     "bcryptjs (^3.0.3)"
   ],
   "fileTotals": {
-    "total": 2014,
+    "total": 1969,
     "byType": {
-      "unknown": 440,
+      "unknown": 431,
       "doc": 439,
       "style": 9,
       "workflow": 4,
@@ -50,24 +49,24 @@
       "script": 33,
       "page": 67,
       "layout": 5,
-      "api": 95,
+      "api": 93,
       "component": 121,
       "i18n": 17,
       "util": 190,
       "provider": 22,
-      "service": 88,
+      "service": 86,
       "type": 2,
-      "test": 408
+      "test": 376
     },
     "byArea": {
-      "unknown": 876,
-      "media-processing": 82,
+      "unknown": 867,
+      "media-processing": 81,
       "config": 11,
       "ffmpeg": 16,
-      "shared": 335,
+      "shared": 334,
       "prisma": 59,
       "auth": 25,
-      "payments": 3,
+      "payments": 1,
       "upload": 7,
       "scripts": 21,
       "admin": 5,
@@ -82,18 +81,18 @@
       "i18n": 17,
       "demo": 1,
       "ai-providers": 22,
-      "tests": 408
+      "tests": 376
     }
   },
   "routes": {
-    "total": 168,
+    "total": 166,
     "byKind": {
       "error": 18,
       "layout": 5,
       "loading": 17,
       "not-found": 2,
       "page": 30,
-      "api": 96
+      "api": 94
     }
   },
   "importantFiles": [
@@ -167,14 +166,6 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test:visual": "playwright test tests/e2e/editorial.visual.spec.ts",
-    "test:visual:update": "playwright test tests/e2e/editorial.visual.spec.ts --update-snapshots",
-    "test:a11y": "playwright test tests/e2e/editorial.a11y.spec.ts",
-    "test:golden-path": "npm run build && npm run test:golden-path:run",
-    "test:golden-path:run": "dotenv -e .env.local -- playwright test --config=playwright.golden-path.config.ts",
-    "test:phase34:routes": "npm run build && dotenv -e .env.local -- playwright test --config=playwright.phase34.config.ts",
-    "test:final-acceptance": "dotenv -e .env.local -- playwright test --config=playwright.final-acceptance.config.ts",
-    "test:final-acceptance:soak": "FINAL_ACCEPTANCE_SOAK_MS=300000 FINAL_ACCEPTANCE_MONITOR_DELAY_MS=30000 dotenv -e .env.local -- playwright test --config=playwright.final-acceptance.config.ts",
     "test:prod-smoke": "playwright test --config=playwright.prod-smoke.config.ts",
     "db:generate": "prisma generate",
     "db:migrate": "node scripts/confirm-production-db.mjs db:migrate && dotenv -e .env.local -- prisma migrate dev",

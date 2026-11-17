@@ -19,7 +19,10 @@ test("API inventory accounts for every route file", () => {
     return `/api/${relative}`;
   });
 
-  assert.equal(routeFiles.length, 95);
+  /// 2026-11-16 瘦身第 3 批之一：删了 /api/webhooks/stripe 与 /api/cron/founder-digest，95 → 93。
+  /// qa/SHIP_AUDIT.md 这一批按约定没动：标题仍写 95/95、表里还留着那两行，等清单更新时
+  /// 把下面的标题断言一起改成 93/93。
+  assert.equal(routeFiles.length, 93);
   assert.equal(new Set(endpoints).size, routeFiles.length);
   for (const endpoint of endpoints) {
     assert.ok(

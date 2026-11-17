@@ -9,14 +9,12 @@ import {
 } from "../src/lib/experiments/run-key";
 import { platformBatchFailureWhere } from "../src/lib/services/exchange-readings";
 import { videoFirstPassRate } from "../src/lib/services/first-pass-rate-service";
-import { loadFounderDigestData } from "../src/lib/services/founder-digest-service";
 
 /**
  * X-SCAF-0：实验批次（BatchJob.idempotencyKey 以 exp-2611- 开头）走生产批量管线写库，
- * 但不是商家的生成质量、也不是平台故障。三处平台读数必须把它们排除：
- *   1. 创始人汇总的失败视频（founder-digest-service → platformBatchFailureWhere）
- *   2. platformBatchFailureWhere 本身（exchange-readings）
- *   3. 一次通过率（first-pass-rate-service）
+ * 但不是商家的生成质量、也不是平台故障。两处平台读数必须把它们排除：
+ *   1. platformBatchFailureWhere（exchange-readings；原来的调用方创始人日报 2026-11-16 已删）
+ *   2. 一次通过率（first-pass-rate-service）
  * Prisma 一律打桩，不连数据库；另用一个小 where 解释器在内存行上真正执行同一份条件。
  */
 
@@ -128,7 +126,7 @@ test("where 片段：BatchJob 维度排除前缀；VideoJob 维度保留无批�
   assert.equal(matches(failedJob(null), where), true, "单条任务（batchJobId 为空）不受影响");
 });
 
-/* ── 2. platformBatchFailureWhere 本身 ─────────────────────────────── */
+/* ── 1. platformBatchFailureWhere 本身 ─────────────────────────────── */
 
 test("platformBatchFailureWhere：实验批次的失败不算平台失败，商家批次照旧", () => {
   const where = platformBatchFailureWhere(range) as Row;
@@ -141,42 +139,7 @@ test("platformBatchFailureWhere：实验批次的失败不算平台失败，商�
   assert.equal(matches(failedJob(merchantBatch, { finishedAt: new Date(NOW.getTime() - 48 * HOUR) }), where), false);
 });
 
-/* ── 1. 创始人汇总：失败视频列表、计数、「需要处理」候选三处都走同一份 where ── */
-
-test("创始人汇总：失败视频的 findMany / count 与「需要处理」候选账号的 where 都带前缀排除", async (t) => {
-  const calls: Calls = {};
-  const empty = () => [];
-  stub(t, calls, "pilotApplication", "findMany", empty);
-  stub(t, calls, "pilotApplication", "count", () => 0);
-  stub(t, calls, "lead", "findMany", empty);
-  stub(t, calls, "lead", "count", () => 0);
-  stub(t, calls, "videoJob", "findMany", empty);
-  stub(t, calls, "videoJob", "count", () => 0);
-  stub(t, calls, "videoBrief", "findMany", empty);
-  stub(t, calls, "videoBrief", "count", () => 0);
-  stub(t, calls, "batchJob", "findMany", empty);
-  stub(t, calls, "deliveryOrder", "findMany", empty);
-  stub(t, calls, "adminUser", "findMany", empty);
-  stub(t, calls, "adminUser", "count", () => 0);
-  stub(t, calls, "workspace", "findMany", empty);
-
-  await loadFounderDigestData(NOW);
-
-  const jobList = (calls["videoJob.findMany"]![0] as { where: Row }).where;
-  const jobCount = (calls["videoJob.count"]![0] as { where: Row }).where;
-  for (const where of [jobList, jobCount]) {
-    assert.equal(matches(failedJob(merchantBatch), where), true);
-    assert.equal(matches(failedJob(experimentBatch), where), false, "实验批次的失败不进创始人汇总");
-  }
-  /// 「需要处理」候选账号：BatchJob.videoJobs some(platformBatchFailureWhere)
-  const owners = (calls["batchJob.findMany"]![0] as { where: { videoJobs: { some: Row } } }).where;
-  assert.equal(matches(failedJob(experimentBatch), owners.videoJobs.some), false);
-  assert.equal(matches(failedJob(merchantBatch), owners.videoJobs.some), true);
-  /// 全是只读方法
-  assert.ok(Object.keys(calls).every((name) => /\.(findMany|count)$/.test(name)));
-});
-
-/* ── 3. 一次通过率：只加运行键排除，样本判据不动 ────────────────────── */
+/* ── 2. 一次通过率：只加运行键排除，样本判据不动 ────────────────────── */
 
 test("一次通过率：实验批次不进样本也不进通过数；单条任务与商家批次照旧；判据其余不变", async (t) => {
   const calls: Calls = {};

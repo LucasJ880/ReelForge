@@ -75,6 +75,8 @@ export function mergeRestitchPatch(
     captions: patch.captions ?? base.captions,
     /// 落款：补丁里给了就用补丁的（关掉 = enabled:false 也照存），没给沿用旧的；旧快照没有就不带这个键
     ...(patch.signoff ?? base.signoff ? { signoff: normalizeSignoff(patch.signoff ?? base.signoff!) } : {}),
+    /// 右上角 Logo 不在补丁里：只重新合成时原样沿用
+    ...(base.cornerLogo ? { cornerLogo: true } : {}),
   };
 }
 

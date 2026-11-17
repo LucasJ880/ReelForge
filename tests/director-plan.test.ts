@@ -175,8 +175,13 @@ test("检查拦下的错误：时间线没铺满 / 不相接、引用不存在�
   );
   /// 台词在英文双引号里可以是商家原文，不算
   assert.equal(lintDirectorJob(parsed()).errors.length, 0);
-  assert.match(
+  /// 只有场所实拍图（探厂 / 探店）可以；只有真人照片不行
+  assert.doesNotMatch(
     errors({ references: (base.references as Array<Record<string, unknown>>).map((reference) => ({ ...reference, kind: "scene" })) }),
+    /至少要有一张商品实拍图/,
+  );
+  assert.match(
+    errors({ references: (base.references as Array<Record<string, unknown>>).map((reference) => ({ ...reference, kind: "person" })) }),
     /至少要有一张商品实拍图/,
   );
 });

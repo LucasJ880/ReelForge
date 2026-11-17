@@ -1,3 +1,4 @@
+import { directorScriptSpeechWords, readStoredDirectorScript } from "@/lib/video-generation/director-line";
 import { signoffActive } from "@/lib/video-generation/brand-signoff";
 import type { PostProductionPlan } from "@/types/video-generation";
 import { db } from "@/lib/db";
@@ -123,13 +124,28 @@ export async function resolveSignoffLogoUrl(
 ): Promise<string | null> {
   const signoff = postProduction?.signoff;
   if (!signoffActive(signoff) || !signoff.logo || !ownerUserId) return null;
+  return resolveOwnerBrandLogoUrl(ownerUserId, "sign-off");
+}
+
+/**
+ * 右上角 Logo 要用的图：快照里 cornerLogo 开着才取，来源和片尾落款的 Logo 一样（成片主人自己工作区的默认品牌包）。
+ */
+export async function resolveCornerLogoUrl(
+  postProduction: PostProductionPlan | null,
+  ownerUserId: string | null,
+): Promise<string | null> {
+  if (postProduction?.cornerLogo !== true || !ownerUserId) return null;
+  return resolveOwnerBrandLogoUrl(ownerUserId, "corner");
+}
+
+async function resolveOwnerBrandLogoUrl(ownerUserId: string, purpose: "sign-off" | "corner"): Promise<string | null> {
   try {
     const { listWorkspaceBrandPackagesForUser } = await import("@/lib/services/workspace-brand-package-service");
     const own = (await listWorkspaceBrandPackagesForUser(ownerUserId)).filter((entry) => entry.scope === "workspace");
     const pick = own.find((entry) => entry.isDefault) ?? own[0] ?? null;
     return pick?.logoAsset?.url ?? null;
   } catch (error) {
-    console.warn("[stitch] sign-off logo lookup failed; composing without it", {
+    console.warn(`[stitch] ${purpose} logo lookup failed; composing without it`, {
       error: error instanceof Error ? error.message : String(error),
     });
     return null;
@@ -192,6 +208,14 @@ export async function composeFinalVideoForStitch(args: {
   /// 片尾落款带 Logo：快照里只有一个开关，图片在这里按成片主人取——他自己工作区的默认品牌包。
   const ownerUserId = fv.brief?.contentAngle?.round?.deliveryOrder?.createdById ?? null;
   const signoffLogoUrl = await resolveSignoffLogoUrl(postProduction ?? null, ownerUserId);
+  const cornerLogoUrl = await resolveCornerLogoUrl(postProduction ?? null, ownerUserId);
+  /// 导演线路（11-17）：这条片是按一份镜头脚本一次生成的。字幕按脚本里每句台词所在镜头的时间排；
+  /// 最后一个镜头是停住的商品定格，最后一句台词落在上面，所以不裁尾（裁掉 0.8 秒会切到行动指引）。
+  const directorLine = readStoredDirectorScript(
+    (fv.brief?.directorPlan as { directorLine?: unknown } | null)?.directorLine,
+  );
+  const scriptSpeechWords = directorLine ? directorScriptSpeechWords(directorLine.job) : null;
+  const tailTrimSec = directorLine ? 0 : aiTailTrimSec;
 
   // ---------------- b-roll（线路已删）----------------
   /// 必须排在其它分支之前：b-roll 的段是「图库原片 + 配音」，落进 legacy 分支会把没有配音的原片拼成成片。
@@ -210,9 +234,11 @@ export async function composeFinalVideoForStitch(args: {
     const result = await composeAndPersistTimeline({
       finalVideoId: args.finalVideoId,
       aspectRatio: inputs.aspectRatio,
-      clips: assemblyClipsToTimeline(inputs.clips, aiTailTrimSec),
+      clips: assemblyClipsToTimeline(inputs.clips, tailTrimSec),
       postProduction,
       signoffLogoUrl,
+      cornerLogoUrl,
+      scriptSpeechWords,
       voiceoverChunks,
       platform,
       extractThumbnail: true,
@@ -235,9 +261,11 @@ export async function composeFinalVideoForStitch(args: {
   const result = await composeAndPersistTimeline({
     finalVideoId: args.finalVideoId,
     aspectRatio,
-    clips: legacySegmentsToTimeline(fv.segments, aiTailTrimSec),
+    clips: legacySegmentsToTimeline(fv.segments, tailTrimSec),
     postProduction,
     signoffLogoUrl,
+    cornerLogoUrl,
+    scriptSpeechWords,
     voiceoverChunks,
     platform,
     extractThumbnail: true,

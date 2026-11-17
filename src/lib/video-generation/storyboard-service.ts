@@ -31,6 +31,7 @@ import {
 import { getStorageProvider } from "@/lib/storage";
 import { asProviderSubmissionError } from "@/lib/video-generation/providers/submission-error";
 import {
+  DIRECTOR_OPENING_FRAME_BEAT,
   SHOT_CARD_NEW_LOCATION_PREFIX,
   STORYBOARD_BEATS_LONG,
   STORYBOARD_BEATS_SHORT,
@@ -65,6 +66,21 @@ import {
   type VisualReferenceAnalysis,
 } from "@/lib/video-generation/visual-reference-analysis";
 import { STORYBOARD_PERSON_REFS_MAX } from "@/lib/video-generation/storyboard-person-refs";
+import {
+  directorOpeningFrame,
+  directorScriptView,
+  isStoredDirectorScript,
+  readStoredDirectorScript,
+  writeDirectorScriptForStoryboard,
+  type DirectorLineWriteResult,
+  type StoredDirectorScript,
+} from "@/lib/video-generation/director-line";
+import {
+  directorLineApplies,
+  directorLineEnabled,
+  type DirectorScriptView,
+} from "@/lib/video-generation/director-line-policy";
+import { createOpenAiDirectorCompleter } from "@/lib/video-generation/director-writer-openai";
 import {
   createPlanningDegradationLog,
   logPlanningDegradations,
@@ -138,6 +154,8 @@ export interface CreateStoryboardRunInput {
   /// 已定的口播稿（2026-10-29）：只给镜头卡设计做参考（按台词顺序排镜头、标谁说话），不入库、不进幂等哈希——
   /// 改了口播稿再点出故事板，同一提交标识照旧回放，不会冲突，也不会悄悄重出一套付费故事板。
   voiceoverScript?: string | null;
+  /// 创作页选的风格模板（null = 自动匹配）。只用来决定走不走导演线路、片种定不定成快销；不入库、不进幂等哈希。
+  styleTemplateId?: string | null;
 }
 
 export interface StoryboardRunView {
@@ -154,6 +172,8 @@ export interface StoryboardRunView {
   canCancel: boolean;
   /// 建故事板时哪几步 AI 没用上、退回了兜底（目前只有镜头卡）；面板据此提醒商家。原因原文不下发。
   degradedStages: PlanningStage[];
+  /// 导演线路的故事板（一张开场帧 + 一份镜头脚本）才有：给面板看的脚本摘要。老的四 / 五帧故事板是 null。
+  director: DirectorScriptView | null;
   frames: Array<{
     id: string;
     ordinal: number;
@@ -192,6 +212,8 @@ interface StoryboardRuntimeDependencies {
   fetchOutput: typeof fetchShuyuOutputImage;
   storage: typeof getStorageProvider;
   createAsset: typeof createOwnedMediaAsset;
+  /// 导演线路：给这一轮写镜头脚本（真实实现调 OpenAI；测试里换成假的）
+  writeDirectorScript: (input: Parameters<typeof writeDirectorScriptForStoryboard>[0]) => Promise<DirectorLineWriteResult>;
 }
 
 const defaultRuntime: StoryboardRuntimeDependencies = {
@@ -200,6 +222,7 @@ const defaultRuntime: StoryboardRuntimeDependencies = {
   fetchOutput: fetchShuyuOutputImage,
   storage: getStorageProvider,
   createAsset: createOwnedMediaAsset,
+  writeDirectorScript: (input) => writeDirectorScriptForStoryboard(input, { complete: createOpenAiDirectorCompleter() }),
 };
 let runtimeOverride: Partial<StoryboardRuntimeDependencies> | null = null;
 const runtime = (): StoryboardRuntimeDependencies => ({
@@ -228,6 +251,14 @@ class StoryboardLeaseLostError extends Error {
 export function storyboardFrameCountForDuration(durationSec: number): number {
   if (durationSec <= 15) return 4;
   return 5;
+}
+
+/**
+ * 这一轮故事板该有几帧：导演线路只出一张开场帧（脚本存在 visualReference 里），其余按时长 4 / 5 帧。
+ * 判「出齐了没有」的地方都用它，别直接按时长算。
+ */
+export function expectedStoryboardFrameCount(run: { durationSec: number; visualReference?: unknown }): number {
+  return isStoredDirectorScript(run.visualReference) ? 1 : storyboardFrameCountForDuration(run.durationSec);
 }
 
 function storyboardBeatsForDuration(durationSec: number): readonly string[] {
@@ -378,8 +409,9 @@ export function storyboardRunView(run: StoryboardRunRecord): StoryboardRunView {
       canRegenerate: !cancelled && canRegenerateStoryboardFrame(frame),
     }));
   const allReady =
-    frames.length === storyboardFrameCountForDuration(run.durationSec) &&
+    frames.length === expectedStoryboardFrameCount(run) &&
     frames.every((frame) => frame.status === StoryboardFrameStatus.SUCCEEDED);
+  const directorScript = readStoredDirectorScript(run.visualReference);
   return {
     id: run.id,
     status: String(run.status),
@@ -395,6 +427,7 @@ export function storyboardRunView(run: StoryboardRunRecord): StoryboardRunView {
       allReady,
     canCancel: isStoryboardRunCancellable(run),
     degradedStages: [...new Set(readPlanningDegradations(run.planningDegradations).map((entry) => entry.stage))],
+    director: directorScript ? directorScriptView(directorScript) : null,
     frames,
   };
 }
@@ -628,6 +661,91 @@ export async function createStoryboardRun(
   const isBatchRun = (input.purpose ?? "").startsWith("batch-");
   /// 镜头卡调了 LLM 却没用上（失败 / 超时 / 输出不合格）时记在 run 上，与方案的 planningDegradations 同一形状。
   const degradations = createPlanningDegradationLog();
+
+  /// 导演线路（2026-11-17）：有实拍图的 15 / 30 秒单条片，由导演写手写一份镜头脚本，只出一张开场帧，
+  /// 出片时整条一次生成——和 Claude 这边 `npm run director` 是同一套规则。写不成就退回下面老的故事板，并记一条降级。
+  const directorCandidate = directorLineApplies({
+    enabled: directorLineEnabled(),
+    purpose: input.purpose ?? null,
+    durationSec: input.durationSec,
+    productImageCount: assets.length,
+    personImageCount: personAssetIds.length,
+    styleTemplateId: input.styleTemplateId ?? null,
+  });
+  if (directorCandidate) {
+    const written = await runtime().writeDirectorScript({
+      description: input.prompt,
+      durationSec: input.durationSec,
+      aspectRatio: input.aspectRatio,
+      photos: assets.map((asset) => ({ id: asset.id, url: asset.url })),
+      styleTemplateId: input.styleTemplateId ?? null,
+      voiceoverScript: input.voiceoverScript ?? null,
+      jobId: `sb-${id.replace(/[^a-z0-9]/gu, "").slice(0, 24)}`,
+    });
+    if (written.ok) {
+      const opening = directorOpeningFrame(written.script.job);
+      console.log(
+        `[director-line] storyboard ${id}: script ready (${written.script.job.video.shots.length} shots, ${written.script.attempts} draft(s), model ${written.script.model})`,
+      );
+      let directorRun: StoryboardRunRecord;
+      try {
+        directorRun = await db.storyboardRun.create({
+          data: {
+            id,
+            userId: input.userId,
+            idempotencyKey: input.idempotencyKey,
+            requestHash: hash,
+            approvalPolicy:
+              input.approvalPolicy === "AUTO"
+                ? StoryboardApprovalPolicy.AUTO
+                : StoryboardApprovalPolicy.MANUAL,
+            status: StoryboardRunStatus.GENERATING,
+            durationSec: input.durationSec,
+            aspectRatio: input.aspectRatio,
+            purpose: input.purpose ?? "single-video-storyboard",
+            sourcePrompt: input.prompt.trim(),
+            inputAssetIds: assetIds,
+            inputImageUrls: assets.map((asset) => asset.url),
+            personAssetIds,
+            planningDegradations: [] as unknown as Prisma.InputJsonValue,
+            visualReference: written.stored as unknown as Prisma.InputJsonValue,
+            frames: {
+              create: [
+                {
+                  ordinal: 0,
+                  attempt: 1,
+                  isCurrent: true,
+                  beat: DIRECTOR_OPENING_FRAME_BEAT,
+                  prompt: opening.prompt,
+                  /// 帧级入参：提交时原样使用（顺序 = 提示词里的 image N），不按 run 重算
+                  inputImageUrls: opening.inputImageUrls,
+                  providerRequestKey: frameRequestKey(id, 0, 1),
+                },
+              ],
+            },
+          },
+          include: storyboardInclude,
+        });
+      } catch (error) {
+        if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") {
+          throw error;
+        }
+        const replay = await db.storyboardRun.findUnique({
+          where: { userId_idempotencyKey: { userId: input.userId, idempotencyKey: input.idempotencyKey } },
+          include: storyboardInclude,
+        });
+        if (!replay || replay.requestHash !== hash) {
+          throw new StoryboardRequestError("故事板提交冲突。", "IDEMPOTENCY_CONFLICT", 409);
+        }
+        return storyboardRunView(replay);
+      }
+      const openingFrame = directorRun.frames[0];
+      if (openingFrame) await submitStoryboardFrame(openingFrame.id);
+      return storyboardRunView((await findRun(directorRun.id, input.userId)) ?? directorRun);
+    }
+    console.warn(`[director-line] storyboard ${id}: writer failed, falling back to the shot-card storyboard: ${written.cause}`);
+    degradations.record(planningDegradation("director_script", written.cause));
+  }
   /// 帧提示词全程英文（10-29）：原话译成英文写进 STORY CONTEXT，随帧落库，派发视频时读回；译不了就用原话。
   /// 镜头卡仍读原话；sourcePrompt 存原话（界面回显、重建计划都用它）。两次 LLM 调用互不依赖，并行跑。
   const shotCardInput = {
@@ -952,6 +1070,8 @@ async function submitStoryboardFrame(frameId: string): Promise<void> {
       /// 合作方 0728 起下线 1K 档，目录最低为 2K。成本让位于可用性：
       /// 宁可每帧多几个积分，也不让整条产线因档位缺失而停摆。
       resolution: "2K",
+      /// 导演线路的开场帧走 GPT Image 2 的高质量档（成片的气质在这一帧就定了）；老的四帧故事板照旧取最便宜的一档
+      ...(isStoredDirectorScript(run.visualReference) ? { quality: "high" as const } : {}),
       inputImages,
       planSnapshot,
       onPlanSelected: async (plan) => {
@@ -1202,7 +1322,7 @@ async function advanceRun(runId: string): Promise<StoryboardRunRecord> {
   // 已取消的一轮只收割已提交的帧（reconcile 在帧级完成），run 本身不再迁移、
   // 不再提交排队帧。
   if (run.status === StoryboardRunStatus.CANCELLED) return run;
-  const expected = storyboardFrameCountForDuration(run.durationSec);
+  const expected = expectedStoryboardFrameCount(run);
   const settled =
     run.frames.length === expected &&
     run.frames.every((frame) =>
@@ -1573,6 +1693,30 @@ export async function regenerateStoryboardFrame(input: {
     }
     const attempt = existing.attempt + 1;
     const run = existing.storyboardRun;
+    /// 导演线路的开场帧：提示词与入参都来自镜头脚本（image N 的编号写在脚本里），重做只多一行补充要求。
+    const directorScript = readStoredDirectorScript(run.visualReference);
+    if (directorScript) {
+      if (sourceAssets.length > 0) {
+        throw new StoryboardRequestError(
+          "这一轮的镜头脚本是按原来的商品图写的，开场帧不能单独换图。想换商品图，请修改创作方向重新开始一轮。",
+          "VALIDATION_FAILED",
+        );
+      }
+      const opening = directorOpeningFrame(directorScript.job);
+      const direction = storyboardUserDirectionLine(input.promptOverride);
+      return tx.storyboardFrame.create({
+        data: {
+          storyboardRunId: existing.storyboardRunId,
+          ordinal: existing.ordinal,
+          attempt,
+          isCurrent: true,
+          beat: existing.beat,
+          prompt: fitStoryboardFramePrompt(direction ? `${opening.prompt}\n\n${direction}` : opening.prompt),
+          inputImageUrls: opening.inputImageUrls,
+          providerRequestKey: frameRequestKey(existing.storyboardRunId, existing.ordinal, attempt),
+        },
+      });
+    }
     /// 入参与 REFERENCE ROLES 在建帧时一次算定并落帧级列，提交时原样使用（submitStoryboardFrame）。
     const inputs = await composeRunFrameInputImages({
       run,
@@ -1627,7 +1771,7 @@ export async function approveStoryboard(input: {
       409,
     );
   }
-  const expected = storyboardFrameCountForDuration(run.durationSec);
+  const expected = expectedStoryboardFrameCount(run);
   if (
     run.approvalPolicy !== StoryboardApprovalPolicy.MANUAL ||
     run.status !== StoryboardRunStatus.AWAITING_APPROVAL ||
@@ -1669,7 +1813,7 @@ export async function getApprovedStoryboardVideoReferences(input: {
     .sort((a, b) => a.ordinal - b.ordinal)
     .map((frame) => frame.outputAsset?.url)
     .filter((url): url is string => Boolean(url));
-  if (refs.length !== storyboardFrameCountForDuration(run.durationSec)) {
+  if (refs.length !== expectedStoryboardFrameCount(run)) {
     throw new StoryboardRequestError("故事板图片不完整。", "STORYBOARD_INCOMPLETE", 409);
   }
   return refs;
@@ -1756,7 +1900,7 @@ export async function requireApprovedStoryboardForVideoJob(
     .sort((a, b) => a.ordinal - b.ordinal)
     .map((frame) => frame.outputAsset?.url)
     .filter((url): url is string => Boolean(url));
-  if (refs.length !== storyboardFrameCountForDuration(run.durationSec)) {
+  if (refs.length !== expectedStoryboardFrameCount(run)) {
     throw new StoryboardRequestError(
       "批量故事板图片不完整。",
       "STORYBOARD_INCOMPLETE",
@@ -1785,7 +1929,7 @@ async function loadApprovedStoryboardForBrief(briefId: string): Promise<{
     .sort((a, b) => a.ordinal - b.ordinal)
     .map((frame) => frame.outputAsset?.url)
     .filter((url): url is string => Boolean(url));
-  if (refs.length !== storyboardFrameCountForDuration(run.durationSec)) {
+  if (refs.length !== expectedStoryboardFrameCount(run)) {
     throw new StoryboardRequestError("故事板图片不完整。", "STORYBOARD_INCOMPLETE", 409);
   }
   return { run, frameUrls: refs };
@@ -1916,6 +2060,27 @@ export async function readStoryboardVisualReferenceForUser(
     return readStoredVisualReference(run?.visualReference);
   } catch (error) {
     console.warn("[storyboard] could not read the stored visual reference (will analyze again):", (error as Error).message);
+    return null;
+  }
+}
+
+/**
+ * 派发视频前读回这轮故事板的镜头脚本（导演线路才有）。只读本人的 run；不是导演线路、读不懂、读库失败都返回 null——
+ * 调用方就按老的故事板线路出片。
+ */
+export async function readStoryboardDirectorScriptForUser(
+  userId: string,
+  runId: unknown,
+): Promise<StoredDirectorScript | null> {
+  if (typeof runId !== "string" || runId.length === 0 || runId.length > 200) return null;
+  try {
+    const run = await db.storyboardRun.findFirst({
+      where: { id: runId, userId },
+      select: { visualReference: true },
+    });
+    return readStoredDirectorScript(run?.visualReference);
+  } catch (error) {
+    console.warn("[storyboard] could not read the stored director script:", (error as Error).message);
     return null;
   }
 }

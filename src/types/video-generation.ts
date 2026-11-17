@@ -100,6 +100,11 @@ export interface PostProductionPlan {
    * 形状见 lib/video-generation/brand-signoff 的 signoffSettingsSchema。
    */
   signoff?: { enabled: boolean; brandName: string; cta?: string | null; logo?: boolean };
+  /**
+   * 右上角 Logo（2026-11-17）：全程挂一个透明的图形角标。只是一个开关——用哪张图由服务端在合成时取成片主人
+   * 自己工作区的默认品牌包（和片尾落款的 Logo 同一个来源）。可选；旧快照没有 = 不带。
+   */
+  cornerLogo?: boolean;
 }
 
 // ---------- Uploaded asset model ----------
@@ -208,6 +213,8 @@ export interface UnifiedVideoGenerationRequest {
   captions?: CaptionSettings;
   /// 片尾落款（最后两秒压品牌名 + 行动指引）；缺省 / 关着 = 不带。形状见 brand-signoff 的 signoffSettingsSchema。
   signoff?: { enabled: boolean; brandName: string; cta?: string | null; logo?: boolean };
+  /// 右上角 Logo：全程挂一个透明的图形角标（图取自己品牌里的 Logo）；缺省 / false = 不带
+  cornerLogo?: boolean;
   /// Phase 1 不开放高级选项；保留字段
   advancedOptions?: Record<string, unknown> | null;
   /// 关联到已有 DeliveryOrder（continuation 场景）；缺省时 supervisor 会新建
@@ -488,7 +495,8 @@ export type PlanningStage =
   | "shot_cards"
   | "story_english"
   | "presenter_reference"
-  | "frame_prompt";
+  | "frame_prompt"
+  | "director_script";
 
 /// 每一步 AI 没用上时退回到的兜底（一步对应一个，见 PLANNING_FALLBACK_BY_STAGE）。
 export type PlanningFallback =
@@ -499,7 +507,8 @@ export type PlanningFallback =
   | "template_beats"
   | "original_wording"
   | "no_presenter_reference"
-  | "trimmed_prompt";
+  | "trimmed_prompt"
+  | "shot_card_storyboard";
 
 /**
  * 一次 AI 调用失败 / 超时 / 输出不可用、退回兜底的记录（2026-10-29）。

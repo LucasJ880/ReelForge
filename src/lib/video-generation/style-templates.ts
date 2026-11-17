@@ -151,6 +151,34 @@ export const CONSISTENCY_LOCKS: ConsistencyLock[] = [
 // ---------------------------------------------------------------------------
 
 export const STYLE_TEMPLATES: StyleTemplate[] = [
+  // ---- 电商快销（2026-11-17）：走导演线路——AI 导演看商品图写一份镜头脚本，只出一张开场画面，整条片一次生成。
+  //      id 必须等于 director-line-policy 的 DIRECTOR_LINE_TEMPLATE_ID（有测试守着）。下面的 scaffold 只在
+  //      导演写手没写成、退回老的分帧故事板时才用得上。
+  {
+    id: "tpl_ecommerce_fmcg",
+    name: "电商快销",
+    category: "爆款广告",
+    icon: "快",
+    description:
+      "AI 导演按快销广告的节奏写镜头脚本：两秒内的钩子、一个卖点一个镜头、硬切卡点、商品定格收尾，带口播和配乐，整条片一次拍完",
+    samplePrompt:
+      "电商快销广告：开头两秒用一个动作抓住人，接着每个卖点一个镜头，拍出谁在什么时候用它，最后商品定格加一句行动指引。",
+    defaults: { durationSec: 15, language: "zh-CN" },
+    featured: true,
+    viral: true,
+    scaffold: {
+      environmentHint:
+        "ONE bright everyday place where the product is actually used; every shot stays inside this place except a single product-only closing shot",
+      lightingHint: "bright clean daylight from a window throughout; the closing product shot is evenly lit and sharp",
+      styleKeywords:
+        "punchy e-commerce product ad, bright clean daylight, close shots with the product large in frame, hard cuts on the beat, a cut every 2-3 seconds, fast but controlled handheld",
+      cameraLanguage:
+        "fast but controlled push-in on the hook, locked-off close-ups for each selling point, one short push-in that stops on the product",
+      shotPattern:
+        "0-2s hook: the trouble moment as one physical action → 2-5s product reveal → 5-9s core selling point as action and visible result → 9-12s the use scene with a happy reaction → 12-15s product hold filling the frame with the call to action",
+      dialogueStyle: "short upbeat voice-over, one selling point per line, the last line is the call to action",
+    },
+  },
   // ---- 爆款广告（按 TikTok 家居/产品广告爆款数据反推的结构模版）----
   {
     id: "tpl_viral_result_first",

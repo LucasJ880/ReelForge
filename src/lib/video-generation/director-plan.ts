@@ -438,6 +438,8 @@ export function cornerLogoGeometry(
 export function cornerLogoFilter(args: {
   geometry: { logoWidth: number; logoHeight: number; x: number; y: number };
   tone: "light" | "dark";
+  /// 图形的形状从哪来：luma（缺省）= 白底深色线稿，越深越不透明；alpha = 本来就是透明底的 PNG，按它自己的透明度取形状
+  mask?: "luma" | "alpha";
 }): string {
   const { logoWidth, logoHeight, x, y } = args.geometry;
   const pad = 16;
@@ -446,7 +448,9 @@ export function cornerLogoFilter(args: {
   const edge = args.tone === "light" ? "0x000000" : "0xFFFFFF";
   const edgeGain = args.tone === "light" ? 0.9 : 1.2;
   return [
-    `[1:v]scale=${logoWidth}:${logoHeight}:flags=lanczos,format=gray,negate,lutyuv=y='clip(val*2.2,0,255)',pad=${logoWidth + pad * 2}:${logoHeight + pad * 2}:${pad}:${pad}:black,split=2[la][lb]`,
+    args.mask === "alpha"
+      ? `[1:v]scale=${logoWidth}:${logoHeight}:flags=lanczos,format=rgba,alphaextract,format=gray,pad=${logoWidth + pad * 2}:${logoHeight + pad * 2}:${pad}:${pad}:black,split=2[la][lb]`
+      : `[1:v]scale=${logoWidth}:${logoHeight}:flags=lanczos,format=gray,negate,lutyuv=y='clip(val*2.2,0,255)',pad=${logoWidth + pad * 2}:${logoHeight + pad * 2}:${pad}:${pad}:black,split=2[la][lb]`,
     `color=c=${fill}:s=${size},format=rgb24[lfill]`,
     `[la]lutyuv=y='val*0.92'[lalpha]`,
     `[lfill][lalpha]alphamerge[lmark]`,
@@ -571,8 +575,9 @@ export function lintDirectorJob(job: DirectorJob): DirectorLint {
       warnings.push(`帧 ${frame.id} 没带任何参考图：商品会是模型凭空画的，和实物对不上`);
     }
   }
-  if (!job.references.some((reference) => reference.kind === "product")) {
-    errors.push("至少要有一张商品实拍图（kind = product）");
+  /// 商品片要商品实拍图；探厂 / 探店这类拍场所的片可以只有场所实拍图（kind = scene）。真人照片不算
+  if (!job.references.some((reference) => reference.kind === "product" || reference.kind === "scene")) {
+    errors.push("至少要有一张商品实拍图（kind = product）或场所实拍图（kind = scene）");
   }
 
   const { video } = job;
@@ -601,8 +606,8 @@ export function lintDirectorJob(job: DirectorJob): DirectorLint {
       warnings.push(`帧 ${frame.id} 出了图但出片用不上：列进 video.keyframes，或从 frames 里删掉（出一张图也是钱）`);
     }
   }
-  if (!lookup(job, video.references).some((reference) => reference.kind === "product")) {
-    errors.push("出片的参考图里要有商品实拍图：只靠开场帧，后面的镜头里商品会走样");
+  if (!lookup(job, video.references).some((reference) => reference.kind === "product" || reference.kind === "scene")) {
+    errors.push("出片的参考图里要有商品实拍图（或场所实拍图）：只靠开场帧，后面的镜头里商品会走样");
   }
 
   /// 时间线：从 0 开始、首尾相接、正好铺满时长；每个镜头至少 2 秒
@@ -882,6 +887,8 @@ export interface DirectorFrameVariant {
   quality?: string;
   inputTokens?: number | null;
   outputTokens?: number | null;
+  /// 走 Shuyu 出的图：这一张花了多少点
+  points?: number | null;
   error?: string;
   createdAt: string;
 }

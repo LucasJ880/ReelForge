@@ -31,7 +31,9 @@ import { signoffActive } from "@/lib/video-generation/brand-signoff";
 import { randomUUID } from "node:crypto";
 import { classifyInput } from "@/lib/video-generation/input-classifier";
 import { classifyAsset } from "@/lib/video-generation/asset-classifier";
-import { buildCreativeBrief } from "@/lib/video-generation/creative-strategist";
+import { buildCreativeBrief, heuristicBrief } from "@/lib/video-generation/creative-strategist";
+import { directorCaptionScript, directorVideoPrompt, directorVoiceLanguage } from "@/lib/video-generation/director-line";
+import type { DirectorJob } from "@/lib/video-generation/director-plan";
 import { heuristicBible } from "@/lib/video-generation/consistency-bible";
 import {
   getConsistencyLocks,
@@ -105,6 +107,8 @@ export function normalizePostProductionSettings(
           },
         }
       : {}),
+    /// 右上角 Logo：勾了才进快照（没勾的成片快照里不多这个键）
+    ...(request.cornerLogo === true ? { cornerLogo: true } : {}),
   };
 }
 
@@ -120,9 +124,15 @@ export async function buildPlan(
     /// 建故事板时已经看过图的盘点（StoryboardRun.visualReference）：给了就不再重新看图。
     /// 不给 = 照旧现看；出方案预览（/plan，那时还没有故事板）不传。
     visualRefs?: VisualReferenceAnalysis;
+    /// 导演线路：这轮故事板带着一份镜头脚本。方案不再调模型（脚本已经把片子写完了），整条片是一个 AI 段，
+    /// 段提示词就是脚本拼出来的出片提示词；口播稿取脚本里的台词（字幕烧的就是它）。
+    director?: { job: DirectorJob };
   } = {},
 ): Promise<VideoGenerationPlan> {
-  const postProduction = normalizePostProductionSettings(request);
+  const director = options.director ?? null;
+  const postProduction = director
+    ? withDirectorVoiceover(normalizePostProductionSettings(request), director.job, request.rawPrompt)
+    : normalizePostProductionSettings(request);
   /// 1. Ensure assets are classified. UI 大概率已经跑过 /api/video-generation/classify-asset；
   /// 但兜底再跑一次，保证 inferredRole 一定有合理值。
   const classifiedAssets = ensureClassified(request.attachments ?? []);
@@ -133,16 +143,20 @@ export async function buildPlan(
   /// 2. Creative brief（可能调 LLM）与 5.45 参考图视觉分析：
   /// 视觉分析让 GPT 真正「看」参考图，提取真实门店 / 产品实拍细节，让文字锚（bible / prompt）和图片锚描述同一个真实场景。
   /// 两步互不依赖，并行跑（1028 闭环轮 E2E #7：出方案要 40–60 秒，串行时看图白等创意简报）；两者失败都自带兜底，不会拖垮对方。
+  const briefArgs = {
+    request: { ...request, attachments: classifiedAssets },
+    classification,
+    classifiedAssets,
+    onDegraded: degradations.record,
+  };
+  /// 导演线路不调模型：简报按商家原话抽（只用来给订单起标题、过质量把关），不看图——片子怎么拍脚本已经写完了
   const [creativeBrief, visualRefs] = await Promise.all([
-    buildCreativeBrief({
-      request: { ...request, attachments: classifiedAssets },
-      classification,
-      classifiedAssets,
-      onDegraded: degradations.record,
-    }),
+    director ? Promise.resolve(heuristicBrief(briefArgs)) : buildCreativeBrief(briefArgs),
     options.visualRefs
       ? Promise.resolve(options.visualRefs)
-      : analyzeVisualReferences(classifiedAssets, request.rawPrompt, degradations.record),
+      : director
+        ? Promise.resolve(null)
+        : analyzeVisualReferences(classifiedAssets, request.rawPrompt, degradations.record),
   ]);
 
   /// 3. Brand packaging
@@ -168,6 +182,7 @@ export async function buildPlan(
     targetDurationSec: request.selectedDuration,
     clipPlacement: clipPlacementPlan,
     brandPackaging: brandPackagingPlan,
+    singleAiSegment: Boolean(director),
   });
 
   /// 5.4 风格模版（skill 模式）：后端固化的风格底盘 + 可叠加一致性锁
@@ -213,6 +228,15 @@ export async function buildPlan(
     visualRefs,
     voiceover: postProduction.audio.voiceover,
   });
+  if (director) {
+    /// 导演线路：AI 段的提示词整段换成脚本拼出来的那一份（全程用正面描述，不带负面提示词）
+    const videoPrompt = directorVideoPrompt(director.job);
+    for (const segment of segments) {
+      if (segment.type !== "ai_generated_clip") continue;
+      segment.prompt = videoPrompt;
+      segment.negativePrompt = "";
+    }
+  }
 
   /// 7. Assembly plan
   const assemblyPlan = buildAssemblyPlan({
@@ -276,6 +300,24 @@ export async function buildPlan(
     planPreview,
     planningDegradations,
     createdAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * 导演线路的后期设置：口播与配乐由出片模型原生给（脚本里写了声音和每句台词），所以口播一定开着，
+ * 口播稿 = 脚本里的台词按先后连起来（字幕烧的就是它）。字幕开不开、配乐选没选、片尾落款照商家选的来。
+ */
+function withDirectorVoiceover(base: PostProductionPlan, job: DirectorJob, rawPrompt: string): PostProductionPlan {
+  const script = directorCaptionScript(job);
+  if (!script) return base;
+  const language = directorVoiceLanguage(rawPrompt);
+  return {
+    ...base,
+    audio: {
+      ...base.audio,
+      voiceover: { ...base.audio.voiceover, enabled: true, language, script, drive: "native" },
+    },
+    captions: { ...base.captions, language },
   };
 }
 

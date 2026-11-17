@@ -25,6 +25,8 @@ export interface PlanUnifiedSegmentsArgs {
   targetDurationSec: SupportedDurationSec;
   clipPlacement?: ClipPlacementPlan | null;
   brandPackaging?: BrandPackagingPlan | null;
+  /// 导演线路：整条片一次生成（15 / 30 秒都是一个 AI 段），不按 15 秒切
+  singleAiSegment?: boolean;
 }
 
 /**
@@ -42,9 +44,9 @@ export function planUnifiedSegments(
 ): UnifiedSegmentSlot[] {
   const { targetDurationSec, clipPlacement, brandPackaging } = args;
 
-  const aiSlots: UnifiedSegmentSlot[] = planRawSegments(targetDurationSec).map(
-    (s) => ({ ...s, source: "ai" }),
-  );
+  const aiSlots: UnifiedSegmentSlot[] = args.singleAiSegment
+    ? [{ segmentIndex: 0, durationSec: targetDurationSec, role: "hook", source: "ai" }]
+    : planRawSegments(targetDurationSec).map((s) => ({ ...s, source: "ai" }));
 
   /// Apply clip placement: replace 或 insert
   const slots = [...aiSlots];

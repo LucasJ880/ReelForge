@@ -57,6 +57,8 @@ const createSchema = z.object({
   purpose: z.string().trim().min(1).max(200).optional(),
   /// 已定的口播稿：只给镜头卡按台词顺序排镜头、标谁说话（上限与统一创作请求的口播稿一致）。
   voiceoverScript: z.string().trim().max(2_000).optional(),
+  /// 创作页选的风格模板（不传 / null = 自动匹配）：决定走不走导演线路（见 director-line-policy）
+  styleTemplateId: z.string().trim().max(60).nullable().optional(),
   /// 机器视频任务的人工确认入口。有值时复用这一轮故事板，不另开任务。
   machineTaskId: z.string().trim().min(8).max(32).optional(),
 }).strict();
@@ -155,7 +157,8 @@ export function createStoryboardPostHandler(
   };
 }
 
-/// 建 run 会先设计镜头卡（LLM，≤40s 超时退回模板）再同步提交第 0 帧，给足预算。
-export const maxDuration = 120;
+/// 建 run 会先写镜头脚本（导演线路：最多三稿看图的模型调用，有 200 秒的总预算，写不成退回镜头卡）
+/// 或设计镜头卡（LLM，≤40s 超时退回模板），再同步提交第 0 帧，给足预算。
+export const maxDuration = 300;
 
 export const POST = createStoryboardPostHandler();

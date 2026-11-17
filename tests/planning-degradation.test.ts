@@ -73,6 +73,7 @@ test("每一步对应一个兜底；记录形状 = 阶段 / 原因 / 兜底", ()
     "story_english",
     "presenter_reference",
     "frame_prompt",
+    "director_script",
   ]);
   assert.deepEqual(PLANNING_FALLBACK_BY_STAGE, {
     creative_brief: "heuristic_brief",
@@ -83,6 +84,7 @@ test("每一步对应一个兜底；记录形状 = 阶段 / 原因 / 兜底", ()
     story_english: "original_wording",
     presenter_reference: "no_presenter_reference",
     frame_prompt: "trimmed_prompt",
+    director_script: "shot_card_storyboard",
   });
   assert.deepEqual(planningDegradation("consistency_bible", new Error("OpenAI 返回了空响应")), {
     stage: "consistency_bible",
@@ -917,13 +919,15 @@ async function assertTwoTextCalls(t: TestContext, idempotencyKey: string) {
   assert.ok(frames.every((frame) => frame.prompt.includes("A golden retriever plays tug of war with a teal rope toy.")), "英译进了每一帧");
 }
 
-test("建故事板（有商品图）：镜头卡与英译各一次纯文字调用，不看图、不存盘点", async (t) => {
-  useEnv(t, { ...LLM_ENV, STORYBOARD_DIRECTION: undefined, STORYBOARD_SHOT_CARDS_VISION: undefined });
+/// 11-17 起有商品图的 15 / 30 秒单条片缺省走导演线路（tests/director-line.test.ts）；这两条守的是老线路，
+/// 所以把总开关关掉（DIRECTOR_LINE=off 就是线上退回老线路的办法）
+test("建故事板（有商品图，导演线路关着）：镜头卡与英译各一次纯文字调用，不看图、不存盘点", async (t) => {
+  useEnv(t, { ...LLM_ENV, DIRECTOR_LINE: "off", STORYBOARD_DIRECTION: undefined, STORYBOARD_SHOT_CARDS_VISION: undefined });
   await assertTwoTextCalls(t, "two-call-run");
 });
 
 test("建故事板：旧开关 STORYBOARD_DIRECTION / STORYBOARD_SHOT_CARDS_VISION 设成 on 也不起作用（代码 2026-11-16 删除）", async (t) => {
-  useEnv(t, { ...LLM_ENV, STORYBOARD_DIRECTION: "on", STORYBOARD_SHOT_CARDS_VISION: "on" });
+  useEnv(t, { ...LLM_ENV, DIRECTOR_LINE: "off", STORYBOARD_DIRECTION: "on", STORYBOARD_SHOT_CARDS_VISION: "on" });
   await assertTwoTextCalls(t, "two-call-run-flags-on");
 });
 

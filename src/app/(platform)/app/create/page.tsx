@@ -1,3 +1,4 @@
+import { directorLineEnabled } from "@/lib/video-generation/director-line-policy";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import {
@@ -120,6 +121,7 @@ export default async function PlatformCreatePage({
   return (
     <div data-route-state="ready">
       <StreamlinedVideoStudio
+        directorLine={directorLineEnabled()}
         initialAssets={initialAssets}
         initialStyleTemplateId={styleTemplate}
         initialPrompt={

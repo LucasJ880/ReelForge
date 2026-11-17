@@ -11,6 +11,7 @@ import {
 } from "@prisma/client";
 import { db } from "@/lib/db";
 import { readDirectorPlanVoiceoverChunks } from "@/lib/schemas/director-plan";
+import { cornerLogoFilter, cornerLogoGeometry } from "@/lib/video-generation/director-plan";
 import { postProductionPlanSchema } from "@/lib/schemas/unified-input";
 import type { PostProductionPlan } from "@/types/video-generation";
 import {
@@ -38,8 +39,12 @@ import {
 } from "@/lib/video-generation/segment-redo";
 import {
   composeTimeline,
+  probeClip,
   resolveAspectResolution,
+  runStitchStep,
   stepTimeout,
+  STITCH_VIDEO_CRF,
+  STITCH_X264_PRESET,
   StitchBudgetExceededError,
   StitchCompositionError,
   type MediaBudget,
@@ -1472,6 +1477,69 @@ export interface ComposedTimelineUrls {
 }
 
 /**
+ * 右上角 Logo（2026-11-17，和导演线路的 `post` 同一套版式）：把品牌 Logo 变成一个透明的单色图形角标，全程挂在右上角。
+ * 透明底的 PNG 按它自己的透明度取形状；白底深色线稿按深浅取形状（白底变透明）。返回叠好的文件；
+ * 格式不支持、下载失败、ffmpeg 出错都返回原片路径并记一条日志——角标是点缀，不能让成片失败。
+ */
+async function overlayCornerLogo(args: {
+  finalVideoId: string;
+  videoPath: string;
+  logoUrl: string;
+  durationSec: number;
+  tmpDir: string;
+  budget?: MediaBudget;
+}): Promise<string> {
+  const ext = (path.extname(safePathFromUrl(args.logoUrl) ?? "") || "").toLowerCase();
+  if (![".png", ".jpg", ".jpeg", ".webp"].includes(ext)) {
+    console.warn("[stitch] corner logo format not supported; composing without it", { finalVideoId: args.finalVideoId, ext: ext || "(none)" });
+    return args.videoPath;
+  }
+  try {
+    const logoPath = path.join(args.tmpDir, `corner-logo${ext}`);
+    await downloadToFile(args.logoUrl, logoPath, { index: 0, budget: args.budget });
+    const [video, logo] = await Promise.all([probeClip(args.videoPath, args.budget), probeClip(logoPath, args.budget)]);
+    /// 透明底还是白底：把透明度通道缩成一个像素看平均值，明显小于 255 就是透明底
+    let mask: "luma" | "alpha" = "luma";
+    try {
+      const alphaProbe = path.join(args.tmpDir, "corner-logo-alpha.gray");
+      await runStitchStep(
+        ["-y", "-loglevel", "error", "-i", logoPath, "-vf", "format=rgba,alphaextract,scale=1:1:flags=area", "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "gray", alphaProbe],
+        { step: "probe", label: "corner logo alpha", mediaSec: 1, budget: args.budget },
+      );
+      const average = (await readFile(alphaProbe))[0];
+      if (typeof average === "number" && average < 245) mask = "alpha";
+    } catch {
+      mask = "luma";
+    }
+    const geometry = cornerLogoGeometry(
+      video.width ?? 1080,
+      video.height ?? 1920,
+      "top-right",
+      logo.width && logo.height ? logo.width / logo.height : 1,
+    );
+    const output = path.join(args.tmpDir, "with-corner-logo.mp4");
+    await runStitchStep(
+      [
+        "-y", "-loglevel", "error", "-i", args.videoPath, "-loop", "1", "-i", logoPath,
+        "-filter_complex", cornerLogoFilter({ geometry, tone: "light", mask }),
+        "-map", "[v]", "-map", "0:a?",
+        "-c:v", "libx264", "-preset", STITCH_X264_PRESET, "-crf", STITCH_VIDEO_CRF, "-pix_fmt", "yuv420p",
+        "-c:a", "copy", "-movflags", "+faststart", output,
+      ],
+      { step: "encode", label: "corner logo overlay", mediaSec: args.durationSec, budget: args.budget },
+    );
+    return output;
+  } catch (error) {
+    if (error instanceof StitchBudgetExceededError) throw error;
+    console.warn("[stitch] corner logo overlay failed; delivering without it", {
+      finalVideoId: args.finalVideoId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return args.videoPath;
+  }
+}
+
+/**
  * 下载片段 → 应用内单遍合成（逐段归一化 + 拼接 + 字幕混音，只编码一次 / 缩略图）→ 上传。
  * 不写库：落库只经 finishStitchTask（拼接器）或调用方自己的写入（品牌封装 / b-roll 同步交付）。
  */
@@ -1494,6 +1562,11 @@ export async function composeAndPersistTimeline(params: {
   aiBadge?: boolean;
   /// 片尾落款要带的品牌 Logo 的地址（调用方按成片主人取的；没有 = 不带）。下载不下来就不带 Logo，落款文字照常
   signoffLogoUrl?: string | null;
+  /// 右上角 Logo 的地址（快照里 cornerLogo 开着时调用方按成片主人取）。下载或叠加失败都只是不带角标，成片照常
+  cornerLogoUrl?: string | null;
+  /// 导演线路：脚本里每句台词的时间（形状同语音识别的逐字时间）。没开语音识别、或没识别出来时，字幕按它排，
+  /// 不按字数摊满整段
+  scriptSpeechWords?: ReadonlyArray<{ text: string; startMs: number; endMs: number }> | null;
   extractThumbnail?: boolean;
   budget?: MediaBudget;
   checkpoint?: () => Promise<void>;
@@ -1554,6 +1627,8 @@ export async function composeAndPersistTimeline(params: {
       }
     }
 
+    const scriptWords =
+      params.scriptSpeechWords && params.scriptSpeechWords.length > 0 ? [...params.scriptSpeechWords] : null;
     const composed = await composeTimeline({
       clips: localClips,
       aspectRatio: params.aspectRatio,
@@ -1561,10 +1636,17 @@ export async function composeAndPersistTimeline(params: {
       signoffLogoPath,
       captionWindowSec: params.captionWindowSec ?? null,
       voiceoverChunks: params.voiceoverChunks ?? null,
-      /// 字幕跟着人声走（缺省关，CAPTION_SPEECH_ALIGN=on 才识别）；识别不到就照旧按字数摊
-      transcribeSpeech: captionSpeechAlignEnabled()
-        ? ({ audioPath, language }) => transcribeSpeechWithOpenAi({ audioPath, language })
-        : null,
+      /// 字幕跟着人声走（缺省关，CAPTION_SPEECH_ALIGN=on 才识别）；识别不到就照旧按字数摊。
+      /// 导演线路带着脚本的台词时间：识别不到（或没开识别）就按脚本排——和 `npm run director -- post` 一个做法
+      transcribeSpeech:
+        captionSpeechAlignEnabled() || scriptWords
+          ? async ({ audioPath, language }) => {
+              const heard = captionSpeechAlignEnabled()
+                ? await transcribeSpeechWithOpenAi({ audioPath, language }).catch(() => null)
+                : null;
+              return heard ?? scriptWords;
+            }
+          : null,
       platform: params.platform ?? null,
       aiBadge: params.aiBadge,
       workDir: path.join(tmpDir, "work"),
@@ -1575,9 +1657,22 @@ export async function composeAndPersistTimeline(params: {
     });
 
     await params.checkpoint?.();
+    /// 右上角 Logo：合成之后再叠一道（合成器里的 Logo 位只管片尾落款）。任何一步失败都只是不带角标
+    let finalVideoPath = composed.videoPath;
+    if (params.cornerLogoUrl) {
+      finalVideoPath = await overlayCornerLogo({
+        finalVideoId: params.finalVideoId,
+        videoPath: composed.videoPath,
+        logoUrl: params.cornerLogoUrl,
+        durationSec: composed.durationSec,
+        tmpDir,
+        budget: params.budget,
+      });
+      await params.checkpoint?.();
+    }
     const stamp = Date.now();
     const keyBase = `final-videos/${params.finalVideoId}/${stamp}`;
-    const stitchedVideoUrl = await persistStitchedFile(composed.videoPath, `${keyBase}.mp4`);
+    const stitchedVideoUrl = await persistStitchedFile(finalVideoPath, `${keyBase}.mp4`);
     const [subtitleFileUrl, thumbnailUrl] = await Promise.all([
       composed.srtPath
         ? persistStitchedSubtitleFile(composed.srtPath, `${keyBase}.srt`)

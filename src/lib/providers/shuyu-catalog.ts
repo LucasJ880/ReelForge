@@ -30,6 +30,19 @@ export interface AuditedShuyuImagePlan {
    * 可选：解析不到回落 undefined；从任务行重建的计价快照由调用方按默认上限兜底（P02-B）。
    */
   inputImagesMax?: number;
+  /**
+   * 价目表名字里写的质量档（「SY GPT Image 2 · High · 2K · 方案 17」→ high）。可选：名字里没写、或从任务行
+   * 重建的计价快照没有它。缺省的选档不看它（同分辨率取最便宜，实际就是 Low）；导演线路的开场帧点名要 high。
+   */
+  quality?: ShuyuImageQuality;
+}
+
+export type ShuyuImageQuality = "low" | "medium" | "high";
+
+function parseImageQuality(displayName: unknown): ShuyuImageQuality | undefined {
+  if (typeof displayName !== "string") return undefined;
+  const match = /·\s*(low|medium|high)\b/iu.exec(displayName);
+  return match ? (match[1]!.toLowerCase() as ShuyuImageQuality) : undefined;
 }
 
 export interface ShuyuCatalog {
@@ -91,6 +104,7 @@ export function parseShuyuCatalog(input: unknown): ShuyuCatalog {
       return [];
     }
     const inputImagesMax = parseInputImagesMax(value.capabilities);
+    const quality = parseImageQuality(value.display_name);
     return [
       {
         planId,
@@ -100,6 +114,7 @@ export function parseShuyuCatalog(input: unknown): ShuyuCatalog {
         family: "gpt-image-2",
         aspectRatios: parseAspectRatios(value.capabilities),
         ...(inputImagesMax !== undefined ? { inputImagesMax } : {}),
+        ...(quality ? { quality } : {}),
       },
     ];
   });
@@ -144,7 +159,12 @@ const RESOLUTION_RANK: Record<ShuyuResolution, number> = { "1K": 1, "2K": 2, "4K
 export function selectAuditedImage2Plan(
   catalog: ShuyuCatalog,
   resolution: ShuyuResolution,
-  options: { aspectRatio?: ShuyuAspectRatio } = {},
+  options: {
+    aspectRatio?: ShuyuAspectRatio;
+    /// 点名质量档（导演线路的开场帧要 high：成片的气质在这一帧就定了，一张只差十几点）。
+    /// 目录里没有这一档就照缺省的选法（同分辨率取最便宜），不报错。
+    quality?: ShuyuImageQuality;
+  } = {},
 ): AuditedShuyuImagePlan {
   const image2 = catalog.imagePlans.filter(
     (candidate) => candidate.family === "gpt-image-2",
@@ -170,7 +190,10 @@ export function selectAuditedImage2Plan(
       `Image 2 ${resolution} or higher is unavailable`,
     );
   }
-  return [...atOrAbove].sort(
+  const preferred = options.quality
+    ? atOrAbove.filter((candidate) => candidate.quality === options.quality)
+    : [];
+  return [...(preferred.length > 0 ? preferred : atOrAbove)].sort(
     (a, b) =>
       a.points - b.points ||
       RESOLUTION_RANK[a.resolution] - RESOLUTION_RANK[b.resolution],

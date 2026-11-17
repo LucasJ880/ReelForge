@@ -34,6 +34,13 @@ const BEAT_LABELS: Record<string, { zh: string; en: string }> = {
   "clean CTA-safe closing composition": { zh: "收尾画面（留出行动号召位置）", en: "Closing frame, with room for the call to action" },
 };
 
+/** 导演线路的故事板只有一帧：开场画面（主动作发生之前的那一刻）。 */
+export const DIRECTOR_OPENING_FRAME_BEAT = "opening frame · the moment before the action starts";
+BEAT_LABELS[DIRECTOR_OPENING_FRAME_BEAT] = {
+  zh: "开场画面 · 主动作发生之前的那一刻",
+  en: "Opening frame · the moment before the action starts",
+};
+
 /** 已知节奏给译名；未知的（旧数据或自定义）原样显示。 */
 export function storyboardBeatLabel(beat: string, english: boolean): string {
   const label = BEAT_LABELS[beat];

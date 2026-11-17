@@ -61,6 +61,7 @@ import { HOOK_ANGLES, applyHookAngle, detectHookAngle, stripHookAngle } from "@/
 import { applyProductSize, detectProductSize, PRODUCT_SIZE_MAX, stripProductSize } from "@/lib/create/product-size";
 import { BGM_CATALOG } from "@/lib/video-generation/bgm-catalog";
 import { SIGNOFF_BRAND_MAX, SIGNOFF_CTA_MAX } from "@/lib/video-generation/brand-signoff";
+import { DIRECTOR_LINE_TEMPLATE_ID, directorLineApplies } from "@/lib/video-generation/director-line-policy";
 import { loadVoiceoverDraft, saveVoiceoverDraft } from "@/lib/video-generation/voiceover-draft-storage";
 import { awaitVoiceoverDraft } from "@/lib/video-generation/voiceover-draft-wait";
 import {
@@ -96,6 +97,7 @@ const LEGACY_QUALITY_TEMPLATE_IDS = [
   "tpl_viral_sensory_texture",
 ] as const;
 const QUALITY_TEMPLATE_IDS = [
+  DIRECTOR_LINE_TEMPLATE_ID,
   ...COMMERCE_TEMPLATE_SLUGS,
   ...LEGACY_QUALITY_TEMPLATE_IDS,
 ] as const;
@@ -140,6 +142,12 @@ const ZH_COPY = {
   rowSpecs: "视频规格",
   rowEnding: "结尾联系方式",
   rowAudio: "口播与字幕",
+  rowCornerLogo: "右上角 Logo",
+  cornerLogoToggle: "全程在右上角挂上 Logo",
+  cornerLogoHint: "用你默认品牌包里的 Logo，做成透明的白色图形角标，像水印一样全程挂在右上角。透明底的 PNG 效果最好；白底深色线稿也可以。",
+  cornerLogoMissing: "还没有 Logo：先到「品牌」页给默认品牌包传一张（透明底 PNG 最好），这里就能勾上。",
+  directorStagesHint: "AI 正在看商品图、写整条片的镜头脚本和台词，一般一到三分钟；写好会先给你看开场画面和每个镜头。",
+  directorVoiceHint: "这条片由 AI 导演写镜头脚本：台词、配乐和音效都写在脚本里，由出片模型直接配。你在这里填了口播稿的话，AI 会照着你的稿子排进各个镜头。",
   rowSignoff: "片尾落款",
   signoffToggle: "最后两秒带上品牌名",
   signoffHint: "在成片最后两秒的画面上压一行品牌名和一句行动指引，不另加一帧。只对这一条生效；成片出来后也可以在成品库里加或去掉。",
@@ -184,6 +192,7 @@ const ZH_COPY = {
   square: "1:1 方形",
   template: "创意模板",
   templateAuto: "自动匹配（推荐）",
+  templateFmcg: "电商快销",
   templateEvent: "赛事观看",
   templateResult: "成果前置",
   templatePain: "痛点解决",
@@ -212,6 +221,7 @@ const ZH_COPY = {
   /// 「生成 AI 故事板」一个按钮背后是三段等待：写明现在在哪一段、哪一段最久
   stagesLabel: "生成故事板的进度",
   stages: ["写口播稿", "排镜头（约 40–60 秒）", "出故事板画面"],
+  directorStages: ["写镜头脚本（约 1–3 分钟）", "出开场画面"],
   recentTitle: "接着拍这些商品",
   recentHint: "点一下带回商品图和上次的描述，改一改再拍。",
   recentManage: "管理商品",
@@ -282,6 +292,12 @@ const EN_COPY: StudioCopy = {
   rowSpecs: "Specs",
   rowEnding: "End frame",
   rowAudio: "Voice & captions",
+  rowCornerLogo: "Corner logo",
+  cornerLogoToggle: "Keep the logo in the top-right corner",
+  cornerLogoHint: "Uses the logo from your default brand package as a transparent white mark in the top-right corner for the whole video. A transparent PNG works best; dark line art on white also works.",
+  cornerLogoMissing: "No logo yet: upload one to your default brand package on the Brand page (a transparent PNG works best) and you can turn this on.",
+  directorStagesHint: "AI is studying your product photos and writing the full shot script and lines. This usually takes one to three minutes; you'll see the opening frame and every shot before anything is filmed.",
+  directorVoiceHint: "An AI director writes the shot script for this video: lines, music and sound are written into it and voiced by the video model. If you fill in a voiceover script here, the AI fits your script into the shots.",
   rowSignoff: "Brand sign-off",
   signoffToggle: "Show the brand name for the last two seconds",
   signoffHint: "Your brand name and a call to action appear over the last two seconds of footage. No extra frame is added. It applies to this video only, and you can add or remove it later from the Library.",
@@ -325,6 +341,7 @@ const EN_COPY: StudioCopy = {
   square: "1:1 square",
   template: "Creative template",
   templateAuto: "Auto match (recommended)",
+  templateFmcg: "Fast e-commerce ad",
   templateEvent: "Watch party",
   templateResult: "Result first",
   templatePain: "Pain to proof",
@@ -352,6 +369,7 @@ const EN_COPY: StudioCopy = {
   writingVoiceover: "Writing the voiceover…",
   stagesLabel: "Storyboard progress",
   stages: ["Write the voiceover", "Plan the shots (about 40–60s)", "Draw the storyboard frames"],
+  directorStages: ["Write the shot script (about 1–3 min)", "Draw the opening frame"],
   recentTitle: "Pick up one of these products",
   recentHint: "One click brings back its photos and your last brief — tweak it and shoot again.",
   recentManage: "Manage products",
@@ -433,7 +451,10 @@ export function StreamlinedVideoStudio({
   readings = null,
   contactEmail = null,
   recentSources = [],
+  directorLine = false,
 }: {
+  /** 导演线路的总开关（服务端页面读好传进来）：开着且这条片适用时，由 AI 写镜头脚本、只出一张开场帧、整条一次生成。 */
+  directorLine?: boolean;
   /** 最近拍过的商品（服务端按属主读好）：空白创作页上点一下就带回那一单的商品图和描述。 */
   /// 「接着拍」那一行：存好的商品（/app/create?product=…）和最近拍过的一单（?retry=…），去处由页面给
   recentSources?: ReadonlyArray<{ id: string; href: string; title: string; thumbnailUrl: string; imageCount: number }>;
@@ -537,6 +558,8 @@ export function StreamlinedVideoStudio({
   /// Logo 只是一个开关：用哪张图由服务端在合成时按账号取（自己工作区的默认品牌包）
   const signoffLogoUrl = ownBrandForSignoff?.logoAsset?.url ?? null;
   const [signoffLogo, setSignoffLogo] = useState(false);
+  /// 右上角 Logo：默认不带；图片和片尾落款的 Logo 同一个来源（自己工作区的默认品牌包）
+  const [cornerLogo, setCornerLogo] = useState(false);
   const [storyboard, setStoryboard] = useState<StoryboardRunView | null>(null);
   const [storyboardFrameBusy, setStoryboardFrameBusy] = useState<string | null>(null);
   const [approvingStoryboard, setApprovingStoryboard] = useState(false);
@@ -692,6 +715,13 @@ export function StreamlinedVideoStudio({
   const activeStyleTemplateId = creationMode === "advanced"
     ? styleTemplateId
     : seededStyleTemplateId;
+  /// 这条片走不走导演线路（和服务端同一条判断）：有实拍图的 15 / 30 秒片，模板是「自动匹配」或「电商快销」
+  const directorMode = directorLineApplies({
+    enabled: directorLine,
+    durationSec: selectedDuration,
+    productImageCount: productAssets.length,
+    styleTemplateId: activeStyleTemplateId === "auto" ? null : activeStyleTemplateId,
+  });
   const autoVoiceoverScript = useMemo(() => generateVoiceoverScript({
     prompt: rawPrompt,
     cta: selectedBrandPackage?.cta ?? null,
@@ -1186,12 +1216,15 @@ export function StreamlinedVideoStudio({
             },
           }
         : {}),
+      /// 没勾就不带这个键
+      ...(cornerLogo && signoffLogoUrl ? { cornerLogo: true } : {}),
     });
   }
 
   function validateBeforeRequest(): string | null {
     if (!rawPrompt.trim()) return copy.promptRequired;
-    if (voiceoverEnabled && !voiceoverScript.trim()) {
+    /// 导演线路的台词由 AI 写进镜头脚本，不要求先有口播稿
+    if (!directorMode && voiceoverEnabled && !voiceoverScript.trim()) {
       return english
         ? "Add a voiceover script or turn native voiceover off."
         : "请填写口播稿，或关闭原生口播。";
@@ -1275,7 +1308,8 @@ export function StreamlinedVideoStudio({
     setCancellingStoryboardCreate(false);
     try {
       let activePlan = plan;
-      if (!activePlan || planRequestKey !== requestKey) {
+      /// 导演线路：镜头脚本在建故事板那一步由 AI 一次写完，这里不再先等一遍「出方案」和口播稿起草（各几十秒，产出用不上）
+      if (!directorMode && (!activePlan || planRequestKey !== requestKey)) {
         const controller = new AbortController();
         planAbortRef.current = controller;
         setPlanningShots(true);
@@ -1313,7 +1347,7 @@ export function StreamlinedVideoStudio({
         setPlan(activePlan);
         setPlanRequestKey(requestKey);
       }
-      if (!activePlan.qualityReview.canDispatch) {
+      if (!directorMode && activePlan && !activePlan.qualityReview.canDispatch) {
         setError(copy.qualityBlocked);
         return;
       }
@@ -1324,6 +1358,8 @@ export function StreamlinedVideoStudio({
         sourceAssetIds: productAssets.map((asset) => asset.assetId ?? asset.id),
         approvalPolicy: "MANUAL" as const,
         purpose: "single-video-storyboard",
+        /// 模板决定走不走导演线路、片种定不定成快销（服务端按同一条规则判断）
+        styleTemplateId: request.styleTemplateId ?? null,
         ...(machineTaskId ? { machineTaskId } : {}),
       };
       const fingerprint = JSON.stringify(storyboardBody);
@@ -1332,7 +1368,10 @@ export function StreamlinedVideoStudio({
       }
       persistStoredAttempt(STORYBOARD_ATTEMPT_STORAGE_KEY, storyboardAttemptRef.current);
       /// 口播稿只给镜头卡排镜头用，不算进提交指纹：改了口播稿再点，照旧回放同一份故事板，不重出一套付费帧。
-      const narration = request.audio?.voiceover?.enabled ? request.audio.voiceover.script.trim() : "";
+      /// 导演线路：只有商家自己写过 / 改过的口播稿才交给 AI 照着排；模板自动生成的稿子不带（AI 会按商品自己写台词）
+      const narration = directorMode
+        ? (voiceoverEnabled && voiceoverEditedRef.current ? voiceoverScript.trim() : "")
+        : request.audio?.voiceover?.enabled ? request.audio.voiceover.script.trim() : "";
       const response = await fetch("/api/video-generation/storyboards", {
         method: "POST",
         headers: {
@@ -1585,7 +1624,8 @@ export function StreamlinedVideoStudio({
   const activeHookAngle = detectHookAngle(rawPrompt);
   const productSize = detectProductSize(rawPrompt);
   /// 出故事板的三段等待里现在在第几段（0 写口播稿 / 1 排镜头 / 2 出画面）；没在出故事板 → null
-  const storyboardStage = busy !== "storyboard" ? null : planningShots ? (voiceoverDrafting ? 0 : 1) : 2;
+  const storyboardStage = busy !== "storyboard" ? null : directorMode ? 0 : planningShots ? (voiceoverDrafting ? 0 : 1) : 2;
+  const storyboardStages = directorMode ? copy.directorStages : copy.stages;
   /// 空白状态（没写描述、没传图、没带回任何东西）才摆「接着拍这些商品」，开始写了就让开
   const showRecentSources =
     recentSources.length > 0 && !storyboard && busy === null && !rawPrompt.trim() && productAssets.length === 0 && referenceAssets.length === 0;
@@ -1690,11 +1730,14 @@ export function StreamlinedVideoStudio({
   /// 从模板库带进来的老模板不在配方表里，单独补一项，下拉显示才与实际一致。
   const templateOptions = [
     { value: "auto", label: copy.templateAuto },
+    /// 电商快销：AI 导演按快销广告的节奏写镜头脚本（走导演线路，见 director-line-policy）
+    { value: DIRECTOR_LINE_TEMPLATE_ID, label: copy.templateFmcg },
     ...COMMERCE_TEMPLATE_RECIPES.map((recipe) => ({
       value: recipe.slug,
       label: english ? recipe.name : recipe.nameZh,
     })),
     ...(activeStyleTemplateId !== "auto"
+      && activeStyleTemplateId !== DIRECTOR_LINE_TEMPLATE_ID
       && !COMMERCE_TEMPLATE_RECIPES.some((recipe) => recipe.slug === activeStyleTemplateId)
       ? [{ value: activeStyleTemplateId, label: legacyTemplateLabel(activeStyleTemplateId, copy) }]
       : []),
@@ -2015,7 +2058,7 @@ export function StreamlinedVideoStudio({
             data-stage={storyboardStage}
             className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-meta"
           >
-            {copy.stages.map((stage, index) => (
+            {storyboardStages.map((stage, index) => (
               <li
                 key={stage}
                 aria-current={index === storyboardStage ? "step" : undefined}
@@ -2030,6 +2073,9 @@ export function StreamlinedVideoStudio({
               </li>
             ))}
           </ol>
+        ) : null}
+        {storyboardStage !== null && directorMode ? (
+          <p className="text-center text-meta text-muted-foreground" data-testid="director-stage-hint">{copy.directorStagesHint}</p>
         ) : null}
         {uploadError ? <p role="alert" className="text-meta text-danger">{uploadError}</p> : null}
         {loadedFromStudio.length > 0 ? (
@@ -2259,7 +2305,9 @@ export function StreamlinedVideoStudio({
           </TicketRow>
           {/* 口播 / 字幕 / 配乐：默认开口播与逐词字幕，口播稿 AI 先写、人来改 */}
           <TicketRow label={copy.rowAudio}>
-            <p className="text-meta text-muted-foreground">{copy.audioHint}</p>
+            <p className="text-meta text-muted-foreground" data-testid={directorMode ? "director-voice-hint" : undefined}>
+              {directorMode ? copy.directorVoiceHint : copy.audioHint}
+            </p>
             <AudioCaptionControls
               value={audioCaptionSettings}
               english={english}
@@ -2272,6 +2320,36 @@ export function StreamlinedVideoStudio({
               draftFromTemplate={narrationFromTemplate}
               draftFellBack={voiceoverDraftFellBack}
             />
+          </TicketRow>
+          {/* 右上角 Logo（2026-11-17）：全程挂一个透明的图形角标，和导演线路的交付样式一样。每条单独勾、默认不带；
+              用哪张图由服务端按账号取（自己工作区的默认品牌包），这里只是一个开关。 */}
+          <TicketRow data-testid="streamlined-corner-logo" label={copy.rowCornerLogo} optional={copy.optional}>
+            {signoffLogoUrl ? (
+              <label className="flex cursor-pointer items-start justify-between gap-4 text-meta text-muted-foreground">
+                <span className="flex min-w-0 items-center gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={signoffLogoUrl} alt="" className="h-8 w-auto max-w-24 shrink-0 rounded-(--radius-sm) bg-(--brand-tile) object-contain p-1" />
+                  <span className="min-w-0">
+                    <span className="block text-body text-foreground">{copy.cornerLogoToggle}</span>
+                    <span className="block">{copy.cornerLogoHint}</span>
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={cornerLogo}
+                  disabled={finishingLocked}
+                  className="mt-1 size-4 shrink-0 accent-primary"
+                  onChange={(event) => setCornerLogo(event.target.checked)}
+                />
+              </label>
+            ) : (
+              <p className="text-meta text-muted-foreground">
+                {copy.cornerLogoMissing}{" "}
+                <Link href="/app/brands" className="text-accent underline-offset-4 hover:underline">
+                  {english ? "Open Brand" : "去品牌页"}
+                </Link>
+              </p>
+            )}
           </TicketRow>
           {/* 片尾落款（2026-11-10）：最后两秒在画面上压品牌名 + 行动指引；每条单独勾、默认不带。
               和下面已下线的尾卡不是一回事：不另加一帧，文字由合成直接烧上去。 */}

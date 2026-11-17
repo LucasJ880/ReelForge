@@ -177,6 +177,7 @@ export class ShuyuVideoProvider implements VideoProvider {
         ...this.options,
         planId: explicitPlanId,
         tier: requestedTier,
+        minDurationSec: duration,
       });
     } catch (error) {
       throw new ProviderSubmissionError(

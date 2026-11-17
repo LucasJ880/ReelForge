@@ -27,6 +27,7 @@ export const PLANNING_STAGES: readonly PlanningStage[] = [
   "story_english",
   "presenter_reference",
   "frame_prompt",
+  "director_script",
 ];
 
 export const PLANNING_FALLBACK_BY_STAGE: Record<PlanningStage, PlanningFallback> = {
@@ -46,6 +47,8 @@ export const PLANNING_FALLBACK_BY_STAGE: Record<PlanningStage, PlanningFallback>
   presenter_reference: "no_presenter_reference",
   /// 这一帧的提示词被截到供应商上限
   frame_prompt: "trimmed_prompt",
+  /// 导演写手没写成（模型不可用 / 输出不合格 / 超出时间）：这一轮退回老的四帧故事板 + 分段出片
+  director_script: "shot_card_storyboard",
 };
 
 /**

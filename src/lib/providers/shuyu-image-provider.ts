@@ -1,6 +1,7 @@
 import type {
   AuditedShuyuImagePlan,
   ShuyuAspectRatio,
+  ShuyuImageQuality,
   ShuyuResolution,
 } from "./shuyu-catalog";
 import { SHUYU_IMAGE_ASPECT_RATIOS, selectAuditedImage2Plan } from "./shuyu-catalog";
@@ -64,6 +65,8 @@ export interface SubmitShuyuImageTaskInput extends ShuyuFetchOptions {
   resolution: ShuyuResolution;
   inputImages?: string[];
   planSnapshot?: AuditedShuyuImagePlan;
+  /// 点名质量档（见 selectAuditedImage2Plan）；不传 = 同分辨率取最便宜的一档
+  quality?: ShuyuImageQuality;
   onPlanSelected?: (plan: AuditedShuyuImagePlan) => Promise<void>;
 }
 
@@ -96,7 +99,9 @@ export async function submitShuyuImageTask(
       planSnapshot = input.planSnapshot;
     } else {
       const plans = await getAvailableShuyuImagePlans(input);
-      planSnapshot = selectAuditedImage2Plan({ imagePlans: plans }, input.resolution);
+      planSnapshot = selectAuditedImage2Plan({ imagePlans: plans }, input.resolution, {
+        ...(input.quality ? { quality: input.quality } : {}),
+      });
     }
     await input.onPlanSelected?.(planSnapshot);
   } catch (error) {

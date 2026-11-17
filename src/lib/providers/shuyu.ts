@@ -569,6 +569,8 @@ export interface ResolveShuyuVideoPlanArgs extends ShuyuFetchOptions {
    * 显式 planId 时以套餐自身 tier 为准。
    */
   tier?: ShuyuVideoPlanTier;
+  /** 这次要出的时长(秒):默认解析只在收得下它的套餐里选(导演线路一段可到 30 秒)。缺省 = 不按时长筛。 */
+  minDurationSec?: number;
   /**
    * final 档闸门,三值:
    * - true:开(内部员工 / 实验标记的调用链显式传)。
@@ -703,7 +705,11 @@ export async function resolveShuyuVideoPlanWithCooldown(
   args: ResolveShuyuVideoPlanArgs = {},
 ): Promise<AuditedShuyuVideoPlan> {
   if (args.planId?.trim()) return resolveShuyuVideoPlan(args);
-  const pool = await resolveShuyuVideoPlanPool(args);
+  const fullPool = await resolveShuyuVideoPlanPool(args);
+  /// 导演线路整条片一次生成，一段可以到 30 秒：只在收得下这个时长的套餐里选（一个都没有就照旧，由调用方报「超出时长」）
+  const minDurationSec = args.minDurationSec ?? 0;
+  const longEnough = minDurationSec > 0 ? fullPool.filter((plan) => plan.maxDurationSec >= minDurationSec) : fullPool;
+  const pool = longEnough.length > 0 ? longEnough : fullPool;
   const warm = pool.filter((plan) => !isShuyuVideoPlanCoolingDown(plan.planId));
   return warm[0] ?? pool[0];
 }

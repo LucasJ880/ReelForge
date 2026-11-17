@@ -49,7 +49,8 @@ export function mapPlanToDirectorPlan(args: MapToDirectorArgs): DirectorPlan {
 
   const segmentPlan: DirectorSegmentPlan[] = aiSegments.map((seg, i) => ({
     segmentIndex: i,
-    durationSec: Math.max(1, Math.min(15, Math.round(seg.durationSeconds))),
+    /// 老的分段出片一段最多 15 秒；导演线路整条一次生成，一段可以到 30 秒
+    durationSec: Math.max(1, Math.min(30, Math.round(seg.durationSeconds))),
     fromSec: computeFromSec(aiSegments, i),
     toSec: computeFromSec(aiSegments, i) + seg.durationSeconds,
     role: seg.role === "outro" ? "cta" : seg.role,

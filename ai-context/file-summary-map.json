@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T16:12:39.815Z",
+  "generatedAt": "2026-11-17T16:44:40.847Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -52,8 +52,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 335,
-      "sizeBytes": 30899,
+      "lineCount": 346,
+      "sizeBytes": 32744,
       "notes": "Documentation"
     },
     {
@@ -9556,7 +9556,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 1,
-      "sizeBytes": 15699,
+      "sizeBytes": 16010,
       "notes": ""
     },
     {
@@ -9805,8 +9805,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 127,
-      "sizeBytes": 12590,
+      "lineCount": 132,
+      "sizeBytes": 14669,
       "notes": "Documentation"
     },
     {
@@ -10711,8 +10711,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 226,
-      "sizeBytes": 21182,
+      "lineCount": 129,
+      "sizeBytes": 11028,
       "notes": "Documentation"
     },
     {
@@ -13485,6 +13485,7 @@
         "../lib/experiment-budget",
         "@/lib/storage",
         "@/lib/providers/shuyu",
+        "@/lib/providers/shuyu-image-provider",
         "openai",
         "openai/uploads",
         "@/lib/video-generation/providers/submission-error",
@@ -13496,8 +13497,8 @@
         "@/lib/providers/openai-vision-inline"
       ],
       "importantSymbols": [],
-      "lineCount": 846,
-      "sizeBytes": 48126,
+      "lineCount": 943,
+      "sizeBytes": 53133,
       "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
     },
     {
@@ -14535,6 +14536,7 @@
         "default"
       ],
       "imports": [
+        "@/lib/video-generation/director-line-policy",
         "next-auth",
         "next/navigation",
         "@/components/video-generation/streamlined-video-studio",
@@ -14557,8 +14559,8 @@
         "PlatformCreatePage",
         "default"
       ],
-      "lineCount": 225,
-      "sizeBytes": 10201,
+      "lineCount": 227,
+      "sizeBytes": 10329,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -16801,6 +16803,7 @@
         "@/lib/db",
         "@/lib/video-generation/generation-supervisor",
         "@/lib/video-generation/plan-to-director",
+        "@/lib/video-generation/director-line",
         "@/lib/services/video-service",
         "@/lib/services/voiceover-drive-service",
         "@/lib/services/video-dispatch-idempotency",
@@ -16819,8 +16822,8 @@
       "importantSymbols": [
         "POST"
       ],
-      "lineCount": 1129,
-      "sizeBytes": 40217,
+      "lineCount": 1147,
+      "sizeBytes": 41251,
       "notes": "Next.js API route handler; hits Prisma DB; area=video-generation"
     },
     {
@@ -17031,8 +17034,8 @@
         "createStoryboardPostHandler",
         "maxDuration"
       ],
-      "lineCount": 162,
-      "sizeBytes": 6386,
+      "lineCount": 165,
+      "sizeBytes": 6715,
       "notes": "Next.js API route handler; area=video-generation"
     },
     {
@@ -19725,6 +19728,7 @@
         "@/lib/video-generation/storyboard-prompt-display",
         "@/lib/video-generation/planning-degradation-notice",
         "@/types/video-generation",
+        "@/lib/video-generation/director-line-policy",
         "@/lib/video-generation/storyboard-frame-inputs",
         "@/components/ui/button",
         "@/components/ui/textarea",
@@ -19738,8 +19742,8 @@
         "StoryboardWorkflowPanel",
         "storyboardFrameTarget"
       ],
-      "lineCount": 423,
-      "sizeBytes": 20579,
+      "lineCount": 492,
+      "sizeBytes": 24790,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -19786,8 +19790,8 @@
         "StudioReadings",
         "StreamlinedVideoStudio"
       ],
-      "lineCount": 2868,
-      "sizeBytes": 128689,
+      "lineCount": 2946,
+      "sizeBytes": 134939,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -22405,6 +22409,7 @@
         "SHUYU_IMAGE_ASPECT_RATIOS",
         "ShuyuAspectRatio",
         "AuditedShuyuImagePlan",
+        "ShuyuImageQuality",
         "ShuyuCatalog",
         "ShuyuPlanUnavailableError",
         "parseShuyuCatalog",
@@ -22416,13 +22421,13 @@
         "SHUYU_IMAGE_ASPECT_RATIOS",
         "ShuyuAspectRatio",
         "AuditedShuyuImagePlan",
+        "ShuyuImageQuality",
         "ShuyuCatalog",
         "ShuyuPlanUnavailableError",
-        "parseShuyuCatalog",
-        "selectAuditedImage2Plan"
+        "parseShuyuCatalog"
       ],
-      "lineCount": 179,
-      "sizeBytes": 6286,
+      "lineCount": 202,
+      "sizeBytes": 7500,
       "notes": "External API provider wrapper; area=ai-providers"
     },
     {
@@ -22457,8 +22462,8 @@
         "validateShuyuOutputUrl",
         "fetchShuyuOutputImage"
       ],
-      "lineCount": 349,
-      "sizeBytes": 11750,
+      "lineCount": 354,
+      "sizeBytes": 11975,
       "notes": "External API provider wrapper; area=ai-providers"
     },
     {
@@ -22573,8 +22578,8 @@
         "SHUYU_IMAGE_PLAN_ID",
         "SHUYU_IMAGE_MODEL"
       ],
-      "lineCount": 1371,
-      "sizeBytes": 50537,
+      "lineCount": 1377,
+      "sizeBytes": 51121,
       "notes": "External API provider wrapper; area=ai-providers"
     },
     {
@@ -22656,8 +22661,8 @@
         "segmentPlanSchema",
         "editingPlanSchema"
       ],
-      "lineCount": 133,
-      "sizeBytes": 5482,
+      "lineCount": 138,
+      "sizeBytes": 6027,
       "notes": "Schema / validation"
     },
     {
@@ -22712,8 +22717,8 @@
         "supportedDurationSchema",
         "userTypeSchema"
       ],
-      "lineCount": 453,
-      "sizeBytes": 14611,
+      "lineCount": 457,
+      "sizeBytes": 14879,
       "notes": "Schema / validation; area=media-processing"
     },
     {
@@ -23880,9 +23885,11 @@
         "assemblyClipsToTimeline",
         "legacySegmentsToTimeline",
         "resolveSignoffLogoUrl",
+        "resolveCornerLogoUrl",
         "composeFinalVideoForStitch"
       ],
       "imports": [
+        "@/lib/video-generation/director-line",
         "@/lib/video-generation/brand-signoff",
         "@/types/video-generation",
         "@/lib/db",
@@ -23900,10 +23907,11 @@
         "assemblyClipsToTimeline",
         "legacySegmentsToTimeline",
         "resolveSignoffLogoUrl",
+        "resolveCornerLogoUrl",
         "composeFinalVideoForStitch"
       ],
-      "lineCount": 249,
-      "sizeBytes": 10226,
+      "lineCount": 277,
+      "sizeBytes": 11710,
       "notes": "Business logic service; area=ffmpeg"
     },
     {
@@ -23989,6 +23997,7 @@
         "@prisma/client",
         "@/lib/db",
         "@/lib/schemas/director-plan",
+        "@/lib/video-generation/director-plan",
         "@/lib/schemas/unified-input",
         "@/types/video-generation",
         "@/lib/video-generation/brief-delivery-state",
@@ -24013,8 +24022,8 @@
         "BROLL_ROUTE_RETIRED_MESSAGE",
         "StitchDecision"
       ],
-      "lineCount": 1781,
-      "sizeBytes": 69005,
+      "lineCount": 1876,
+      "sizeBytes": 73736,
       "notes": "Business logic service; hits Prisma DB; area=ffmpeg"
     },
     {
@@ -24356,6 +24365,7 @@
         "@/lib/video-generation/segment-redo",
         "./quota-service",
         "./quota-refund-service",
+        "@/lib/video-generation/director-line",
         "@/lib/video-generation/storyboard-service",
         "@/lib/video-generation/storyboard-beats",
         "./ops-alert-service",
@@ -24371,8 +24381,8 @@
         "CustomerBriefRenderSummary",
         "assertVideoRouteNotRetiredForRegeneration"
       ],
-      "lineCount": 2690,
-      "sizeBytes": 96919,
+      "lineCount": 2724,
+      "sizeBytes": 98643,
       "notes": "Business logic service; hits Prisma DB; NextAuth session check; area=media-processing"
     },
     {
@@ -25523,6 +25533,75 @@
       "notes": "Utility / helper module; area=video-generation"
     },
     {
+      "path": "src/lib/video-generation/director-line-policy.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "DIRECTOR_LINE_TEMPLATE_ID",
+        "DIRECTOR_LINE_DURATIONS",
+        "directorLineEnabled",
+        "DirectorLineApplicability",
+        "directorLineApplies",
+        "DirectorScriptView"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "DIRECTOR_LINE_TEMPLATE_ID",
+        "DIRECTOR_LINE_DURATIONS",
+        "DirectorLineApplicability",
+        "DirectorScriptView",
+        "directorLineEnabled",
+        "directorLineApplies"
+      ],
+      "lineCount": 67,
+      "sizeBytes": 2822,
+      "notes": "Utility / helper module; area=video-generation"
+    },
+    {
+      "path": "src/lib/video-generation/director-line.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "DIRECTOR_SCRIPT_KIND",
+        "StoredDirectorScript",
+        "DIRECTOR_LINE_MAX_PHOTOS",
+        "DIRECTOR_LINE_WRITER_BUDGET_MS",
+        "DIRECTOR_LINE_WRITER_CALL_TIMEOUT_MS",
+        "packDirectorScript",
+        "isStoredDirectorScript",
+        "readStoredDirectorScript",
+        "directorScriptView",
+        "directorOpeningFrame",
+        "directorVideoReferenceUrls",
+        "directorVideoPrompt",
+        "directorCaptionScript",
+        "directorScriptSpeechWords",
+        "directorVoiceLanguage",
+        "DirectorLineWriteInput",
+        "DirectorLineWriteResult",
+        "DirectorLineWriteDeps",
+        "writeDirectorScriptForStoryboard"
+      ],
+      "imports": [
+        "@/lib/video-generation/director-plan",
+        "@/lib/video-generation/director-writer",
+        "@/lib/video-generation/director-line-policy"
+      ],
+      "importantSymbols": [
+        "DIRECTOR_SCRIPT_KIND",
+        "StoredDirectorScript",
+        "DIRECTOR_LINE_MAX_PHOTOS",
+        "DIRECTOR_LINE_WRITER_BUDGET_MS",
+        "DIRECTOR_LINE_WRITER_CALL_TIMEOUT_MS",
+        "DirectorLineWriteInput",
+        "DirectorLineWriteResult",
+        "DirectorLineWriteDeps"
+      ],
+      "lineCount": 293,
+      "sizeBytes": 12764,
+      "notes": "Utility / helper module; area=video-generation"
+    },
+    {
       "path": "src/lib/video-generation/director-plan.ts",
       "type": "util",
       "area": "video-generation",
@@ -25574,8 +25653,8 @@
         "DIRECTOR_FRAME_REFERENCES_MAX",
         "DIRECTOR_SHOT_ITEMS"
       ],
-      "lineCount": 952,
-      "sizeBytes": 53336,
+      "lineCount": 959,
+      "sizeBytes": 54083,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -25648,8 +25727,8 @@
         "DirectorWriterDeps",
         "DIRECTOR_WRITER_PHOTOS_MAX"
       ],
-      "lineCount": 838,
-      "sizeBytes": 45234,
+      "lineCount": 850,
+      "sizeBytes": 46623,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -25701,6 +25780,8 @@
         "@/lib/video-generation/input-classifier",
         "@/lib/video-generation/asset-classifier",
         "@/lib/video-generation/creative-strategist",
+        "@/lib/video-generation/director-line",
+        "@/lib/video-generation/director-plan",
         "@/lib/video-generation/consistency-bible",
         "@/lib/video-generation/style-templates",
         "@/lib/video-generation/visual-reference-analysis",
@@ -25720,8 +25801,8 @@
         "buildPlan",
         "__test__"
       ],
-      "lineCount": 305,
-      "sizeBytes": 12025,
+      "lineCount": 347,
+      "sizeBytes": 14346,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -25902,8 +25983,8 @@
         "MapToDirectorArgs",
         "mapPlanToDirectorPlan"
       ],
-      "lineCount": 207,
-      "sizeBytes": 8326,
+      "lineCount": 208,
+      "sizeBytes": 8430,
       "notes": "Utility / helper module; area=media-processing"
     },
     {
@@ -25923,8 +26004,8 @@
         "planningDegradationIssueCode",
         "planningStageFromIssueCode"
       ],
-      "lineCount": 61,
-      "sizeBytes": 3695,
+      "lineCount": 65,
+      "sizeBytes": 4125,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -25957,8 +26038,8 @@
         "planningDegradation",
         "readPlanningDegradations"
       ],
-      "lineCount": 127,
-      "sizeBytes": 5843,
+      "lineCount": 130,
+      "sizeBytes": 6043,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -26110,8 +26191,8 @@
         "ShuyuSubmitRetryClock",
         "ShuyuVideoProvider"
       ],
-      "lineCount": 392,
-      "sizeBytes": 15693,
+      "lineCount": 393,
+      "sizeBytes": 15727,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -26233,8 +26314,8 @@
         "mergeRestitchPatch",
         "restitchPatchIsNoop"
       ],
-      "lineCount": 106,
-      "sizeBytes": 4349,
+      "lineCount": 108,
+      "sizeBytes": 4475,
       "notes": "Utility / helper module; area=ffmpeg"
     },
     {
@@ -26259,8 +26340,8 @@
         "resolutionForAspectRatio",
         "planRawSegments"
       ],
-      "lineCount": 125,
-      "sizeBytes": 4264,
+      "lineCount": 127,
+      "sizeBytes": 4497,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -26448,6 +26529,7 @@
       "exports": [
         "STORYBOARD_BEATS_SHORT",
         "STORYBOARD_BEATS_LONG",
+        "DIRECTOR_OPENING_FRAME_BEAT",
         "storyboardBeatLabel",
         "STORYBOARD_GROUNDING_MARKER",
         "ShotCardVoice",
@@ -26467,15 +26549,15 @@
       "importantSymbols": [
         "STORYBOARD_BEATS_SHORT",
         "STORYBOARD_BEATS_LONG",
+        "DIRECTOR_OPENING_FRAME_BEAT",
         "STORYBOARD_GROUNDING_MARKER",
         "ShotCardVoice",
         "SHOT_CARD_VOICE_PHRASES",
         "SHOT_CARD_NEW_LOCATION_PREFIX",
-        "NEGATIVE_CONSTRAINTS_SEPARATOR",
-        "StoryboardReferenceLayout"
+        "NEGATIVE_CONSTRAINTS_SEPARATOR"
       ],
-      "lineCount": 602,
-      "sizeBytes": 34254,
+      "lineCount": 609,
+      "sizeBytes": 34624,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -26640,6 +26722,7 @@
         "ResumableStoryboardContext",
         "StoryboardRequestError",
         "storyboardFrameCountForDuration",
+        "expectedStoryboardFrameCount",
         "buildStoryboardFramePlans",
         "buildRegeneratedStoryboardFramePrompt",
         "storyboardRunView",
@@ -26662,8 +26745,7 @@
         "requireApprovedStoryboardForBrief",
         "SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT",
         "singleVideoReferenceImageLimitForAdapter",
-        "SINGLE_VIDEO_GUARANTEED_PRODUCT_PHOTOS",
-        "SingleVideoReferenceGroups"
+        "SINGLE_VIDEO_GUARANTEED_PRODUCT_PHOTOS"
       ],
       "imports": [
         "node:crypto",
@@ -26683,6 +26765,9 @@
         "@/lib/video-generation/story-english",
         "@/lib/video-generation/visual-reference-analysis",
         "@/lib/video-generation/storyboard-person-refs",
+        "@/lib/video-generation/director-line",
+        "@/lib/video-generation/director-line-policy",
+        "@/lib/video-generation/director-writer-openai",
         "@/lib/video-generation/planning-degradation"
       ],
       "importantSymbols": [
@@ -26695,8 +26780,8 @@
         "STORYBOARD_RETIRED_PROVIDER_FRAME_MESSAGE",
         "PendingStoryboardSummary"
       ],
-      "lineCount": 2256,
-      "sizeBytes": 91661,
+      "lineCount": 2421,
+      "sizeBytes": 99583,
       "notes": "Utility / helper module; hits Prisma DB; area=video-generation"
     },
     {
@@ -26727,8 +26812,8 @@
         "STYLE_TEMPLATE_CATEGORIES",
         "getStyleTemplate"
       ],
-      "lineCount": 664,
-      "sizeBytes": 37086,
+      "lineCount": 692,
+      "sizeBytes": 39129,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -27182,8 +27267,8 @@
         "CaptionStyle",
         "CaptionPosition"
       ],
-      "lineCount": 546,
-      "sizeBytes": 18464,
+      "lineCount": 555,
+      "sizeBytes": 18970,
       "notes": "Shared TypeScript types; area=media-processing"
     },
     {
@@ -28434,8 +28519,8 @@
         "./helpers/synthetic-media"
       ],
       "importantSymbols": [],
-      "lineCount": 208,
-      "sizeBytes": 11201,
+      "lineCount": 210,
+      "sizeBytes": 11512,
       "notes": "Unit / integration test; uses OpenAI SDK; area=tests"
     },
     {
@@ -28617,8 +28702,8 @@
         "../src/lib/create/hook-angles"
       ],
       "importantSymbols": [],
-      "lineCount": 168,
-      "sizeBytes": 9920,
+      "lineCount": 170,
+      "sizeBytes": 10150,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -28895,6 +28980,40 @@
       "notes": "Unit / integration test; hits Prisma DB; NextAuth session check; area=tests"
     },
     {
+      "path": "tests/director-line.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [
+        "expectedStoryboardFrameCount"
+      ],
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "../src/lib/video-generation/director-line",
+        "../src/lib/video-generation/director-line-policy",
+        "../src/lib/video-generation/director-plan",
+        "../src/lib/video-generation/generation-supervisor",
+        "../src/lib/video-generation/plan-to-director",
+        "../src/lib/schemas/director-plan",
+        "../src/lib/video-generation/style-templates",
+        "../src/lib/video-generation/visual-reference-analysis",
+        "../src/lib/video-generation/planning-degradation-notice",
+        "../src/lib/video-generation/planning-degradation",
+        "../src/lib/providers/shuyu-catalog",
+        "../src/types/video-generation",
+        "../src/lib/db",
+        "../src/lib/video-generation/storyboard-service",
+        "../src/lib/video-generation/storyboard-beats"
+      ],
+      "importantSymbols": [
+        "expectedStoryboardFrameCount"
+      ],
+      "lineCount": 530,
+      "sizeBytes": 27295,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
       "path": "tests/director-plan-schema.test.ts",
       "type": "test",
       "area": "tests",
@@ -28922,8 +29041,8 @@
         "../src/lib/video-generation/director-plan"
       ],
       "importantSymbols": [],
-      "lineCount": 655,
-      "sizeBytes": 40664,
+      "lineCount": 660,
+      "sizeBytes": 40951,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -28942,8 +29061,8 @@
         "../src/lib/video-generation/director-writer-openai"
       ],
       "importantSymbols": [],
-      "lineCount": 1087,
-      "sizeBytes": 62307,
+      "lineCount": 1097,
+      "sizeBytes": 63032,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -30380,8 +30499,8 @@
         "../src/lib/video-generation/story-english"
       ],
       "importantSymbols": [],
-      "lineCount": 941,
-      "sizeBytes": 45482,
+      "lineCount": 945,
+      "sizeBytes": 45841,
       "notes": "Unit / integration test; area=tests"
     },
     {

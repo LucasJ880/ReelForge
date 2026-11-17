@@ -41,6 +41,10 @@ const NOTICES: Record<PlanningStage, { zh: string; en: string }> = {
     zh: "这次 AI 画其中一帧时，画面要求太长被截短了，这一帧可能漏掉部分要求。确认前可以重做不满意的帧。",
     en: "AI couldn't take in everything asked of one frame this time: the instructions were too long and got shortened, so it may miss some details. Redo any frame you don't like before approving.",
   },
+  director_script: {
+    zh: "这次 AI 没能写出完整的镜头脚本，改用了按故事分帧的常规做法：镜头节奏会慢一些。想要快节奏的版本，可以取消这一轮稍后再试。",
+    en: "AI couldn't finish the full shot script this time, so this round uses the regular frame-by-frame storyboard and the pacing will be slower. Cancel this round and try again later for the fast-cut version.",
+  },
 };
 
 export function planningDegradationNotice(stage: PlanningStage, locale: "zh" | "en"): string {

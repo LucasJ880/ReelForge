@@ -64,6 +64,7 @@ npm run context:find -- "..."
 
 | 开关（Vercel 环境变量） | 缺省 | 作用 |
 |---|---|---|
+| `DIRECTOR_LINE=off` | 开 | 关掉线上的导演线路：有实拍图的 15 / 30 秒单条片退回老的四 / 五帧故事板 + 分段出片。缺省开着（11-17 起）：建故事板时由导演写手写一份镜头脚本、只出一张开场帧，出片时整条一次生成。写手没写成会自己退回老线路并记一条降级（`director_script`） |
 | `CAPTION_SPEECH_ALIGN=on` | 关 | 合成时把 AI 段人声交给 OpenAI `whisper-1` 识别，字幕跟着人声走。要求这把 `OPENAI_API_KEY` 有 whisper-1 权限（11-10 实查没有，需在 OpenAI 项目里开通）；识别不到就照旧按字数摊，不影响出片 |
 | `OPS_ALERT_WEBHOOK_URL` | 未配 | 运维告警的群机器人地址；没配只进日志（`[ops-alert]`） |
 | `PROGRESS_SEGMENT_EXPECTED_MIN` | 10 | 进度条估算用的出片典型分钟数（实测中位数） |
@@ -85,10 +86,14 @@ npm run context:find -- "..."
 | 配乐曲库（8 首；7 首由 Runway 生成配乐接口一次性生成、随仓库带，出片不调接口） | 目录 `src/lib/video-generation/bgm-catalog.ts`，文件 `public/audio/bgm/`，选曲组件 `bgm-picker.tsx`；加曲子：放文件 + 目录加一行 |
 | 字幕跟着人声走（按语音识别对齐） | `alignCuesToSpeech`（`src/lib/video-generation/audio-post-production.ts`）、`src/lib/providers/openai-transcription.ts`；日志搜 `[captions]` |
 | 上传卡住超时（直传存储一直没进展时中止并明说「上传卡住了」；存储客户端自己会不报错地重试十几分钟） | `src/lib/upload/stall-watchdog.ts`，接在 `uploadBlobWithProgress`（`blob-xhr.ts`）的直传那一步；日志搜 `[upload] direct upload stalled` |
-| 导演线路（Claude 写镜头脚本 → OpenAI `gpt-image-2` 出故事板 → Shuyu Seedance 2.5 · 720P 出片；不走创作台、不碰库） | skill `aivora-director`；`npm run director -- check\|frames\|select\|video\|review\|post\|status tmp/director/<任务名>`（`post` = 本地烧字幕 / 落款 / 切条，复用线上合成器，不花点数）；纯逻辑 `src/lib/video-generation/director-plan.ts`（scripts 下那份只是转出）；让模型写镜头脚本的「导演写手」在 `director-writer.ts`，`npm run director -- draft` 可试 |
+| 导演线路（Claude 写镜头脚本 → GPT Image 2 出故事板（11-17 起缺省走 Shuyu，`frames --provider openai` 可直连 OpenAI）→ Shuyu Seedance 2.5 · 720P 出片；不走创作台、不碰库） | skill `aivora-director`；`npm run director -- check\|frames\|select\|video\|review\|post\|status tmp/director/<任务名>`（`post` = 本地烧字幕 / 角标 Logo / 落款 / 切条，复用线上合成器，不花点数）；纯逻辑 `src/lib/video-generation/director-plan.ts`（scripts 下那份只是转出）；让模型写镜头脚本的「导演写手」在 `director-writer.ts`，`npm run director -- draft` 可试 |
+| 线上的导演线路（创作台出的片和上一行用同一套规则、同一个提示词拼法：一份镜头脚本 → 一张开场帧 → 15 / 30 秒整条一次生成；字幕按每句台词的时间烧） | 判断与开关 `director-line-policy.ts`（客户端也用），写脚本 / 存脚本 / 参考图顺序 / 字幕时间 `director-line.ts`；脚本存在 `StoryboardRun.visualReference`（JSON，没加列），派发时抄进 `brief.directorPlan.directorLine`；接线在 `storyboard-service.ts`（`createStoryboardRun`、`expectedStoryboardFrameCount`）、`dispatch/route.ts`、`video-service.ts` 的 `dispatchVideoForBrief`、`stitch-composer.ts`；日志搜 `[director-line]` |
+| 「电商快销」模板（片种定成快销）与「自动匹配」（片种由导演写手按商品定） | `DIRECTOR_LINE_TEMPLATE_ID`（`director-line-policy.ts`）、`style-templates.ts` 里的 `tpl_ecommerce_fmcg`；别的模板仍走老线路 |
+| 右上角 Logo（创作页可选；透明的白色图形角标，全程挂着；图取自己默认品牌包的 Logo） | 快照里的 `cornerLogo` 开关；`stitch-composer.ts` 的 `resolveCornerLogoUrl`、`stitch-service.ts` 的 `overlayCornerLogo`；版式 `cornerLogoGeometry` / `cornerLogoFilter`（`director-plan.ts`，透明底 PNG 按透明度取形状，白底线稿按深浅） |
 | 只重新合成（换字幕 / BGM / 落款，不扣额度） | `src/lib/video-generation/restitch-patch.ts`、`stitch-service` 的 `prepareRestitch` / `commitRestitch` |
 
-供应商现状（2026-11-16）：生产只留 Shuyu（出图、出片）、OpenAI（出方案、导演线路的故事板图；开关打开时另做字幕的语音识别）两把付费密钥。
+供应商现状（2026-11-17）：生产只留 Shuyu（出图、出片）、OpenAI（写镜头脚本、出方案这类文字与看图的调用；开关打开时另做字幕的语音识别）两把付费密钥。
+出图统一走 Shuyu 的 GPT Image 2（11-17 用户定：能统一用 Shuyu 就用 Shuyu）：老的四帧故事板取同分辨率最便宜的一档，导演线路的开场帧（线上和命令行）点名高质量档（`quality: "high"`，2K 约 48 点一张）。
 **Runway 出片 11-16 由 CEO 决定彻底下线，出片与出图的代码当天已全部删除**（适配器、「高质量」选项、Shuyu 失败改交、灰度账号故事板出图、全员切换）。
 只留读旧记录用的部分：`video-route-registry.ts` 里的 `runway` 线路定义（`enabled: false`，建不出新快照、供应商调用一律拒绝），
 以及故事板帧旧 planId `runway:` 的守卫（`storyboard-service.ts`，不交给 Shuyu，提示重新生成这一帧）。

@@ -193,6 +193,8 @@ export const unifiedVideoGenerationRequestSchema = z.object({
   captions: captionSettingsSchema.optional(),
   /// 片尾落款：创作时就勾上的，随方案进后期快照，成片合成时直接烧（不用等成片出来再重拼）
   signoff: signoffSettingsSchema.optional(),
+  /// 右上角 Logo：只是一个开关，图片由服务端按成片主人取（客户端传不了图片地址）
+  cornerLogo: z.boolean().optional(),
   advancedOptions: z.record(z.string(), z.unknown()).nullable().optional(),
   deliveryOrderId: z.string().nullable().optional(),
 });
@@ -395,6 +397,8 @@ export const postProductionPlanSchema = z.object({
   captions: captionSettingsSchema,
   /// 片尾落款：可选；旧快照 / 没勾的成片没有这个键
   signoff: signoffSettingsSchema.optional(),
+  /// 右上角 Logo：可选；旧快照 / 没勾的成片没有这个键
+  cornerLogo: z.boolean().optional(),
 });
 
 /**

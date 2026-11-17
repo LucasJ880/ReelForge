@@ -1,5 +1,6 @@
 /**
- * 导演线路 CLI（2026-11-16）：Claude 写镜头脚本 → OpenAI gpt-image-2 出故事板 → Shuyu Seedance 出片。
+ * 导演线路 CLI（2026-11-16）：Claude 写镜头脚本 → GPT Image 2 出故事板（11-17 起缺省走 Shuyu，和线上同一条路；
+ * `frames --provider openai` 可退回直连 OpenAI）→ Shuyu Seedance 出片。
  * 规程：.claude/skills/aivora-director/SKILL.md；纯逻辑：src/lib/video-generation/director-plan.ts
  *（scripts/lib/director-plan.ts 只是转出）。
  *
@@ -290,8 +291,48 @@ async function commandCheck(workspace: Workspace, flags: Flags): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// frames：OpenAI gpt-image-2
+// frames：GPT Image 2。缺省走 Shuyu（11-17：Shuyu 给我们开了 Image 2，出图出片统一一家）；--provider openai 直连 OpenAI
 // ---------------------------------------------------------------------------
+
+const FRAME_POLL_MS = 5_000;
+const FRAME_POLL_DEADLINE_MS = 8 * 60_000;
+
+/** 用 Shuyu 的 GPT Image 2 出一张帧：提交 → 轮询 → 取回图片。花的是 Shuyu 的点数（高质量 2K 约 48 点一张）。 */
+async function shuyuFrame(args: {
+  requestKey: string;
+  prompt: string;
+  aspectRatio: "9:16" | "16:9" | "1:1";
+  quality: "low" | "medium" | "high";
+  inputImages: string[];
+}): Promise<{ bytes: Buffer; mimeType: string; planId: string; resolution: string; points: number }> {
+  const { submitShuyuImageTask, pollShuyuImageTask, fetchShuyuOutputImage } = await import("@/lib/providers/shuyu-image-provider");
+  const submitted = await submitShuyuImageTask({
+    requestKey: args.requestKey,
+    prompt: args.prompt,
+    aspectRatio: args.aspectRatio,
+    resolution: "2K",
+    quality: args.quality,
+    inputImages: args.inputImages,
+  });
+  const startedAt = Date.now();
+  for (;;) {
+    await new Promise((done) => setTimeout(done, FRAME_POLL_MS));
+    const task = await pollShuyuImageTask(submitted.externalTaskId);
+    if (task.status === "succeeded") {
+      const image = await fetchShuyuOutputImage(task.outputUrls[0]!);
+      return {
+        ...image,
+        planId: submitted.planSnapshot.planId,
+        resolution: submitted.planSnapshot.resolution,
+        points: submitted.planSnapshot.points,
+      };
+    }
+    if (task.status === "failed") throw new Error(task.errorMessage ?? `Shuyu 出图失败（${task.rawStatus}）`);
+    if (Date.now() - startedAt > FRAME_POLL_DEADLINE_MS) {
+      throw new Error(`Shuyu 出图等了 ${Math.round(FRAME_POLL_DEADLINE_MS / 60_000)} 分钟还没好（任务 ${submitted.externalTaskId}）`);
+    }
+  }
+}
 
 async function commandFrames(workspace: Workspace, flags: Flags): Promise<void> {
   const { job, state } = workspace;
@@ -299,6 +340,8 @@ async function commandFrames(workspace: Workspace, flags: Flags): Promise<void> 
   const only = flag(flags, "frame");
   const quality = (flag(flags, "quality") ?? "high") as "low" | "medium" | "high";
   if (!["low", "medium", "high"].includes(quality)) fail("--quality 只能是 low / medium / high");
+  const provider = (flag(flags, "provider") ?? "shuyu") as "shuyu" | "openai";
+  if (!["shuyu", "openai"].includes(provider)) fail("--provider 只能是 shuyu / openai");
   const extra = parsePositiveLimit(flag(flags, "more")) ?? 0;
   const maxImages = parsePositiveLimit(flag(flags, "max-images")) ?? FRAME_IMAGES_MAX_DEFAULT;
   const frames = job.frames.filter((frame) => !only || frame.id === only);
@@ -312,16 +355,69 @@ async function commandFrames(workspace: Workspace, flags: Flags): Promise<void> 
   });
   const total = todo.reduce((sum, item) => sum + item.count, 0);
   if (total === 0) return console.log("[director] 故事板帧都出好了。要再抽：frames --more 1 --confirm-spend");
-  console.log(`[director] 要出 ${total} 张故事板帧（${FRAME_MODEL}，${openAiFrameSize(job.aspectRatio)}，quality=${quality}）`);
+  console.log(
+    provider === "shuyu"
+      ? `[director] 要出 ${total} 张故事板帧（Shuyu 的 GPT Image 2，2K，quality=${quality}；花 Shuyu 的点数，高质量 2K 约 48 点一张）`
+      : `[director] 要出 ${total} 张故事板帧（直连 OpenAI ${FRAME_MODEL}，${openAiFrameSize(job.aspectRatio)}，quality=${quality}）`,
+  );
   if (total > maxImages) fail(`一次最多出 ${maxImages} 张（--max-images 可改）`);
-  if (!flags["confirm-spend"]) return console.log("[director] 没带 --confirm-spend：只是预演，没有调用 OpenAI");
+  if (!flags["confirm-spend"]) return console.log(`[director] 没带 --confirm-spend：只是预演，没有调用 ${provider === "shuyu" ? "Shuyu" : "OpenAI"}`);
+  const framesDir = join(workspace.dir, "frames");
+  mkdirSync(framesDir, { recursive: true });
+  if (provider === "shuyu") {
+    let made = 0;
+    for (const { frame, entry, count } of todo) {
+      const prompt = buildFramePrompt(job, frame);
+      /// Shuyu 收的是公开地址：本地图先传到我们自己的存储（和出片用同一份上传记录）
+      const inputImages: string[] = [];
+      for (const id of frame.references) {
+        const reference = job.references.find((item) => item.id === id)!;
+        inputImages.push(await publicUrlFor(workspace, id, await loadImage(workspace, reference.source)));
+      }
+      for (let round = 0; round < count; round += 1) {
+        const index = entry.variants.reduce((max, variant) => Math.max(max, variant.index), 0) + 1;
+        console.log(`[director] 帧 ${frame.id} 第 ${index} 张…`);
+        try {
+          const image = await shuyuFrame({
+            requestKey: `director-frame-${createHash("sha256").update(`${job.id}|${frame.id}|${index}|${prompt}`).digest("hex").slice(0, 32)}`,
+            prompt,
+            aspectRatio: job.aspectRatio,
+            quality,
+            inputImages,
+          });
+          const extension = image.mimeType === "image/png" ? "png" : image.mimeType === "image/webp" ? "webp" : "jpg";
+          const file = join(framesDir, `${frame.id}-v${index}.${extension}`);
+          writeFileSync(file, image.bytes);
+          entry.variants.push({
+            index,
+            status: "done",
+            file: relative(workspace.dir, file),
+            model: `shuyu:${image.planId}`,
+            size: image.resolution,
+            quality,
+            points: image.points,
+            createdAt: now(),
+          });
+          if (entry.variants.filter((variant) => variant.status === "done").length > 1) entry.selected = null;
+          made += 1;
+          console.log(`[director] 帧 ${frame.id} 第 ${index} 张 → ${relative(REPO, file)}（${image.planId}，${image.points} 点）`);
+        } catch (error) {
+          entry.variants.push({ index, status: "failed", error: errorText(error), createdAt: now() });
+          console.error(`[director] 帧 ${frame.id} 第 ${index} 张失败：${errorText(error)}`);
+        }
+        workspace.save();
+      }
+    }
+    if (made < total) console.error(`[director] ${total - made} 张没出来（原因见上）；重跑 frames 会补上`);
+    if (made > 0) console.log("[director] 下一步：导演逐张看图（商品走样、文字乱码、构图），再 select --frame <id> --variant <n>");
+    if (made === 0) process.exitCode = 1;
+    return;
+  }
   if (!process.env.OPENAI_API_KEY) fail("没有 OPENAI_API_KEY");
 
   const { default: OpenAI } = await import("openai");
   const { toFile } = await import("openai/uploads");
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 5 * 60_000, maxRetries: 1 });
-  const framesDir = join(workspace.dir, "frames");
-  mkdirSync(framesDir, { recursive: true });
 
   let succeeded = 0;
   for (const { frame, entry, count } of todo) {
@@ -432,7 +528,8 @@ async function commandVideo(workspace: Workspace, flags: Flags): Promise<void> {
     for (const reference of videoReferenceOrder(job)) {
       if (reference.frame) {
         const bytes = readFileSync(join(workspace.dir, frameFiles.get(reference.id)!));
-        urls.push(await publicUrlFor(workspace, `frame-${reference.id}`, { bytes, mimeType: "image/png", publicUrl: null, name: `${reference.id}.png` }));
+        /// 帧可能是 png（OpenAI）也可能是 jpg / webp（Shuyu）：按内容认，别按文件名
+        urls.push(await publicUrlFor(workspace, `frame-${reference.id}`, { bytes, mimeType: sniffImageType(bytes) ?? "image/png", publicUrl: null, name: basename(frameFiles.get(reference.id)!) }));
       } else {
         const source = job.references.find((item) => item.id === reference.id)!.source;
         urls.push(await publicUrlFor(workspace, reference.id, await loadImage(workspace, source)));

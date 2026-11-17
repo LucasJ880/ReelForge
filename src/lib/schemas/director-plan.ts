@@ -41,7 +41,8 @@ export const timelineBlockSchema = z.object({
 
 export const segmentPlanSchema = z.object({
   segmentIndex: z.number().int().min(0),
-  durationSec: z.number().int().min(1).max(15),
+  /// 老的分段出片一段 ≤15 秒；导演线路（directorLine）整条一次生成，一段可以到 30 秒
+  durationSec: z.number().int().min(1).max(30),
   fromSec: z.number().min(0),
   toSec: z.number().min(0),
   role: segmentRoleSchema,
@@ -89,6 +90,10 @@ export const directorPlanSchema = z.object({
   editingPlan: editingPlanSchema,
   /// 5. 质量自检清单（仅供运营审视；不直接展示给客户）
   qualityChecklist: z.array(z.string()).default([]),
+  /// 导演线路（2026-11-17）：这条片是按一份镜头脚本一次生成的。存的是 packDirectorScript 的产物
+  ///（读用 director-line 的 readStoredDirectorScript）；有它时 segmentPlan 只有一段、提示词就是脚本拼出来的，
+  /// 派发不再按故事板改写，合成按脚本里每句台词的时间烧字幕。没有 = 老的故事板线路。
+  directorLine: z.unknown().optional(),
 });
 
 export type TimelineBlock = z.infer<typeof timelineBlockSchema>;

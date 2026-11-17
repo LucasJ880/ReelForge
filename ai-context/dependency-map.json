@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T16:12:39.819Z",
+  "generatedAt": "2026-11-17T16:44:40.871Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -4228,6 +4228,7 @@
         "../lib/experiment-budget",
         "@/lib/storage",
         "@/lib/providers/shuyu",
+        "@/lib/providers/shuyu-image-provider",
         "openai",
         "openai/uploads",
         "@/lib/video-generation/providers/submission-error",
@@ -4244,6 +4245,7 @@
         "../lib/experiment-budget",
         "@/lib/storage",
         "@/lib/providers/shuyu",
+        "@/lib/providers/shuyu-image-provider",
         "@/lib/video-generation/providers/submission-error",
         "@/lib/video-generation/providers/shuyu-video-provider",
         "@/lib/media/ffmpeg-bin",
@@ -4997,6 +4999,7 @@
     {
       "file": "src/app/(platform)/app/create/page.tsx",
       "imports": [
+        "@/lib/video-generation/director-line-policy",
         "next-auth",
         "next/navigation",
         "@/components/video-generation/streamlined-video-studio",
@@ -5016,6 +5019,7 @@
         "@/lib/services/workspace-brand-package-service"
       ],
       "localImports": [
+        "@/lib/video-generation/director-line-policy",
         "@/components/video-generation/streamlined-video-studio",
         "@/lib/services/capability-status-service",
         "@/lib/auth",
@@ -6909,6 +6913,7 @@
         "@/lib/db",
         "@/lib/video-generation/generation-supervisor",
         "@/lib/video-generation/plan-to-director",
+        "@/lib/video-generation/director-line",
         "@/lib/services/video-service",
         "@/lib/services/voiceover-drive-service",
         "@/lib/services/video-dispatch-idempotency",
@@ -6935,6 +6940,7 @@
         "@/lib/db",
         "@/lib/video-generation/generation-supervisor",
         "@/lib/video-generation/plan-to-director",
+        "@/lib/video-generation/director-line",
         "@/lib/services/video-service",
         "@/lib/services/voiceover-drive-service",
         "@/lib/services/video-dispatch-idempotency",
@@ -9273,6 +9279,7 @@
         "@/lib/video-generation/storyboard-prompt-display",
         "@/lib/video-generation/planning-degradation-notice",
         "@/types/video-generation",
+        "@/lib/video-generation/director-line-policy",
         "@/lib/video-generation/storyboard-frame-inputs",
         "@/components/ui/button",
         "@/components/ui/textarea",
@@ -9285,6 +9292,7 @@
         "@/lib/video-generation/storyboard-prompt-display",
         "@/lib/video-generation/planning-degradation-notice",
         "@/types/video-generation",
+        "@/lib/video-generation/director-line-policy",
         "@/lib/video-generation/storyboard-frame-inputs",
         "@/components/ui/button",
         "@/components/ui/textarea",
@@ -10964,6 +10972,7 @@
     {
       "file": "src/lib/services/stitch-composer.ts",
       "imports": [
+        "@/lib/video-generation/director-line",
         "@/lib/video-generation/brand-signoff",
         "@/types/video-generation",
         "@/lib/db",
@@ -10975,6 +10984,7 @@
         "@/lib/video-generation/assembly-executor"
       ],
       "localImports": [
+        "@/lib/video-generation/director-line",
         "@/lib/video-generation/brand-signoff",
         "@/types/video-generation",
         "@/lib/db",
@@ -11017,6 +11027,7 @@
         "@prisma/client",
         "@/lib/db",
         "@/lib/schemas/director-plan",
+        "@/lib/video-generation/director-plan",
         "@/lib/schemas/unified-input",
         "@/types/video-generation",
         "@/lib/video-generation/brief-delivery-state",
@@ -11034,6 +11045,7 @@
       "localImports": [
         "@/lib/db",
         "@/lib/schemas/director-plan",
+        "@/lib/video-generation/director-plan",
         "@/lib/schemas/unified-input",
         "@/types/video-generation",
         "@/lib/video-generation/brief-delivery-state",
@@ -11248,6 +11260,7 @@
         "@/lib/video-generation/segment-redo",
         "./quota-service",
         "./quota-refund-service",
+        "@/lib/video-generation/director-line",
         "@/lib/video-generation/storyboard-service",
         "@/lib/video-generation/storyboard-beats",
         "./ops-alert-service",
@@ -11273,6 +11286,7 @@
         "@/lib/video-generation/segment-redo",
         "./quota-service",
         "./quota-refund-service",
+        "@/lib/video-generation/director-line",
         "@/lib/video-generation/storyboard-service",
         "@/lib/video-generation/storyboard-beats",
         "./ops-alert-service",
@@ -11717,6 +11731,20 @@
       "externalImports": []
     },
     {
+      "file": "src/lib/video-generation/director-line.ts",
+      "imports": [
+        "@/lib/video-generation/director-plan",
+        "@/lib/video-generation/director-writer",
+        "@/lib/video-generation/director-line-policy"
+      ],
+      "localImports": [
+        "@/lib/video-generation/director-plan",
+        "@/lib/video-generation/director-writer",
+        "@/lib/video-generation/director-line-policy"
+      ],
+      "externalImports": []
+    },
+    {
       "file": "src/lib/video-generation/director-plan.ts",
       "imports": [
         "node:crypto",
@@ -11785,6 +11813,8 @@
         "@/lib/video-generation/input-classifier",
         "@/lib/video-generation/asset-classifier",
         "@/lib/video-generation/creative-strategist",
+        "@/lib/video-generation/director-line",
+        "@/lib/video-generation/director-plan",
         "@/lib/video-generation/consistency-bible",
         "@/lib/video-generation/style-templates",
         "@/lib/video-generation/visual-reference-analysis",
@@ -11804,6 +11834,8 @@
         "@/lib/video-generation/input-classifier",
         "@/lib/video-generation/asset-classifier",
         "@/lib/video-generation/creative-strategist",
+        "@/lib/video-generation/director-line",
+        "@/lib/video-generation/director-plan",
         "@/lib/video-generation/consistency-bible",
         "@/lib/video-generation/style-templates",
         "@/lib/video-generation/visual-reference-analysis",
@@ -12190,6 +12222,9 @@
         "@/lib/video-generation/story-english",
         "@/lib/video-generation/visual-reference-analysis",
         "@/lib/video-generation/storyboard-person-refs",
+        "@/lib/video-generation/director-line",
+        "@/lib/video-generation/director-line-policy",
+        "@/lib/video-generation/director-writer-openai",
         "@/lib/video-generation/planning-degradation"
       ],
       "localImports": [
@@ -12208,6 +12243,9 @@
         "@/lib/video-generation/story-english",
         "@/lib/video-generation/visual-reference-analysis",
         "@/lib/video-generation/storyboard-person-refs",
+        "@/lib/video-generation/director-line",
+        "@/lib/video-generation/director-line-policy",
+        "@/lib/video-generation/director-writer-openai",
         "@/lib/video-generation/planning-degradation"
       ],
       "externalImports": [
@@ -14182,6 +14220,51 @@
         "@prisma/client",
         "next/server",
         "next-auth/next"
+      ]
+    },
+    {
+      "file": "tests/director-line.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "../src/lib/video-generation/director-line",
+        "../src/lib/video-generation/director-line-policy",
+        "../src/lib/video-generation/director-plan",
+        "../src/lib/video-generation/generation-supervisor",
+        "../src/lib/video-generation/plan-to-director",
+        "../src/lib/schemas/director-plan",
+        "../src/lib/video-generation/style-templates",
+        "../src/lib/video-generation/visual-reference-analysis",
+        "../src/lib/video-generation/planning-degradation-notice",
+        "../src/lib/video-generation/planning-degradation",
+        "../src/lib/providers/shuyu-catalog",
+        "../src/types/video-generation",
+        "../src/lib/db",
+        "../src/lib/video-generation/storyboard-service",
+        "../src/lib/video-generation/storyboard-beats"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/director-line",
+        "../src/lib/video-generation/director-line-policy",
+        "../src/lib/video-generation/director-plan",
+        "../src/lib/video-generation/generation-supervisor",
+        "../src/lib/video-generation/plan-to-director",
+        "../src/lib/schemas/director-plan",
+        "../src/lib/video-generation/style-templates",
+        "../src/lib/video-generation/visual-reference-analysis",
+        "../src/lib/video-generation/planning-degradation-notice",
+        "../src/lib/video-generation/planning-degradation",
+        "../src/lib/providers/shuyu-catalog",
+        "../src/types/video-generation",
+        "../src/lib/db",
+        "../src/lib/video-generation/storyboard-service",
+        "../src/lib/video-generation/storyboard-beats"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test"
       ]
     },
     {

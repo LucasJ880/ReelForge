@@ -80,7 +80,9 @@ import {
   QuotaRechargeUnavailableError,
   refundFailedSegmentRedo,
 } from "./quota-refund-service";
+import { directorVideoReferenceUrls, readStoredDirectorScript } from "@/lib/video-generation/director-line";
 import {
+  requireApprovedStoryboardForBrief,
   requireApprovedStoryboardVideoInputsForBrief,
   SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT,
   singleVideoReferenceImageLimitForAdapter,
@@ -487,6 +489,38 @@ export async function dispatchVideoForBrief(
   /// Unified-input / DirectorPlan 管线：有 directorPlan 就用 segmentPlan 直发 Seedance
   ///（含 15s 单段；旧 Sunny Shutter / ScenePlan brief 无 directorPlan，仍走下方 legacy 路径）
   if (brief.directorPlan != null) {
+    /// 导演线路（11-17）：这条片带着一份镜头脚本，段提示词已经是脚本拼出来的整条片，不按故事板改写。
+    /// 参考图照脚本里的 image N 排：实拍图在前、确认过的开场帧最后；张数写进 referenceLayout，重试读同一份。
+    const directorLine = readStoredDirectorScript(
+      (brief.directorPlan as { directorLine?: unknown } | null)?.directorLine,
+    );
+    if (directorLine) {
+      const [openingFrameUrl] = await requireApprovedStoryboardForBrief(briefId);
+      const references = openingFrameUrl
+        ? directorVideoReferenceUrls(directorLine.job, openingFrameUrl)
+        : null;
+      if (!references) {
+        throw new Error("导演线路的镜头脚本缺少参考图地址，无法出片");
+      }
+      const referenceLayout: StoryboardReferenceLayout = {
+        productPhotoCount: references.length - 1,
+        anchorCount: 0,
+        personCount: 0,
+        frameCount: 1,
+        limit: references.length,
+      };
+      await db.videoBrief.update({
+        where: { id: briefId },
+        data: {
+          referenceImageUrls: references,
+          directorPlan: {
+            ...(brief.directorPlan as Record<string, unknown>),
+            referenceLayout,
+          } as unknown as Prisma.InputJsonValue,
+        },
+      });
+      return dispatchMultiSegmentGeneration(briefId, { referenceImageLimit: references.length });
+    }
     /// 参考图 = 商家实拍在前 + 已确认的故事板帧在后（此前只剩故事板帧，模型看不到实拍）。
     /// 写回 brief：分段重试读同一份，首发与重试同参。
     /// 提示词按已确认的故事板改写（商家原话 + 帧序），写回 directorPlan——重试读同一份。
@@ -600,15 +634,15 @@ export async function dispatchMultiSegmentGeneration(
   const postProductionSnapshot = parsedPostProduction.success
     ? parsedPostProduction.data
     : null;
-  const generateAudio =
-    postProductionSnapshot?.audio.voiceover.enabled === true;
-
   let plan: DirectorPlan;
   try {
     plan = parseDirectorPlan(brief.directorPlan);
   } catch (err) {
     throw new Error(`DirectorPlan 解析失败: ${(err as Error).message}`);
   }
+  /// 导演线路的口播、配乐、音效都由出片模型原生给（脚本里写了），所以一定要声音
+  const generateAudio =
+    postProductionSnapshot?.audio.voiceover.enabled === true || plan.directorLine != null;
 
   /// 幂等：已有同 brief 的多段 inflight job → reconcile 后返回
   const inflightExisting = await db.videoJob.findMany({

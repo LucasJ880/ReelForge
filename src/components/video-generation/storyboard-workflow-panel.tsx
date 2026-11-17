@@ -18,6 +18,7 @@ import { storyboardBeatLabel } from "@/lib/video-generation/storyboard-beats";
 import { customerVisibleFramePrompt } from "@/lib/video-generation/storyboard-prompt-display";
 import { planningDegradationNotice } from "@/lib/video-generation/planning-degradation-notice";
 import type { PlanningStage } from "@/types/video-generation";
+import type { DirectorScriptView } from "@/lib/video-generation/director-line-policy";
 import {
   STORYBOARD_FRAME_DIRECTION_MAX,
   STORYBOARD_FRAME_SOURCE_ASSETS_MAX,
@@ -52,6 +53,8 @@ export interface StoryboardRunView {
   canApprove: boolean;
   /** 建故事板时哪几步 AI 没用上、退回了兜底（目前只有镜头卡）；旧响应没有这一项。 */
   degradedStages?: PlanningStage[];
+  /** 导演线路的故事板才有：一张开场画面 + 这份镜头脚本的摘要。老的四 / 五帧故事板没有（null / 缺省）。 */
+  director?: DirectorScriptView | null;
   frames: StoryboardFrameView[];
 }
 
@@ -107,7 +110,9 @@ export function StoryboardWorkflowPanel({
   const approved = run.status === "APPROVED";
   const ready = run.status === "AWAITING_APPROVAL";
   const generatedCount = run.frames.filter((frame) => frame.status === "SUCCEEDED").length;
-  const expectedCount = storyboardFrameTarget(run.durationSec);
+  const director = run.director ?? null;
+  /// 导演线路只出一张开场画面，后面的镜头写在脚本里
+  const expectedCount = director ? 1 : storyboardFrameTarget(run.durationSec);
 
   return (
     <section
@@ -119,7 +124,9 @@ export function StoryboardWorkflowPanel({
         <div className="min-w-0 space-y-1">
           <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
             <h2 id="storyboard-heading" className="text-subhead font-medium">
-              {english ? "Review your storyboard" : "确认视频故事板"}
+              {director
+                ? english ? "Review the opening frame and shot script" : "确认开场画面和镜头脚本"
+                : english ? "Review your storyboard" : "确认视频故事板"}
             </h2>
             <span className="rounded-(--radius-sm) border border-border px-1.5 py-px font-mono text-data text-muted-foreground">
               {english ? "AI storyboard" : "AI 故事板"}
@@ -141,14 +148,28 @@ export function StoryboardWorkflowPanel({
               : run.status === "GENERATING" && generatedCount < expectedCount
                 /// 预期时间（2026-11-10 实测）：页面开着时四帧在 15 秒内全部交出、同时在画，近 21 天 10 轮人工创作
                 /// 都在 1.7–3.3 分钟出齐（中位 2.3 分钟）。只靠后台推进的（批量 / 机器任务）要 4–10 分钟，不在这句话的范围里。
-                ? english
-                  ? `${generatedCount}/${expectedCount} keyframes ready. The frames are drawn at the same time and usually all arrive within 2–3 minutes. You can leave this page; coming back to Create picks this round up again.`
-                  : `关键帧已完成 ${generatedCount}/${expectedCount}。几帧同时在画，一般两三分钟出齐；可以先离开这页，回到「创作」会自动接上这一轮。`
-                : english
-                  ? `${generatedCount}/${expectedCount} keyframes ready. Review every frame before video generation.`
-                  : `关键帧已完成 ${generatedCount}/${expectedCount}。确认每一帧后才会进入视频生成。`}
+                ? director
+                  ? english
+                    ? "The shot script is written; the opening frame is being drawn and usually arrives within a minute or two. You can leave this page; coming back to Create picks this round up again."
+                    : "镜头脚本已经写好，开场画面正在画，一般一两分钟出来；可以先离开这页，回到「创作」会自动接上这一轮。"
+                  : english
+                    ? `${generatedCount}/${expectedCount} keyframes ready. The frames are drawn at the same time and usually all arrive within 2–3 minutes. You can leave this page; coming back to Create picks this round up again.`
+                    : `关键帧已完成 ${generatedCount}/${expectedCount}。几帧同时在画，一般两三分钟出齐；可以先离开这页，回到「创作」会自动接上这一轮。`
+                : director
+                  ? english
+                    ? "The video starts on this frame and then follows the shots on the right, filmed in one go. Check the product in the frame and the lines before generating."
+                    : "成片从这一帧开始，按右边的镜头一次拍完。出片前请看一眼画面里的商品对不对、台词有没有问题。"
+                  : english
+                    ? `${generatedCount}/${expectedCount} keyframes ready. Review every frame before video generation.`
+                    : `关键帧已完成 ${generatedCount}/${expectedCount}。确认每一帧后才会进入视频生成。`}
           </p>
           {/* 镜头卡没写成、分镜退回通用节奏时如实说一句（与方案卡「请注意」同色）；锁定后不再提醒 */}
+          {!approved && run.degradedStages?.includes("director_script") ? (
+            <p className="flex max-w-[62ch] items-start gap-1.5 text-meta text-warning" data-testid="storyboard-director-degraded-notice">
+              <Info className="mt-0.5 size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
+              <span>{planningDegradationNotice("director_script", english ? "en" : "zh")}</span>
+            </p>
+          ) : null}
           {!approved && run.degradedStages?.includes("shot_cards") ? (
             <p className="flex max-w-[62ch] items-start gap-1.5 text-meta text-warning" data-testid="storyboard-degraded-notice">
               <Info className="mt-0.5 size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
@@ -163,7 +184,12 @@ export function StoryboardWorkflowPanel({
 
       {/* 关键帧是一面接缝墙：一帧一格，正在绘制的那一格带生成光束 */}
       <div
-        className={cn("x-wall grid-cols-2", expectedCount === 5 ? "lg:grid-cols-5" : "lg:grid-cols-4")}
+        className={cn(
+          "x-wall",
+          director
+            ? "grid-cols-1 md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]"
+            : cn("grid-cols-2", expectedCount === 5 ? "lg:grid-cols-5" : "lg:grid-cols-4"),
+        )}
         data-testid="storyboard-frame-grid"
       >
         {Array.from({ length: expectedCount }, (_, ordinal) => {
@@ -257,7 +283,8 @@ export function StoryboardWorkflowPanel({
                     ordinal={ordinal}
                     english={english}
                     draft={draft}
-                    referenceOptions={referenceOptions}
+                    /// 导演线路的脚本是按这几张商品图写的，开场画面不能单独换图（服务端也会拒绝）
+                    referenceOptions={director ? [] : referenceOptions}
                     disabled={regenDisabled}
                     onChange={(patch) => updateDraft(ordinal, patch)}
                   />
@@ -284,8 +311,9 @@ export function StoryboardWorkflowPanel({
             </article>
           );
         })}
+        {director ? <DirectorScriptCard script={director} english={english} /> : null}
         {/* 窄屏两列时 5 帧会空出一格：补一格同色面板，接缝墙不露底 */}
-        {expectedCount % 2 === 1 ? <div aria-hidden className="lg:hidden" /> : null}
+        {!director && expectedCount % 2 === 1 ? <div aria-hidden className="lg:hidden" /> : null}
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -303,11 +331,52 @@ export function StoryboardWorkflowPanel({
         ) : (
           <Button type="button" disabled={!ready || !run.canApprove || approving || Boolean(busyFrameId)} onClick={onApprove}>
             {approving ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden /> : <Check aria-hidden />}
-            {english ? "Approve all frames" : "确认全部分镜"}
+            {director
+              ? english ? "Approve frame and script" : "确认开场画面和脚本"
+              : english ? "Approve all frames" : "确认全部分镜"}
           </Button>
         )}
       </div>
     </section>
+  );
+}
+
+/**
+ * 导演线路的镜头脚本摘要：每个镜头的时间、这一镜念的台词、画面里发生什么。台词是成片里会念出来、也会烧成字幕的原文；
+ * 画面说明是写给出片模型的英文原文，放小一号给想细看的人。
+ */
+function DirectorScriptCard({ script, english }: { script: DirectorScriptView; english: boolean }) {
+  return (
+    <article className="flex min-w-0 flex-col gap-3 p-4" data-testid="director-script-card">
+      <div className="space-y-1">
+        <h3 className="text-body font-medium text-foreground">
+          {english ? `Shot script · ${script.shots.length} shots` : `镜头脚本 · ${script.shots.length} 个镜头`}
+        </h3>
+        {script.scenario ? (
+          <p className="max-w-[70ch] text-meta text-muted-foreground">
+            {english ? "Scene: " : "场景："}
+            {[script.scenario.who, script.scenario.where, script.scenario.moment].filter(Boolean).join(" · ")}
+          </p>
+        ) : null}
+      </div>
+      <ol className="divide-y divide-border" data-testid="director-script-shots">
+        {script.shots.map((shot) => (
+          <li key={shot.index} className="grid grid-cols-[4.75rem_minmax(0,1fr)] gap-x-3 py-2">
+            <span className="font-mono text-data tabular-nums text-muted-foreground">
+              {shot.fromSec}–{shot.toSec}{english ? "s" : " 秒"}
+            </span>
+            <div className="min-w-0 space-y-0.5">
+              {shot.line ? (
+                <p className="text-body text-foreground">「{shot.line}」</p>
+              ) : (
+                <p className="text-meta text-tertiary">{english ? "No line in this shot" : "这一镜没有台词"}</p>
+              )}
+              <p className="text-micro leading-relaxed text-muted-foreground">{shot.action}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </article>
   );
 }
 

@@ -152,7 +152,9 @@ test("创作页接线：空白页才摆最近的商品；三段进度跟着真�
   assert.match(studio, /<Link\s+href=\{source\.href\}/);
   const createPage = readFileSync("src/app/(platform)/app/create/page.tsx", "utf8");
   assert.match(createPage, /`\/app\/create\?retry=\$\{encodeURIComponent\(shortcut\.id\)\}`/, "走「再做一条」同一条路");
-  assert.match(studio, /const storyboardStage = busy !== "storyboard" \? null : planningShots \? \(voiceoverDrafting \? 0 : 1\) : 2;/);
+  /// 导演线路（11-17）只有两段：写镜头脚本 → 出开场画面；老线路仍是三段
+  assert.match(studio, /const storyboardStage = busy !== "storyboard" \? null : directorMode \? 0 : planningShots \? \(voiceoverDrafting \? 0 : 1\) : 2;/);
+  assert.match(studio, /directorStages: \["写镜头脚本（约 1–3 分钟）", "出开场画面"\]/);
   assert.match(studio, /data-testid="storyboard-stages"/);
   assert.match(studio, /stages: \["写口播稿", "排镜头（约 40–60 秒）", "出故事板画面"\]/);
   assert.match(studio, /setRawPrompt\(applyProductSize\(rawPrompt, event\.target\.value, english \? "en" : "zh"\)\);\s+invalidatePlan\(\);/);

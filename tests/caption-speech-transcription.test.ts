@@ -128,7 +128,9 @@ test("任何失败都只是返回 null：没密钥、没权限、超时、读不
 
 test("生产入口按开关注入识别器；管线自己不认识供应商", () => {
   const service = readFileSync("src/lib/services/stitch-service.ts", "utf8");
-  assert.match(service, /transcribeSpeech: captionSpeechAlignEnabled\(\)\s+\? \(\{ audioPath, language \}\) => transcribeSpeechWithOpenAi\(\{ audioPath, language \}\)\s+: null,/);
+  /// 11-17：导演线路带着脚本的台词时间——识别不到（或没开识别）就按脚本排；两样都没有才不给识别器
+  assert.match(service, /transcribeSpeech:\s+captionSpeechAlignEnabled\(\) \|\| scriptWords\s+\? async \(\{ audioPath, language \}\) => \{/);
+  assert.match(service, /const heard = captionSpeechAlignEnabled\(\)\s+\? await transcribeSpeechWithOpenAi\(\{ audioPath, language \}\)\.catch\(\(\) => null\)\s+: null;\s+return heard \?\? scriptWords;/);
   const pipeline = readFileSync("src/lib/media/stitch-pipeline.ts", "utf8");
   assert.ok(!/from "@\/lib\/providers\//.test(pipeline), "管线是纯合成：不引任何供应商模块，识别谁来做由调用方定");
   const provider = readFileSync("src/lib/providers/openai-transcription.ts", "utf8");

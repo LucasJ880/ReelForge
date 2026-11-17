@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T16:12:39.822Z",
+  "generatedAt": "2026-11-17T16:44:40.880Z",
   "areas": {
     "unknown": [
       ".claude/launch.json",
@@ -1371,6 +1371,8 @@
       "src/lib/video-generation/creative-recipe.ts",
       "src/lib/video-generation/creative-strategist.ts",
       "src/lib/video-generation/detect-script-language.ts",
+      "src/lib/video-generation/director-line-policy.ts",
+      "src/lib/video-generation/director-line.ts",
       "src/lib/video-generation/director-plan.ts",
       "src/lib/video-generation/director-writer-openai.ts",
       "src/lib/video-generation/director-writer.ts",
@@ -1562,6 +1564,7 @@
       "tests/detect-script-language.test.ts",
       "tests/direct-dispatch-quota-compensation.test.ts",
       "tests/direct-seedance-retired-legacy-rows.test.ts",
+      "tests/director-line.test.ts",
       "tests/director-plan-schema.test.ts",
       "tests/director-plan.test.ts",
       "tests/director-writer.test.ts",

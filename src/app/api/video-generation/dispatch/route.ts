@@ -25,6 +25,7 @@ import {
 import { db } from "@/lib/db";
 import { buildPlan } from "@/lib/video-generation/generation-supervisor";
 import { mapPlanToDirectorPlan } from "@/lib/video-generation/plan-to-director";
+import { packDirectorScript } from "@/lib/video-generation/director-line";
 import { dispatchVideoForBrief } from "@/lib/services/video-service";
 import { evaluateVoiceoverDrive } from "@/lib/services/voiceover-drive-service";
 import {
@@ -58,6 +59,7 @@ import {
 } from "@/lib/services/media-asset-service";
 import type { UnifiedVideoGenerationRequest } from "@/types/video-generation";
 import {
+  readStoryboardDirectorScriptForUser,
   readStoryboardVisualReferenceForUser,
   getApprovedStoryboardVideoReferences,
   StoryboardRequestError,
@@ -295,11 +297,19 @@ export async function POST(req: NextRequest) {
 
   /// Phase 1：始终服务端重建 plan 防 UI tamper
   let plan: Awaited<ReturnType<typeof buildPlan>>;
+  /// 导演线路（11-17）：这轮故事板带着一份镜头脚本 → 方案不再调模型，整条片一个 AI 段，提示词就是脚本拼出来的
+  let directorScript: Awaited<ReturnType<typeof readStoryboardDirectorScriptForUser>> = null;
   try {
+    directorScript = await readStoryboardDirectorScriptForUser(session.user.id, body?.storyboardRunId);
     /// 出方案并成一次（11-09）：建故事板时已经看过商品图，盘点存在 run 上（只读本人的 run）。
     /// 读得到就不再重新看图；读不到（旧故事板、没有商品图）照旧现看。
-    const storedVisualRefs = await readStoryboardVisualReferenceForUser(session.user.id, body?.storyboardRunId);
-    plan = await buildPlan(request, storedVisualRefs ? { visualRefs: storedVisualRefs } : {});
+    const storedVisualRefs = directorScript
+      ? null
+      : await readStoryboardVisualReferenceForUser(session.user.id, body?.storyboardRunId);
+    plan = await buildPlan(request, {
+      ...(storedVisualRefs ? { visualRefs: storedVisualRefs } : {}),
+      ...(directorScript ? { director: { job: directorScript.job } } : {}),
+    });
   } catch (err) {
     /// 客户可见 error 走友好文案；详细 message 仅写日志 / dev 调试
     console.error("[/api/video-generation/dispatch] buildPlan failed", err);
@@ -610,6 +620,13 @@ export async function POST(req: NextRequest) {
       plan,
       language: request.language ?? "en",
     });
+    if (directorScript) {
+      /// 脚本随 brief 走：派发不按故事板改写提示词、参考图按脚本的 image N 排、合成按台词时间烧字幕，都读这一份
+      directorPlanJson = {
+        ...directorPlanJson,
+        directorLine: packDirectorScript(directorScript),
+      };
+    }
   } catch (error) {
     console.error("[dispatch] director plan mapping failed", {
       requestId: dispatchRequestId,
@@ -643,7 +660,8 @@ export async function POST(req: NextRequest) {
       return (
         !Number.isInteger(segment.durationSec) ||
         segment.durationSec < 5 ||
-        segment.durationSec > 15 ||
+        /// 老的分段出片一段最多 15 秒；导演线路整条一次生成，到 30 秒
+        segment.durationSec > (directorScript ? 30 : 15) ||
         !mergedPrompt.trim() ||
         mergedPrompt.length > 5_000
       );

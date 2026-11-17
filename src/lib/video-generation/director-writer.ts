@@ -124,6 +124,9 @@ export interface DirectorWriterDeps {
   maxVideoPhotos?: number;
   /// 每一稿查完叫一次：命令行打进度、线上记日志用
   onAttempt?: (event: { attempt: number; outcome: "clean" | "send_back" | "invalid"; problems: string[] }) => void;
+  /// 线上有时间预算：每一稿查完问一次，返回 true 就不再改下一稿——这一稿当最后一稿处理
+  ///（只剩提醒照样交付，还有错误才算失败）。不给 = 写满三稿。
+  outOfTime?: () => boolean;
 }
 
 /** 给模型看的图、带给出片模型的图都不超过这个数：参考图 + 开场帧 ≤ 9（Shuyu 适配器的硬顶）。 */
@@ -343,7 +346,15 @@ Prove ONE core selling point as action -> visible result (not "absorbs well": a 
 7 LENGTH
 The assembled prompt has a hard limit of 4,800 characters; aim for 240 per second. Per shot over all fields: about 300 characters at 15 s, 220 at 30 s (one short sentence per field). Photo roles under 100.
 
-8 OUTPUT: one JSON object with exactly the keys of the example. Limits in characters: shot fields 8-320; role 12-280; openingFrame 60-1500; openingState 20-600; endState 12-400; any other text 8-200. productType and genre: a name from above plus a one-line reason.`;
+8 PLACE TOUR (factory, workshop, store, showroom)
+When the brief asks to show a place rather than a product in use, film a first-person walk through the real spaces in the photos, in the order a visitor meets them.
+- Those photos are kind scene: point each space's shot at its photo and keep buildings, signs and layouts exactly as photographed. A product photo, if given, stays kind product.
+- Card: who = the visitor (the buyer) and the host, where = the place, moment = walking in, trouble = what a buyer doubts before seeing it, after = what they have now seen, emotion = trust.
+- Hook = the walk toward the entrance. Alternate wide walking shots with hands-only close-ups of the work; workers are seen from behind or as hands.
+- openingFrame = the first place photo, described as it is. End on the product hold if a product photo is given, otherwise on the last space, still.
+- Lines are a host's tour narration: what this space is, one fact per shot, only facts from the brief.
+
+9 OUTPUT: one JSON object with exactly the keys of the example. Limits in characters: shot fields 8-320; role 12-280; openingFrame 60-1500; openingState 20-600; endState 12-400; any other text 8-200. productType and genre: a name from above plus a one-line reason.`;
 
 const DIRECTOR_WRITER_EXAMPLE_BRIEF = `EXAMPLE (cut to ${DIRECTOR_WRITER_EXAMPLE_DURATION_SEC} s and four shots to save space; brief: double-sided blanket, fine pile one side, sherpa the other, warm, no shedding; 2 photos; 9:16; Mandarin)`;
 
@@ -534,8 +545,9 @@ function planPhotos(draft: DirectorDraft, photoCount: number, maxVideoPhotos: nu
   /// 实拍商品图在前；同一类里按给图的顺序。超过上限的丢掉后面的——脚本里还指着它的话，下面会报出来
   const ordered = [...usable.filter((photo) => photo.kind === "product"), ...usable.filter((photo) => photo.kind !== "product")];
   const selected = ordered.slice(0, maxVideoPhotos);
-  if (!selected.some((photo) => photo.kind === "product")) {
-    errors.push("photos 里至少要有一张 kind = product 且 useInVideo = true 的图：出片没有实拍图，商品会走样");
+  /// 商品片要有实拍商品图；探厂 / 探店这类拍场所的片可以只有场景图（kind = scene）
+  if (selected.length === 0) {
+    errors.push("photos 里至少要有一张 useInVideo = true 的实拍图（商品写 kind = product，场所写 kind = scene）：出片没有实拍图，画面会走样");
   }
   return { selected, errors };
 }
@@ -755,7 +767,7 @@ export async function writeDirectorJob(input: DirectorWriterInput, deps: Directo
       return { ok: false, reason: "model_unavailable", attempts: attempt, lastErrors: [errorText(error)] };
     }
     const evaluation = evaluateDraft(raw, brief, { jobId, maxVideoPhotos });
-    const last = attempt === DIRECTOR_WRITER_MAX_ATTEMPTS;
+    const last = attempt === DIRECTOR_WRITER_MAX_ATTEMPTS || deps.outOfTime?.() === true;
 
     if (evaluation.kind === "invalid") {
       deps.onAttempt?.({ attempt, outcome: "invalid", problems: evaluation.problems });

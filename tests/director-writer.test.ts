@@ -823,11 +823,20 @@ test("系统提示词：关键规矩都在，英文，长度有数", () => {
   }
   /// 十种商品类型一种不少，各占一行
   for (const type of DIRECTOR_PRODUCT_TYPES) assert.match(prompt, new RegExp(`^${type}[ :(]`, "mu"), `类型卡少了 ${type}`);
-  /// 英文：中日韩文字只出现在示例的台词里，和开头那句「校验的话可能是中文」的两个词
-  const withoutLines = prompt.replace(/\\"[^"\\]*\\"/gu, "").replace("镜头 N = shot N, 帧 opening = openingFrame", "");
-  assert.doesNotMatch(withoutLines, /[㐀-鿿]/u);
+  /// 英文：规矩全文不带中日韩文字（除了开头那句「校验的话可能是中文」的两个词）；示例草稿里中文只出现在三处——
+  /// 台词、给商家看的每镜一句话（note）、场景卡（11-17：这两样要用商家的语言写，示例就得这么示范）
+  const rules = prompt.slice(0, prompt.indexOf(JSON.stringify(DIRECTOR_WRITER_EXAMPLE_DRAFT))).replace("镜头 N = shot N, 帧 opening = openingFrame", "");
+  assert.doesNotMatch(rules.replace(/"[^"\n]*[㐀-鿿][^"\n]*"/gu, ""), /[㐀-鿿]/u, "规矩正文里不该有中文（示例的商家描述在引号里，不算）");
+  const { scenario, shots, ...restOfExample } = DIRECTOR_WRITER_EXAMPLE_DRAFT;
+  const visualOnly = JSON.stringify({ ...restOfExample, shots: shots.map((shot) => ({ ...shot, note: undefined, sound: shot.sound.replace(/"[^"]*"/gu, "") })) });
+  assert.doesNotMatch(visualOnly, /[㐀-鿿]/u, "写给出片模型的画面描述必须全英文");
+  assert.match(JSON.stringify(scenario), /[㐀-鿿]/u, "场景卡用商家的语言");
+  assert.ok(shots.every((shot) => shot.note && /[㐀-鿿]/u.test(shot.note)), "每个镜头都有一句给商家看的中文说明");
+  for (const phrase of ["Each shot also has note", "never sent to the video model", "Write the scenario card in the merchant's language too."]) {
+    assert.ok(prompt.includes(phrase), `系统提示词里少了：${phrase}`);
+  }
   /// 目标是 9,000 字上下；现在略超（一份自己过得了校验的完整示例占三千多字；11-17 加了探厂 / 探店一节约一千字），别再往上长
-  assert.ok(prompt.length < 11_200, `系统提示词 ${prompt.length} 字`);
+  assert.ok(prompt.length < 11_600, `系统提示词 ${prompt.length} 字`);
   assert.ok(prompt.endsWith(JSON.stringify(DIRECTOR_WRITER_EXAMPLE_DRAFT)));
 });
 

@@ -314,7 +314,8 @@ function withDirectorVoiceover(base: PostProductionPlan, job: DirectorJob, rawPr
   return {
     ...base,
     audio: {
-      ...base.audio,
+      /// 配乐随片子一起出（脚本里写了 music）：曲库的曲子不再混进去，不然两段音乐叠在一起
+      bgm: { trackId: "none", volume: 0 },
       voiceover: { ...base.audio.voiceover, enabled: true, language, script, drive: "native" },
     },
     captions: { ...base.captions, language },

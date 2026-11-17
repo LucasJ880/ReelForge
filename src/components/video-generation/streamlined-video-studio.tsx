@@ -170,6 +170,10 @@ const ZH_COPY = {
   summaryBgm: "配乐",
   audioHint: "口播由成片直接说出，口播稿可随时修改；字幕在成片完成后按实际时长生成。",
   summaryVoiceover: "口播",
+  summaryDirectorAudio: "AI 配音配乐",
+  summaryCornerLogo: "右上角 Logo",
+  directorStepScript: "AI 写镜头脚本",
+  directorStepApprove: "确认画面和脚本",
   summaryCaptions: "字幕",
   on: "开",
   off: "关",
@@ -327,6 +331,10 @@ const EN_COPY: StudioCopy = {
   summaryBgm: "Music",
   audioHint: "The video speaks your editable script; captions are timed to the finished video.",
   summaryVoiceover: "Voiceover",
+  summaryDirectorAudio: "AI voice and music",
+  summaryCornerLogo: "Corner logo",
+  directorStepScript: "AI writes the shot script",
+  directorStepApprove: "Approve frame and script",
   summaryCaptions: "Captions",
   on: "On",
   off: "Off",
@@ -607,6 +615,8 @@ export function StreamlinedVideoStudio({
   const storyboardAttemptRef = useRef<StoredAttempt | null>(null);
   const dispatchAttemptRef = useRef<StoredAttempt | null>(null);
   const voiceoverEditedRef = useRef(initialVoiceoverScript.trim().length > 0);
+  /// 同一件事的可渲染版本：导演线路下只显示、只交给 AI 商家自己写 / 改过的口播稿（模板自动起的那份不算）
+  const [ownVoiceoverScript, setOwnVoiceoverScript] = useState(initialVoiceoverScript.trim().length > 0);
   /// 用户一旦改动任何创作输入，挂载时的静默恢复就必须放弃，避免覆盖新意图。
   const interactedRef = useRef(false);
   /// 表单现在是不是已经有用户的内容（描述变了、有商品图 / 参考图、正在上传）。恢复请求要先跟供应商对账，
@@ -964,6 +974,7 @@ export function StreamlinedVideoStudio({
     setAudioCaptionSettings((current) => {
       if (next.voiceoverScript !== current.voiceoverScript) {
         voiceoverEditedRef.current = true;
+        setOwnVoiceoverScript(true);
       }
       return next;
     });
@@ -1422,7 +1433,7 @@ export function StreamlinedVideoStudio({
       /// 口播稿只给镜头卡排镜头用，不算进提交指纹：改了口播稿再点，照旧回放同一份故事板，不重出一套付费帧。
       /// 导演线路：只有商家自己写过 / 改过的口播稿才交给 AI 照着排；模板自动生成的稿子不带（AI 会按商品自己写台词）
       const narration = directorMode
-        ? (voiceoverEnabled && voiceoverEditedRef.current ? voiceoverScript.trim() : "")
+        ? (ownVoiceoverScript ? voiceoverScript.trim() : "")
         : request.audio?.voiceover?.enabled ? request.audio.voiceover.script.trim() : "";
       const response = await fetch("/api/video-generation/storyboards", {
         method: "POST",
@@ -1798,7 +1809,10 @@ export function StreamlinedVideoStudio({
   const capabilityDegraded = shotsFromTemplate;
   /// 选了配乐就在「更多设置」的摘要里写出是哪一首：收起来也看得见这条片会带音乐
   const bgmTrack = bgmTrackId === "none" ? null : BGM_CATALOG.find((track) => track.id === bgmTrackId) ?? null;
-  const moreSummary = `${copy.summaryVoiceover} ${voiceoverEnabled ? copy.on : copy.off} · ${copy.summaryCaptions} ${captionsEnabled ? copy.on : copy.off}${bgmTrack ? ` · ${copy.summaryBgm} ${bgmTrack[english ? "en" : "zh"]}` : ""}${signoffEnabled ? ` · ${copy.summarySignoff} ${copy.on}` : ""}`;
+  /// 导演线路的配音配乐随片子出，摘要里不再写「口播 开 / 关」和曲库
+  const moreSummary = directorMode
+    ? `${copy.summaryDirectorAudio} · ${copy.summaryCaptions} ${captionsEnabled ? copy.on : copy.off}${cornerLogo && signoffLogoUrl ? ` · ${copy.summaryCornerLogo}` : ""}${signoffEnabled ? ` · ${copy.summarySignoff} ${copy.on}` : ""}`
+    : `${copy.summaryVoiceover} ${voiceoverEnabled ? copy.on : copy.off} · ${copy.summaryCaptions} ${captionsEnabled ? copy.on : copy.off}${bgmTrack ? ` · ${copy.summaryBgm} ${bgmTrack[english ? "en" : "zh"]}` : ""}${signoffEnabled ? ` · ${copy.summarySignoff} ${copy.on}` : ""}`;
 
   /// 错误与额度提醒：没有故事板时贴在提示卡下面，有故事板时进底部操作条——同一份元素只渲染一处
   const statusNotices = (
@@ -1888,6 +1902,10 @@ export function StreamlinedVideoStudio({
     </div>
   );
 
+  /// 导演线路的第 3、4 步说的是「AI 写镜头脚本」「确认画面和脚本」，不是逐帧出故事板
+  const workflowSteps = directorMode || storyboard?.director
+    ? copy.guideSteps.map((step, index) => (index === 2 ? copy.directorStepScript : index === 3 ? copy.directorStepApprove : step))
+    : copy.guideSteps;
   /// 五步流程（与首用提示同一个来源）：一页只有一套步骤，当前一步只有一个
   const workflowRail = (
     <ol
@@ -1895,7 +1913,7 @@ export function StreamlinedVideoStudio({
       className="flex flex-wrap items-center justify-center gap-1"
       data-testid="creation-workflow-rail"
     >
-      {copy.guideSteps.map((step, index) => {
+      {workflowSteps.map((step, index) => {
         const state = index < stageIndex ? "done" : index === stageIndex ? "current" : "pending";
         return (
           <li
@@ -2414,6 +2432,8 @@ export function StreamlinedVideoStudio({
               regenerating={voiceoverDrafting}
               draftFromTemplate={narrationFromTemplate}
               draftFellBack={voiceoverDraftFellBack}
+              directorMode={directorMode}
+              ownScript={ownVoiceoverScript}
             />
           </TicketRow>
           {/* 右上角 Logo（2026-11-17）：全程挂一个透明的图形角标，和导演线路的交付样式一样。每条单独勾、默认不带；
@@ -2637,11 +2657,11 @@ export function StreamlinedVideoStudio({
             </Button>
           </div>
           {/* 有故事板之后的操作条：贴底常驻（窄屏也看得到唯一的主按钮） */}
-          {/* bg-card 才是不透明的面板色：原来写的 bg-surface 在主题里没有定义，操作条其实是透明的，
-              滚动时下面的镜头清单会透上来和它叠在一起（2026-11-17 线上实测） */}
+          {/* 操作条浮在面板之上，用更亮一级的抬升色（bg-raised）。原来写的 bg-surface 当时在主题里没有定义，
+              操作条其实是透明的，滚动时下面的镜头清单会透上来和它叠在一起（2026-11-17 线上实测） */}
           <div
             data-testid="storyboard-sticky-bar"
-            className="sticky bottom-20 z-10 space-y-3 rounded-(--radius-card) border border-border bg-card p-3 shadow-(--shadow-card) md:bottom-10"
+            className="sticky bottom-20 z-10 space-y-3 rounded-(--radius-card) border border-border-strong bg-raised p-3 shadow-(--shadow-card) md:bottom-10"
           >
             {statusNotices}
             <div className="flex flex-wrap items-center gap-3">

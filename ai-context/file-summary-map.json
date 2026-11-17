@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T18:06:52.352Z",
+  "generatedAt": "2026-11-17T18:38:27.294Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -9827,8 +9827,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 430,
-      "sizeBytes": 29448,
+      "lineCount": 433,
+      "sizeBytes": 30081,
       "notes": "Documentation"
     },
     {
@@ -10170,17 +10170,6 @@
       "importantSymbols": [],
       "lineCount": 51,
       "sizeBytes": 3231,
-      "notes": "Documentation"
-    },
-    {
-      "path": "docs/PET_CONTENT_KIT_60S_DEMO_VIDEO.md",
-      "type": "doc",
-      "area": "shared",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 58,
-      "sizeBytes": 3500,
       "notes": "Documentation"
     },
     {
@@ -10711,8 +10700,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 156,
-      "sizeBytes": 15283,
+      "lineCount": 181,
+      "sizeBytes": 17808,
       "notes": "Documentation"
     },
     {
@@ -14846,8 +14835,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 374,
-      "sizeBytes": 21242,
+      "lineCount": 393,
+      "sizeBytes": 22872,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -19618,8 +19607,8 @@
         "captionStyleSelectValue",
         "generateVoiceoverScript"
       ],
-      "lineCount": 563,
-      "sizeBytes": 25323,
+      "lineCount": 602,
+      "sizeBytes": 27648,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -19742,8 +19731,8 @@
         "StoryboardWorkflowPanel",
         "storyboardFrameTarget"
       ],
-      "lineCount": 492,
-      "sizeBytes": 24784,
+      "lineCount": 495,
+      "sizeBytes": 25010,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -19790,8 +19779,8 @@
         "StudioReadings",
         "StreamlinedVideoStudio"
       ],
-      "lineCount": 3046,
-      "sizeBytes": 140377,
+      "lineCount": 3066,
+      "sizeBytes": 141832,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -20150,8 +20139,8 @@
         "PlatformCopy",
         "getPlatformCopy"
       ],
-      "lineCount": 982,
-      "sizeBytes": 63916,
+      "lineCount": 993,
+      "sizeBytes": 64815,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -21881,14 +21870,16 @@
       "type": "util",
       "area": "shared",
       "exports": [
-        "libraryDisplayTitle"
+        "libraryDisplayTitle",
+        "libraryHeadline"
       ],
       "imports": [],
       "importantSymbols": [
-        "libraryDisplayTitle"
+        "libraryDisplayTitle",
+        "libraryHeadline"
       ],
-      "lineCount": 11,
-      "sizeBytes": 619,
+      "lineCount": 25,
+      "sizeBytes": 1507,
       "notes": "Utility / helper module"
     },
     {
@@ -25570,8 +25561,8 @@
         "directorLineEnabled",
         "directorLineApplies"
       ],
-      "lineCount": 67,
-      "sizeBytes": 2822,
+      "lineCount": 70,
+      "sizeBytes": 3040,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -25614,8 +25605,8 @@
         "DirectorLineWriteResult",
         "DirectorLineWriteDeps"
       ],
-      "lineCount": 293,
-      "sizeBytes": 12764,
+      "lineCount": 303,
+      "sizeBytes": 13377,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -25744,8 +25735,8 @@
         "DirectorWriterDeps",
         "DIRECTOR_WRITER_PHOTOS_MAX"
       ],
-      "lineCount": 852,
-      "sizeBytes": 46929,
+      "lineCount": 865,
+      "sizeBytes": 48050,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -25818,8 +25809,8 @@
         "buildPlan",
         "__test__"
       ],
-      "lineCount": 347,
-      "sizeBytes": 14346,
+      "lineCount": 348,
+      "sizeBytes": 14496,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -27216,8 +27207,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 358,
-      "sizeBytes": 14678,
+      "lineCount": 361,
+      "sizeBytes": 15003,
       "notes": "Stylesheet"
     },
     {
@@ -28113,8 +28104,8 @@
         "../src/lib/guide/guide-articles"
       ],
       "importantSymbols": [],
-      "lineCount": 69,
-      "sizeBytes": 4115,
+      "lineCount": 70,
+      "sizeBytes": 4322,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -28716,8 +28707,8 @@
         "../src/lib/create/storyboard-resume"
       ],
       "importantSymbols": [],
-      "lineCount": 81,
-      "sizeBytes": 5909,
+      "lineCount": 82,
+      "sizeBytes": 6091,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -29042,8 +29033,8 @@
       "importantSymbols": [
         "expectedStoryboardFrameCount"
       ],
-      "lineCount": 530,
-      "sizeBytes": 27295,
+      "lineCount": 565,
+      "sizeBytes": 30001,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -29094,8 +29085,8 @@
         "../src/lib/video-generation/director-writer-openai"
       ],
       "importantSymbols": [],
-      "lineCount": 1101,
-      "sizeBytes": 63309,
+      "lineCount": 1110,
+      "sizeBytes": 64439,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -29844,13 +29835,14 @@
       "area": "tests",
       "exports": [],
       "imports": [
+        "node:fs",
         "node:test",
         "node:assert/strict",
         "../src/lib/library/display-title"
       ],
       "importantSymbols": [],
-      "lineCount": 15,
-      "sizeBytes": 765,
+      "lineCount": 35,
+      "sizeBytes": 2445,
       "notes": "Unit / integration test; area=tests"
     },
     {

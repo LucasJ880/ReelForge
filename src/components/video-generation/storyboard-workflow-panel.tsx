@@ -371,7 +371,10 @@ function DirectorScriptCard({ script, english }: { script: DirectorScriptView; e
               ) : (
                 <p className="text-meta text-tertiary">{english ? "No line in this shot" : "这一镜没有台词"}</p>
               )}
-              <p className="text-micro leading-relaxed text-muted-foreground">{shot.action}</p>
+              {/* 有中文说明就只显示它；英文原文是写给出片模型的，旧脚本没有说明时才露出来 */}
+              <p className={shot.note ? "text-meta text-muted-foreground" : "text-micro leading-relaxed text-muted-foreground"}>
+                {shot.note ?? shot.action}
+              </p>
             </div>
           </li>
         ))}

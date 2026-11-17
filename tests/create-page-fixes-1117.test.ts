@@ -56,17 +56,18 @@ test("创作页接线：恢复按请求回来那一刻的表单现状判断；�
   assert.match(library, /href="\/app\/create\?resume=1"\s+data-testid="library-pending-storyboard"/);
 });
 
-test("贴底操作条有不透明的底色：用主题里真有的颜色，不用没定义的 bg-surface", () => {
+test("贴底操作条有不透明的底色：用主题里真有的颜色；bg-surface 也补进了主题", () => {
   const studio = readFileSync("src/components/video-generation/streamlined-video-studio.tsx", "utf8");
   const bar = /data-testid="storyboard-sticky-bar"\s+className="([^"]+)"/.exec(studio);
   assert.ok(bar, "找不到贴底操作条");
   assert.match(bar[1]!, /\bsticky\b/);
-  assert.match(bar[1]!, /\bbg-card\b/);
-  assert.doesNotMatch(bar[1]!, /bg-surface/);
-  /// bg-card 在主题里有定义，而且指向不透明的面板色
+  /// 操作条浮在面板之上：抬升色（不透明），在主题里有定义
+  assert.match(bar[1]!, /\bbg-raised\b/);
   const tokens = readFileSync("src/styles/tokens.css", "utf8");
-  assert.match(tokens, /--color-card: var\(--card\);/);
-  assert.match(tokens, /--card: var\(--surface\);/);
+  assert.match(tokens, /--color-raised: var\(--surface-raised\);/);
+  assert.match(tokens, /--surface-raised: #[0-9a-f]{6};/i);
+  /// 主题里每一个写得出来的面板色工具类都要有定义：bg-surface 之前漏了，五处卡片因此是透明的
+  assert.match(tokens, /--color-surface: var\(--surface\);/);
   assert.match(tokens, /--surface: #[0-9a-f]{6};/i);
 });
 

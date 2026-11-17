@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T18:06:52.358Z",
+  "generatedAt": "2026-11-17T18:38:27.303Z",
   "areas": {
     "unknown": [
       ".claude/launch.json",
@@ -901,7 +901,6 @@
       "docs/AI_VIDEO_DEMO_PAGE_AND_VIDEO_PLAN.md",
       "docs/DEPLOYMENT.md",
       "docs/MANUAL_WALKTHROUGH.md",
-      "docs/PET_CONTENT_KIT_60S_DEMO_VIDEO.md",
       "docs/PHASE_4_REAL_TEST_RUNBOOK.md",
       "docs/REAL_FOOTAGE_AD_AGENT_60S_DEMO_VIDEO.md",
       "docs/REAL_FOOTAGE_AD_AGENT_CUSTOMER_TRIAL_TEMPLATE.md",

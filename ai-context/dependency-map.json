@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T18:06:52.356Z",
+  "generatedAt": "2026-11-17T18:38:27.301Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -15048,6 +15048,7 @@
     {
       "file": "tests/library-display-title.test.ts",
       "imports": [
+        "node:fs",
         "node:test",
         "node:assert/strict",
         "../src/lib/library/display-title"
@@ -15056,6 +15057,7 @@
         "../src/lib/library/display-title"
       ],
       "externalImports": [
+        "node:fs",
         "node:test",
         "node:assert/strict"
       ]

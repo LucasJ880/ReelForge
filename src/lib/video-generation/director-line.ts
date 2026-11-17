@@ -43,6 +43,8 @@ export interface StoredDirectorScript {
   attempts: number;
   /// 交付时还留着的提醒（不拦的那些），给运维看
   warnings: string[];
+  /// 每个镜头给商家看的一句话（商家的语言），与 job.video.shots 一一对应；旧脚本 / 模型没写 = null
+  shotNotes: Array<string | null>;
 }
 
 /** 故事板出图一次最多带几张参考图（Shuyu 图像档的硬顶是 6）。实拍图超过这个数只用前几张。 */
@@ -60,6 +62,7 @@ export function packDirectorScript(result: {
   model: string;
   attempts: number;
   warnings: string[];
+  shotNotes?: ReadonlyArray<string | null>;
 }): Record<string, unknown> {
   return {
     kind: DIRECTOR_SCRIPT_KIND,
@@ -69,6 +72,7 @@ export function packDirectorScript(result: {
     model: result.model,
     attempts: result.attempts,
     warnings: result.warnings.slice(0, 20),
+    shotNotes: result.job.video.shots.map((_, index) => result.shotNotes?.[index] ?? null),
   };
 }
 
@@ -98,6 +102,10 @@ export function readStoredDirectorScript(value: unknown): StoredDirectorScript |
       model: typeof record.model === "string" ? record.model : "unknown",
       attempts: typeof record.attempts === "number" ? record.attempts : 1,
       warnings: Array.isArray(record.warnings) ? record.warnings.map(String) : [],
+      shotNotes: job.video.shots.map((_, index) => {
+        const note = Array.isArray(record.shotNotes) ? record.shotNotes[index] : null;
+        return typeof note === "string" && note.trim() ? note.trim() : null;
+      }),
     };
   } catch {
     return null;
@@ -129,6 +137,7 @@ export function directorScriptView(script: StoredDirectorScript): DirectorScript
         fromSec: shot.fromSec,
         toSec: shot.toSec,
         action: shot.action.replace(/^Hard cut\.\s*/u, ""),
+        note: script.shotNotes[index] ?? null,
         line: spoken.length > 0 ? spoken.join(" ") : null,
       };
     }),
@@ -281,6 +290,7 @@ export async function writeDirectorScriptForStoryboard(
       model: result.model,
       attempts: result.attempts,
       warnings: result.lint.warnings,
+      shotNotes: result.shotNotes,
     };
     const stored = packDirectorScript(packed);
     const script = readStoredDirectorScript(stored);

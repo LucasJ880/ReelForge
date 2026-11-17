@@ -94,6 +94,8 @@ export type DirectorWriterResult =
       attempts: number;
       model: string;
       scenario: DirectorWriterScenario;
+      /// 每个镜头给商家看的一句话（商家的语言），与 job.video.shots 一一对应；模型没写的是 null
+      shotNotes: Array<string | null>;
       references: DirectorWriterReference[];
     }
   | {
@@ -199,7 +201,12 @@ export const directorDraftSchema = z.object({
   openingState: videoShape.openingState,
   voice: videoShape.voice,
   music: videoShape.music,
-  shots: videoShape.shots,
+  /// 草稿里的镜头比脚本多一项 note：给商家看的一句话（商家的语言，说这一镜拍什么）。它不进脚本、不进提示词，
+  /// 只随结果交回去给界面的镜头清单用——出片提示词全程英文，商家看不懂英文的镜头说明（2026-11-17 线上实测）
+  shots: z
+    .array(videoShape.shots.element.extend({ note: z.string().trim().min(2).max(60).optional() }))
+    .min(1)
+    .max(15),
   endState: videoShape.endState,
   throughout: z.array(z.string().trim().min(6).max(200)).max(5),
 });
@@ -216,12 +223,12 @@ export type DirectorDraft = z.infer<typeof directorDraftSchema>;
  */
 export const DIRECTOR_WRITER_EXAMPLE_DRAFT: DirectorDraft = {
   scenario: {
-    who: "A woman who feels the cold, buying for herself",
-    where: "Her living-room sofa",
-    moment: "Coming home from a winter street",
-    trouble: "Frozen hands she rubs and blows on",
-    after: "Wrapped up, she relaxes and smiles",
-    emotion: "Her warm, relaxed look",
+    who: "怕冷的年轻女性，自己买自己用",
+    where: "家里客厅的沙发上",
+    moment: "冬天从外面回到家",
+    trouble: "手冻得发僵，又搓又哈气",
+    after: "裹上毯子，整个人松下来、笑了",
+    emotion: "她暖和放松的表情",
   },
   productType: "soft",
   productTypeReason: "Touch and drape sell a blanket",
@@ -248,6 +255,7 @@ export const DIRECTOR_WRITER_EXAMPLE_DRAFT: DirectorDraft = {
       camera: "Fast but controlled push in to the hands.",
       light: "Soft winter daylight from a window on the left.",
       sound: 'A shivery breath; the voice says "一到冬天，手脚冰凉？"',
+      note: "刚进门，搓着冻僵的手哈气",
     },
     {
       fromSec: 2,
@@ -256,6 +264,7 @@ export const DIRECTOR_WRITER_EXAMPLE_DRAFT: DirectorDraft = {
       framing: "Medium close shot at her eye height.",
       camera: "Slow push in on the sherpa collar.",
       sound: 'A long exhale; the voice says "羊羔绒贴身，一裹就暖。"',
+      note: "坐到沙发上裹起毯子，闭眼笑了",
     },
     {
       fromSec: 5,
@@ -264,6 +273,7 @@ export const DIRECTOR_WRITER_EXAMPLE_DRAFT: DirectorDraft = {
       framing: "Extreme close-up, fibres as in photo-2.",
       camera: "Slow track with the palm.",
       sound: 'A dry swish; the voice says "细绒面顺滑，不掉毛。"',
+      note: "手掌抚过绒面的特写",
     },
     {
       fromSec: 8,
@@ -272,6 +282,7 @@ export const DIRECTOR_WRITER_EXAMPLE_DRAFT: DirectorDraft = {
       framing: "Product close shot, blanket centred and large.",
       camera: "Short push in that stops dead.",
       sound: 'A pat; the voice says "今天就带走！" as the music ends.',
+      note: "毯子叠好放在沙发上，定格",
     },
   ],
   endState: "The folded blanket rests on the sofa in daylight, hand gone, picture still.",
@@ -327,6 +338,7 @@ Prove ONE core selling point as action -> visible result (not "absorbs well": a 
 - Point at photos by id (photo-1), do not re-describe them; never write "image N".
 - throughout: up to 5 positive statements true in every shot (only hands and forearms are seen); no negatives, nothing on subtitles.
 - Never invent text or logos on the product. Never write the brand name in a visual field.
+- Each shot also has note: one short line (at most 30 characters) in the merchant's own language saying what the viewer sees. The merchant reads it on screen; it is never sent to the video model. Write the scenario card in the merchant's language too.
 
 5 PEOPLE
 - A shot with a person says where the face is from its first frame: hands only / from behind / cropped below the chin / face visible.
@@ -668,7 +680,7 @@ function dropEmptyOptionals(raw: unknown): unknown {
     draft.shots = draft.shots.map((shot: unknown) => {
       if (!shot || typeof shot !== "object" || Array.isArray(shot)) return shot;
       const copy: Record<string, unknown> = { ...(shot as Record<string, unknown>) };
-      for (const key of ["space", "light", "proof"]) if (blank(copy[key])) delete copy[key];
+      for (const key of ["space", "light", "proof", "note"]) if (blank(copy[key])) delete copy[key];
       return copy;
     });
   }
@@ -803,6 +815,7 @@ export async function writeDirectorJob(input: DirectorWriterInput, deps: Directo
         genre: draft.genre,
         genreReason: draft.genreReason,
       },
+      shotNotes: draft.shots.map((shot) => shot.note ?? null),
       references: photos.map((photo, index) => {
         const entry = described.get(index + 1);
         const used = job.references.find((reference) => reference.id === `photo-${index + 1}`);

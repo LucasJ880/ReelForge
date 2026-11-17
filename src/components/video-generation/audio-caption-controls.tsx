@@ -63,6 +63,13 @@ interface AudioCaptionControlsProps {
   /** AI 正在写口播稿：按钮转圈、禁用，避免连点 */
   regenerating?: boolean;
   /**
+   * 导演线路（2026-11-17）：台词、配音、配乐都由 AI 导演写进镜头脚本、出片模型直接配。这时不再摆「原生口播」开关、
+   * 声音风格、生成口播稿和曲库——只留一个可不填的输入框（商家想让 AI 照着念的稿子）和字幕设置。
+   */
+  directorMode?: boolean;
+  /** 导演线路下：现在这份口播稿是不是商家自己写 / 改过的。模板自动起的稿子不显示（也不会交给 AI）。 */
+  ownScript?: boolean;
+  /**
    * P04-B · 这条成片能拿到逐词时间戳时为 true：字幕样式放出「跟读高亮 / 逐词强调」真分档。
    * 默认 false（Phase 1 还没有 TTS 时间戳来源）：行为与 1025 A6 7.5 完全一致，只列两档。
    */
@@ -288,6 +295,8 @@ export function AudioCaptionControls({
   draftFellBack = false,
   regenerating = false,
   wordTimestampsAvailable = false,
+  directorMode = false,
+  ownScript = false,
 }: AudioCaptionControlsProps) {
   const update = (patch: Partial<AudioCaptionControlValue>) => {
     onChange({ ...value, ...patch });
@@ -300,6 +309,26 @@ export function AudioCaptionControls({
   return (
     // 下单票第 06 行：编号与标题由所在行承担，这里只放控件（不再自带卡片外壳）。
     <div data-testid="audio-caption-controls" className="space-y-4">
+        {directorMode ? (
+          <section className="space-y-2" data-testid="director-script-input">
+            <label className="block text-meta font-medium text-muted-foreground">
+              {english ? "Your own voiceover script (optional)" : "想让 AI 照着念的口播稿（可不填）"}
+              <textarea
+                value={ownScript ? value.voiceoverScript : ""}
+                maxLength={2000}
+                rows={3}
+                disabled={disabled}
+                placeholder={
+                  english
+                    ? "Leave it empty and the AI writes one line per shot from your description."
+                    : "不填的话，AI 会按你的描述给每个镜头写一句台词。"
+                }
+                className="mt-2 min-h-20 w-full resize-y rounded-(--radius-md) x-well border-input px-3 py-2 text-body leading-relaxed text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50"
+                onChange={(event) => update({ voiceoverScript: event.target.value })}
+              />
+            </label>
+          </section>
+        ) : (
         <section className="space-y-3">
           <label className="flex cursor-pointer items-start justify-between gap-4">
             <span className="flex min-w-0 gap-3">
@@ -409,12 +438,15 @@ export function AudioCaptionControls({
             </p>
           ) : null}
         </section>
+        )}
 
         <details className="group border-t border-border pt-3">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 py-1 text-body font-semibold text-foreground">
             <span className="flex items-center gap-2">
               <Captions className="size-5 text-muted-foreground" aria-hidden />
-              {english ? "Caption and BGM controls" : "字幕与 BGM 高级设置"}
+              {directorMode
+                ? english ? "Caption settings" : "字幕设置"
+                : english ? "Caption and BGM controls" : "字幕与 BGM 高级设置"}
             </span>
             <span className="text-meta font-normal text-muted-foreground group-open:hidden">
               {english ? "Show" : "展开"}
@@ -432,9 +464,13 @@ export function AudioCaptionControls({
                     {english ? "Deterministic captions" : "确定性字幕"}
                   </span>
                   <span className="block text-meta text-muted-foreground">
-                    {english
-                      ? "Built from the final script and actual video duration."
-                      : "基于最终口播稿与成片实际时长生成。"}
+                    {directorMode
+                      ? english
+                        ? "Each line appears while its shot is on screen."
+                        : "每句台词跟着它所在的镜头出现。"
+                      : english
+                        ? "Built from the final script and actual video duration."
+                        : "基于最终口播稿与成片实际时长生成。"}
                   </span>
                 </span>
                 <input
@@ -493,6 +529,8 @@ export function AudioCaptionControls({
               </label>
             </section>
 
+            {/* 导演线路的配乐随片子一起出：这里不再摆曲库（再选一首会和片子里的音乐叠在一起） */}
+            {directorMode ? null : (
             <section className="space-y-3">
               <div className="flex items-start gap-2">
                 <Music2 className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
@@ -555,6 +593,7 @@ export function AudioCaptionControls({
                 </p>
               ) : null}
             </section>
+            )}
           </div>
         </details>
     </div>

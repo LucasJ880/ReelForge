@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T18:06:52.350Z",
+  "generatedAt": "2026-11-17T18:38:27.293Z",
   "package": {
     "name": "aivora",
     "version": "0.2.0"
@@ -36,10 +36,10 @@
     "bcryptjs (^3.0.3)"
   ],
   "fileTotals": {
-    "total": 1755,
+    "total": 1754,
     "byType": {
       "unknown": 415,
-      "doc": 430,
+      "doc": 429,
       "style": 8,
       "workflow": 4,
       "config": 9,
@@ -61,7 +61,7 @@
       "unknown": 824,
       "media-processing": 53,
       "config": 11,
-      "shared": 274,
+      "shared": 273,
       "prisma": 59,
       "auth": 25,
       "payments": 1,

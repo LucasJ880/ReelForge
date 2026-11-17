@@ -309,6 +309,9 @@
   --color-gold-soft: var(--gold-soft);
   --color-success-soft: var(--success-soft);
   --color-danger-soft: var(--danger-soft);
+  /* 2026-11-17：之前漏了这一条，写 bg-surface 的五处（主创作卡、更多设置、接着拍的小卡、商品页小卡、贴底操作条）
+     其实没有底色，直接露出纯黑场。面板色是 --surface，这是规矩里「不透明面板」本来的样子。 */
+  --color-surface: var(--surface);
   --color-raised: var(--surface-raised);
   --color-sunken: var(--surface-sunken);
   --color-active: var(--surface-active);

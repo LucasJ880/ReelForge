@@ -59,7 +59,10 @@ export interface DirectorScriptView {
     index: number;
     fromSec: number;
     toSec: number;
+    /// 写给出片模型的画面描述（英文原文）
     action: string;
+    /// 给商家看的一句话：这一镜拍什么（商家的语言）。旧脚本没有 = null，界面退回显示英文原文
+    note: string | null;
     /// 这个镜头里念的台词；没有台词是 null
     line: string | null;
   }>;

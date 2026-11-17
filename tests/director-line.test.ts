@@ -237,6 +237,41 @@ test("字幕：口播稿是脚本里的台词连起来；没有语音识别时�
   assert.equal(directorVoiceLanguage("Gauze baby bibs, pack of three"), "en-US");
 });
 
+test("给商家看的每镜一句话随脚本存、随摘要出；旧脚本没有就是 null（界面退回英文原文）", () => {
+  const script = job();
+  const notes = ["米糊漏到衣服上", "手拿起口水巾", null, "圆扣固定在颈后", "顺手擦嘴", "三条装定格"];
+  const record = packDirectorScript({ job: script, scenario: null, model: "m", attempts: 1, warnings: [], shotNotes: notes });
+  const read = readStoredDirectorScript(JSON.parse(JSON.stringify(record)));
+  assert.deepEqual(read?.shotNotes, notes);
+  assert.deepEqual(directorScriptView(read!).shots.map((shot) => shot.note), notes);
+  /// 旧脚本（没有 shotNotes）、条数对不上、空串：一律 null
+  const old = readStoredDirectorScript(JSON.parse(JSON.stringify(stored())));
+  assert.deepEqual(old?.shotNotes, [null, null, null, null, null, null]);
+  const short = readStoredDirectorScript({ ...JSON.parse(JSON.stringify(record)), shotNotes: ["只有一条", "  "] });
+  assert.deepEqual(short?.shotNotes, ["只有一条", null, null, null, null, null]);
+  /// 面板：有说明显示说明，没有才显示英文原文
+  const panel = readFileSync("src/components/video-generation/storyboard-workflow-panel.tsx", "utf8");
+  assert.match(panel, /\{shot\.note \?\? shot\.action\}/);
+});
+
+test("导演线路的配乐随片子出：曲库不再混进去，创作页也不摆曲库、声音风格和「生成口播稿」", async () => {
+  const script = job();
+  const plan = await buildPlan(
+    { ...request(15), audio: { voiceover: { enabled: false, voiceId: "warm-confident", language: "zh-CN", script: "" }, bgm: { trackId: "upbeat-pop", volume: 0.3 } } },
+    { director: { job: script } },
+  );
+  assert.deepEqual(plan.postProduction?.audio.bgm, { trackId: "none", volume: 0 });
+  assert.equal(plan.postProduction?.audio.voiceover.enabled, true);
+  const controls = readFileSync("src/components/video-generation/audio-caption-controls.tsx", "utf8");
+  assert.match(controls, /data-testid="director-script-input"/);
+  assert.match(controls, /value=\{ownScript \? value\.voiceoverScript : ""\}/, "模板自动起的口播稿不显示、不交给 AI");
+  assert.match(controls, /\{directorMode \? null : \(\s+<section className="space-y-3">\s+<div className="flex items-start gap-2">\s+<Music2/);
+  const studio = readFileSync("src/components/video-generation/streamlined-video-studio.tsx", "utf8");
+  assert.match(studio, /directorMode=\{directorMode\}\s+ownScript=\{ownVoiceoverScript\}/);
+  assert.match(studio, /\? \(ownVoiceoverScript \? voiceoverScript\.trim\(\) : ""\)/);
+  assert.match(studio, /index === 2 \? copy\.directorStepScript : index === 3 \? copy\.directorStepApprove : step/);
+});
+
 // ---------------------------------------------------------------------------
 // 方案与派发
 // ---------------------------------------------------------------------------

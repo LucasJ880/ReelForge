@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, CopyPlus, Music, Send } from "lucide-react";
+import { ArrowLeft, ChevronRight, CopyPlus, Music, Send } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { contactEmail } from "@/lib/config/contact";
 import { getUnifiedLibraryItem } from "@/lib/services/unified-library-service";
@@ -25,7 +25,7 @@ import { QuoteHeader } from "@/components/exchange/quote-header";
 import { StatusTick } from "@/components/exchange/status-tick";
 import { Progress } from "@/components/ui/progress";
 import { ProcessingRefresher } from "@/components/library/processing-refresher";
-import { libraryDisplayTitle } from "@/lib/library/display-title";
+import { libraryHeadline } from "@/lib/library/display-title";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
 import { libraryRowState } from "@/lib/exchange/state-vocab";
@@ -81,8 +81,10 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
           })
           .catch(() => null)
       : null;
-  /// 单条成片的 title 是商家整段描述：标题只放第一句，全文落到副标题
-  const displayTitle = libraryDisplayTitle(item.title);
+  /// 单条成片的 title 是商家整段描述：大标题只放第一小句（商品名 / 这条片讲什么），全文折叠在视频下面。
+  /// 详情页的主角是视频（2026-11-17：手机上标题三行 + 重复的描述 + 四个数据卡，把视频挤到了第二屏）
+  const displayTitle = libraryHeadline(item.title);
+  const hasFullBrief = !item.isShowcase && item.title.replace(/\s+/gu, " ").trim() !== displayTitle;
   return (
     <div className="x-stack min-w-0">
       <Button render={<Link href="/app/library" />} variant="ghost" size="sm" className="self-start">
@@ -94,6 +96,15 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <StatusTick entity="item" state={libraryRowState(item.status)} locale={locale} />
             {item.isShowcase ? <MonoTag>{copy.showcaseBadge}</MonoTag> : null}
+            {/* 时长 · 画幅 · 更新时间：不能让人接着做什么的数字不占数据卡，收成标题下的一行 */}
+            <span className="flex flex-wrap items-center gap-x-2 font-mono text-data tabular-nums text-tertiary" data-testid="library-detail-meta">
+              {item.durationSec ? <span>{item.durationSec}s</span> : null}
+              {item.aspectRatio ? <span>{item.aspectRatio}</span> : null}
+              <span>
+                <LocalTime iso={item.updatedAt.toISOString()} locale={locale} variant="date" />{" "}
+                <LocalTime iso={item.updatedAt.toISOString()} locale={locale} variant="time" />
+              </span>
+            </span>
           </span>
         }
         subtitle={
@@ -103,28 +114,24 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
               ? copy.detailFailure
               : item.status === "cancelled"
                 ? copy.detailCancelled
-                : displayTitle !== item.title
-                  ? item.title
-                  : undefined
+                : undefined
         }
         /// 下载与处置跟着成片走（舞台旁边），行情头不另放主钮
         primaryAction={null}
         readingsLabel={copy.detailReadings}
-        readings={[
-          { label: copy.detailDuration, value: item.durationSec ? `${item.durationSec}s` : "—", caption: item.durationSec ? undefined : copy.durationPending },
-          { label: copy.detailAspect, value: item.aspectRatio ?? "—", caption: item.aspectRatio ? undefined : copy.aspectPending },
-          {
-            label: copy.detailFailedScenes,
-            value: item.failedSceneCount,
-            tone: item.failedSceneCount > 0 ? "fault" : "neutral",
-            caption: item.failedSceneCount > 0 && canAct ? copy.detailFailedScenesHint : undefined,
-          },
-          {
-            label: copy.detailUpdated,
-            value: <LocalTime iso={item.updatedAt.toISOString()} locale={locale} variant="date" />,
-            caption: <LocalTime iso={item.updatedAt.toISOString()} locale={locale} variant="time" className="font-mono" />,
-          },
-        ]}
+        /// 读数只留需要你处理的那一个：有失败片段才出现（零就不占地方）
+        readings={
+          item.failedSceneCount > 0
+            ? [
+                {
+                  label: copy.detailFailedScenes,
+                  value: item.failedSceneCount,
+                  tone: "fault",
+                  caption: canAct ? copy.detailFailedScenesHint : undefined,
+                },
+              ]
+            : []
+        }
         scope={copy.detailScope.replace("{id}", item.id)}
       />
 
@@ -336,10 +343,11 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
                 noteMax={SEGMENT_REDO_NOTE_MAX}
                 contactEmail={contactEmail()}
                 copy={{
-                  title: copy.redoTitle,
-                  hint: copy.redoHint,
-                  segmentLabel: copy.redoSegmentLabel,
-                  pick: copy.redoPick,
+                  /// 整条片一次生成的（导演线路）只有一段：说「整条重拍」
+                  title: item.segments.length === 1 ? copy.redoWholeTitle : copy.redoTitle,
+                  hint: item.segments.length === 1 ? copy.redoWholeHint : copy.redoHint,
+                  segmentLabel: item.segments.length === 1 ? copy.redoWholeLabel : copy.redoSegmentLabel,
+                  pick: item.segments.length === 1 ? copy.redoWholePick : copy.redoPick,
                   noteLabel: copy.redoNoteLabel,
                   notePlaceholder: copy.redoNotePlaceholder,
                   submit: copy.redoSubmit,
@@ -366,6 +374,17 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
           </aside>
         ) : null}
       </section>
+
+      {/* 整段创作描述：收在视频下面，想看再展开（标题只放了第一小句） */}
+      {hasFullBrief ? (
+        <details className="group/brief x-panel px-4 py-3" data-testid="library-brief">
+          <summary className="flex cursor-pointer list-none items-center gap-2 rounded-(--radius-sm) text-body font-medium text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+            <ChevronRight className="size-4 shrink-0 text-tertiary transition-transform group-open/brief:rotate-90 motion-reduce:transition-none" aria-hidden />
+            {copy.detailBrief}
+          </summary>
+          <p className="mt-2 max-w-[70ch] whitespace-pre-wrap text-pretty text-body text-muted-foreground">{item.title}</p>
+        </details>
+      ) : null}
 
       <MakingProcessTimeline steps={item.makingProcess} english={locale === "en-US"} />
     </div>

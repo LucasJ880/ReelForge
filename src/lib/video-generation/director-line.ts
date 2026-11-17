@@ -77,6 +77,32 @@ export function packDirectorScript(result: {
   };
 }
 
+/**
+ * 开场画面一次出几张候选让商家挑（2026-11-17 定）：同一份提示词出两张，商家选一张开拍。
+ * 一张约 48 点，多出的一张换来的是「画得和脚本不一致」时不用整张重做；任一张好了就能选它开拍，另一张不用等。
+ * AUTO 批准的轮次（接口建的、没人挑）只出一张。
+ */
+export const DIRECTOR_OPENING_CANDIDATES = 2;
+
+/**
+ * 这一轮的开场画面有几张候选。数字存在脚本记录的 `openingCandidates` 里：11-17 之前的轮次没有这一项 = 1；
+ * 商家选定之后改回 1（没选的那张退出当前帧），所以确认之后的所有读取都和单张时一样。
+ */
+export function directorOpeningCandidateCount(value: unknown): number {
+  if (!isStoredDirectorScript(value)) return 1;
+  const count = (value as Record<string, unknown>).openingCandidates;
+  return typeof count === "number" && Number.isInteger(count) && count >= 1 && count <= DIRECTOR_OPENING_CANDIDATES
+    ? count
+    : 1;
+}
+
+/** 这一轮是按哪种风格写的（存在脚本记录的 `styleTemplateId` 里；自动匹配或旧记录 = null）。 */
+export function directorScriptStyleId(value: unknown): string | null {
+  if (!isStoredDirectorScript(value)) return null;
+  const id = (value as Record<string, unknown>).styleTemplateId;
+  return typeof id === "string" && directorStyle(id) ? id : null;
+}
+
 /** 只看是不是脚本（不解析）：判「这一轮该有几帧」这类每次读 run 都要问的地方用。 */
 export function isStoredDirectorScript(value: unknown): boolean {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;

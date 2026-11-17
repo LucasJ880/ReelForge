@@ -189,8 +189,8 @@ const zh = {
     flowSteps: [
       { title: "上传产品图", body: "必须有：片子里的商品是照着你的实拍图拍的。放 1–9 张，整件、细节各来一张最好。" },
       { title: "设置创作方向", body: "写清谁在用、在哪、想让人记住哪一点；选时长、画幅和风格，拿不准就留「自动匹配」。" },
-      { title: "生成 AI 故事板", body: "AI 导演看着你的商品图写好镜头脚本，再出一张开场画面，约 1–3 分钟，不扣视频额度。" },
-      { title: "确认每一帧", body: "看开场画面里的商品对不对、脚本拍的是不是你要的；画面可以单独重做，脚本不对路就改描述重来。" },
+      { title: "生成 AI 故事板", body: "AI 导演看着你的商品图写好镜头脚本，再出两张开场画面让你挑，约 1–3 分钟，不扣视频额度。" },
+      { title: "确认每一帧", body: "挑一张商品画得更准的开场画面，看脚本拍的是不是你要的；画面可以单独重做，脚本不对路就改描述重来。" },
       { title: "Aivora 生成视频", body: "确认后整条片一次拍完，一般 10–15 分钟；进度在成品库里跟踪，成片自动入库。" },
     ],
     onboarding: {
@@ -572,8 +572,8 @@ const en: CopyShape<typeof zh> = {
     flowSteps: [
       { title: "Upload product images", body: "Required: the product in the video is filmed from your real photos. Add 1–9, ideally the whole item plus a detail." },
       { title: "Set the direction", body: "Say who uses it, where, and the one thing to remember; pick length, aspect ratio and a style, or leave it on Auto match." },
-      { title: "Generate the AI storyboard", body: "The AI director writes a shot script from your photos and renders one opening frame. About 1–3 minutes; no video credit is used." },
-      { title: "Approve every frame", body: "Check that the product in the opening frame is right and the script films what you asked for; redo the frame on its own, or change the description and start again." },
+      { title: "Generate the AI storyboard", body: "The AI director writes a shot script from your photos and renders two opening frames to pick from. About 1–3 minutes; no video credit is used." },
+      { title: "Approve every frame", body: "Pick the opening frame where the product looks right and check the script films what you asked for; redo a frame on its own, or change the description and start again." },
       { title: "Generate with Aivora", body: "After you confirm, the whole video is filmed in one go, usually 10–15 minutes; track it in the library, where the finished video lands." },
     ],
     onboarding: {

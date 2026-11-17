@@ -67,8 +67,10 @@ export interface StoryboardRunView {
   canApprove: boolean;
   /** 建故事板时哪几步 AI 没用上、退回了兜底（目前只有镜头卡）；旧响应没有这一项。 */
   degradedStages?: PlanningStage[];
-  /** 导演线路的故事板才有：一张开场画面 + 这份镜头脚本的摘要。老的四 / 五帧故事板没有（null / 缺省）。 */
+  /** 导演线路的故事板才有：开场画面 + 这份镜头脚本的摘要。老的四 / 五帧故事板没有（null / 缺省）。 */
   director?: DirectorScriptView | null;
+  /** 导演线路这一轮现在有几张开场画面：选定之前是候选张数（2），选定之后或旧轮次是 1；旧响应没有这一项。 */
+  openingCandidates?: number;
   frames: StoryboardFrameView[];
 }
 
@@ -114,7 +116,8 @@ export function StoryboardWorkflowPanel({
   approving: boolean;
   referenceOptions?: StoryboardReferenceOption[];
   onRegenerate: (frameId: string, options: StoryboardFrameRegenerateOptions) => void;
-  onApprove: () => void;
+  /** 几张开场画面里挑一张的轮次会带上选中的帧 id；只有一张时不带。 */
+  onApprove: (frameId?: string) => void;
   onEditPlan: () => void;
 }) {
   /// 按帧序号存草稿：重做后帧 id 会换，序号不变，补充要求留着方便再改一次。
@@ -125,8 +128,16 @@ export function StoryboardWorkflowPanel({
   const ready = run.status === "AWAITING_APPROVAL";
   const generatedCount = run.frames.filter((frame) => frame.status === "SUCCEEDED").length;
   const director = run.director ?? null;
-  /// 导演线路只出一张开场画面，后面的镜头写在脚本里
-  const expectedCount = director ? 1 : storyboardFrameTarget(run.durationSec);
+  /// 导演线路只出开场画面（后面的镜头写在脚本里）：选定之前是两张候选，选定之后、或旧轮次是一张
+  const candidateCount = director ? Math.max(1, run.openingCandidates ?? 1) : 0;
+  const choosing = candidateCount > 1 && !approved;
+  const expectedCount = director ? candidateCount : storyboardFrameTarget(run.durationSec);
+  /// 选了哪一张（按序号记：重做后帧 id 会换）。没选过、或选的那张不是画好的，就落在第一张画好的上面
+  const [pickedOrdinal, setPickedOrdinal] = useState<number | null>(null);
+  const drawnFrames = run.frames.filter((frame) => frame.status === "SUCCEEDED");
+  const chosenFrame = choosing
+    ? drawnFrames.find((frame) => frame.ordinal === pickedOrdinal) ?? drawnFrames[0] ?? null
+    : null;
   /// 出图比平时慢时如实说（2026-11-17：出图排队时一张图等过二十多分钟，页面上还写着「一般一两分钟」）。
   /// 等了多久由服务端算好随每次轮询带回来，这里不看客户端的钟。
   const waitedMinutes = run.status === "GENERATING" ? slowestPendingFrameMinutes(run.frames) : null;
@@ -167,16 +178,28 @@ export function StoryboardWorkflowPanel({
                 /// 预期时间（2026-11-10 实测）：页面开着时四帧在 15 秒内全部交出、同时在画，近 21 天 10 轮人工创作
                 /// 都在 1.7–3.3 分钟出齐（中位 2.3 分钟）。只靠后台推进的（批量 / 机器任务）要 4–10 分钟，不在这句话的范围里。
                 ? director
-                  ? english
-                    ? "The shot script is written; the opening frame is being drawn and usually arrives within a minute or two. You can leave this page; coming back to Create picks this round up again."
-                    : "镜头脚本已经写好，开场画面正在画，一般一两分钟出来；可以先离开这页，回到「创作」会自动接上这一轮。"
+                  ? choosing
+                    ? chosenFrame
+                      ? english
+                        ? "One opening frame is ready and the other is still being drawn. You can approve the ready one now, or wait and pick between the two."
+                        : "一张开场画面已经画好，另一张还在画。可以现在就用画好的这张确认，也可以等另一张出来再挑。"
+                      : english
+                        ? "The shot script is written; two opening frames are being drawn for you to pick from, usually within a minute or two. You can leave this page; coming back to Create picks this round up again."
+                        : "镜头脚本已经写好，两张开场画面正在画、供你挑一张，一般一两分钟出来；可以先离开这页，回到「创作」会自动接上这一轮。"
+                    : english
+                      ? "The shot script is written; the opening frame is being drawn and usually arrives within a minute or two. You can leave this page; coming back to Create picks this round up again."
+                      : "镜头脚本已经写好，开场画面正在画，一般一两分钟出来；可以先离开这页，回到「创作」会自动接上这一轮。"
                   : english
                     ? `${generatedCount}/${expectedCount} keyframes ready. The frames are drawn at the same time and usually all arrive within 2–3 minutes. You can leave this page; coming back to Create picks this round up again.`
                     : `关键帧已完成 ${generatedCount}/${expectedCount}。几帧同时在画，一般两三分钟出齐；可以先离开这页，回到「创作」会自动接上这一轮。`
                 : director
-                  ? english
-                    ? "The video starts on this frame and then follows the listed shots, filmed in one go. Check the product in the frame and the lines before generating."
-                    : "成片从这一帧开始，按列出的镜头一次拍完。出片前请看一眼画面里的商品对不对、台词有没有问题。"
+                  ? choosing
+                    ? english
+                      ? "Pick the frame where your product looks right: the video starts on it and then follows the listed shots, filmed in one go. Check the lines too before approving."
+                      : "挑一张商品画得更准的：成片从你选的这一张开始，按列出的镜头一次拍完。确认前也请看一眼台词。"
+                    : english
+                      ? "The video starts on this frame and then follows the listed shots, filmed in one go. Check the product in the frame and the lines before generating."
+                      : "成片从这一帧开始，按列出的镜头一次拍完。出片前请看一眼画面里的商品对不对、台词有没有问题。"
                   : english
                     ? `${generatedCount}/${expectedCount} keyframes ready. Review every frame before video generation.`
                     : `关键帧已完成 ${generatedCount}/${expectedCount}。确认每一帧后才会进入视频生成。`}
@@ -215,7 +238,10 @@ export function StoryboardWorkflowPanel({
         className={cn(
           "x-wall",
           director
-            ? "grid-cols-1 md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]"
+            ? candidateCount > 1
+              /// 两张候选并排（手机上各占半宽），脚本在下面 / 右边
+              ? "grid-cols-2 md:grid-cols-[minmax(0,13rem)_minmax(0,13rem)_minmax(0,1fr)]"
+              : "grid-cols-1 md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]"
             : cn("grid-cols-2", expectedCount === 5 ? "lg:grid-cols-5" : "lg:grid-cols-4"),
         )}
         data-testid="storyboard-frame-grid"
@@ -229,6 +255,7 @@ export function StoryboardWorkflowPanel({
           const regenDisabled = !frame || pending || approved || regenerating || regenBlocked;
           const draft = drafts[ordinal] ?? EMPTY_DRAFT;
           const drawing = regenerating || (pending && run.status === "GENERATING");
+          const chosen = choosing && Boolean(frame) && frame?.id === chosenFrame?.id;
           const frameState: VocabState<"frame"> = frame?.status === "SUCCEEDED"
             ? "done"
             : regenBlocked
@@ -239,7 +266,12 @@ export function StoryboardWorkflowPanel({
                   ? "generating"
                   : "queued";
           return (
-            <article key={frame?.id ?? ordinal} className={cn("flex min-w-0 flex-col", drawing && "x-beam")}>
+            <article
+              key={frame?.id ?? ordinal}
+              className={cn("flex min-w-0 flex-col", drawing && "x-beam")}
+              data-testid={choosing ? "opening-candidate" : undefined}
+              data-chosen={chosen ? "true" : undefined}
+            >
               <div
                 className={cn(
                   "relative w-full overflow-hidden bg-sunken",
@@ -274,18 +306,23 @@ export function StoryboardWorkflowPanel({
                           ? english ? "Queued, starting shortly" : "排队中，马上开始"
                           : english
                             ? "Drawing this frame"
-                            : "正在绘制此分镜"}
+                            : candidateCount > 1 ? "正在画这一张" : "正在绘制此分镜"}
                     </span>
                   </div>
                 )}
                 <span className="absolute left-2 top-2 rounded-(--radius-sm) bg-overlay px-1.5 py-0.5 font-mono text-micro tabular-nums text-foreground">
                   {String(ordinal + 1).padStart(2, "0")} · {frame?.attempt ? `v${frame.attempt}` : "…"}
                 </span>
+                {/* 选中的那张：压在图上面的一圈当前色描边（颜色只表示「现在选的是它」） */}
+                {chosen ? <span aria-hidden className="pointer-events-none absolute inset-0 border-2 border-accent" /> : null}
               </div>
               <div className="flex flex-1 flex-col gap-3 p-3">
                 <div className="min-h-12 flex-1 space-y-1.5">
                   <p className="line-clamp-2 text-meta font-medium text-foreground">
-                    {frame?.beat ? storyboardBeatLabel(frame.beat, english) : english ? "Preparing story beat" : "正在准备镜头节奏"}
+                    {candidateCount > 1
+                      /// 两张是同一个开场画面的两种画法，不重复写两遍节拍说明
+                      ? english ? `Opening frame · option ${ordinal + 1}` : `开场画面 · 候选 ${ordinal + 1}`
+                      : frame?.beat ? storyboardBeatLabel(frame.beat, english) : english ? "Preparing story beat" : "正在准备镜头节奏"}
                   </p>
                   <StatusTick entity="frame" state={frameState} locale={english ? "en-US" : "zh-CN"} />
                   {/* 查看提示词（上线审核 §3）：原文给想研究的人看，只供参考、不要求改 */}
@@ -306,6 +343,24 @@ export function StoryboardWorkflowPanel({
                     </details>
                   ) : null}
                 </div>
+                {/* 两张里挑一张：画好的才能选；选中的按钮写明「已选」 */}
+                {choosing ? (
+                  <Button
+                    type="button"
+                    variant={chosen ? "secondary" : "outline"}
+                    size="sm"
+                    className={cn("w-full", chosen && "border-(--accent-line) text-foreground")}
+                    aria-pressed={chosen}
+                    disabled={frame?.status !== "SUCCEEDED" || approving}
+                    onClick={() => setPickedOrdinal(ordinal)}
+                    data-testid="opening-candidate-pick"
+                  >
+                    {chosen ? <Check aria-hidden /> : null}
+                    {chosen
+                      ? english ? "Using this one" : "已选这一张"
+                      : english ? "Use this one" : "用这一张"}
+                  </Button>
+                ) : null}
                 {!approved ? (
                   <FrameRegenerateOptionsField
                     ordinal={ordinal}
@@ -339,7 +394,11 @@ export function StoryboardWorkflowPanel({
             </article>
           );
         })}
-        {director ? <DirectorScriptCard script={director} english={english} /> : null}
+        {director ? (
+          <div className={cn("min-w-0", candidateCount > 1 && "col-span-2 md:col-span-1")}>
+            <DirectorScriptCard script={director} english={english} />
+          </div>
+        ) : null}
         {/* 窄屏两列时 5 帧会空出一格：补一格同色面板，接缝墙不露底 */}
         {!director && expectedCount % 2 === 1 ? <div aria-hidden className="lg:hidden" /> : null}
       </div>
@@ -357,7 +416,12 @@ export function StoryboardWorkflowPanel({
             {english ? "Storyboard approved" : "故事板已确认"}
           </span>
         ) : (
-          <Button type="button" disabled={!ready || !run.canApprove || approving || Boolean(busyFrameId)} onClick={onApprove}>
+          <Button
+            type="button"
+            /// 两张里挑一张的轮次：有一张画好就能确认（另一张还在画也行），由服务端的 canApprove 说了算
+            disabled={(!choosing && !ready) || !run.canApprove || approving || Boolean(busyFrameId) || (choosing && !chosenFrame)}
+            onClick={() => onApprove(choosing ? chosenFrame?.id : undefined)}
+          >
             {approving ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden /> : <Check aria-hidden />}
             {director
               ? english ? "Approve frame and script" : "确认开场画面和脚本"

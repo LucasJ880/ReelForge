@@ -222,7 +222,7 @@ const ZH: OnboardingCopy = {
     },
     video: {
       title: "第一条视频",
-      body: "选一种风格，上传商品实拍图；AI 先写好镜头脚本、出一张开场画面给你确认，再一次生成整条竖版成片，不满意随时取消。",
+      body: "选一种风格，上传商品实拍图；AI 先写好镜头脚本、出两张开场画面让你挑一张，再一次生成整条竖版成片，不满意随时取消。",
       quota: "本月视频额度 {used} / {limit}",
       useTemplate: "用这个风格",
       openCreate: "直接去创作",
@@ -375,7 +375,7 @@ const EN: OnboardingCopy = {
     },
     video: {
       title: "First video",
-      body: "Pick a style and upload real photos of your product. The AI writes the shot script and one opening frame for you to approve, then renders the whole vertical video in one go. Cancel any time.",
+      body: "Pick a style and upload real photos of your product. The AI writes the shot script and two opening frames for you to pick from, then renders the whole vertical video in one go. Cancel any time.",
       quota: "Videos this month {used} / {limit}",
       useTemplate: "Use this style",
       openCreate: "Go to the studio",

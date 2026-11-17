@@ -10,9 +10,12 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   DIRECTOR_LINE_MAX_PHOTOS,
+  DIRECTOR_OPENING_CANDIDATES,
   DIRECTOR_SCRIPT_KIND,
   directorCaptionScript,
+  directorOpeningCandidateCount,
   directorOpeningFrame,
+  directorScriptStyleId,
   directorScriptSpeechWords,
   directorScriptView,
   directorVideoPrompt,
@@ -48,8 +51,10 @@ import { db } from "../src/lib/db";
 import {
   __test__ as storyboardTest,
   StoryboardRequestError,
+  approveStoryboard,
   createStoryboardRun,
   expectedStoryboardFrameCount,
+  storyboardRunView,
 } from "../src/lib/video-generation/storyboard-service";
 import { DIRECTOR_OPENING_FRAME_BEAT, storyboardBeatLabel } from "../src/lib/video-generation/storyboard-beats";
 
@@ -363,7 +368,7 @@ for (const duration of [15, 30] as const) {
 test("接线：故事板、派发、合成三处都读脚本", () => {
   const storyboard = readFileSync("src/lib/video-generation/storyboard-service.ts", "utf8");
   assert.match(storyboard, /directorLineBlocker\(\{/);
-  assert.match(storyboard, /visualReference: written\.stored/);
+  assert.match(storyboard, /visualReference: \{\s*\.\.\.written\.stored,/);
   /// 写不成就明说、可以再点一次：不退回老的分帧故事板
   assert.match(storyboard, /"DIRECTOR_SCRIPT_FAILED",\s*503/);
   assert.doesNotMatch(storyboard, /designStoryboardShotCards|renderStoryInEnglish/);
@@ -530,7 +535,7 @@ const RUN_INPUT = {
   sourceAssetIds: ["asset-1", "asset-2"],
 };
 
-test("建故事板（导演线路）：只建一张开场帧，帧带着自己的入参，脚本存在 run 上；写手拿到的是商家原话和实拍图", async (t) => {
+test("建故事板（导演线路）：只建开场画面（两张候选），帧带着自己的入参，脚本存在 run 上；写手拿到的是商家原话和实拍图", async (t) => {
   const saved = process.env.DIRECTOR_LINE;
   delete process.env.DIRECTOR_LINE;
   t.after(() => {
@@ -555,18 +560,36 @@ test("建故事板（导演线路）：只建一张开场帧，帧带着自己�
   assert.match(String(seen[0]!.jobId), /^sb-[a-z0-9]{8,24}$/);
 
   assert.equal(created.length, 1);
-  assert.deepEqual(created[0]!.visualReference, record);
+  /// 脚本原样存下，另外记两件事：开场画面有几张候选、这一轮是按哪种风格写的
+  assert.deepEqual(created[0]!.visualReference, { ...record, openingCandidates: 2, styleTemplateId: DIRECTOR_LINE_TEMPLATE_ID });
   assert.deepEqual(created[0]!.planningDegradations, []);
   const frames = (created[0]!.frames as { create: Array<Record<string, unknown>> }).create;
-  assert.equal(frames.length, 1, "只出一张开场帧");
-  assert.equal(frames[0]!.beat, DIRECTOR_OPENING_FRAME_BEAT);
-  assert.equal(frames[0]!.prompt, directorOpeningFrame(job(30)).prompt);
-  assert.deepEqual(frames[0]!.inputImageUrls, [PHOTO_A, PHOTO_B]);
+  assert.equal(frames.length, DIRECTOR_OPENING_CANDIDATES, "出两张开场画面给商家挑");
+  assert.deepEqual(frames.map((frame) => frame.ordinal), [0, 1]);
+  assert.equal(new Set(frames.map((frame) => frame.providerRequestKey)).size, 2, "两张各有各的提交键");
+  for (const frame of frames) {
+    assert.equal(frame.beat, DIRECTOR_OPENING_FRAME_BEAT);
+    assert.equal(frame.prompt, directorOpeningFrame(job(30)).prompt);
+    assert.deepEqual(frame.inputImageUrls, [PHOTO_A, PHOTO_B]);
+  }
   assert.equal(storyboardBeatLabel(DIRECTOR_OPENING_FRAME_BEAT, false), "开场画面 · 主动作发生之前的那一刻");
-  /// 出齐 = 1 帧；老的故事板仍按时长 4 / 5 帧
+  /// 出齐：候选轮 2 帧；11-17 之前的轮次（脚本记录里没有张数）和选定之后是 1 帧；老的故事板仍按时长 4 / 5 帧
+  assert.equal(expectedStoryboardFrameCount({ durationSec: 30, visualReference: created[0]!.visualReference }), 2);
   assert.equal(expectedStoryboardFrameCount({ durationSec: 30, visualReference: record }), 1);
+  assert.equal(expectedStoryboardFrameCount({ durationSec: 30, visualReference: { ...record, openingCandidates: 1 } }), 1);
+  assert.equal(expectedStoryboardFrameCount({ durationSec: 30, visualReference: { ...record, openingCandidates: 9 } }), 1, "不认的张数按一张");
   assert.equal(expectedStoryboardFrameCount({ durationSec: 30, visualReference: null }), 5);
   assert.equal(expectedStoryboardFrameCount({ durationSec: 15 }), 4);
+  assert.equal(directorOpeningCandidateCount(created[0]!.visualReference), 2);
+  assert.equal(directorScriptStyleId(created[0]!.visualReference), DIRECTOR_LINE_TEMPLATE_ID);
+  assert.equal(directorScriptStyleId(record), null, "旧记录没有风格 = 自动匹配");
+  assert.equal(directorScriptStyleId({ ...record, styleTemplateId: "commerce-food-sizzle" }), null, "下线的模板不带回去");
+
+  /// 没人挑的轮次（接口建的、自动批准）只出一张
+  await assert.rejects(createStoryboardRun({ ...RUN_INPUT, idempotencyKey: "director-run-auto", approvalPolicy: "AUTO" }), /stop after create/);
+  assert.equal(created.length, 2);
+  assert.equal((created[1]!.frames as { create: unknown[] }).create.length, 1);
+  assert.deepEqual(created[1]!.visualReference, { ...record, openingCandidates: 1, styleTemplateId: null });
 });
 
 test("建故事板：写手没写成 → 明说、不建 run、不退回老的分帧故事板；下线的老模板根本不叫写手", async (t) => {
@@ -609,4 +632,257 @@ test("脚本里一句台词都没有（静物、沉浸声音这类风格）：�
   assert.deepEqual(plan.postProduction?.audio.bgm, { trackId: "none", volume: 0 });
   assert.equal(plan.postProduction?.audio.nativeMusic, true);
   assert.equal(plan.postProduction?.audio.voiceover.enabled, false);
+});
+
+// ---------------------------------------------------------------------------
+// 开场画面两张里挑一张（2026-11-17）：任一张好了就能选它开拍；确认时没选的那张退出当前帧
+// ---------------------------------------------------------------------------
+
+function candidateFrame(overrides: Record<string, unknown>): Record<string, unknown> {
+  return {
+    id: "frame-x",
+    ordinal: 0,
+    attempt: 1,
+    isCurrent: true,
+    beat: DIRECTOR_OPENING_FRAME_BEAT,
+    prompt: "prompt",
+    status: "QUEUED",
+    submissionState: "NOT_STARTED",
+    lastProviderStatus: null,
+    externalTaskId: null,
+    submittedAt: null,
+    createdAt: new Date("2026-11-17T21:00:00.000Z"),
+    outputUrl: null,
+    outputAsset: null,
+    errorCode: null,
+    errorMessage: null,
+    ...overrides,
+  };
+}
+
+const DRAWN = (id: string, ordinal: number) =>
+  candidateFrame({
+    id,
+    ordinal,
+    status: "SUCCEEDED",
+    submissionState: "ACCEPTED",
+    outputUrl: `https://blob.example.com/owner/storyboard/${id}.png`,
+    outputAsset: { id: `asset-${id}`, userId: "owner-1", url: `https://blob.example.com/owner/storyboard/${id}.png` },
+  });
+
+function candidateRun(frames: Array<Record<string, unknown>>, overrides: Record<string, unknown> = {}) {
+  return {
+    id: "run-candidates",
+    userId: "owner-1",
+    status: "GENERATING",
+    approvalPolicy: "MANUAL",
+    durationSec: 30,
+    aspectRatio: "9:16",
+    approvedAt: null,
+    errorCode: null,
+    errorMessage: null,
+    inputImageUrls: [PHOTO_A, PHOTO_B],
+    planningDegradations: [],
+    visualReference: { ...stored(30), openingCandidates: 2, styleTemplateId: null },
+    frames,
+    ...overrides,
+  } as Record<string, unknown>;
+}
+
+test("候选轮的面板数据：一张画好就能确认（另一张还在画也行）；一张都没好不能；选定后回到一张", () => {
+  const oneReady = storyboardRunView(candidateRun([
+    DRAWN("f0", 0),
+    candidateFrame({ id: "f1", ordinal: 1, status: "PROCESSING", submissionState: "ACCEPTED" }),
+  ]) as never);
+  assert.equal(oneReady.openingCandidates, 2);
+  assert.equal(oneReady.canApprove, true, "不用等第二张");
+
+  const noneReady = storyboardRunView(candidateRun([
+    candidateFrame({ id: "f0", ordinal: 0, status: "PROCESSING", submissionState: "ACCEPTED" }),
+    candidateFrame({ id: "f1", ordinal: 1 }),
+  ]) as never);
+  assert.equal(noneReady.canApprove, false);
+
+  const oneFailed = storyboardRunView(candidateRun(
+    [DRAWN("f0", 0), candidateFrame({ id: "f1", ordinal: 1, status: "FAILED", submissionState: "REJECTED" })],
+    { status: "AWAITING_APPROVAL" },
+  ) as never);
+  assert.equal(oneFailed.canApprove, true, "另一张失败了，画成的这张照样能用");
+
+  const cancelled = storyboardRunView(candidateRun([DRAWN("f0", 0), DRAWN("f1", 1)], { status: "CANCELLED" }) as never);
+  assert.equal(cancelled.canApprove, false);
+
+  const chosen = storyboardRunView(candidateRun(
+    [DRAWN("f1", 1)],
+    { status: "APPROVED", visualReference: { ...stored(30), openingCandidates: 1, chosenOpeningOrdinal: 1 } },
+  ) as never);
+  assert.equal(chosen.openingCandidates, 1);
+  assert.equal(chosen.frames.length, 1);
+
+  /// 11-17 之前的轮次：一张，照旧要等到 AWAITING_APPROVAL
+  const legacy = storyboardRunView(candidateRun([DRAWN("f0", 0)], { visualReference: stored(30) }) as never);
+  assert.equal(legacy.openingCandidates, 1);
+  assert.equal(legacy.canApprove, false);
+});
+
+test("候选轮的推进：一张成一张败 → 等确认，不判整轮失败；两张都败才失败；第二张排队时会被交出去", async (t) => {
+  const runModel = db.storyboardRun as unknown as Record<string, unknown>;
+  const frameModel = db.storyboardFrame as unknown as Record<string, unknown>;
+  let current: Record<string, unknown> = {};
+  const updates: Array<Record<string, unknown>> = [];
+  let submitAttempted: string | null = null;
+  patch(t, runModel, {
+    findFirst: async () => ({ ...current }),
+    updateMany: async (args: { data: Record<string, unknown> }) => {
+      updates.push(args.data);
+      return { count: 1 };
+    },
+  });
+  patch(t, frameModel, {
+    findUnique: async (args: { where: { id: string } }) => {
+      submitAttempted = args.where.id;
+      return null; // 到这里就停，不真的提交
+    },
+  });
+
+  current = candidateRun([DRAWN("f0", 0), candidateFrame({ id: "f1", ordinal: 1, status: "FAILED", submissionState: "REJECTED" })]);
+  await storyboardTest.advanceRun("run-candidates");
+  assert.ok(updates.some((data) => data.status === "AWAITING_APPROVAL"));
+  assert.ok(!updates.some((data) => data.status === "FAILED"));
+
+  updates.length = 0;
+  current = candidateRun([
+    candidateFrame({ id: "f0", ordinal: 0, status: "FAILED", submissionState: "REJECTED" }),
+    candidateFrame({ id: "f1", ordinal: 1, status: "FAILED", submissionState: "REJECTED" }),
+  ]);
+  await storyboardTest.advanceRun("run-candidates");
+  assert.ok(updates.some((data) => data.status === "FAILED" && data.errorCode === "FRAME_FAILED"));
+
+  updates.length = 0;
+  current = candidateRun([DRAWN("f0", 0), candidateFrame({ id: "f1", ordinal: 1 })]);
+  await storyboardTest.advanceRun("run-candidates");
+  assert.equal(submitAttempted, "f1", "第一张已经好了，第二张照样交出去画");
+  assert.ok(!updates.some((data) => data.status === "AWAITING_APPROVAL"), "还有一张没画完，先不转等确认");
+});
+
+test("候选轮的确认：选哪张用哪张，没选的退出当前帧，张数改回 1；选的那张没画好就拒绝", async (t) => {
+  const runModel = db.storyboardRun as unknown as Record<string, unknown>;
+  const run = candidateRun([
+    DRAWN("f0", 0),
+    DRAWN("f1", 1),
+  ]);
+  const runUpdates: Array<{ where: Record<string, unknown>; data: Record<string, unknown> }> = [];
+  const frameUpdates: Array<{ where: Record<string, unknown>; data: Record<string, unknown> }> = [];
+  const tx = {
+    storyboardRun: {
+      updateMany: async (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
+        runUpdates.push(args);
+        run.status = args.data.status;
+        run.visualReference = args.data.visualReference;
+        return { count: 1 };
+      },
+    },
+    storyboardFrame: {
+      count: async () => 1,
+      updateMany: async (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
+        frameUpdates.push(args);
+        const keep = (args.where.id as { not: string }).not;
+        run.frames = (run.frames as Array<Record<string, unknown>>).filter((frame) => frame.id === keep);
+        return { count: 1 };
+      },
+    },
+  };
+  patch(t, runModel, { findFirst: async () => ({ ...run }) });
+  patch(t, db as unknown as Record<string, unknown>, {
+    $transaction: async (work: (client: typeof tx) => Promise<unknown>) => work(tx),
+  });
+
+  const view = await approveStoryboard({ userId: "owner-1", runId: "run-candidates", frameId: "f1" });
+  assert.equal(view.status, "APPROVED");
+  assert.deepEqual(view.frames.map((frame) => frame.id), ["f1"], "只留选中的那张");
+  assert.equal(view.openingCandidates, 1);
+  assert.equal(runUpdates.length, 1);
+  assert.deepEqual((runUpdates[0]!.where.status as { in: string[] }).in, ["GENERATING", "AWAITING_APPROVAL"], "状态写入带源状态");
+  const reference = runUpdates[0]!.data.visualReference as Record<string, unknown>;
+  assert.equal(reference.openingCandidates, 1);
+  assert.equal(reference.chosenOpeningOrdinal, 1);
+  assert.equal(reference.kind, DIRECTOR_SCRIPT_KIND, "脚本本身原样留着");
+  assert.deepEqual(frameUpdates[0]!.where, { storyboardRunId: "run-candidates", isCurrent: true, id: { not: "f1" } });
+  assert.deepEqual(frameUpdates[0]!.data, { isCurrent: false });
+  /// 确认之后按一张的轮次算：出齐 = 1 帧
+  assert.equal(expectedStoryboardFrameCount({ durationSec: 30, visualReference: reference }), 1);
+});
+
+test("候选轮的确认：不说选哪张 = 序号最靠前的那张画好的；选了还在画的那张 → 409，不动任何东西", async (t) => {
+  const runModel = db.storyboardRun as unknown as Record<string, unknown>;
+  const run = candidateRun([
+    candidateFrame({ id: "f0", ordinal: 0, status: "PROCESSING", submissionState: "ACCEPTED" }),
+    DRAWN("f1", 1),
+  ]);
+  let transactions = 0;
+  const kept: string[] = [];
+  patch(t, runModel, { findFirst: async () => ({ ...run }) });
+  patch(t, db as unknown as Record<string, unknown>, {
+    $transaction: async (work: (client: unknown) => Promise<unknown>) => {
+      transactions += 1;
+      return work({
+        storyboardRun: { updateMany: async () => ({ count: 1 }) },
+        storyboardFrame: {
+          count: async (args: { where: { id: string } }) => {
+            kept.push(args.where.id);
+            return 1;
+          },
+          updateMany: async () => ({ count: 1 }),
+        },
+      });
+    },
+  });
+
+  await assert.rejects(
+    approveStoryboard({ userId: "owner-1", runId: "run-candidates", frameId: "f0" }),
+    (error: unknown) => error instanceof StoryboardRequestError && error.status === 409 && /还没画好/.test(error.message),
+  );
+  assert.equal(transactions, 0);
+
+  await approveStoryboard({ userId: "owner-1", runId: "run-candidates" });
+  assert.deepEqual(kept, ["f1"], "第一张还在画，落在画好的第二张上");
+});
+
+test("建故事板：写手没写成时，把这一次占的每小时名额还回去（失败次数另记一只桶，有上限）", async (t) => {
+  t.after(() => storyboardTest.__setRuntimeDependenciesForTests(null));
+  storyboardTest.__setRuntimeDependenciesForTests({
+    writeDirectorScript: async () => ({ ok: false, cause: "director writer model_unavailable" }),
+  });
+  captureRunCreate(t);
+  const bumped: string[] = [];
+  const released: Array<{ where: Record<string, unknown>; data: Record<string, unknown> }> = [];
+  let failedCount = 0;
+  patch(t, db.rateLimitBucket as unknown as Record<string, unknown>, {
+    upsert: async (args: { where: { bucketKey_windowKey: { bucketKey: string } } }) => {
+      const key = args.where.bucketKey_windowKey.bucketKey;
+      bumped.push(key);
+      if (key.startsWith("storyboard-create-failed:")) failedCount += 1;
+      return { count: key.startsWith("storyboard-create-failed:") ? failedCount : 1 };
+    },
+    updateMany: async (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
+      released.push(args);
+      return { count: 1 };
+    },
+  });
+  const attempt = (key: string) =>
+    assert.rejects(
+      createStoryboardRun({ ...RUN_INPUT, idempotencyKey: key, userInitiated: true }),
+      (error: unknown) => error instanceof StoryboardRequestError && error.code === "DIRECTOR_SCRIPT_FAILED",
+    );
+  await attempt("refund-1");
+  assert.deepEqual(bumped, ["storyboard-create:user:owner-1", "storyboard-create-failed:user:owner-1"]);
+  assert.equal(released.length, 1);
+  assert.equal(released[0]!.where.bucketKey, "storyboard-create:user:owner-1");
+  assert.deepEqual(released[0]!.where.count, { gt: 0 }, "只减到 0");
+  assert.deepEqual(released[0]!.data, { count: { decrement: 1 } });
+
+  /// 连续失败超过上限之后不再还：防止拿必然失败的请求反复白调模型
+  failedCount = 500;
+  await attempt("refund-2");
+  assert.equal(released.length, 1, "超过上限的这一次不还名额");
 });

@@ -98,6 +98,8 @@ interface ResumableStoryboardPayload {
       width: number | null;
       height: number | null;
     }>;
+    /** 这一轮的脚本是按哪种风格写的（自动匹配 / 旧轮次 = null；旧响应没有这一项） */
+    styleTemplateId?: string | null;
   };
 }
 
@@ -551,6 +553,11 @@ export function StreamlinedVideoStudio({
     }
     if (ASPECT_RATIOS.includes(context.aspectRatio as AspectRatio)) {
       setSelectedAspectRatio(context.aspectRatio as AspectRatio);
+    }
+    /// 脚本是按哪种风格写的，风格下拉就显示哪种（以前恢复后一律落回「自动匹配」，和脚本对不上）
+    if (context.styleTemplateId !== undefined) {
+      setStyleTemplateId(context.styleTemplateId ?? "auto");
+      setCreationMode("advanced");
     }
     if (context.sourceAssets.length > 0) {
       setProductAssets(context.sourceAssets.slice(0, MAX_PRODUCT_IMAGES).map((asset, index) => ({
@@ -1112,14 +1119,19 @@ export function StreamlinedVideoStudio({
     }
   }
 
-  async function approveStoryboard() {
+  /// frameId：两张开场画面里选的那一张；只有一张的轮次不带
+  async function approveStoryboard(frameId?: string) {
     if (!storyboard?.canApprove || approvingStoryboard) return;
     setApprovingStoryboard(true);
     setError(null);
     try {
       const response = await fetch(
         `/api/video-generation/storyboards/${encodeURIComponent(storyboard.id)}/approve`,
-        { method: "POST" },
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(frameId ? { frameId } : {}),
+        },
       );
       const payload = await response.json().catch(() => null) as
         | { ok: true; run: StoryboardRunView }
@@ -2105,7 +2117,7 @@ export function StreamlinedVideoStudio({
             approving={approvingStoryboard}
             referenceOptions={storyboardReferenceOptions}
             onRegenerate={(frameId, options) => void regenerateStoryboardFrame(frameId, options)}
-            onApprove={() => void approveStoryboard()}
+            onApprove={(frameId) => void approveStoryboard(frameId)}
             onEditPlan={requestEditStoryboardDirection}
           />
           <ConfirmDialog

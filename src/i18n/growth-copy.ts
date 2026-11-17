@@ -410,7 +410,7 @@ const ZH: GrowthCopy = {
       ctaSamples: "看样片",
       sceneLabel: "AI 生成场景",
       pairsTitle: "一张商品图，拍成一条广告",
-      pairsBody: "上传商品实拍，AI 导演先写好镜头脚本、出一张开场画面给你确认，再一次拍完 15 或 30 秒成片；商品长什么样，成片里就是什么样。",
+      pairsBody: "上传商品实拍，AI 导演先写好镜头脚本、出两张开场画面让你挑，再一次拍完 15 或 30 秒成片；商品长什么样，成片里就是什么样。",
       inputChip: "商品图",
       outputChip: "成片",
       pairNames: {
@@ -802,7 +802,7 @@ const EN: GrowthCopy = {
       ctaSamples: "See samples",
       sceneLabel: "AI-generated scene",
       pairsTitle: "One product photo, one finished ad",
-      pairsBody: "Upload real photos of your product. The AI director writes the shot script, shows you an opening frame to approve, then films a 15 or 30-second ad in one go. The product looks the way it really does.",
+      pairsBody: "Upload real photos of your product. The AI director writes the shot script, shows you two opening frames to pick from, then films a 15 or 30-second ad in one go. The product looks the way it really does.",
       inputChip: "Product photo",
       outputChip: "Finished ad",
       pairNames: {

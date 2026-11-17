@@ -64,8 +64,8 @@ const ARTICLES: readonly ArticleSource[] = [
           },
           {
             heading: "3. 点「生成 AI 故事板」",
-            body: "AI 导演会看你的商品图，写好一份镜头脚本（每个镜头拍什么、说哪句话），再出一张开场画面。写脚本约 1–3 分钟。",
-            tip: "这一步不扣视频额度。开场画面不满意可以单独重出，脚本不对路就改描述重来一轮。",
+            body: "AI 导演会看你的商品图，写好一份镜头脚本（每个镜头拍什么、说哪句话），再出两张开场画面让你挑一张。写脚本约 1–3 分钟。",
+            tip: "这一步不扣视频额度。两张都不满意可以单独重出某一张，脚本不对路就改描述重来一轮。",
           },
           {
             heading: "4. 确认后点「生成视频」",
@@ -95,8 +95,8 @@ const ARTICLES: readonly ArticleSource[] = [
           },
           {
             heading: "3. Choose Generate AI storyboard",
-            body: "The AI director looks at your photos, writes a shot script (what each shot shows and which line is spoken) and renders one opening frame. Usually 1–3 minutes.",
-            tip: "This step doesn't use a video credit. You can redo the opening frame on its own, or change the description and start a new round.",
+            body: "The AI director looks at your photos, writes a shot script (what each shot shows and which line is spoken) and renders two opening frames for you to pick from. Usually 1–3 minutes.",
+            tip: "This step doesn't use a video credit. If neither frame works you can redo one on its own, or change the description and start a new round.",
           },
           {
             heading: "4. Approve, then Generate video",
@@ -118,18 +118,18 @@ const ARTICLES: readonly ArticleSource[] = [
     href: "/app/create",
     copy: {
       "zh-CN": {
-        title: "看懂故事板：一张开场画面 + 一份镜头脚本",
+        title: "看懂故事板：挑一张开场画面 + 一份镜头脚本",
         summary: "开拍之前最省钱的修改机会：先看 AI 打算怎么拍，不对就在这一步改，不扣视频额度。",
         features: ["生成 AI 故事板", "镜头脚本", "确认开场画面和脚本"],
         sections: [
           {
             heading: "故事板里有什么",
-            body: "一张开场画面（片子从这个画面开始演），和一份镜头清单：每个镜头几秒、拍什么、说哪句话。成片就是照这份脚本一次拍完的。",
+            body: "两张开场画面（挑一张，片子从它开始演），和一份镜头清单：每个镜头几秒、拍什么、说哪句话。成片就是照这份脚本一次拍完的。哪张先画好都可以直接点「用这一张」，不用等另一张。",
           },
           {
-            heading: "开场画面不满意",
-            steps: ["展开开场画面下面的「重做前补充要求」，写一句要怎么改（比如「商品放在画面正中」「光线再亮一点」）", "点「重做这一帧」", "只重出这一张，脚本不变"],
-            tip: "开场画面里的商品要和你的实拍图一致；不一致就重出，别带着走样的画面开拍。",
+            heading: "两张开场画面都不满意",
+            steps: ["展开其中一张下面的「重做前补充要求」，写一句要怎么改（比如「商品放在画面正中」「光线再亮一点」）", "点「重做这一帧」", "只重出这一张，另一张和脚本都不变"],
+            tip: "选商品和你的实拍图更一致的那张；两张都走样就重出，别带着走样的画面开拍。",
           },
           {
             heading: "脚本不对路",
@@ -139,18 +139,18 @@ const ARTICLES: readonly ArticleSource[] = [
         cta: "去创作",
       },
       "en-US": {
-        title: "Reading the storyboard: one opening frame and a shot script",
+        title: "Reading the storyboard: pick an opening frame, check the shot script",
         summary: "The cheapest moment to change things: see how the AI plans to film it and fix it here, before a video credit is used.",
         features: ["Generate AI storyboard", "Shot script", "Approve frame and script"],
         sections: [
           {
             heading: "What's in it",
-            body: "One opening frame (the video starts from this picture) and a shot list: how long each shot is, what it shows and which line is spoken. The video is filmed from this script in one go.",
+            body: "Two opening frames (pick one; the video starts from it) and a shot list: how long each shot is, what it shows and which line is spoken. The video is filmed from this script in one go. You can choose Use this one on whichever frame is ready first, without waiting for the other.",
           },
           {
-            heading: "If the opening frame is off",
-            steps: ["Add one line about what to change under the opening frame (for example \"product centred\" or \"brighter light\")", "Choose Regenerate frame", "Only that frame is redone; the script stays"],
-            tip: "The product in the frame should match your photos. If it doesn't, redo it before filming.",
+            heading: "If neither opening frame is right",
+            steps: ["Add one line about what to change under one of the frames (for example \"product centred\" or \"brighter light\")", "Choose Regenerate frame", "Only that frame is redone; the other frame and the script stay"],
+            tip: "Pick the frame where the product matches your photos best. If both are off, redo one before filming.",
           },
           {
             heading: "If the script misses the point",

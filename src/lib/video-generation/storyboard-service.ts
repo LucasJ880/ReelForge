@@ -27,6 +27,7 @@ import {
   bumpRateLimit,
   hourlyWindowKey,
   RateLimitExceededError,
+  releaseRateLimit,
 } from "@/lib/services/rate-limit-service";
 import { getStorageProvider } from "@/lib/storage";
 import { asProviderSubmissionError } from "@/lib/video-generation/providers/submission-error";
@@ -65,7 +66,10 @@ import {
 } from "@/lib/video-generation/visual-reference-analysis";
 import { STORYBOARD_PERSON_REFS_MAX } from "@/lib/video-generation/storyboard-person-refs";
 import {
+  DIRECTOR_OPENING_CANDIDATES,
+  directorOpeningCandidateCount,
   directorOpeningFrame,
+  directorScriptStyleId,
   directorScriptView,
   isStoredDirectorScript,
   readStoredDirectorScript,
@@ -75,7 +79,6 @@ import {
 } from "@/lib/video-generation/director-line";
 import {
   DIRECTOR_LINE_BLOCKER_MESSAGE,
-  DIRECTOR_LINE_DURATIONS,
   directorLineBlocker,
   type DirectorScriptView,
 } from "@/lib/video-generation/director-line-policy";
@@ -141,8 +144,8 @@ export interface CreateStoryboardRunInput {
   /// 主播参考图（P02-D(s)）：最多 4 张，落 StoryboardRun.personAssetIds（M1 列，首张 = 主播，保留顺序）；
   /// 不进 inputAssetIds / inputImageUrls（那两列只放商家实拍），不算实拍张数。
   personAssetIds?: string[];
-  /// 路由按开关 STORYBOARD_PERSON_REFS + 角色算好：personAssetIds 非空而未放行 → 400。
-  /// 只在幂等回放之后、真正新建之前校验，刷新重提同一键的旧请求不受开关变化影响。
+  /// 已不再看这一项：导演线路不收主播参考图，带了就由 directorLineBlocker 明确拒绝（幂等回放之后）。
+  /// 路由还在算、还在传；等主播参考图整条线（路由、开关、派发里的判断）单独清理时一起删。
   personRefsAllowed?: boolean;
   approvalPolicy?: "MANUAL" | "AUTO";
   purpose?: string;
@@ -170,8 +173,10 @@ export interface StoryboardRunView {
   canCancel: boolean;
   /// 建故事板时哪几步 AI 没用上、退回了兜底（目前只有镜头卡）；面板据此提醒商家。原因原文不下发。
   degradedStages: PlanningStage[];
-  /// 导演线路的故事板（一张开场帧 + 一份镜头脚本）才有：给面板看的脚本摘要。老的四 / 五帧故事板是 null。
+  /// 导演线路的故事板（开场画面 + 一份镜头脚本）才有：给面板看的脚本摘要。老的四 / 五帧故事板是 null。
   director: DirectorScriptView | null;
+  /// 导演线路这一轮现在有几张开场画面：商家选定之前是候选张数（2），选定之后、或旧轮次是 1；老的分帧故事板是 0。
+  openingCandidates: number;
   frames: Array<{
     id: string;
     ordinal: number;
@@ -205,6 +210,8 @@ export interface ResumableStoryboardContext {
   sourceAssets: ResumableStoryboardAsset[];
   /// 主播参考图（personAssetIds，M1 列）；创作台露出留 P02-D2。
   personAssets: ResumableStoryboardAsset[];
+  /// 这一轮的脚本是按哪种风格写的（自动匹配或旧轮次 = null）：恢复时风格下拉要显示它，不能退回「自动匹配」
+  styleTemplateId: string | null;
 }
 
 interface StoryboardRuntimeDependencies {
@@ -255,11 +262,22 @@ export function storyboardFrameCountForDuration(durationSec: number): number {
 }
 
 /**
- * 这一轮故事板该有几帧：导演线路只出一张开场帧（脚本存在 visualReference 里），其余按时长 4 / 5 帧。
+ * 这一轮故事板该有几帧：导演线路只出开场画面（脚本存在 visualReference 里）——商家选定之前是几张候选
+ * （见 directorOpeningCandidateCount），选定之后是一张；老的分帧故事板按时长 4 / 5 帧。
  * 判「出齐了没有」的地方都用它，别直接按时长算。
  */
 export function expectedStoryboardFrameCount(run: { durationSec: number; visualReference?: unknown }): number {
-  return isStoredDirectorScript(run.visualReference) ? 1 : storyboardFrameCountForDuration(run.durationSec);
+  return isStoredDirectorScript(run.visualReference)
+    ? directorOpeningCandidateCount(run.visualReference)
+    : storyboardFrameCountForDuration(run.durationSec);
+}
+
+/**
+ * 这一轮是不是「几张开场画面里挑一张」：是的话，任一张画好就能选它开拍（不用等另一张），
+ * 另一张失败也不算这一轮失败。
+ */
+function isOpeningCandidateRun(run: { durationSec: number; visualReference?: unknown }): boolean {
+  return directorOpeningCandidateCount(run.visualReference) > 1;
 }
 
 function storyboardBeatsForDuration(durationSec: number): readonly string[] {
@@ -421,10 +439,16 @@ export function storyboardRunView(run: StoryboardRunRecord): StoryboardRunView {
       canRegenerate: !cancelled && canRegenerateStoryboardFrame(frame),
       waitedSec: frameWaitedSec(frame, viewedAt),
     }));
+  const expected = expectedStoryboardFrameCount(run);
   const allReady =
-    frames.length === expectedStoryboardFrameCount(run) &&
+    frames.length === expected &&
     frames.every((frame) => frame.status === StoryboardFrameStatus.SUCCEEDED);
   const directorScript = readStoredDirectorScript(run.visualReference);
+  /// 候选轮：有一张画好了就能确认（还在画另一张时也行），确认时带上选的是哪一张
+  const candidateReady =
+    isOpeningCandidateRun(run) &&
+    (run.status === StoryboardRunStatus.GENERATING || run.status === StoryboardRunStatus.AWAITING_APPROVAL) &&
+    frames.some((frame) => frame.status === StoryboardFrameStatus.SUCCEEDED);
   return {
     id: run.id,
     status: String(run.status),
@@ -436,8 +460,8 @@ export function storyboardRunView(run: StoryboardRunRecord): StoryboardRunView {
     errorMessage: run.errorMessage ?? null,
     canApprove:
       run.approvalPolicy === StoryboardApprovalPolicy.MANUAL &&
-      run.status === StoryboardRunStatus.AWAITING_APPROVAL &&
-      allReady,
+      ((run.status === StoryboardRunStatus.AWAITING_APPROVAL && allReady) || candidateReady),
+    openingCandidates: directorScript ? expected : 0,
     canCancel: isStoryboardRunCancellable(run),
     degradedStages: [...new Set(readPlanningDegradations(run.planningDegradations).map((entry) => entry.stage))],
     director: directorScript ? directorScriptView(directorScript) : null,
@@ -473,6 +497,7 @@ function rateLimitFromEnv(name: string, fallback: number): number {
 async function bumpStoryboardRateLimit(
   action: "create" | "frame-regenerate",
   userId: string,
+  windowKey: string = hourlyWindowKey(),
 ): Promise<void> {
   const max = action === "create"
     ? rateLimitFromEnv("STORYBOARD_CREATE_RATE_LIMIT_PER_HOUR", STORYBOARD_CREATE_PER_HOUR_DEFAULT)
@@ -481,7 +506,7 @@ async function bumpStoryboardRateLimit(
         STORYBOARD_FRAME_REGEN_PER_HOUR_DEFAULT,
       );
   try {
-    await bumpRateLimit(`storyboard-${action}:user:${userId}`, hourlyWindowKey(), max);
+    await bumpRateLimit(`storyboard-${action}:user:${userId}`, windowKey, max);
   } catch (error) {
     if (!(error instanceof RateLimitExceededError)) throw error;
     throw new StoryboardRequestError(
@@ -491,6 +516,22 @@ async function bumpStoryboardRateLimit(
       "RATE_LIMITED",
       429,
     );
+  }
+}
+
+/**
+ * 写手没写成时把这一轮的名额还回去（页面上让商家「再点一次」，不能点着点着被限流拦住）。
+ * 还名额本身也有上限：失败的次数记在另一只桶里，超过每小时建故事板的上限就不再还——防止有人拿必然失败的请求
+ * 反复白调模型。任何一步出错都只记日志：还不上名额不能盖住「没写成」这句真话。
+ */
+async function refundStoryboardCreateSlot(userId: string, windowKey: string): Promise<void> {
+  const max = rateLimitFromEnv("STORYBOARD_CREATE_RATE_LIMIT_PER_HOUR", STORYBOARD_CREATE_PER_HOUR_DEFAULT);
+  try {
+    await bumpRateLimit(`storyboard-create-failed:user:${userId}`, windowKey, max);
+    await releaseRateLimit(`storyboard-create:user:${userId}`, windowKey);
+  } catch (error) {
+    if (error instanceof RateLimitExceededError) return;
+    console.warn("[storyboard] failed to refund a create slot (ignored):", (error as Error).message);
   }
 }
 
@@ -607,9 +648,6 @@ export async function createStoryboardRun(
   if (!input.prompt.trim()) {
     throw new StoryboardRequestError("请描述视频故事。", "VALIDATION_FAILED");
   }
-  if (!DIRECTOR_LINE_DURATIONS.includes(input.durationSec)) {
-    throw new StoryboardRequestError("视频时长不受支持。", "VALIDATION_FAILED");
-  }
   const assetIds = [...new Set(input.sourceAssetIds ?? [])];
   const personAssetIds = [...new Set(input.personAssetIds ?? [])];
   if (personAssetIds.length > STORYBOARD_PERSON_REFS_MAX) {
@@ -659,14 +697,8 @@ export async function createStoryboardRun(
     }
     return storyboardRunView(await reconcileStoryboardRun(existing.id, input.userId));
   }
-  // 主播参考图的放行校验放在幂等回放之后：开关关掉后，同一键的旧请求刷新重提仍能拿回原 run。
-  if (personAssetIds.length > 0 && !input.personRefsAllowed) {
-    throw new StoryboardRequestError(
-      "主播参考图暂未开放，请去掉主播参考图后再提交。",
-      "VALIDATION_FAILED",
-    );
-  }
-  /// 导演线路做不了的请求（没传商品图、别的时长、下线的模板）当场说清楚——放在计数之前，一眼能拒的请求不占名额
+  /// 导演线路做不了的请求（没传商品图、别的时长、带主播参考图、下线的模板）当场说清楚。放在幂等回放之后：
+  /// 同一键的旧请求刷新重提仍能拿回原来那一轮；放在计数之前：一眼能拒的请求不占名额。时长只在这一处判。
   const blocked = directorLineBlocker({
     durationSec: input.durationSec,
     productImageCount: assets.length,
@@ -675,13 +707,13 @@ export async function createStoryboardRun(
   });
   if (blocked) throw new StoryboardRequestError(DIRECTOR_LINE_BLOCKER_MESSAGE[blocked], "VALIDATION_FAILED");
   // 只给「真正新建」计数：同一幂等键的回放（刷新后重提）不占名额。
-  if (input.userInitiated) await bumpStoryboardRateLimit("create", input.userId);
+  const rateWindow = hourlyWindowKey();
+  if (input.userInitiated) await bumpStoryboardRateLimit("create", input.userId, rateWindow);
 
   const id = randomUUID();
-  /// 导演线路是单条创作唯一的出片方式（2026-11-17 锁定）：由导演写手看商品图写一份镜头脚本，只出一张开场帧，
+  /// 导演线路是单条创作唯一的出片方式（2026-11-17 锁定）：由导演写手看商品图写一份镜头脚本，只出开场画面，
   /// 出片时整条一次生成——和 Claude 这边 `npm run director` 是同一套规则。它做不了的请求当场说清楚，不再退回老的分帧故事板。
-  {
-    const written = await runtime().writeDirectorScript({
+  const written = await runtime().writeDirectorScript({
       description: input.prompt,
       durationSec: input.durationSec,
       aspectRatio: input.aspectRatio,
@@ -689,76 +721,85 @@ export async function createStoryboardRun(
       styleTemplateId: input.styleTemplateId ?? null,
       voiceoverScript: input.voiceoverScript ?? null,
       jobId: `sb-${id.replace(/[^a-z0-9]/gu, "").slice(0, 24)}`,
-    });
-    if (written.ok) {
-      const opening = directorOpeningFrame(written.script.job);
-      console.log(
-        `[director-line] storyboard ${id}: script ready (${written.script.job.video.shots.length} shots, ${written.script.attempts} draft(s), model ${written.script.model})`,
-      );
-      let directorRun: StoryboardRunRecord;
-      try {
-        directorRun = await db.storyboardRun.create({
-          data: {
-            id,
-            userId: input.userId,
-            idempotencyKey: input.idempotencyKey,
-            requestHash: hash,
-            approvalPolicy:
-              input.approvalPolicy === "AUTO"
-                ? StoryboardApprovalPolicy.AUTO
-                : StoryboardApprovalPolicy.MANUAL,
-            status: StoryboardRunStatus.GENERATING,
-            durationSec: input.durationSec,
-            aspectRatio: input.aspectRatio,
-            purpose: input.purpose ?? "single-video-storyboard",
-            sourcePrompt: input.prompt.trim(),
-            inputAssetIds: assetIds,
-            inputImageUrls: assets.map((asset) => asset.url),
-            personAssetIds,
-            planningDegradations: [] as unknown as Prisma.InputJsonValue,
-            visualReference: written.stored as unknown as Prisma.InputJsonValue,
-            frames: {
-              create: [
-                {
-                  ordinal: 0,
-                  attempt: 1,
-                  isCurrent: true,
-                  beat: DIRECTOR_OPENING_FRAME_BEAT,
-                  prompt: opening.prompt,
-                  /// 帧级入参：提交时原样使用（顺序 = 提示词里的 image N），不按 run 重算
-                  inputImageUrls: opening.inputImageUrls,
-                  providerRequestKey: frameRequestKey(id, 0, 1),
-                },
-              ],
-            },
-          },
-          include: storyboardInclude,
-        });
-      } catch (error) {
-        if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") {
-          throw error;
-        }
-        const replay = await db.storyboardRun.findUnique({
-          where: { userId_idempotencyKey: { userId: input.userId, idempotencyKey: input.idempotencyKey } },
-          include: storyboardInclude,
-        });
-        if (!replay || replay.requestHash !== hash) {
-          throw new StoryboardRequestError("故事板提交冲突。", "IDEMPOTENCY_CONFLICT", 409);
-        }
-        return storyboardRunView(replay);
-      }
-      const openingFrame = directorRun.frames[0];
-      if (openingFrame) await submitStoryboardFrame(openingFrame.id);
-      return storyboardRunView((await findRun(directorRun.id, input.userId)) ?? directorRun);
-    }
+  });
+  if (!written.ok) {
     /// 写不成就明说、可以再点一次：不再退回老的分帧故事板（那条线路的出品不是我们认可的水平）
     console.warn(`[director-line] storyboard ${id}: writer failed: ${written.cause}`);
+    /// 没写成不是商家的错，这一次不占每小时的名额
+    if (input.userInitiated) await refundStoryboardCreateSlot(input.userId, rateWindow);
     throw new StoryboardRequestError(
       "AI 这次没能写出镜头脚本，没有扣任何额度。请再点一次「生成 AI 故事板」；连续几次都不行，请稍后再试。",
       "DIRECTOR_SCRIPT_FAILED",
       503,
     );
   }
+  const opening = directorOpeningFrame(written.script.job);
+  /// 有人挑才出两张：AUTO 批准的轮次（接口建的）只出一张
+  const candidates = input.approvalPolicy === "AUTO" ? 1 : DIRECTOR_OPENING_CANDIDATES;
+  console.log(
+    `[director-line] storyboard ${id}: script ready (${written.script.job.video.shots.length} shots, ${written.script.attempts} draft(s), model ${written.script.model}, ${candidates} opening candidate(s))`,
+  );
+  let directorRun: StoryboardRunRecord;
+  try {
+    directorRun = await db.storyboardRun.create({
+      data: {
+        id,
+        userId: input.userId,
+        idempotencyKey: input.idempotencyKey,
+        requestHash: hash,
+        approvalPolicy:
+          input.approvalPolicy === "AUTO"
+            ? StoryboardApprovalPolicy.AUTO
+            : StoryboardApprovalPolicy.MANUAL,
+        status: StoryboardRunStatus.GENERATING,
+        durationSec: input.durationSec,
+        aspectRatio: input.aspectRatio,
+        purpose: input.purpose ?? "single-video-storyboard",
+        sourcePrompt: input.prompt.trim(),
+        inputAssetIds: assetIds,
+        inputImageUrls: assets.map((asset) => asset.url),
+        personAssetIds,
+        planningDegradations: [] as unknown as Prisma.InputJsonValue,
+        /// 脚本记录里顺带记两件事（没加列）：开场画面有几张候选、这一轮是按哪种风格写的（刷新后恢复时带回去）
+        visualReference: {
+          ...written.stored,
+          openingCandidates: candidates,
+          styleTemplateId: input.styleTemplateId?.trim() || null,
+        } as unknown as Prisma.InputJsonValue,
+        frames: {
+          /// 候选之间只差序号：同一份提示词、同一组入参，各出各的
+          create: Array.from({ length: candidates }, (_, ordinal) => ({
+            ordinal,
+            attempt: 1,
+            isCurrent: true,
+            beat: DIRECTOR_OPENING_FRAME_BEAT,
+            prompt: opening.prompt,
+            /// 帧级入参：提交时原样使用（顺序 = 提示词里的 image N），不按 run 重算
+            inputImageUrls: opening.inputImageUrls,
+            providerRequestKey: frameRequestKey(id, ordinal, 1),
+          })),
+        },
+      },
+      include: storyboardInclude,
+    });
+  } catch (error) {
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") {
+      throw error;
+    }
+    const replay = await db.storyboardRun.findUnique({
+      where: { userId_idempotencyKey: { userId: input.userId, idempotencyKey: input.idempotencyKey } },
+      include: storyboardInclude,
+    });
+    if (!replay || replay.requestHash !== hash) {
+      throw new StoryboardRequestError("故事板提交冲突。", "IDEMPOTENCY_CONFLICT", 409);
+    }
+    return storyboardRunView(replay);
+  }
+  /// 这里只交第一张：写脚本已经用掉大半个请求时限。第二张留在排队里，页面的第一次轮询（几秒后）或后台任务
+  /// 经 advanceRun 把它交出去，两张同时在画。
+  const openingFrame = directorRun.frames[0];
+  if (openingFrame) await submitStoryboardFrame(openingFrame.id);
+  return storyboardRunView((await findRun(directorRun.id, input.userId)) ?? directorRun);
 }
 
 /**
@@ -1262,6 +1303,10 @@ async function advanceRun(runId: string): Promise<StoryboardRunRecord> {
       frame.status === StoryboardFrameStatus.FAILED,
     );
   const anyFailed = run.frames.some((frame) => frame.status === StoryboardFrameStatus.FAILED);
+  /// 候选轮：有一张画成了，这一轮就能用——另一张失败不判整轮失败，商家选画成的那张即可（也可以单独重做失败的那张）
+  const usableCandidate =
+    isOpeningCandidateRun(run) &&
+    run.frames.some((frame) => frame.status === StoryboardFrameStatus.SUCCEEDED);
   if (!settled && run.status === StoryboardRunStatus.FAILED) {
     // Frames are still queued, generating, or freshly revived while the run
     // carries a FAILED verdict (old fail-fast semantics, or an ACK_UNKNOWN
@@ -1273,7 +1318,7 @@ async function advanceRun(runId: string): Promise<StoryboardRunRecord> {
       data: { status: StoryboardRunStatus.GENERATING, errorCode: null, errorMessage: null },
     });
   }
-  if (anyFailed && settled) {
+  if (anyFailed && settled && !usableCandidate) {
     // 显式源状态：只有还在出帧 / 等确认的 run 会被判失败；CANCELLED、APPROVED
     // 永远不被覆盖。
     await db.storyboardRun.updateMany({
@@ -1293,7 +1338,8 @@ async function advanceRun(runId: string): Promise<StoryboardRunRecord> {
   }
   if (
     run.frames.length === expected &&
-    run.frames.every((frame) => frame.status === StoryboardFrameStatus.SUCCEEDED)
+    (run.frames.every((frame) => frame.status === StoryboardFrameStatus.SUCCEEDED) ||
+      (settled && usableCandidate))
   ) {
     /// AUTO（批量 / 接口建的）全部出图即批准；MANUAL 停在 AWAITING_APPROVAL 等商家确认。
     const auto = run.approvalPolicy === StoryboardApprovalPolicy.AUTO;
@@ -1522,6 +1568,7 @@ export async function findResumableStoryboardRunForUser(userId: string): Promise
       aspectRatio: run.aspectRatio,
       sourceAssets: pick(run.inputAssetIds),
       personAssets: pick(personAssetIds),
+      styleTemplateId: directorScriptStyleId(run.visualReference),
     },
   };
 }
@@ -1695,6 +1742,8 @@ export async function regenerateStoryboardFrame(input: {
 export async function approveStoryboard(input: {
   userId: string;
   runId: string;
+  /// 几张开场画面里选的是哪一张（帧 id）。不传 = 序号最靠前的那张画好的；只有一张的轮次不看这一项。
+  frameId?: string | null;
 }): Promise<StoryboardRunView> {
   const run = await findRun(input.runId, input.userId);
   if (!run) throw new StoryboardRequestError("故事板不存在。", "NOT_FOUND", 404);
@@ -1705,6 +1754,7 @@ export async function approveStoryboard(input: {
       409,
     );
   }
+  if (isOpeningCandidateRun(run)) return approveOpeningCandidate(run, input);
   const expected = expectedStoryboardFrameCount(run);
   if (
     run.approvalPolicy !== StoryboardApprovalPolicy.MANUAL ||
@@ -1728,6 +1778,79 @@ export async function approveStoryboard(input: {
     },
   });
   if (approved.count !== 1) throw new StoryboardRequestError("故事板状态已变化。", "INVALID_STATE", 409);
+  return storyboardRunView((await findRun(run.id, input.userId))!);
+}
+
+/**
+ * 候选轮的确认：商家在几张开场画面里选一张开拍。
+ *
+ * 有一张画好了就能选（另一张还在画、或失败了都不用等）。选定的同时把没选的那几张退出当前帧（isCurrent=false），
+ * 并把脚本记录里的候选张数改回 1——之后这一轮和「只出一张」的轮次完全一样，派发、合成、成品库都不用知道有过候选。
+ * 没选的那张如果还在画，供应商那边照常画完、点数照扣，我们不再去取它。
+ */
+async function approveOpeningCandidate(
+  run: StoryboardRunRecord,
+  input: { userId: string; frameId?: string | null },
+): Promise<StoryboardRunView> {
+  const openStatuses = [StoryboardRunStatus.GENERATING, StoryboardRunStatus.AWAITING_APPROVAL];
+  if (
+    run.approvalPolicy !== StoryboardApprovalPolicy.MANUAL ||
+    !openStatuses.some((status) => status === run.status)
+  ) {
+    throw new StoryboardRequestError("故事板状态已变化，请刷新后再试。", "INVALID_STATE", 409);
+  }
+  const drawn = run.frames.filter(
+    (frame) => frame.status === StoryboardFrameStatus.SUCCEEDED && Boolean(frame.outputAsset?.url),
+  );
+  const chosen = input.frameId ? drawn.find((frame) => frame.id === input.frameId) : drawn[0];
+  if (!chosen) {
+    throw new StoryboardRequestError(
+      input.frameId
+        ? "选的这张开场画面还没画好，请等它画完，或者选另一张。"
+        : "开场画面还没画好，暂时不能确认。",
+      "INVALID_STATE",
+      409,
+    );
+  }
+  const stored =
+    run.visualReference && typeof run.visualReference === "object" && !Array.isArray(run.visualReference)
+      ? (run.visualReference as Record<string, unknown>)
+      : {};
+  await db.$transaction(async (tx) => {
+    const approved = await tx.storyboardRun.updateMany({
+      where: {
+        id: run.id,
+        userId: input.userId,
+        status: { in: openStatuses },
+        approvalPolicy: StoryboardApprovalPolicy.MANUAL,
+      },
+      data: {
+        status: StoryboardRunStatus.APPROVED,
+        approvedAt: new Date(),
+        approvedById: input.userId,
+        errorCode: null,
+        errorMessage: null,
+        visualReference: {
+          ...stored,
+          openingCandidates: 1,
+          chosenOpeningOrdinal: chosen.ordinal,
+        } as unknown as Prisma.InputJsonValue,
+      },
+    });
+    if (approved.count !== 1) throw new StoryboardRequestError("故事板状态已变化。", "INVALID_STATE", 409);
+    /// 选的那张必须此刻仍是当前帧、仍是画好的（和「重做这一帧」并发时，重做先提交则这里对不上、整笔回滚）
+    const kept = await tx.storyboardFrame.count({
+      where: { id: chosen.id, storyboardRunId: run.id, isCurrent: true, status: StoryboardFrameStatus.SUCCEEDED },
+    });
+    if (kept !== 1) {
+      throw new StoryboardRequestError("选的这张开场画面刚被重做了，请刷新后再选。", "INVALID_STATE", 409);
+    }
+    await tx.storyboardFrame.updateMany({
+      where: { storyboardRunId: run.id, isCurrent: true, id: { not: chosen.id } },
+      data: { isCurrent: false },
+    });
+  });
+  console.log(`[director-line] storyboard ${run.id}: opening candidate ${chosen.ordinal + 1} chosen`);
   return storyboardRunView((await findRun(run.id, input.userId))!);
 }
 

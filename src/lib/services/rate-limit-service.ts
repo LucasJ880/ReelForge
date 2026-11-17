@@ -48,6 +48,16 @@ export async function bumpRateLimit(
 }
 
 /**
+ * 把刚才占的一次名额还回去（那一次没有真的发生）。只减到 0，不存在的桶不建。
+ */
+export async function releaseRateLimit(bucketKey: string, windowKey: string): Promise<void> {
+  await db.rateLimitBucket.updateMany({
+    where: { bucketKey, windowKey, count: { gt: 0 } },
+    data: { count: { decrement: 1 } },
+  });
+}
+
+/**
  * 访客标识的单向哈希：公开表单 / 追踪链接按它限流与去重，库里不存原始 IP。
  */
 export function hashVisitorKey(raw: string | null | undefined): string {

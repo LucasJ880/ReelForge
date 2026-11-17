@@ -5,8 +5,15 @@ import {
   StoryboardRequestError,
 } from "@/lib/video-generation/storyboard-service";
 
+/** 请求体可以不带；带的话只认 `frameId`：几张开场画面里选的是哪一张。 */
+async function readChosenFrameId(req: NextRequest): Promise<string | null> {
+  const body = await req.json().catch(() => null) as { frameId?: unknown } | null;
+  const frameId = typeof body?.frameId === "string" ? body.frameId.trim() : "";
+  return frameId && frameId.length <= 64 ? frameId : null;
+}
+
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
   const guard = await requireAuth();
@@ -16,6 +23,7 @@ export async function POST(
     const run = await approveStoryboard({
       userId: guard.session.user.id,
       runId: id,
+      frameId: await readChosenFrameId(req),
     });
     return NextResponse.json({ ok: true, run });
   } catch (error) {

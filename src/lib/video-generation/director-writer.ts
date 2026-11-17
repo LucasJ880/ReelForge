@@ -334,6 +334,7 @@ Prove ONE core selling point as action -> visible result (not "absorbs well": a 
 - Describe a recurring person once in throughout (age, hair, clothes), named the same way each time. Supporting people: hands and sleeves only.
 - openingFrame NEVER shows a face: hands only, from behind, or cropped below the nose.
 - Children: fully dressed, at home, an adult's hands nearby. No celebrities or real people.
+- Adults wear plain everyday or work clothes with shoulders, midriff and legs covered; say so in throughout whenever an adult's body is in frame.
 
 6 SOUND
 - voice: one speaker, described once (language, gender and age feel, tone, close-mic).
@@ -350,8 +351,9 @@ The assembled prompt has a hard limit of 4,800 characters; aim for 240 per secon
 When the brief asks to show a place rather than a product in use, film a first-person walk through the real spaces in the photos, in the order a visitor meets them.
 - Those photos are kind scene: point each space's shot at its photo and keep buildings, signs and layouts exactly as photographed. A product photo, if given, stays kind product.
 - Card: who = the visitor (the buyer) and the host, where = the place, moment = walking in, trouble = what a buyer doubts before seeing it, after = what they have now seen, emotion = trust.
-- Hook = the walk toward the entrance. Alternate wide walking shots with hands-only close-ups of the work; workers are seen from behind or as hands.
-- openingFrame = the first place photo, described as it is. End on the product hold if a product photo is given, otherwise on the last space, still.
+- The camera IS the visitor: nobody walks in front of it and no host or visitor is ever on screen. The only people are workers at their stations, from behind or as hands.
+- Hook = the camera moving toward the entrance. Alternate wide walking shots with hands-only close-ups of the work.
+- openingFrame = the first place photo, described as it is, with no person in it. End on the product hold if a product photo is given, otherwise on the last space, still.
 - Lines are a host's tour narration: what this space is, one fact per shot, only facts from the brief.
 
 9 OUTPUT: one JSON object with exactly the keys of the example. Limits in characters: shot fields 8-320; role 12-280; openingFrame 60-1500; openingState 20-600; endState 12-400; any other text 8-200. productType and genre: a name from above plus a one-line reason.`;

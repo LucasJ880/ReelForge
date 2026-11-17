@@ -157,8 +157,8 @@ export function StoryboardWorkflowPanel({
                     : `关键帧已完成 ${generatedCount}/${expectedCount}。几帧同时在画，一般两三分钟出齐；可以先离开这页，回到「创作」会自动接上这一轮。`
                 : director
                   ? english
-                    ? "The video starts on this frame and then follows the shots on the right, filmed in one go. Check the product in the frame and the lines before generating."
-                    : "成片从这一帧开始，按右边的镜头一次拍完。出片前请看一眼画面里的商品对不对、台词有没有问题。"
+                    ? "The video starts on this frame and then follows the listed shots, filmed in one go. Check the product in the frame and the lines before generating."
+                    : "成片从这一帧开始，按列出的镜头一次拍完。出片前请看一眼画面里的商品对不对、台词有没有问题。"
                   : english
                     ? `${generatedCount}/${expectedCount} keyframes ready. Review every frame before video generation.`
                     : `关键帧已完成 ${generatedCount}/${expectedCount}。确认每一帧后才会进入视频生成。`}

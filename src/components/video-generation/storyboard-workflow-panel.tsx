@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import {
   Check,
@@ -39,6 +39,21 @@ export interface StoryboardFrameView {
   errorMessage: string | null;
   /** False while the provider's billing acknowledgement is unresolved. */
   canRegenerate?: boolean;
+  /** 这一帧交给出图服务的时间；旧响应没有这一项。 */
+  startedAt?: string | null;
+}
+
+/** 出图等了这么久还没好，就算「比平时慢」（平时一两分钟）。 */
+export const STORYBOARD_SLOW_AFTER_MS = 4 * 60_000;
+
+/** 还在画的帧里等得最久的那一张等了几分钟；没有在画的帧、或没有时间戳 → null。 */
+export function slowestPendingFrameMinutes(frames: StoryboardFrameView[], nowMs: number): number | null {
+  const waits = frames
+    .filter((frame) => frame.status !== "SUCCEEDED" && frame.status !== "FAILED" && frame.status !== "CANCELLED" && frame.startedAt)
+    .map((frame) => nowMs - Date.parse(frame.startedAt as string))
+    .filter((ms) => Number.isFinite(ms) && ms >= 0);
+  if (waits.length === 0) return null;
+  return Math.floor(Math.max(...waits) / 60_000);
 }
 
 export interface StoryboardRunView {
@@ -113,6 +128,22 @@ export function StoryboardWorkflowPanel({
   const director = run.director ?? null;
   /// 导演线路只出一张开场画面，后面的镜头写在脚本里
   const expectedCount = director ? 1 : storyboardFrameTarget(run.durationSec);
+  /// 出图比平时慢时如实说（2026-11-17：出图服务排队时一张图等过十几分钟，页面上还写着「一般一两分钟」）。
+  /// 时间只在客户端算：挂载后才有值，半分钟走一次。
+  const [nowMs, setNowMs] = useState<number | null>(null);
+  const generating = run.status === "GENERATING";
+  useEffect(() => {
+    if (!generating) return;
+    const tick = () => setNowMs(Date.now());
+    const first = window.setTimeout(tick, 0);
+    const timer = window.setInterval(tick, 30_000);
+    return () => {
+      window.clearTimeout(first);
+      window.clearInterval(timer);
+    };
+  }, [generating]);
+  const waitedMinutes = generating && nowMs !== null ? slowestPendingFrameMinutes(run.frames, nowMs) : null;
+  const slow = waitedMinutes !== null && waitedMinutes * 60_000 >= STORYBOARD_SLOW_AFTER_MS;
 
   return (
     <section
@@ -163,6 +194,16 @@ export function StoryboardWorkflowPanel({
                     ? `${generatedCount}/${expectedCount} keyframes ready. Review every frame before video generation.`
                     : `关键帧已完成 ${generatedCount}/${expectedCount}。确认每一帧后才会进入视频生成。`}
           </p>
+          {slow ? (
+            <p className="flex max-w-[62ch] items-start gap-1.5 text-meta text-warning" role="status" data-testid="storyboard-slow-notice">
+              <Info className="mt-0.5 size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
+              <span>
+                {english
+                  ? `This one is taking longer than usual (${waitedMinutes} minutes so far): image generation (GPT Image 2) is queuing. You can keep waiting and leave this page, or cancel this round and try again later. Cancelling uses no credit.`
+                  : `这次比平时慢，已经等了 ${waitedMinutes} 分钟：出图（GPT Image 2）在排队。可以继续等（离开这页也行），也可以取消这一轮稍后再来，取消不扣额度。`}
+              </span>
+            </p>
+          ) : null}
           {/* 镜头卡没写成、分镜退回通用节奏时如实说一句（与方案卡「请注意」同色）；锁定后不再提醒 */}
           {!approved && run.degradedStages?.includes("director_script") ? (
             <p className="flex max-w-[62ch] items-start gap-1.5 text-meta text-warning" data-testid="storyboard-director-degraded-notice">
@@ -297,8 +338,8 @@ export function StoryboardWorkflowPanel({
                   disabled={regenDisabled}
                   title={regenBlocked
                     ? english
-                      ? "This frame is locked until the provider confirms whether it was billed."
-                      : "需等待合作方确认这一帧是否已计费，暂不能重做。"
+                      ? "This frame is locked until the image service (GPT Image 2) confirms whether it was billed."
+                      : "出图服务（GPT Image 2）还没确认这一帧有没有计费，暂时不能重做。"
                     : undefined}
                   onClick={() => frame && onRegenerate(frame.id, regenerateOptions(draft))}
                 >

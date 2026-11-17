@@ -18,6 +18,12 @@ import { countFinished, loadExchangeReadings, loadProductionCounts, loadVideoQuo
 import type { UploadedAsset } from "@/types/video-generation";
 import { getServerLocale } from "@/i18n/server";
 import { listWorkspaceBrandPackagesForUser } from "@/lib/services/workspace-brand-package-service";
+import { workspaceNavTitle } from "@/components/exchange/workspace-page";
+
+/** 浏览器标签页的标题：跟导航名走（之前每一页都是同一句英文站名，开几个标签分不清） */
+export async function generateMetadata() {
+  return { title: `${workspaceNavTitle("create", await getServerLocale())} · Aivora` };
+}
 
 export default async function PlatformCreatePage({
   searchParams,

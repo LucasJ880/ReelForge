@@ -182,6 +182,8 @@ export interface StoryboardRunView {
     errorCode: string | null;
     errorMessage: string | null;
     canRegenerate: boolean;
+    /// 这一帧交给出图服务的时间（还没交出去 = 建帧时间）。面板据此算等了多久：出图比平时慢时如实说，不让人对着「一两分钟」干等。
+    startedAt: string | null;
   }>;
 }
 
@@ -404,6 +406,7 @@ export function storyboardRunView(run: StoryboardRunRecord): StoryboardRunView {
       errorMessage: frame.errorMessage ?? null,
       // 已取消的一轮不再出帧：任何分镜都不能重做。
       canRegenerate: !cancelled && canRegenerateStoryboardFrame(frame),
+      startedAt: (frame.submittedAt ?? frame.createdAt)?.toISOString() ?? null,
     }));
   const allReady =
     frames.length === expectedStoryboardFrameCount(run) &&
@@ -1030,9 +1033,9 @@ async function submitStoryboardFrame(frameId: string): Promise<void> {
     const code = unknown ? "SUBMISSION_ACK_UNKNOWN" : "PROVIDER_REJECTED";
     const message = unknown
       ? acknowledgedTaskId
-        ? "该分镜任务已被合作方接收，系统稍后会自动核对真实进度，无需重新提交。"
+        ? "这一帧已经交给出图服务（GPT Image 2），系统稍后会自动核对真实进度，无需重新提交。"
         : "该分镜的提交确认未知，系统会自动按新尝试重新生成这一帧；其余分镜不受影响。"
-      : "Shuyu 明确拒绝了该分镜任务，可重新生成这一帧。";
+      : "出图服务（GPT Image 2）没有接这一帧，可以重新生成。";
     // Only this frame fails here. The run settles in advanceRun once every
     // sibling reaches a terminal state, so in-flight paid frames still finish.
     await db.storyboardFrame.updateMany({
@@ -1144,7 +1147,7 @@ async function reconcileStoryboardFrame(frameId: string): Promise<void> {
     const message = refundError
       ? "故事板生成失败且退款状态异常。为避免重复计费，请联系支持核对。"
       : refunded
-        ? "故事板分镜生成失败，合作方已确认退款，可重新生成这一帧。"
+        ? "这一帧没画成，出图的费用已退回，可以重新生成。"
         : "故事板分镜生成失败，但退款状态尚未确认。为避免重复计费，请联系支持核对。";
     // Frame-level failure only; advanceRun settles the run after every
     // sibling reaches a terminal state so completed frames stay harvestable.

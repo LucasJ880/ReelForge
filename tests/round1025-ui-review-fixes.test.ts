@@ -24,8 +24,10 @@ test("LENS-2 隐私政策点名唯一的客户视频线路的供应商（Shuyu�
   const en = getPublicPageCopy("en-US").privacy.processors.body;
   assert.match(zh, /Shuyu/);
   assert.match(en, /Shuyu/);
-  assert.match(zh, /Shuyu 的处理区域与合同条款仍在确认中/);
-  assert.match(en, /Shuyu's processing region and contract terms are still being confirmed/);
+  /// 2026-11-17：按实际模型写（Seedance 2.5、GPT Image 2），接口服务商的名字仍如实披露
+  assert.match(zh, /Seedance 2\.5 视频模型与 GPT Image 2 图片模型/);
+  assert.match(zh, /这家接口服务商的处理区域与合同条款仍在确认中/);
+  assert.match(en, /That API provider's processing region and contract terms are still being confirmed/);
   /// 不再许下「新增处理方前先更新本节」这种已经被违反过的承诺
   assert.doesNotMatch(zh, /新增处理方前/);
   assert.doesNotMatch(en, /before adding a new processor/);

@@ -70,7 +70,7 @@ Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against 
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
-## API endpoint inventory (60/60 route files; 2026-10-28 删除旧中台 / 数字人 / persona 等 32 个；10-29 加线路目录；10-30 加直传 ticket / complete；11-08 加机器视频任务 2 个；11-09 加抖音发布包；11-10 加成片评价、商品档案 2 个；11-16 瘦身删 26 个：Stripe webhook、创始人日报、b-roll / 链接抓取 / 商品主体 / publish / 旧 brief 接口 12 个，以及本周内容 3 个、投放赛马 4 个、产品图工作台 4 个、旧 demo 候补登记 1 个；11-17 锁定导演线路删 9 个：批量生产 6 个、批次定时任务、出方案预览、AI 起口播稿——下表已同步删行)
+## API endpoint inventory (59/59 route files; 2026-10-28 删除旧中台 / 数字人 / persona 等 32 个；10-29 加线路目录；10-30 加直传 ticket / complete；11-08 加机器视频任务 2 个；11-09 加抖音发布包；11-10 加成片评价、商品档案 2 个；11-16 瘦身删 26 个：Stripe webhook、创始人日报、b-roll / 链接抓取 / 商品主体 / publish / 旧 brief 接口 12 个，以及本周内容 3 个、投放赛马 4 个、产品图工作台 4 个、旧 demo 候补登记 1 个；11-17 锁定导演线路删 9 个：批量生产 6 个、批次定时任务、出方案预览、AI 起口播稿，以及客户线路卡的目录接口 1 个——下表已同步删行)
 
 Middleware provides public/session boundaries. Phase 0 statically reviewed the endpoint guard calls, ownership lookup patterns, validators, and machine authentication. Full request/response schema snapshots and hostile-input execution belong to Phase 2.
 
@@ -116,7 +116,6 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | POST | `/api/library/[id]/douyin-kit` | Session + ownership (own unified_input order with a READY video) | ADDED 1109: Douyin publish kit actions that need no ffmpeg — `copy` drafts title/caption/hashtags via the fast LLM tier (explicit 502 on failure, no template fallback; hourly rate limit), `register` logs the posting account (one account per video, second account → 409 PUBLISH_ACCOUNT_CONFLICT), `unregister` sets the log to CANCELLED. Asset export (cover + AI-labelled video) runs on `/api/brand-packaging` with body `{ douyinKit }` |
 | POST | `/api/video-generation/classify-asset` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
 | GET | `/api/video-generation/routes` | Session; read-only | VERIFIED strict: returns only sanitized direct/Shuyu availability; raw supplier balance and credentials are excluded |
-| GET | `/api/video-generation/routes/catalog` | Session; read-only | Customer route card (2026-10-29; standard route only since 2026-11-16, when the Runway high-quality option was deleted): standard (Shuyu) availability + every Shuyu video family with integrated flag; no supplier prices, balance or credentials |
 | POST | `/api/video-generation/dispatch` | Session; idempotency required | VERIFIED H1 strict: complete success DTO, closed error schema, replay/CAS and ambiguous-billing fail-closed tests |
 | POST | `/api/video-generation/storyboards` | Session; idempotency required | VERIFIED: owner-scoped durable Shuyu Image 2 storyboard creation |
 | POST | `/api/video-generation/prompt-draft` | Session (generation persona) | 2026-10-28 evening: "帮我写 / 帮我润色" — vision LLM writes a 2-3 sentence video description from the owner's product photos (asset ids resolved by owner, never raw URLs) and any text already written; returns null → client keeps the owner's text; no quota, no generation |

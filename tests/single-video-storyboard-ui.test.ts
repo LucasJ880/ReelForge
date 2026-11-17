@@ -23,12 +23,11 @@ test("single video creation exposes the full Aivora workflow and four-frame appr
   assert.match(studio, /\$\{encodeURIComponent\(storyboard\.id\)\}\/approve/);
   assert.match(panel, /onRegenerate/);
   assert.match(panel, /onApprove/);
-  // 1025 · B2.5：故事板标签是「AI 故事板」，不露内部模型名
-  assert.doesNotMatch(panel, /Image 2/);
+  // 故事板标签是「AI 故事板」；模型名可以写（2026-11-17 用户定），供应商名和「合作方」不写
+  assert.doesNotMatch(panel, /Shuyu|合作方/);
   assert.match(panel, /AI 故事板/);
-  /// 10-29：客户的线路卡（标准 = Aivora 视频通道，11-16 起只有这一条）挪进 customer-route-picker
-  assert.match(studio, /<CustomerRoutePicker/);
-  assert.match(await readFile("src/components/video-generation/customer-route-picker.tsx", "utf8"), /Aivora 视频通道/);
+  /// 2026-11-17：客户的「线路」卡收掉了（只有一条线路，供应商名和模型清单不给客户看）
+  assert.doesNotMatch(studio, /CustomerRoutePicker/);
 
   /// 线路只有一条（2026-11-17 直连线路删除）：创作页没有线路选择器，也就没有这两个开关
   assert.doesNotMatch(page, /canSelectVideoRoute|showInternalVideoRoutes/);

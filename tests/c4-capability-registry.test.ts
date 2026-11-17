@@ -192,7 +192,8 @@ test("写作暂停：脚本与口播稿先用模板生成，恢复后自动启�
       assert.doesNotMatch(message["en-US"], /stock|voiceover|link import|cutout|weekly|image post|product image/i, `${key}.${status}`);
     }
   }
-  assert.equal(CAPABILITY_COPY.image.label["zh-CN"], "故事板出图");
+  assert.equal(CAPABILITY_COPY.image.label["zh-CN"], "开场画面出图（GPT Image 2）");
+  assert.equal(CAPABILITY_COPY.video.label["zh-CN"], "视频生成（Seedance 2.5）");
   assert.equal(CAPABILITY_COPY.graphics.label["zh-CN"], "Logo");
   // 看图暂停：成片照常生成
   assert.match(CAPABILITY_COPY.vision.messages.unavailable["zh-CN"], /成片照常生成/);
@@ -208,9 +209,9 @@ test("看图文案只写现在真在用的事：出方案时看商品图；成�
     assert.doesNotMatch(zh, /质检|错字|水印/, status);
     assert.doesNotMatch(en, /frame check|burned-in|watermark/i, status);
     assert.match(zh, /商品图/, status);
-    assert.match(zh, /成片照常生成|写进镜头安排/, status);
+    assert.match(zh, /成片照常生成|写进每个镜头/, status);
   }
-  assert.equal(CAPABILITY_COPY.vision.messages.available["zh-CN"], "AI 看图正常：出方案时会看你的商品图，把商品的样子写进镜头安排。");
+  assert.equal(CAPABILITY_COPY.vision.messages.available["zh-CN"], "AI 看图正常：写镜头脚本时会看你的商品图，把商品的样子写进每个镜头。");
 });
 
 test("P03-K：视频「不稳定」不承诺备用线路（生产没有可切的套餐），无论什么原因都只说正在自动重试", () => {
@@ -449,8 +450,8 @@ test("闸门：未开通与暂停分开说；不稳定只提示可能变慢、�
   const frames = featureGate(unstable, "storyboardFrames");
   assert.equal(frames.status, "degraded");
   assert.deepEqual(frames.degradedBy, ["image"]);
-  assert.equal(frames.message?.["zh-CN"], "故事板可能变慢：故事板出图不稳定。");
-  assert.equal(frames.message?.["en-US"], "Storyboards may be slow (unstable: Storyboard images).");
+  assert.equal(frames.message?.["zh-CN"], "故事板可能变慢：开场画面出图（GPT Image 2）不稳定。");
+  assert.equal(frames.message?.["en-US"], "Storyboards may be slow (unstable: Opening frame (GPT Image 2)).");
   /// 看图不稳定不牵连任何功能（没有功能再依赖它）
   for (const feature of FEATURE_KEYS.filter((key) => key !== "storyboardFrames")) {
     assert.equal(featureGate(unstable, feature).status, "available", feature);

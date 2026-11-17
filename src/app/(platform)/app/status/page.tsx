@@ -4,6 +4,7 @@ import { CapabilityBoard } from "@/components/capabilities/capability-board";
 import { getServerLocale } from "@/i18n/server";
 import { authOptions } from "@/lib/auth";
 import { getCapabilities } from "@/lib/services/capability-status-service";
+import { getPlatformCopy } from "@/i18n/platform-copy";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,11 @@ export const dynamic = "force-dynamic";
  * 壳层状态栏的「部分 AI 能力暂停」与各页的暂停提示都指向这里。
  * 服务端取数（getCapabilities 永不抛出），纯 DTO 交给展示组件。
  */
+/** 浏览器标签页的标题 */
+export async function generateMetadata() {
+  return { title: `${getPlatformCopy(await getServerLocale()).routeStates.areas.status} · Aivora` };
+}
+
 export default async function CapabilityStatusPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/status");

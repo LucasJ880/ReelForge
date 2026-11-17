@@ -12,7 +12,9 @@ import type { Locale } from "../src/i18n/config";
 /**
  * 1025 · B2.5 文案门禁：客户看得见的文案不许出现内部术语，英文界面不许出现中文。
  *
- * 禁词来自 UI 审计 P1-12：内部模型名（Image 2）、英文混排的 workspace / 套餐 id、旧 TTS、
+ * 禁词来自 UI 审计 P1-12：英文混排的 workspace / 套餐 id、旧 TTS、
+ * （2026-11-17 用户定：客户文案写明实际用的模型——出片 Seedance、出图 GPT Image 2，所以 Image 2 不再是禁词；
+ *  供应商名和「合作方 / 通道」这类说法改成禁词，隐私政策里披露数据处理方的那一段除外。）
  * 青砚（内部发布系统）、提示词原文标题（NEGATIVE PROMPT）、环境变量名（NEXT_PUBLIC_）。
  */
 
@@ -29,7 +31,7 @@ function strings(value: unknown, path: string, out: Entry[] = []): Entry[] {
 
 /** 两种语言都禁。 */
 const BANNED_ANY: RegExp[] = [
-  /Image 2/,
+  /Shuyu|合作方|视频通道|our partner/i,
   /NEGATIVE PROMPT/i,
   /NEXT_PUBLIC_/,
   /旧 TTS|legacy TTS/i,
@@ -60,6 +62,8 @@ test("客户可见文案过禁词表（中英两套）", () => {
   for (const locale of ["zh-CN", "en-US"] as const) {
     for (const { path, value } of strings(customerCopy(locale), "")) {
       if (OPERATOR_ONLY.test(path)) continue;
+      /// 隐私政策必须如实写出谁会收到数据（接口服务商的名字在这一段出现是披露，不是把供应商当卖点）
+      if (/\.public\.privacy\.processors\./.test(path)) continue;
       const rules = locale === "zh-CN" ? [...BANNED_ANY, ...BANNED_ZH] : BANNED_ANY;
       for (const rule of rules) {
         if (rule.test(value)) offenders.push(`${locale}${path}: ${value.slice(0, 60)}`);

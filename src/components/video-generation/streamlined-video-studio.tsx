@@ -41,7 +41,6 @@ import {
   type StoryboardReferenceOption,
   type StoryboardRunView,
 } from "@/components/video-generation/storyboard-workflow-panel";
-import { CustomerRoutePicker } from "@/components/video-generation/customer-route-picker";
 import { useTranslation } from "@/i18n/useTranslation";
 import { featureGate, type PublicCapabilities } from "@/lib/capabilities/registry";
 import type { CustomerVideoDispatchResponse } from "@/lib/api/customer-video-dispatch";
@@ -161,7 +160,6 @@ const ZH_COPY = {
   quickHint: "系统自动完成镜头与质量检查",
   /// C4：能力暂停时这句说明要诚实——写作暂停 = 镜头按模板规划
   quickHintTemplateShots: "镜头先按模板规划，系统照常做质量检查",
-  route: "生成线路",
   aspect: "画幅",
   duration: "时长",
   vertical: "9:16 竖屏",
@@ -213,7 +211,7 @@ const ZH_COPY = {
   readyHint: "失败任务会按系统规则处理，不会因为重复点击产生重复提交。",
   cancelRound: "取消这一轮",
   cancelRoundHint: "生成服务出问题时，可以随时取消这一轮，素材和描述会保留。",
-  finishingEditableHint: "画面已经定了。口播稿、字幕、配乐、片尾落款和出片线路，在点「生成视频」之前都还能在「更多设置」里改。",
+  finishingEditableHint: "画面已经定了。字幕、右上角 Logo 和片尾落款，在点「生成视频」之前都还能在「更多设置」里改。",
   quotaHint: "提交时预占 1 条额度，失败与取消自动返还：本月已用 {used} / {limit} 条。",
   dispatchFailed: "暂时无法提交视频，请稍后重试。",
   /// 2026-10-28 晚：创作页改成对话框优先（上线审核 §4）
@@ -294,7 +292,6 @@ const EN_COPY: StudioCopy = {
   uploadFailed: "The upload did not finish. Check the files and try again.",
   quickHint: "Automatic shot planning and quality checks",
   quickHintTemplateShots: "Shots are planned from templates for now; quality checks still run",
-  route: "Generation route",
   aspect: "Format",
   duration: "Length",
   vertical: "9:16 vertical",
@@ -345,7 +342,7 @@ const EN_COPY: StudioCopy = {
   readyHint: "Failed jobs follow safe recovery rules, and repeated clicks cannot create duplicate submissions.",
   cancelRound: "Cancel this round",
   cancelRoundHint: "If generation is having trouble, cancel this round anytime — your uploads and direction are kept.",
-  finishingEditableHint: "The shots are set. You can still change the script, captions, music, sign-off and video route under More settings until you generate the video.",
+  finishingEditableHint: "The shots are set. You can still change captions, the corner logo and the sign-off under More settings until you generate the video.",
   quotaHint: "Reserves 1 video at submission, refunded automatically on failure or cancel: {used} / {limit} used this month.",
   dispatchFailed: "The video could not be submitted right now. Try again shortly.",
   heroTitle: "What will you create today?",
@@ -1960,13 +1957,6 @@ export function StreamlinedVideoStudio({
           className="@container divide-y divide-border rounded-(--radius-card) border border-border bg-surface"
           data-testid="streamlined-more-settings"
         >
-          <TicketRow label={copy.route}>
-            <CustomerRoutePicker
-              disabled={finishingLocked}
-              active={moreOpen}
-              english={english}
-            />
-          </TicketRow>
           {/* 口播 / 字幕 / 配乐：默认开口播与逐词字幕，口播稿 AI 先写、人来改 */}
           <TicketRow label={copy.rowAudio}>
             <p className="text-meta text-muted-foreground" data-testid="director-voice-hint">

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T19:54:44.246Z",
+  "generatedAt": "2026-11-17T20:30:43.579Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -4640,7 +4640,8 @@
         "@/lib/services/exchange-readings",
         "@/types/video-generation",
         "@/i18n/server",
-        "@/lib/services/workspace-brand-package-service"
+        "@/lib/services/workspace-brand-package-service",
+        "@/components/exchange/workspace-page"
       ],
       "localImports": [
         "@/components/video-generation/streamlined-video-studio",
@@ -4657,7 +4658,8 @@
         "@/lib/services/exchange-readings",
         "@/types/video-generation",
         "@/i18n/server",
-        "@/lib/services/workspace-brand-package-service"
+        "@/lib/services/workspace-brand-package-service",
+        "@/components/exchange/workspace-page"
       ],
       "externalImports": [
         "next-auth",
@@ -5115,13 +5117,15 @@
         "@/components/capabilities/capability-board",
         "@/i18n/server",
         "@/lib/auth",
-        "@/lib/services/capability-status-service"
+        "@/lib/services/capability-status-service",
+        "@/i18n/platform-copy"
       ],
       "localImports": [
         "@/components/capabilities/capability-board",
         "@/i18n/server",
         "@/lib/auth",
-        "@/lib/services/capability-status-service"
+        "@/lib/services/capability-status-service",
+        "@/i18n/platform-copy"
       ],
       "externalImports": [
         "next-auth",
@@ -6336,21 +6340,6 @@
       "externalImports": [
         "next/server",
         "zod"
-      ]
-    },
-    {
-      "file": "src/app/api/video-generation/routes/catalog/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/video-route-catalog-service"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/video-route-catalog-service"
-      ],
-      "externalImports": [
-        "next/server"
       ]
     },
     {
@@ -8138,23 +8127,6 @@
       ]
     },
     {
-      "file": "src/components/video-generation/customer-route-picker.tsx",
-      "imports": [
-        "react",
-        "lucide-react",
-        "@/lib/contracts/video-route-catalog",
-        "@/lib/utils"
-      ],
-      "localImports": [
-        "@/lib/contracts/video-route-catalog",
-        "@/lib/utils"
-      ],
-      "externalImports": [
-        "react",
-        "lucide-react"
-      ]
-    },
-    {
       "file": "src/components/video-generation/first-run-onboarding-dialog.tsx",
       "imports": [
         "lucide-react",
@@ -8232,7 +8204,6 @@
         "@/components/quota/quota-next-steps",
         "@/lib/quota-next-steps",
         "@/components/video-generation/storyboard-workflow-panel",
-        "@/components/video-generation/customer-route-picker",
         "@/i18n/useTranslation",
         "@/lib/capabilities/registry",
         "@/lib/api/customer-video-dispatch",
@@ -8242,7 +8213,8 @@
         "@/lib/brand/brand-end-card-policy",
         "@/lib/create/hook-angles",
         "@/lib/create/product-size",
-        "@/lib/video-generation/brand-signoff"
+        "@/lib/video-generation/brand-signoff",
+        "@/lib/video-generation/director-line-policy"
       ],
       "localImports": [
         "@/components/exchange/quote-header",
@@ -8258,7 +8230,6 @@
         "@/components/quota/quota-next-steps",
         "@/lib/quota-next-steps",
         "@/components/video-generation/storyboard-workflow-panel",
-        "@/components/video-generation/customer-route-picker",
         "@/i18n/useTranslation",
         "@/lib/capabilities/registry",
         "@/lib/api/customer-video-dispatch",
@@ -8268,7 +8239,8 @@
         "@/lib/brand/brand-end-card-policy",
         "@/lib/create/hook-angles",
         "@/lib/create/product-size",
-        "@/lib/video-generation/brand-signoff"
+        "@/lib/video-generation/brand-signoff",
+        "@/lib/video-generation/director-line-policy"
       ],
       "externalImports": [
         "next/link",
@@ -8801,16 +8773,6 @@
     },
     {
       "file": "src/lib/contracts/video-feedback.ts",
-      "imports": [
-        "zod"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "zod"
-      ]
-    },
-    {
-      "file": "src/lib/contracts/video-route-catalog.ts",
       "imports": [
         "zod"
       ],
@@ -9923,23 +9885,6 @@
       ],
       "externalImports": [
         "@prisma/client"
-      ]
-    },
-    {
-      "file": "src/lib/services/video-route-catalog-service.ts",
-      "imports": [
-        "@/lib/contracts/video-route-catalog",
-        "@/lib/providers/shuyu",
-        "@/lib/video-generation/shuyu-runtime",
-        "zod"
-      ],
-      "localImports": [
-        "@/lib/contracts/video-route-catalog",
-        "@/lib/providers/shuyu",
-        "@/lib/video-generation/shuyu-runtime"
-      ],
-      "externalImports": [
-        "zod"
       ]
     },
     {
@@ -16333,25 +16278,6 @@
       ]
     },
     {
-      "file": "tests/video-route-catalog.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test",
-        "../src/lib/contracts/video-route-catalog",
-        "../src/lib/services/video-route-catalog-service"
-      ],
-      "localImports": [
-        "../src/lib/contracts/video-route-catalog",
-        "../src/lib/services/video-route-catalog-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/video-route-polling-safety.test.ts",
       "imports": [
         "node:assert/strict",
@@ -16587,11 +16513,13 @@
         "node:test",
         "@prisma/client",
         "@/lib/video-generation/business-status",
-        "@/lib/exchange/ready-announcement"
+        "@/lib/exchange/ready-announcement",
+        "../src/components/video-generation/storyboard-workflow-panel"
       ],
       "localImports": [
         "@/lib/video-generation/business-status",
-        "@/lib/exchange/ready-announcement"
+        "@/lib/exchange/ready-announcement",
+        "../src/components/video-generation/storyboard-workflow-panel"
       ],
       "externalImports": [
         "node:assert/strict",

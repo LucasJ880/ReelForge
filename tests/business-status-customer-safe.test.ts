@@ -115,7 +115,9 @@ test("business-status: containsBannedCustomerTerm 正确识别中英术语", () 
 });
 
 test("business-status: BANNED_CUSTOMER_TERMS 至少覆盖 demo spec 列表", () => {
-  const required = ["ffmpeg", "seedance", "stitch", "concat", "blob", "mock", "provider", "adapter"];
+  /// 2026-11-17：seedance 不再禁（按用户要求写明实际用的模型），换成禁供应商名 shuyu
+  const required = ["ffmpeg", "shuyu", "stitch", "concat", "blob", "mock", "provider", "adapter"];
+  assert.ok(!BANNED_CUSTOMER_TERMS.some((t) => t.toLowerCase() === "seedance"));
   for (const term of required) {
     assert.ok(
       BANNED_CUSTOMER_TERMS.some((t) => t.toLowerCase() === term),

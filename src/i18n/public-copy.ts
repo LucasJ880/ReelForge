@@ -69,18 +69,18 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
       },
       draftStatus: "草案 · 待加拿大律师复核",
       title: "隐私政策",
-      intro: "适用于由加拿大安大略省团队运营的 Aivora。最后更新于 2026 年 10 月 24 日。",
+      intro: "适用于由加拿大安大略省团队运营的 Aivora。最后更新于 2026 年 11 月 17 日。",
       information: {
         title: "我们处理的信息",
         body: "我们会处理账户与工作区资料、你上传的产品图片和视频、提示词与创意指令、生成媒体、任务与质量记录、用量和成本事件，以及保障和运营服务所需的技术日志。在商家询盘页或试点申请表里留下的称呼、电话、邮箱和留言，只用于处理那一次询盘或申请：商家询盘页上的信息由该商家收集，Aivora 代为保存并转交给商家。这类记录会一直保存到你申请删除为止（归档不会清除它们），具体保存期限将在正式版本中写明。",
       },
       purpose: {
         title: "我们为何使用这些信息",
-        body: "这些信息用于用户认证、视频生成与质量检查、批次交付与故障排查、防止滥用、套餐用量统计、客户支持及提升服务可靠性。我们不会出售客户媒体或提示词。",
+        body: "这些信息用于用户认证、视频生成与质量检查、成片交付与故障排查、防止滥用、套餐用量统计、客户支持及提升服务可靠性。我们不会出售客户媒体或提示词。",
       },
       processors: {
         title: "处理方与数据路径",
-        body: "目前参与处理数据的服务商：Neon（数据库托管，北美）；Vercel（应用托管与文件存储，美国）；OpenAI（文字、故事板图片生成与编辑、视觉理解，美国）；Shuyu（合作视频与图片生成线路，会收到你提交的产品图、提示词与创意指令）。只在用到对应功能时参与：Resend（开通邮件通知后，发送新询盘与试点申请提醒）。Shuyu 的处理区域与合同条款仍在确认中，确认后我们会在本节写明。",
+        body: "目前参与处理数据的服务商：Neon（数据库托管，北美）；Vercel（应用托管与文件存储，美国）；OpenAI（写镜头脚本与文案、看你上传的商品图，美国）；Seedance 2.5 视频模型与 GPT Image 2 图片模型（出片和出开场画面；经接口服务商 Shuyu 调用，会收到你提交的产品图、提示词与创意指令）。只在用到对应功能时参与：Resend（开通邮件通知后，发送新询盘与试点申请提醒）。这家接口服务商的处理区域与合同条款仍在确认中，确认后我们会在本节写明。",
       },
       retention: {
         title: "保存与删除",
@@ -160,18 +160,18 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
       },
       draftStatus: "DRAFT · PENDING CANADIAN LEGAL REVIEW",
       title: "Privacy Policy",
-      intro: "Applies to Aivora, operated from Ontario, Canada. Last updated October 24, 2026.",
+      intro: "Applies to Aivora, operated from Ontario, Canada. Last updated November 17, 2026.",
       information: {
         title: "Information we handle",
         body: "We process account and workspace details, product images and videos you upload, prompts and creative instructions, generated media, job and quality records, usage and cost events, and technical logs needed to secure and operate the service. Names, phone numbers, emails and messages left on a business's inquiry page or our pilot application form are used only to handle that inquiry or application; on a business's inquiry page, the business collects the information and Aivora stores it and passes it on to them. These records are kept until you ask us to delete them (archiving does not erase them); exact retention periods will be stated in the final version.",
       },
       purpose: {
         title: "Why we use it",
-        body: "We use this information to authenticate users, create and quality-check videos, deliver and troubleshoot batches, prevent abuse, measure plan usage, support customers, and improve service reliability. We do not sell customer media or prompts.",
+        body: "We use this information to authenticate users, create and quality-check videos, deliver and troubleshoot finished videos, prevent abuse, measure plan usage, support customers, and improve service reliability. We do not sell customer media or prompts.",
       },
       processors: {
         title: "Processors and data routes",
-        body: "Processors that handle data today: Neon (database hosting, North America); Vercel (application hosting and file storage, United States); OpenAI (text, storyboard image generation and editing, and vision, United States); and Shuyu (partner video and image generation route, which receives the product images, prompts and creative instructions you submit). Used only when the matching feature runs: Resend (sends new-inquiry and pilot-application alerts once email notifications are turned on). Shuyu's processing region and contract terms are still being confirmed; we will state them in this section once they are.",
+        body: "Processors that handle data today: Neon (database hosting, North America); Vercel (application hosting and file storage, United States); OpenAI (writing shot scripts and copy, and viewing the product photos you upload, United States); and the Seedance 2.5 video model and GPT Image 2 image model (filming and the opening frame; called through the API provider Shuyu, which receives the product photos, prompts and creative instructions you submit). Used only when the matching feature runs: Resend (sends new-inquiry and pilot-application alerts once email notifications are turned on). That API provider's processing region and contract terms are still being confirmed; we will state them in this section once they are.",
       },
       retention: {
         title: "Retention and deletion",

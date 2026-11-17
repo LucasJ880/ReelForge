@@ -129,15 +129,15 @@ function b(zh: string, en: string): Bilingual {
 
 /**
  * 每个能力 × 每种状态一句人话：说清楚还有什么能用、系统改用什么。
- * 不写供应商名、不写模型名（客户文案门禁），恢复后自动启用的一律写明。
+ * 不写供应商名（客户文案门禁）；2026-11-17 起按用户要求写明实际用的模型（出片 Seedance 2.5、出图 GPT Image 2）。恢复后自动启用的一律写明。
  */
 export const CAPABILITY_COPY: Record<CapabilityKey, CapabilityCopy> = {
   text: {
     label: b("AI 写作", "AI writing"),
     messages: {
       available: b(
-        "AI 写作正常：脚本与口播稿由 AI 撰写。",
-        "AI writing is on: scripts and narration drafts are written by AI.",
+        "AI 写作正常：镜头脚本由 AI 导演撰写。",
+        "AI writing is on: shot scripts are written by the AI director.",
       ),
       degraded: b(
         "AI 写作不稳定：可能变慢；单次失败会先用模板顶上，不会卡住。",
@@ -159,8 +159,8 @@ export const CAPABILITY_COPY: Record<CapabilityKey, CapabilityCopy> = {
       /// 只写现在真在用的事。成片画面质检 2026-11-16 整套删除，
       /// 看图这项能力现在用在出方案时看商品图：把商品的样子写进提示词与镜头卡。
       available: b(
-        "AI 看图正常：出方案时会看你的商品图，把商品的样子写进镜头安排。",
-        "AI vision is on: your product photos are looked at during planning, so the shots describe the product as it really looks.",
+        "AI 看图正常：写镜头脚本时会看你的商品图，把商品的样子写进每个镜头。",
+        "AI vision is on: your product photos are looked at while the shot script is written, so every shot describes the product as it really looks.",
       ),
       degraded: b(
         "AI 看图不稳定：个别时候看不成商品图，商品按你的文字描述来；成片照常生成。",
@@ -177,18 +177,18 @@ export const CAPABILITY_COPY: Record<CapabilityKey, CapabilityCopy> = {
     },
   },
   image: {
-    label: b("故事板出图", "Storyboard images"),
+    label: b("开场画面出图（GPT Image 2）", "Opening frame (GPT Image 2)"),
     messages: {
-      available: b("故事板出图正常。", "Storyboard images are rendering normally."),
+      available: b("开场画面出图正常。", "Storyboard images are rendering normally."),
       degraded: b(
-        "故事板出图不稳定：可能变慢或个别失败，失败的那一帧可以单独重出。",
+        "开场画面出图不稳定：可能变慢或个别失败，失败的那一帧可以单独重出。",
         "Storyboard images are unstable: they may be slow or occasionally fail, and a failed frame can be redone on its own.",
       ),
       unavailable: b(
-        "故事板出图暂停：已出的帧都保留，恢复后自动启用。",
+        "开场画面出图暂停：已出的帧都保留，恢复后自动启用。",
         "Storyboard images are paused: frames already made are kept, and rendering resumes once it recovers.",
       ),
-      not_configured: b("故事板出图未开通。", "Storyboard images aren't set up."),
+      not_configured: b("开场画面出图未开通。", "Storyboard images aren't set up."),
     },
   },
   graphics: {
@@ -210,7 +210,7 @@ export const CAPABILITY_COPY: Record<CapabilityKey, CapabilityCopy> = {
     },
   },
   video: {
-    label: b("视频生成", "Video generation"),
+    label: b("视频生成（Seedance 2.5）", "Video generation (Seedance 2.5)"),
     messages: {
       available: b("视频生成正常。", "Video generation is running normally."),
       /// 不承诺「已切换备用线路」：生产没有可切的备用套餐，只有自动重试。

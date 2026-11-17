@@ -90,7 +90,8 @@ const BANNED_CUSTOMER_TERMS = [
   "拼接",
   "拉流",
   "ffmpeg",
-  "seedance",
+  /// 2026-11-17：按用户要求，客户文案写明实际用的模型（Seedance、GPT Image 2），所以 seedance 不再是禁词；供应商名仍然不写
+  "shuyu",
   "provider",
   "stitch",
   "concat",

@@ -33,9 +33,9 @@ const martianMono = Martian_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Aivora — AI video studio for small businesses",
+  title: "Aivora · 一张商品图，拍成能直接发的广告",
   description:
-    "AI-powered short-form video creation: project setup, brand assets, AI direction, multi-segment video generation, preview and publish.",
+    "给小商家的短视频工作室：上传商品实拍图，AI 导演写好镜头脚本，一次拍成带字幕、配音和配乐的竖版广告。",
 };
 
 export default async function RootLayout({

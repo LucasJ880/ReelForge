@@ -63,7 +63,8 @@ test("生成复用 plan/dispatch、客户安全错误与请求级幂等契约", 
 test("规格栏只有客户的线路卡：线路只有一条，创作页不带线路 id 派发，也不硬编码 provider route id", async () => {
   const studio = await readFile(STUDIO_PATH, "utf8");
 
-  assert.match(studio, /<CustomerRoutePicker/);
+  /// 2026-11-17：只有一条出片线路，客户不用看供应商和模型清单，「线路」卡收掉了
+  assert.doesNotMatch(studio, /CustomerRoutePicker|routes\/catalog/);
   assert.doesNotMatch(studio, /VideoRouteSelector|canSelectVideoRoute|selectedVideoRouteId|videoRouteId/);
   assert.doesNotMatch(studio, /byteplus_international|volcengine_cn_legacy|value="buddy"/);
 });

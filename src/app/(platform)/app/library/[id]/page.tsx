@@ -40,6 +40,11 @@ export const dynamic = "force-dynamic";
  * 行情头（标题 + 状态记号 + 读数 + 口径）→ 舞台（竖版原比例成片，旁边是下载与处置）→ 制作过程时间线。
  * 之前成片被压在制作时间线下面，状态是 Badge 圆点而不是状态记号。
  */
+/** 浏览器标签页的标题 */
+export async function generateMetadata() {
+  return { title: `${getPlatformCopy(await getServerLocale()).routeStates.areas.libraryDetail} · Aivora` };
+}
+
 export default async function PlatformLibraryItemPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   const { id } = await params;

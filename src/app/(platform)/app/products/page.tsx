@@ -9,6 +9,7 @@ import { stripProductSize } from "@/lib/create/product-size";
 import { loadProductLibrary } from "@/lib/services/product-profile-service";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
+import { workspaceNavTitle } from "@/components/exchange/workspace-page";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,11 @@ export const dynamic = "force-dynamic";
  * 标题 = 导航名「商品」；页头「新建商品」是这页唯一的实心主钮。没有能接着做什么的数字，所以不放读数。
  * 档案表还没建时如实说明，不装成「你还没有商品」。读取失败不吞（RF-012）：交给上层的错误页。
  */
+/** 浏览器标签页的标题：跟导航名走（之前每一页都是同一句英文站名，开几个标签分不清） */
+export async function generateMetadata() {
+  return { title: `${workspaceNavTitle("products", await getServerLocale())} · Aivora` };
+}
+
 export default async function PlatformProductsPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/products");

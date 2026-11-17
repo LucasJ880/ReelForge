@@ -15,6 +15,7 @@ import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
 import { CustomerBrandWall } from "@/components/brand/customer-brand-wall";
 import { WorkspacePage } from "@/components/exchange/workspace-page";
+import { workspaceNavTitle } from "@/components/exchange/workspace-page";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,11 @@ export const dynamic = "force-dynamic";
  * 两块（工作区品牌包 / 全局品牌包）同一种区块抬头 + 同一个空态组件。
  * 第三块「商品主体」（抠图线路）入口 2026-11-09 撤掉，代码 2026-11-16 删除；ProductAnchor 表与已有行留着。
  */
+/** 浏览器标签页的标题：跟导航名走（之前每一页都是同一句英文站名，开几个标签分不清） */
+export async function generateMetadata() {
+  return { title: `${workspaceNavTitle("brands", await getServerLocale())} · Aivora` };
+}
+
 export default async function PlatformBrandsPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/brands");

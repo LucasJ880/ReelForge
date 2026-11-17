@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T19:54:44.246Z",
+  "generatedAt": "2026-11-17T20:30:43.579Z",
   "routes": [
     {
       "routePath": "/",
@@ -548,15 +548,6 @@
     {
       "routePath": "/api/video-generation/routes",
       "filePath": "src/app/api/video-generation/routes/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "GET"
-      ],
-      "isDynamic": false
-    },
-    {
-      "routePath": "/api/video-generation/routes/catalog",
-      "filePath": "src/app/api/video-generation/routes/catalog/route.ts",
       "kind": "api",
       "httpMethods": [
         "GET"

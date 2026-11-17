@@ -37,6 +37,7 @@ import { libraryRowState } from "@/lib/exchange/state-vocab";
 import { listWorkspaceBrandPackagesForUser } from "@/lib/services/workspace-brand-package-service";
 import { cn } from "@/lib/utils";
 import { contactEmail } from "@/lib/config/contact";
+import { workspaceNavTitle } from "@/components/exchange/workspace-page";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +68,11 @@ function failureReason(item: NeedsAttentionItem, english: boolean, failures: Pla
   }
 }
 
+
+/** 浏览器标签页的标题：跟导航名走（之前每一页都是同一句英文站名，开几个标签分不清） */
+export async function generateMetadata() {
+  return { title: `${workspaceNavTitle("library", await getServerLocale())} · Aivora` };
+}
 
 export default async function PlatformLibraryPage({
   searchParams,

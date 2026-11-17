@@ -57,7 +57,7 @@ export function buildPublicVideoRouteOptions(args: {
     id: "buddy",
     provider: "shuyu",
     /// 显示名按默认档位出,不再写死 720P(1080P 入族后仍以默认档为准)。
-    displayName: `Aivora 视频通道 · Seedance ${defaultPlan?.family === "seedance-2.5" ? "2.5 " : ""}${defaultPlan?.resolution ?? SHUYU_VIDEO_RESOLUTION}`,
+    displayName: `Seedance ${defaultPlan?.family === "seedance-2.5" ? "2.5 " : ""}${defaultPlan?.resolution ?? SHUYU_VIDEO_RESOLUTION}`,
     model: defaultPlan?.model ?? SHUYU_VIDEO_MODEL,
     resolution: defaultPlan?.resolution ?? SHUYU_VIDEO_RESOLUTION,
     configured: args.availability.configured,

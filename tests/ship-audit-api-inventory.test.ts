@@ -24,8 +24,8 @@ test("API inventory accounts for every route file", () => {
   /// 第 3 批之三删 12 个（/api/content-plans 3 个、/api/racing 4 个、/api/product-images 4 个、
   /// /api/demo/real-footage-ads/waitlist，81 → 69）。qa/SHIP_AUDIT.md 这一批一起改到了实数：标题 69/69，
   /// 前两批留在表里的 14 行与这一批的 12 行都删了，所以下面多了一条反向核对（表里列的接口都得真有路由文件）。
-  /// 2026-11-17 锁定导演线路：批量生产 6 个、批次定时任务、出方案预览、AI 起口播稿随删（69 → 60）
-  assert.equal(routeFiles.length, 60);
+  /// 2026-11-17 锁定导演线路：批量生产 6 个、批次定时任务、出方案预览、AI 起口播稿随删（69 → 60）；同日客户线路卡的目录接口随卡片删除（60 → 59）
+  assert.equal(routeFiles.length, 59);
   assert.equal(new Set(endpoints).size, routeFiles.length);
   for (const endpoint of endpoints) {
     assert.ok(
@@ -33,7 +33,7 @@ test("API inventory accounts for every route file", () => {
       `${endpoint} is implemented but missing from qa/SHIP_AUDIT.md`,
     );
   }
-  assert.match(audit, /API endpoint inventory \(60\/60 route files/);
+  assert.match(audit, /API endpoint inventory \(59\/59 route files/);
   const inventory = audit.slice(
     audit.indexOf("## API endpoint inventory"),
     audit.indexOf("## Background task and queue inventory"),

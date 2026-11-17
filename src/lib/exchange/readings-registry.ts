@@ -37,7 +37,7 @@ function def(zh: string, en: string, formulaZh: string, formulaEn: string, sourc
 }
 
 export const READINGS = {
-  generating: def("生成中", "Generating", "供应商正在生成的视频条数", "Videos the provider is rendering now", "pulse", "live"),
+  generating: def("生成中", "Generating", "视频模型正在生成的视频条数", "Videos the video model is rendering now", "pulse", "live"),
   queued: def("排队中", "Queued", "已下单、还没开始生成的视频", "Ordered videos not started yet", "pulse", "neutral"),
   needsAttention: def("需要处理", "Needs attention", "近 7 天未重试成功、还没看过的失败视频", "Unreviewed failures from the last 7 days", "pulse", "fault"),
   filled24h: def("近 24 小时成片", "Ready · last 24 h", "已成片的视频，不含图文帖", "Ready videos; posts excluded", "readings", "filled"),

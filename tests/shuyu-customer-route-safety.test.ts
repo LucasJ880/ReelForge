@@ -199,7 +199,7 @@ test("routes API:客户只见 draft 档,员工见全部;两边默认档与预检
     const customerRoute = customer.routes[0];
     assert.equal(customerRoute.available, true);
     assert.equal(customerRoute.unavailableReason, null);
-    assert.equal(customerRoute.displayName, "Aivora 视频通道 · Seedance 720P");
+    assert.equal(customerRoute.displayName, "Seedance 720P");
     assert.equal(customerRoute.resolution, "720P");
     assert.deepEqual(
       customerRoute.plans.map((plan) => plan.planId),
@@ -217,7 +217,7 @@ test("routes API:客户只见 draft 档,员工见全部;两边默认档与预检
     const staff = await load(true);
     const staffRoute = staff.routes[0];
     assert.equal(staffRoute.available, true, "员工的预检成本同样按 720P 默认档算");
-    assert.equal(staffRoute.displayName, "Aivora 视频通道 · Seedance 720P");
+    assert.equal(staffRoute.displayName, "Seedance 720P");
     assert.equal(staffRoute.resolution, "720P");
     assert.deepEqual(
       staffRoute.plans.map((plan) => [plan.planId, plan.tier]),

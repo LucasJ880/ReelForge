@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T19:54:44.248Z",
+  "generatedAt": "2026-11-17T20:30:43.582Z",
   "areas": {
     "unknown": [
       ".claude/launch.json",
@@ -1056,7 +1056,6 @@
       "src/lib/contracts/product-profile.ts",
       "src/lib/contracts/unified-library.ts",
       "src/lib/contracts/video-feedback.ts",
-      "src/lib/contracts/video-route-catalog.ts",
       "src/lib/contracts/video-route-options.ts",
       "src/lib/contracts/videos-api.ts",
       "src/lib/create/hook-angles.ts",
@@ -1109,7 +1108,6 @@
       "src/lib/services/unified-library-service.ts",
       "src/lib/services/video-dispatch-idempotency.ts",
       "src/lib/services/video-feedback-service.ts",
-      "src/lib/services/video-route-catalog-service.ts",
       "src/lib/services/video-route-options-service.ts",
       "src/lib/services/video-watchdog.ts",
       "src/lib/services/videos-sync-service.ts",
@@ -1275,7 +1273,6 @@
       "src/app/api/video-generation/classify-asset/route.ts",
       "src/app/api/video-generation/dispatch/route.ts",
       "src/app/api/video-generation/prompt-draft/route.ts",
-      "src/app/api/video-generation/routes/catalog/route.ts",
       "src/app/api/video-generation/routes/route.ts",
       "src/app/api/video-generation/storyboards/[id]/approve/route.ts",
       "src/app/api/video-generation/storyboards/[id]/cancel/route.ts",
@@ -1284,7 +1281,6 @@
       "src/app/api/video-generation/storyboards/route.ts",
       "src/components/video-generation/audio-caption-controls.tsx",
       "src/components/video-generation/bgm-picker.tsx",
-      "src/components/video-generation/customer-route-picker.tsx",
       "src/components/video-generation/first-run-onboarding-dialog.tsx",
       "src/components/video-generation/storyboard-workflow-panel.tsx",
       "src/components/video-generation/streamlined-video-studio.tsx",
@@ -1660,7 +1656,6 @@
       "tests/video-provider-billing-safety.test.ts",
       "tests/video-provider-capabilities.test.ts",
       "tests/video-reference-layout.test.ts",
-      "tests/video-route-catalog.test.ts",
       "tests/video-route-polling-safety.test.ts",
       "tests/video-route-registry.test.ts",
       "tests/video-route-selection.test.ts",

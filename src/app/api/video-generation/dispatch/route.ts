@@ -599,8 +599,8 @@ export async function POST(req: NextRequest) {
         code: "SERVICE_UNAVAILABLE",
         message:
           selectedRouteAvailability.reason === "insufficient_balance"
-            ? "合作方视频线路暂时余额不足，请稍后重试；若持续发生，请联系支持。"
-            : "合作方视频生成服务暂时不可用，请稍后重试；若持续发生，请联系支持。",
+            ? "视频生成服务（Seedance）暂时接不了新任务，请稍后重试；若持续发生，请联系支持。"
+            : "视频生成服务（Seedance）暂时不可用，请稍后重试；若持续发生，请联系支持。",
         retryable: true,
         action: "retry",
       }),
@@ -671,8 +671,8 @@ export async function POST(req: NextRequest) {
         toCustomerVideoDispatchError({
           code: "VALIDATION_FAILED",
           message: hasInvalidReferenceUrl
-            ? "合作方线路只接受 HTTPS 图片地址，请更换素材后重试。"
-            : "当前方案不符合合作方线路的时长或提示词限制，请修改后重试。",
+            ? "视频模型（Seedance）只接受 HTTPS 图片地址，请更换素材后重试。"
+            : "当前方案超出了视频模型（Seedance）的时长或提示词限制，请修改后重试。",
           retryable: false,
           action: "fix_request",
         }),

@@ -149,7 +149,7 @@ export function ShowroomLanding({ locale, fallbackEmail }: { locale: Locale; fal
                     <span className="min-w-0">
                       <span className="show-script-action">{shot.action}</span>
                       <span className="show-script-line" data-silent={shot.line ? undefined : "true"}>
-                        {shot.line ? `「${shot.line}」` : sample.noLine}
+                        {shot.line ? (locale === "en-US" ? `“${shot.line}”` : `「${shot.line}」`) : sample.noLine}
                       </span>
                     </span>
                   </li>

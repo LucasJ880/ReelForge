@@ -8,13 +8,12 @@
  *   const result = await ai.chatJsonByTier({ tier: "script", system, user });
  *
  * Provider 选择由 env AI_PROVIDER 决定（详见 src/lib/config/env.ts）：
- *   - openai (默认海外)
- *   - volcengine (默认 cn region)
+ *   - openai（默认，也是唯一实现；火山大模型随国内版部署 2026-11-16 一起删了，
+ *     写别的值在 env 解析时就报错）
  */
 
 import { getAppEnv } from "@/lib/config/env";
 import { OpenAiProvider } from "./providers/openai-provider";
-import { VolcengineProvider } from "./providers/volcengine-provider";
 import type { AiProvider } from "./types";
 import type {
   AiChatJsonByTierOptions,
@@ -39,12 +38,10 @@ export function createAiProvider(): AiProvider {
   switch (env.aiProvider) {
     case "openai":
       return new OpenAiProvider();
-    case "volcengine":
-      return new VolcengineProvider();
     default: {
       const exhaustiveCheck: never = env.aiProvider;
       throw new Error(
-        `[ai] 未知 AI_PROVIDER: ${String(exhaustiveCheck)}（必须为 openai / volcengine）`,
+        `[ai] 未知 AI_PROVIDER: ${String(exhaustiveCheck)}（必须为 openai）`,
       );
     }
   }

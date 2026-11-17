@@ -6,7 +6,6 @@ import {
 } from "@/lib/config/env";
 import { getAiProvider } from "@/lib/ai";
 import { getStorageProvider } from "@/lib/storage";
-import { VolcengineTosStorageProvider } from "@/lib/storage/providers/volcengine-tos-provider";
 import { getVideoProvider } from "@/lib/video-generation/providers";
 import {
   deploymentRelease,
@@ -26,8 +25,8 @@ import {
  * - 不暴露完整的 connection string
  * - storage 默认只返回 configured / not_configured，不真实做一次上传
  * - 当查询参数 `?storage=ping` 或 env `HEALTH_STORAGE_PING=true` 时，
- *   会对 TOS bucket 做一次 `headBucket` 轻量探测，不会读写对象；失败时
- *   只返回固定错误码，不回传 SDK / connection error 文本
+ *   只按存储凭证是否配置回报 reachable / failed（Vercel Blob 没有免费的探测接口），
+ *   不读写对象；失败时只返回固定错误码
  * - 数据库检查只做一次最便宜的 `SELECT 1`（不读业务数据）
  *
  * 默认无需鉴权（便于 Nginx / 监控系统直接拉）。
@@ -70,14 +69,7 @@ async function pingStorage(
   status: "reachable" | "failed";
   error?: "storage_unreachable" | "storage_not_configured";
 }> {
-  /// 当前仅 TOS provider 提供 pingBucket（headBucket 是免费且低延迟操作）
-  /// Vercel Blob 没有等价 ping API，我们只能根据 token presence 推断 → 视为 reachable
-  if (storage instanceof VolcengineTosStorageProvider) {
-    const r = await storage.pingBucket();
-    return r.ok
-      ? { status: "reachable" }
-      : { status: "failed", error: "storage_unreachable" };
-  }
+  /// Vercel Blob 没有等价 ping API，只能根据 token presence 推断 → 视为 reachable
   return storage.isConfigured()
     ? { status: "reachable" }
     : { status: "failed", error: "storage_not_configured" };
@@ -111,16 +103,12 @@ async function resolveHealth(req: NextRequest): Promise<HealthResponse> {
 
   return healthResponseSchema.parse({
     ok: dbResult.status === "connected" && validation.ok,
-    region: env.region,
-    deploymentTarget: env.deploymentTarget,
     aiProvider: ai.id,
     storageProvider: storage.id,
     videoProvider: video.id,
     seedanceRuntimeProfile: env.seedanceRuntimeProfile,
     contentReviewProvider: env.contentReviewProvider,
     contentReviewEnabled: env.contentReviewEnabled,
-    paymentEnabled: env.paymentEnabled,
-    smsLoginEnabled: env.smsLoginEnabled,
 
     database: dbResult.status,
     ...(dbResult.status === "failed"

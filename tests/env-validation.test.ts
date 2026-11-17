@@ -13,28 +13,37 @@ const EMPTY: EnvMap = {};
 
 test("parseAppEnv: 默认锁定加拿大/北美 provider 路由", () => {
   const app = parseAppEnv(EMPTY);
-  assert.equal(app.region, "na");
-  assert.equal(app.deploymentTarget, "vercel");
   assert.equal(app.aiProvider, "openai");
   assert.equal(app.storageProvider, "vercel_blob");
   assert.equal(app.videoProvider, "byteplus");
   assert.equal(app.seedanceRuntimeProfile, "byteplus_international");
   assert.equal(app.contentReviewProvider, "noop");
-  assert.equal(app.paymentEnabled, true);
 });
 
-test("parseAppEnv: REGION=cn 已退出当前路线并 fail closed", () => {
-  assert.throws(() => parseAppEnv({ REGION: "cn" } as EnvMap), /REGION="cn"/);
+test("parseAppEnv: 国内版的 provider 已删（2026-11-16），旧值报清晰错误而不是静默退回默认", () => {
+  assert.throws(
+    () => parseAppEnv({ AI_PROVIDER: "volcengine" } as EnvMap),
+    /AI_PROVIDER="volcengine" 不在允许列表 \[openai\] 内/,
+  );
+  assert.throws(
+    () => parseAppEnv({ STORAGE_PROVIDER: "volcengine_tos" } as EnvMap),
+    /STORAGE_PROVIDER="volcengine_tos" 不在允许列表 \[vercel_blob\] 内/,
+  );
 });
 
-test("parseAppEnv: 显式 future provider 仍由配置控制", () => {
+test("parseAppEnv: 已退役的国内版开关不再读取，线上残留也不影响解析", () => {
   const app = parseAppEnv({
-    REGION: "future",
-    AI_PROVIDER: "volcengine",
-    STORAGE_PROVIDER: "volcengine_tos",
+    REGION: "cn",
+    DEPLOYMENT_TARGET: "selfhosted",
+    SMS_LOGIN_ENABLED: "true",
+    PAYMENT_ENABLED: "false",
+    CDN_BASE_URL: "https://cdn.example",
   } as EnvMap);
-  assert.equal(app.aiProvider, "volcengine");
-  assert.equal(app.storageProvider, "volcengine_tos");
+  assert.equal(app.aiProvider, "openai");
+  assert.equal(app.storageProvider, "vercel_blob");
+  for (const key of ["region", "deploymentTarget", "smsLoginEnabled", "paymentEnabled", "cdnBaseUrl"]) {
+    assert.equal(key in app, false, key);
+  }
 });
 
 test("parseAppEnv: 非法 AI_PROVIDER 抛清晰错误", () => {

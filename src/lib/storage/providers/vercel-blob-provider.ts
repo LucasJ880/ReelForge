@@ -6,7 +6,6 @@
  * - Vercel Blob 不区分 uploads / renders bucket（单一存储），用 key prefix 模拟：
  *     uploads/* / renders/*
  * - 没有真正的 signed URL（公开 URL 即 final URL）；getSignedDownloadUrl 返回 public URL。
- *   该限制写在文档里；中国大陆部署不会用 vercel_blob，所以不影响主路径。
  */
 
 import type {

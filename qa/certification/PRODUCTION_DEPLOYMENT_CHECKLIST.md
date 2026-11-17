@@ -286,7 +286,6 @@ WHERE status IN ('QUEUED', 'RUNNING')
 
 - [ ] `GET /api/health` returns HTTP 200 with:
   - `ok: true`;
-  - `region: "na"`;
   - `database: "connected"`;
   - `videoProviderStatus: "configured"`, never `"mock"`;
   - `envValidation.ok: true` and no missing values.

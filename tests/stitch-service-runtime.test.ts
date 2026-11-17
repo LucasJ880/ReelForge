@@ -108,9 +108,6 @@ test("stitchRuntimeMode：STITCH_RUNTIME=external 覆盖一切（即使 dev）",
 test("persistStitchedFile：storage provider 未配置 → throw（不再写 file://）", async (t) => {
   withEnv(t, {
     BLOB_READ_WRITE_TOKEN: undefined,
-    /// 同时清掉 TOS env，确保不会因为 STORAGE_PROVIDER 默认推断到 TOS 而走另一分支
-    VOLCENGINE_ACCESS_KEY_ID: undefined,
-    VOLCENGINE_TOS_ENDPOINT: undefined,
   });
   /// 重置 provider/env cache，让我们的 env 改动生效（其它测试可能已经缓存了）
   const { __resetAppEnvForTests } = await import("../src/lib/config/env");

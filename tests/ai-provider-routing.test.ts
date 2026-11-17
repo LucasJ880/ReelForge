@@ -38,5 +38,5 @@ test("Phase1 活动 LLM 调用只通过 AI provider 抽象", async () => {
 test("Phase1 provider default remains North-American OpenAI", async () => {
   const source = await readFile("src/lib/config/env.ts", "utf8");
   assert.match(source, /const aiDefault: AiProviderId = "openai"/);
-  assert.doesNotMatch(source, /const aiDefault: AiProviderId = "volcengine"/);
+  assert.match(source, /const AI_PROVIDER_VALUES: AiProviderId\[\] = \["openai"\]/);
 });

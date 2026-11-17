@@ -2,12 +2,11 @@
  * Storage Provider 抽象。
  *
  * 设计原则：
- * - 业务代码不直接 import @vercel/blob 或 @volcengine/tos-sdk。
+ * - 业务代码不直接 import @vercel/blob。
  * - 区分两种 bucket：uploads（用户素材）/ renders（生成视频成品）。
  *   两个 bucket 默认可以指向同一个，但建议分开（uploads 限制更紧，renders 走 CDN）。
  * - 默认私有 bucket + signed URL；如果某个对象需要长期公开（如 demo 视频），
  *   显式 access: "public"。
- * - 中国大陆模式下，getPublicUrl 优先返回 CDN_BASE_URL 拼接的 URL。
  */
 
 export type StorageBucketKind = "uploads" | "renders";
@@ -41,13 +40,13 @@ export interface StorageSignedUrlOptions {
 }
 
 export interface StorageProvider {
-  readonly id: "vercel_blob" | "volcengine_tos";
+  readonly id: "vercel_blob";
   readonly displayName: string;
 
   isConfigured(): boolean;
 
   /**
-   * 上传 File 对象（Web 标准 File / Blob）。Vercel Blob 原生支持；火山 TOS 内部读取 buffer。
+   * 上传 File 对象（Web 标准 File / Blob）。Vercel Blob 原生支持。
    */
   uploadFile(
     bucket: StorageBucketKind,
@@ -85,7 +84,6 @@ export interface StorageProvider {
 
   /**
    * 拼装公开 URL（仅 access=public 上传的对象有意义）。
-   * 中国大陆模式下，如果配置了 CDN_BASE_URL，优先返回 CDN URL。
    */
   getPublicUrl(bucket: StorageBucketKind, key: string): string;
 
@@ -96,7 +94,7 @@ export interface StorageProvider {
 
   /**
    * 复制对象（同 bucket 或跨 bucket）。
-   * Vercel Blob 不直接支持，需要 download + upload；火山 TOS 原生支持。
+   * Vercel Blob 不直接支持，需要 download + upload。
    */
   copyObject?(
     sourceBucket: StorageBucketKind,

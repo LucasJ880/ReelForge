@@ -63,7 +63,7 @@ interface AssetPayload {
  *   1. POST {endpoint}/ticket   只报类型与大小，换一张限定路径 / 类型 / 大小的写入凭证
  *   2. 浏览器直接 PUT 到 Vercel Blob（100MB 以内都行）
  *   3. POST {endpoint}/complete 服务端验签名、扣额度、登记资产，返回资产 ID
- * 存储不支持直传（国内 TOS）时 ticket 回 mode=server，退回 multipart 中转。
+ * 存储不支持直传时 ticket 回 mode=server，退回 multipart 中转（现在只有 Vercel Blob，不会走到）。
  */
 export async function uploadBlobWithProgress({
   file,

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T00:12:06.570Z",
+  "generatedAt": "2026-11-17T00:27:58.143Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -3942,179 +3942,6 @@
       ]
     },
     {
-      "file": "deploy/china-future/CHINA_DEPLOYMENT.md",
-      "imports": [
-        "@/lib/storage/providers/volcengine-tos-provider",
-        "@/lib/storage"
-      ],
-      "localImports": [
-        "@/lib/storage/providers/volcengine-tos-provider",
-        "@/lib/storage"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "deploy/china-future/code/omnihuman.ts",
-      "imports": [
-        "node:crypto",
-        "@/lib/config/dry-run"
-      ],
-      "localImports": [
-        "@/lib/config/dry-run"
-      ],
-      "externalImports": [
-        "node:crypto"
-      ]
-    },
-    {
-      "file": "deploy/china-future/code/volc-tts.ts",
-      "imports": [
-        "node:crypto",
-        "@/lib/config/dry-run"
-      ],
-      "localImports": [
-        "@/lib/config/dry-run"
-      ],
-      "externalImports": [
-        "node:crypto"
-      ]
-    },
-    {
-      "file": "deploy/china-future/scripts/digital-human-runner.ts",
-      "imports": [
-        "@next/env",
-        "node:fs/promises",
-        "node:path",
-        "../src/lib/video-generation/digital-human/store-ad-pipeline",
-        "@vercel/blob"
-      ],
-      "localImports": [
-        "../src/lib/video-generation/digital-human/store-ad-pipeline"
-      ],
-      "externalImports": [
-        "@next/env",
-        "node:fs/promises",
-        "node:path",
-        "@vercel/blob"
-      ]
-    },
-    {
-      "file": "deploy/china-future/scripts/generate-digital-human-store-ad.ts",
-      "imports": [
-        "@next/env",
-        "node:fs",
-        "node:path",
-        "../src/lib/video-generation/digital-human/store-ad-pipeline",
-        "../src/lib/video-generation/digital-human/avatar-catalog",
-        "../src/lib/video-generation/digital-human/voice-catalog",
-        "../src/lib/storage"
-      ],
-      "localImports": [
-        "../src/lib/video-generation/digital-human/store-ad-pipeline",
-        "../src/lib/video-generation/digital-human/avatar-catalog",
-        "../src/lib/video-generation/digital-human/voice-catalog",
-        "../src/lib/storage"
-      ],
-      "externalImports": [
-        "@next/env",
-        "node:fs",
-        "node:path"
-      ]
-    },
-    {
-      "file": "deploy/china-future/scripts/generate-omnihuman-store-ad.ts",
-      "imports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "../src/lib/providers/omnihuman",
-        "../src/lib/storage",
-        "../src/lib/video-generation/digital-human/store-ad-director",
-        "../src/lib/providers/openai-image",
-        "@vercel/blob"
-      ],
-      "localImports": [
-        "../src/lib/providers/omnihuman",
-        "../src/lib/storage",
-        "../src/lib/video-generation/digital-human/store-ad-director",
-        "../src/lib/providers/openai-image"
-      ],
-      "externalImports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "@vercel/blob"
-      ]
-    },
-    {
-      "file": "deploy/china-future/scripts/generate-store-ad-voiceover.ts",
-      "imports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "../src/lib/providers/volc-tts",
-        "../src/lib/providers/openai"
-      ],
-      "localImports": [
-        "../src/lib/providers/volc-tts",
-        "../src/lib/providers/openai"
-      ],
-      "externalImports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:path"
-      ]
-    },
-    {
-      "file": "deploy/china-future/scripts/omnihuman-ping.ts",
-      "imports": [
-        "@next/env",
-        "../src/lib/providers/omnihuman"
-      ],
-      "localImports": [
-        "../src/lib/providers/omnihuman"
-      ],
-      "externalImports": [
-        "@next/env"
-      ]
-    },
-    {
-      "file": "docs/CHINA_MIGRATION_AUDIT.md",
-      "imports": [
-        "@vercel/blob",
-        "seedance.ts"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@vercel/blob",
-        "seedance.ts"
-      ]
-    },
-    {
-      "file": "docs/CHINA_MIGRATION_PHASE_1_REPORT.md",
-      "imports": [
-        "@vercel/blob"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@vercel/blob"
-      ]
-    },
-    {
-      "file": "docs/CHINA_MIGRATION_PHASE_2A_REPORT.md",
-      "imports": [
-        "@vercel/blob"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@vercel/blob"
-      ]
-    },
-    {
       "file": "docs/REAL_FOOTAGE_AD_AGENT_60S_DEMO_VIDEO.md",
       "imports": [
         "Rendering"
@@ -7050,7 +6877,6 @@
         "@/lib/config/env",
         "@/lib/ai",
         "@/lib/storage",
-        "@/lib/storage/providers/volcengine-tos-provider",
         "@/lib/video-generation/providers",
         "@/lib/contracts/health"
       ],
@@ -7059,7 +6885,6 @@
         "@/lib/config/env",
         "@/lib/ai",
         "@/lib/storage",
-        "@/lib/storage/providers/volcengine-tos-provider",
         "@/lib/video-generation/providers",
         "@/lib/contracts/health"
       ],
@@ -10960,14 +10785,12 @@
         "@/lib/ai",
         "@/lib/config/env",
         "./providers/openai-provider",
-        "./providers/volcengine-provider",
         "./types"
       ],
       "localImports": [
         "@/lib/ai",
         "@/lib/config/env",
         "./providers/openai-provider",
-        "./providers/volcengine-provider",
         "./types"
       ],
       "externalImports": []
@@ -10983,18 +10806,6 @@
         "@/lib/providers/openai",
         "@/lib/providers/openai-image",
         "../types"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/lib/ai/providers/volcengine-provider.ts",
-      "imports": [
-        "../types",
-        "@/lib/config/dry-run"
-      ],
-      "localImports": [
-        "../types",
-        "@/lib/config/dry-run"
       ],
       "externalImports": []
     },
@@ -13692,14 +13503,12 @@
         "@/lib/storage",
         "@/lib/config/env",
         "./providers/vercel-blob-provider",
-        "./providers/volcengine-tos-provider",
         "./types"
       ],
       "localImports": [
         "@/lib/storage",
         "@/lib/config/env",
         "./providers/vercel-blob-provider",
-        "./providers/volcengine-tos-provider",
         "./types"
       ],
       "externalImports": []
@@ -13715,21 +13524,6 @@
       ],
       "externalImports": [
         "@vercel/blob"
-      ]
-    },
-    {
-      "file": "src/lib/storage/providers/volcengine-tos-provider.ts",
-      "imports": [
-        "node:crypto",
-        "../types",
-        "@volcengine/tos-sdk"
-      ],
-      "localImports": [
-        "../types"
-      ],
-      "externalImports": [
-        "node:crypto",
-        "@volcengine/tos-sdk"
       ]
     },
     {
@@ -16319,81 +16113,6 @@
       ]
     },
     {
-      "file": "tests/china-env-validation.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/config/env"
-      ],
-      "localImports": [
-        "../src/lib/config/env"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/china-health-endpoint.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/china-provider-selection.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/config/env",
-        "../src/lib/ai",
-        "../src/lib/storage",
-        "../src/lib/video-generation/providers",
-        "../src/lib/content-review",
-        "../src/lib/video-generation/providers/byteplus-video-provider"
-      ],
-      "localImports": [
-        "../src/lib/config/env",
-        "../src/lib/ai",
-        "../src/lib/storage",
-        "../src/lib/video-generation/providers",
-        "../src/lib/content-review",
-        "../src/lib/video-generation/providers/byteplus-video-provider"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/china-storage-tos.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "node:module",
-        "@volcengine/tos-sdk",
-        "../src/lib/config/env",
-        "../src/lib/storage",
-        "../src/lib/storage/providers/volcengine-tos-provider"
-      ],
-      "localImports": [
-        "../src/lib/config/env",
-        "../src/lib/storage",
-        "../src/lib/storage/providers/volcengine-tos-provider"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test",
-        "node:module",
-        "@volcengine/tos-sdk"
-      ]
-    },
-    {
       "file": "tests/cleanup-dead-library-records.test.ts",
       "imports": [
         "node:assert/strict",
@@ -17148,6 +16867,21 @@
       ]
     },
     {
+      "file": "tests/env-validation.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/config/env"
+      ],
+      "localImports": [
+        "../src/lib/config/env"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
       "file": "tests/exchange-design-system.test.ts",
       "imports": [
         "node:assert/strict",
@@ -17730,6 +17464,18 @@
       "externalImports": [
         "node:assert/strict",
         "node:fs/promises",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/health-endpoint.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "node:assert/strict",
         "node:test"
       ]
     },
@@ -19164,6 +18910,31 @@
       "externalImports": [
         "node:assert/strict",
         "node:fs/promises",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/provider-selection.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/config/env",
+        "../src/lib/ai",
+        "../src/lib/storage",
+        "../src/lib/video-generation/providers",
+        "../src/lib/content-review",
+        "../src/lib/video-generation/providers/byteplus-video-provider"
+      ],
+      "localImports": [
+        "../src/lib/config/env",
+        "../src/lib/ai",
+        "../src/lib/storage",
+        "../src/lib/video-generation/providers",
+        "../src/lib/content-review",
+        "../src/lib/video-generation/providers/byteplus-video-provider"
+      ],
+      "externalImports": [
+        "node:assert/strict",
         "node:test"
       ]
     },

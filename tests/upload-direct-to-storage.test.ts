@@ -38,7 +38,7 @@ function jsonRequest(url: string, body: unknown) {
   }) as never;
 }
 
-function storage(id: "vercel_blob" | "volcengine_tos", configured = true) {
+function storage(id: "vercel_blob" | "other_storage", configured = true) {
   return () =>
     ({
       id,
@@ -101,13 +101,13 @@ test("ticket：类型、大小、目录不合法在签凭证之前就拒绝", as
   }
 });
 
-test("ticket：存储不支持直传（国内 TOS）时让前端退回中转；没登录不签", async () => {
-  const tos = ticketHandler({ getStorageProvider: storage("volcengine_tos") });
-  const tosResponse = await tos.handler(
+test("ticket：存储不支持直传（不是 Vercel Blob）时让前端退回中转；没登录不签", async () => {
+  const other = ticketHandler({ getStorageProvider: storage("other_storage") });
+  const otherResponse = await other.handler(
     jsonRequest("http://localhost/api/upload/blob/ticket", { contentType: "image/png", size: 10 }),
   );
-  assert.deepEqual(await tosResponse.json(), { ok: true, mode: "server" });
-  assert.equal(tos.tokens.length, 0);
+  assert.deepEqual(await otherResponse.json(), { ok: true, mode: "server" });
+  assert.equal(other.tokens.length, 0);
 
   const anonymous = ticketHandler({
     requireAuth: async () => ({ ok: false as const, response: new Response(null, { status: 401 }) as never }),

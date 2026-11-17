@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T00:12:06.565Z",
+  "generatedAt": "2026-11-17T00:27:58.138Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -52,8 +52,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 309,
-      "sizeBytes": 28162,
+      "lineCount": 331,
+      "sizeBytes": 30143,
       "notes": "Documentation"
     },
     {
@@ -9450,17 +9450,6 @@
       "notes": "area=media-processing"
     },
     {
-      "path": ".dockerignore",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 0,
-      "sizeBytes": 669,
-      "notes": ""
-    },
-    {
       "path": ".env.example",
       "type": "unknown",
       "area": "config",
@@ -9468,7 +9457,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 0,
-      "sizeBytes": 16719,
+      "sizeBytes": 16663,
       "notes": "area=config"
     },
     {
@@ -9832,216 +9821,6 @@
       "notes": "Build / runtime config; area=config"
     },
     {
-      "path": "deploy/china-future/CHINA_COMPLIANCE_READINESS.md",
-      "type": "doc",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 170,
-      "sizeBytes": 6790,
-      "notes": "Documentation"
-    },
-    {
-      "path": "deploy/china-future/CHINA_DEPLOYMENT.md",
-      "type": "doc",
-      "area": "media-processing",
-      "exports": [],
-      "imports": [
-        "@/lib/storage/providers/volcengine-tos-provider",
-        "@/lib/storage"
-      ],
-      "importantSymbols": [],
-      "lineCount": 500,
-      "sizeBytes": 20151,
-      "notes": "Documentation; area=media-processing"
-    },
-    {
-      "path": "deploy/china-future/code/omnihuman.ts",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [
-        "OmniHumanStatus",
-        "OmniHumanSubmitOptions",
-        "OmniHumanJobResult",
-        "isOmniHumanConfigured",
-        "submitOmniHumanJob",
-        "getOmniHumanStatus",
-        "__test__"
-      ],
-      "imports": [
-        "node:crypto",
-        "@/lib/config/dry-run"
-      ],
-      "importantSymbols": [
-        "OmniHumanStatus",
-        "OmniHumanSubmitOptions",
-        "OmniHumanJobResult",
-        "isOmniHumanConfigured",
-        "submitOmniHumanJob",
-        "getOmniHumanStatus",
-        "__test__"
-      ],
-      "lineCount": 344,
-      "sizeBytes": 11487,
-      "notes": ""
-    },
-    {
-      "path": "deploy/china-future/code/volc-tts.ts",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [
-        "VolcTtsOptions",
-        "isVolcTtsConfigured",
-        "synthesizeSpeech"
-      ],
-      "imports": [
-        "node:crypto",
-        "@/lib/config/dry-run"
-      ],
-      "importantSymbols": [
-        "VolcTtsOptions",
-        "isVolcTtsConfigured",
-        "synthesizeSpeech"
-      ],
-      "lineCount": 323,
-      "sizeBytes": 12249,
-      "notes": ""
-    },
-    {
-      "path": "deploy/china-future/code/volcengine-review-provider.ts.txt",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 0,
-      "sizeBytes": 2227,
-      "notes": ""
-    },
-    {
-      "path": "deploy/china-future/digital-human.env.example",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 0,
-      "sizeBytes": 530,
-      "notes": ""
-    },
-    {
-      "path": "deploy/china-future/README.md",
-      "type": "doc",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 19,
-      "sizeBytes": 1146,
-      "notes": "Documentation"
-    },
-    {
-      "path": "deploy/china-future/scripts/digital-human-runner.ts",
-      "type": "unknown",
-      "area": "media-processing",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "node:fs/promises",
-        "node:path",
-        "../src/lib/video-generation/digital-human/store-ad-pipeline",
-        "@vercel/blob"
-      ],
-      "importantSymbols": [],
-      "lineCount": 188,
-      "sizeBytes": 5961,
-      "notes": "area=media-processing"
-    },
-    {
-      "path": "deploy/china-future/scripts/generate-digital-human-store-ad.ts",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "node:fs",
-        "node:path",
-        "../src/lib/video-generation/digital-human/store-ad-pipeline",
-        "../src/lib/video-generation/digital-human/avatar-catalog",
-        "../src/lib/video-generation/digital-human/voice-catalog",
-        "../src/lib/storage"
-      ],
-      "importantSymbols": [],
-      "lineCount": 131,
-      "sizeBytes": 4964,
-      "notes": ""
-    },
-    {
-      "path": "deploy/china-future/scripts/generate-omnihuman-store-ad.ts",
-      "type": "unknown",
-      "area": "ffmpeg",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "../src/lib/providers/omnihuman",
-        "../src/lib/storage",
-        "../src/lib/video-generation/digital-human/store-ad-director",
-        "../src/lib/providers/openai-image",
-        "@vercel/blob"
-      ],
-      "importantSymbols": [],
-      "lineCount": 752,
-      "sizeBytes": 25489,
-      "notes": "area=ffmpeg"
-    },
-    {
-      "path": "deploy/china-future/scripts/generate-store-ad-voiceover.ts",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "../src/lib/providers/volc-tts",
-        "../src/lib/providers/openai"
-      ],
-      "importantSymbols": [],
-      "lineCount": 213,
-      "sizeBytes": 7909,
-      "notes": ""
-    },
-    {
-      "path": "deploy/china-future/scripts/omnihuman-ping.ts",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "../src/lib/providers/omnihuman"
-      ],
-      "importantSymbols": [],
-      "lineCount": 74,
-      "sizeBytes": 3185,
-      "notes": ""
-    },
-    {
-      "path": "deploy/china-future/workflows/digital-human-render.yml",
-      "type": "unknown",
-      "area": "media-processing",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 86,
-      "sizeBytes": 3430,
-      "notes": "area=media-processing"
-    },
-    {
       "path": "DESIGN.md",
       "type": "doc",
       "area": "unknown",
@@ -10061,28 +9840,6 @@
       "importantSymbols": [],
       "lineCount": 1,
       "sizeBytes": 2684,
-      "notes": ""
-    },
-    {
-      "path": "docker-compose.yml",
-      "type": "unknown",
-      "area": "media-processing",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 99,
-      "sizeBytes": 2930,
-      "notes": "area=media-processing"
-    },
-    {
-      "path": "Dockerfile",
-      "type": "unknown",
-      "area": "unknown",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 0,
-      "sizeBytes": 3519,
       "notes": ""
     },
     {
@@ -10204,79 +9961,6 @@
       "importantSymbols": [],
       "lineCount": 36,
       "sizeBytes": 2601,
-      "notes": "Documentation"
-    },
-    {
-      "path": "docs/CHINA_DEMO_DEPLOY_OPTIONS.md",
-      "type": "doc",
-      "area": "shared",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 100,
-      "sizeBytes": 8226,
-      "notes": "Documentation"
-    },
-    {
-      "path": "docs/CHINA_LOGIN_PAYMENT_PLAN.md",
-      "type": "doc",
-      "area": "shared",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 178,
-      "sizeBytes": 7174,
-      "notes": "Documentation"
-    },
-    {
-      "path": "docs/CHINA_MIGRATION_AUDIT.md",
-      "type": "doc",
-      "area": "shared",
-      "exports": [],
-      "imports": [
-        "@vercel/blob",
-        "seedance.ts"
-      ],
-      "importantSymbols": [],
-      "lineCount": 339,
-      "sizeBytes": 18134,
-      "notes": "Documentation"
-    },
-    {
-      "path": "docs/CHINA_MIGRATION_PHASE_1_REPORT.md",
-      "type": "doc",
-      "area": "shared",
-      "exports": [],
-      "imports": [
-        "@vercel/blob"
-      ],
-      "importantSymbols": [],
-      "lineCount": 315,
-      "sizeBytes": 16077,
-      "notes": "Documentation"
-    },
-    {
-      "path": "docs/CHINA_MIGRATION_PHASE_2A_REPORT.md",
-      "type": "doc",
-      "area": "shared",
-      "exports": [],
-      "imports": [
-        "@vercel/blob"
-      ],
-      "importantSymbols": [],
-      "lineCount": 361,
-      "sizeBytes": 20020,
-      "notes": "Documentation"
-    },
-    {
-      "path": "docs/CHINA_UX_LOCALIZATION_AUDIT.md",
-      "type": "doc",
-      "area": "shared",
-      "exports": [],
-      "imports": [],
-      "importantSymbols": [],
-      "lineCount": 108,
-      "sizeBytes": 5544,
       "notes": "Documentation"
     },
     {
@@ -11386,8 +11070,8 @@
       "importantSymbols": [
         "default"
       ],
-      "lineCount": 23,
-      "sizeBytes": 557,
+      "lineCount": 22,
+      "sizeBytes": 525,
       "notes": "Build / runtime config"
     },
     {
@@ -11424,8 +11108,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 86,
-      "sizeBytes": 3840,
+      "lineCount": 85,
+      "sizeBytes": 3803,
       "notes": "Build / runtime config; area=config"
     },
     {
@@ -12497,8 +12181,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 331,
-      "sizeBytes": 15665,
+      "lineCount": 330,
+      "sizeBytes": 15645,
       "notes": "Documentation"
     },
     {
@@ -13866,8 +13550,8 @@
         "@/lib/media/stitch-pipeline"
       ],
       "importantSymbols": [],
-      "lineCount": 714,
-      "sizeBytes": 39502,
+      "lineCount": 737,
+      "sizeBytes": 40927,
       "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
     },
     {
@@ -14067,7 +13751,7 @@
         "DirectorSpokenLine",
         "directorSpokenLines",
         "scriptSpeechWords",
-        "partScript"
+        "cornerLogoGeometry"
       ],
       "imports": [
         "node:crypto",
@@ -14085,8 +13769,8 @@
         "DIRECTOR_FRAME_REFERENCES_MAX",
         "DIRECTOR_SHOT_ITEMS"
       ],
-      "lineCount": 894,
-      "sizeBytes": 49720,
+      "lineCount": 915,
+      "sizeBytes": 50850,
       "notes": "Maintenance / one-off script (run via tsx); area=scripts"
     },
     {
@@ -17128,7 +16812,6 @@
         "@/lib/config/env",
         "@/lib/ai",
         "@/lib/storage",
-        "@/lib/storage/providers/volcengine-tos-provider",
         "@/lib/video-generation/providers",
         "@/lib/contracts/health"
       ],
@@ -17137,8 +16820,8 @@
         "HEAD",
         "dynamic"
       ],
-      "lineCount": 178,
-      "sizeBytes": 5926,
+      "lineCount": 166,
+      "sizeBytes": 5374,
       "notes": "Next.js API route handler"
     },
     {
@@ -18194,8 +17877,8 @@
         "POST",
         "createUploadBlobPostHandler"
       ],
-      "lineCount": 212,
-      "sizeBytes": 7644,
+      "lineCount": 210,
+      "sizeBytes": 7477,
       "notes": "Next.js API route handler; area=blob-storage"
     },
     {
@@ -18221,8 +17904,8 @@
         "POST",
         "createUploadTicketPostHandler"
       ],
-      "lineCount": 161,
-      "sizeBytes": 5350,
+      "lineCount": 162,
+      "sizeBytes": 5485,
       "notes": "Next.js API route handler; area=blob-storage"
     },
     {
@@ -22087,7 +21770,6 @@
         "@/lib/ai",
         "@/lib/config/env",
         "./providers/openai-provider",
-        "./providers/volcengine-provider",
         "./types"
       ],
       "importantSymbols": [
@@ -22100,8 +21782,8 @@
         "isLLMForcedMock",
         "chatJson"
       ],
-      "lineCount": 95,
-      "sizeBytes": 2980,
+      "lineCount": 92,
+      "sizeBytes": 2925,
       "notes": "Utility / helper module"
     },
     {
@@ -22143,24 +21825,6 @@
       "notes": "Utility / helper module"
     },
     {
-      "path": "src/lib/ai/providers/volcengine-provider.ts",
-      "type": "util",
-      "area": "shared",
-      "exports": [
-        "VolcengineProvider"
-      ],
-      "imports": [
-        "../types",
-        "@/lib/config/dry-run"
-      ],
-      "importantSymbols": [
-        "VolcengineProvider"
-      ],
-      "lineCount": 296,
-      "sizeBytes": 9218,
-      "notes": "Utility / helper module"
-    },
-    {
       "path": "src/lib/ai/types.ts",
       "type": "util",
       "area": "shared",
@@ -22189,8 +21853,8 @@
         "AiImageGenerationResult",
         "AiImageEditOptions"
       ],
-      "lineCount": 190,
-      "sizeBytes": 5877,
+      "lineCount": 189,
+      "sizeBytes": 5761,
       "notes": "Utility / helper module"
     },
     {
@@ -22732,8 +22396,6 @@
       "type": "util",
       "area": "shared",
       "exports": [
-        "Region",
-        "DeploymentTarget",
         "AiProviderId",
         "StorageProviderId",
         "VideoProviderId",
@@ -22757,17 +22419,17 @@
         "@/lib/providers/shuyu"
       ],
       "importantSymbols": [
-        "Region",
-        "DeploymentTarget",
         "AiProviderId",
         "StorageProviderId",
         "VideoProviderId",
         "ContentReviewProviderId",
         "AppEnv",
-        "VideoGenerationRuntimeUnavailableReason"
+        "VideoGenerationRuntimeUnavailableReason",
+        "VideoGenerationRuntimeReadiness",
+        "VideoGenerationRuntimeUnavailableError"
       ],
-      "lineCount": 428,
-      "sizeBytes": 14360,
+      "lineCount": 380,
+      "sizeBytes": 12890,
       "notes": "Utility / helper module"
     },
     {
@@ -23289,8 +22951,8 @@
         "resolveSchemaSync",
         "healthHttpStatus"
       ],
-      "lineCount": 146,
-      "sizeBytes": 5531,
+      "lineCount": 134,
+      "sizeBytes": 5180,
       "notes": "Utility / helper module"
     },
     {
@@ -23533,7 +23195,7 @@
         "uploadCompleteRequestSchema"
       ],
       "lineCount": 86,
-      "sizeBytes": 2651,
+      "sizeBytes": 2692,
       "notes": "Utility / helper module; area=upload"
     },
     {
@@ -24485,7 +24147,7 @@
         "ComposeReferenceImageArgs"
       ],
       "lineCount": 341,
-      "sizeBytes": 11930,
+      "sizeBytes": 11834,
       "notes": "External API provider wrapper; uses OpenAI SDK; area=ai-providers"
     },
     {
@@ -25790,8 +25452,8 @@
         "prismaCapabilityStore",
         "createMemoryCapabilityStore"
       ],
-      "lineCount": 438,
-      "sizeBytes": 18226,
+      "lineCount": 437,
+      "sizeBytes": 18086,
       "notes": "Business logic service"
     },
     {
@@ -27933,7 +27595,7 @@
         "StitchAttemptLostError"
       ],
       "lineCount": 1839,
-      "sizeBytes": 70461,
+      "sizeBytes": 70412,
       "notes": "Business logic service; hits Prisma DB; area=ffmpeg"
     },
     {
@@ -28505,7 +28167,6 @@
         "@/lib/storage",
         "@/lib/config/env",
         "./providers/vercel-blob-provider",
-        "./providers/volcengine-tos-provider",
         "./types"
       ],
       "importantSymbols": [
@@ -28513,8 +28174,8 @@
         "createStorageProvider",
         "__resetStorageProviderForTests"
       ],
-      "lineCount": 55,
-      "sizeBytes": 1574,
+      "lineCount": 52,
+      "sizeBytes": 1444,
       "notes": "Utility / helper module"
     },
     {
@@ -28531,30 +28192,9 @@
       "importantSymbols": [
         "VercelBlobStorageProvider"
       ],
-      "lineCount": 126,
-      "sizeBytes": 4333,
+      "lineCount": 125,
+      "sizeBytes": 4231,
       "notes": "Utility / helper module; area=blob-storage"
-    },
-    {
-      "path": "src/lib/storage/providers/volcengine-tos-provider.ts",
-      "type": "util",
-      "area": "shared",
-      "exports": [
-        "__resetVolcengineTosClientForTests",
-        "VolcengineTosStorageProvider"
-      ],
-      "imports": [
-        "node:crypto",
-        "../types",
-        "@volcengine/tos-sdk"
-      ],
-      "importantSymbols": [
-        "VolcengineTosStorageProvider",
-        "__resetVolcengineTosClientForTests"
-      ],
-      "lineCount": 387,
-      "sizeBytes": 13773,
-      "notes": "Utility / helper module"
     },
     {
       "path": "src/lib/storage/trusted-media-url.ts",
@@ -28596,8 +28236,8 @@
         "StorageSignedUrlOptions",
         "StorageProvider"
       ],
-      "lineCount": 108,
-      "sizeBytes": 3332,
+      "lineCount": 106,
+      "sizeBytes": 3061,
       "notes": "Utility / helper module; area=blob-storage"
     },
     {
@@ -28626,7 +28266,7 @@
         "uploadBlobWithProgress"
       ],
       "lineCount": 260,
-      "sizeBytes": 8752,
+      "sizeBytes": 8781,
       "notes": "Utility / helper module; area=blob-storage"
     },
     {
@@ -31628,7 +31268,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 43,
-      "sizeBytes": 1644,
+      "sizeBytes": 1650,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -32788,74 +32428,6 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
-      "path": "tests/china-env-validation.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/config/env"
-      ],
-      "importantSymbols": [],
-      "lineCount": 405,
-      "sizeBytes": 13765,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/china-health-endpoint.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test"
-      ],
-      "importantSymbols": [],
-      "lineCount": 118,
-      "sizeBytes": 3608,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/china-provider-selection.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/config/env",
-        "../src/lib/ai",
-        "../src/lib/storage",
-        "../src/lib/video-generation/providers",
-        "../src/lib/content-review",
-        "../src/lib/video-generation/providers/byteplus-video-provider"
-      ],
-      "importantSymbols": [],
-      "lineCount": 174,
-      "sizeBytes": 5648,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/china-storage-tos.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "node:module",
-        "@volcengine/tos-sdk",
-        "../src/lib/config/env",
-        "../src/lib/storage",
-        "../src/lib/storage/providers/volcengine-tos-provider"
-      ],
-      "importantSymbols": [],
-      "lineCount": 452,
-      "sizeBytes": 16224,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/cleanup-dead-library-records.test.ts",
       "type": "test",
       "area": "tests",
@@ -33408,8 +32980,8 @@
         "../scripts/lib/director-plan"
       ],
       "importantSymbols": [],
-      "lineCount": 628,
-      "sizeBytes": 38903,
+      "lineCount": 640,
+      "sizeBytes": 39715,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -33552,6 +33124,21 @@
       "importantSymbols": [],
       "lineCount": 102,
       "sizeBytes": 4004,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/env-validation.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/config/env"
+      ],
+      "importantSymbols": [],
+      "lineCount": 414,
+      "sizeBytes": 14177,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -34122,8 +33709,22 @@
       "importantSymbols": [
         "HEAD"
       ],
-      "lineCount": 275,
-      "sizeBytes": 8320,
+      "lineCount": 279,
+      "sizeBytes": 8624,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/health-endpoint.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test"
+      ],
+      "importantSymbols": [],
+      "lineCount": 103,
+      "sizeBytes": 3084,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -35483,6 +35084,26 @@
       "importantSymbols": [],
       "lineCount": 33,
       "sizeBytes": 2246,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/provider-selection.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/config/env",
+        "../src/lib/ai",
+        "../src/lib/storage",
+        "../src/lib/video-generation/providers",
+        "../src/lib/content-review",
+        "../src/lib/video-generation/providers/byteplus-video-provider"
+      ],
+      "importantSymbols": [],
+      "lineCount": 172,
+      "sizeBytes": 5866,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -36916,8 +36537,8 @@
         "../src/lib/storage"
       ],
       "importantSymbols": [],
-      "lineCount": 602,
-      "sizeBytes": 21182,
+      "lineCount": 599,
+      "sizeBytes": 20995,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
@@ -37652,7 +37273,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 304,
-      "sizeBytes": 13011,
+      "sizeBytes": 13027,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -38256,7 +37877,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 35,
-      "sizeBytes": 703,
+      "sizeBytes": 677,
       "notes": "Build / runtime config"
     },
     {

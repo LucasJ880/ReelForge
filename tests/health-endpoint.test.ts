@@ -13,33 +13,26 @@ const SENSITIVE_KEYS = [
   "OPENAI_API_KEY",
   "BYTEPLUS_ARK_API_KEY",
   "ARK_API_KEY",
-  "VOLCENGINE_ACCESS_KEY_ID",
-  "VOLCENGINE_SECRET_ACCESS_KEY",
-  "VOLCENGINE_ARK_API_KEY",
+  "SHUYU_API_KEY",
   "BLOB_READ_WRITE_TOKEN",
-  "STRIPE_SECRET_KEY",
   "CRON_SECRET",
   "SEED_ADMIN_PASSWORD",
 ];
 
 const ALLOWED_FIELDS = new Set([
   "ok",
-  "region",
-  "deploymentTarget",
   "aiProvider",
   "storageProvider",
   "videoProvider",
   "seedanceRuntimeProfile",
   "contentReviewProvider",
   "contentReviewEnabled",
-  "paymentEnabled",
-  "smsLoginEnabled",
   "database",
   "databaseError",
   "aiProviderStatus",
   "storageProviderStatus",
   "videoProviderStatus",
-  /// Phase 2A：storage 可达性探测（仅 ping 模式触发）
+  /// storage 可达性探测（仅 ping 模式触发）
   "storage",
   "storageError",
   "envValidation",
@@ -89,14 +82,6 @@ test("health endpoint：storage 字段只允许枚举值（不允许直接回 UR
     /// 名字不能透出可疑词
     assert.ok(!/secret|key|token/i.test(v));
   }
-});
-
-test("health endpoint：storageError 字段截断到 120 字符（防止 TOS server msg 带泄漏）", () => {
-  /// 实现同 route.ts:pingStorage 的 slice(0, 120)
-  const longMsg =
-    "FAKE TOS error message containing AKfakeleak11223344 ".repeat(10);
-  const truncated = longMsg.slice(0, 120);
-  assert.ok(truncated.length <= 120);
 });
 
 test("health endpoint：sanitizeDbError 不暴露 password=...", async () => {

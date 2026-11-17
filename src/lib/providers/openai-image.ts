@@ -128,7 +128,7 @@ export async function generateImages(
     if (!storage.isConfigured()) {
       throw new Error(
         `Storage provider "${storage.id}" 未配置；无法持久化生成的 logo。` +
-          ` 请配置 ${storage.id === "vercel_blob" ? "BLOB_READ_WRITE_TOKEN" : "VOLCENGINE_ACCESS_KEY_ID/SECRET/ENDPOINT/BUCKET_RENDERS"}。`,
+          ` 请配置 BLOB_READ_WRITE_TOKEN。`,
       );
     }
     /// AI 生成产物 → renders bucket（与用户上传素材的 uploads bucket 隔离）

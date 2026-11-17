@@ -53,50 +53,48 @@ function withEnv<T>(
   }
 }
 
-test("AI provider 选择：默认（海外）→ openai", () => {
-  withEnv(
-    { AI_PROVIDER: undefined, REGION: undefined },
-    () => {
-      const ai = createAiProvider();
-      assert.equal(ai.id, "openai");
-    },
+test("AI provider 选择：默认 → openai；显式写 openai 也一样", () => {
+  withEnv({ AI_PROVIDER: undefined }, () => {
+    assert.equal(createAiProvider().id, "openai");
+  });
+  withEnv({ AI_PROVIDER: "openai" }, () => {
+    assert.equal(createAiProvider().id, "openai");
+  });
+});
+
+test("AI provider 选择：火山大模型已删，AI_PROVIDER=volcengine 报清晰错误", () => {
+  assert.throws(
+    () => withEnv({ AI_PROVIDER: "volcengine" }, createAiProvider),
+    /AI_PROVIDER="volcengine" 不在允许列表/,
   );
 });
 
-test("AI provider 选择：REGION=future 仍默认 → openai", () => {
-  withEnv({ REGION: "future", AI_PROVIDER: undefined }, () => {
-    const ai = createAiProvider();
-    assert.equal(ai.id, "openai");
+test("Storage provider 选择：默认 → vercel_blob；显式写 vercel_blob 也一样", () => {
+  withEnv({ STORAGE_PROVIDER: undefined }, () => {
+    assert.equal(createStorageProvider().id, "vercel_blob");
+  });
+  withEnv({ STORAGE_PROVIDER: "vercel_blob" }, () => {
+    assert.equal(createStorageProvider().id, "vercel_blob");
   });
 });
 
-test("AI provider 选择：显式 AI_PROVIDER=volcengine 覆盖海外默认", () => {
-  withEnv({ AI_PROVIDER: "volcengine", REGION: undefined }, () => {
-    const ai = createAiProvider();
-    assert.equal(ai.id, "volcengine");
+test("Storage provider 选择：火山 TOS 已删，STORAGE_PROVIDER=volcengine_tos 报清晰错误", () => {
+  assert.throws(
+    () => withEnv({ STORAGE_PROVIDER: "volcengine_tos" }, createStorageProvider),
+    /STORAGE_PROVIDER="volcengine_tos" 不在允许列表/,
+  );
+});
+
+test("Provider 选择：已退役的 REGION 不再影响任何 provider", () => {
+  withEnv({ REGION: "future", AI_PROVIDER: undefined, STORAGE_PROVIDER: undefined }, () => {
+    assert.equal(createAiProvider().id, "openai");
+    assert.equal(createStorageProvider().id, "vercel_blob");
+    assert.equal(createVideoProvider().id, "byteplus");
   });
 });
 
-test("Storage provider 选择：默认 → vercel_blob", () => {
-  withEnv({ STORAGE_PROVIDER: undefined, REGION: undefined }, () => {
-    const s = createStorageProvider();
-    assert.equal(s.id, "vercel_blob");
-  });
-});
-
-test("Storage provider 选择：显式 legacy provider 用于迁移工具", () => {
-  withEnv({ REGION: "future", STORAGE_PROVIDER: "volcengine_tos" }, () => {
-    const s = createStorageProvider();
-    assert.equal(s.id, "volcengine_tos");
-  });
-});
-
-test("Video provider：NA 与 future 均默认 BytePlus 国际 Seedance", () => {
+test("Video provider：默认 BytePlus 国际 Seedance", () => {
   withEnv({ REGION: undefined }, () => {
-    const v = createVideoProvider();
-    assert.equal(v.id, "byteplus");
-  });
-  withEnv({ REGION: "future" }, () => {
     const v = createVideoProvider();
     assert.equal(v.id, "byteplus");
   });

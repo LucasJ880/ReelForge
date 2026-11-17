@@ -217,8 +217,7 @@ function hasList(env: EnvLike, name: string): boolean {
  */
 export function capabilityConfiguration(env: EnvLike = process.env): Record<CapabilityKey, boolean> {
   const openai = has(env, "OPENAI_API_KEY");
-  const volcengine = env.AI_PROVIDER?.trim() === "volcengine";
-  const chat = volcengine ? has(env, "VOLCENGINE_ARK_API_KEY") || has(env, "ARK_API_KEY") : openai;
+  const chat = openai;
   const shuyu = has(env, "SHUYU_API_KEY") || has(env, "shuyu_api_key");
   return {
     text: chat,

@@ -2,11 +2,14 @@
  * 统一环境变量解析 + 校验。
  *
  * 设计目标：
- * - 业务代码 / provider 抽象层都从这里读 region / deployment / provider 路由，
+ * - 业务代码 / provider 抽象层都从这里读 provider 路由，
  *   不要再到处 `process.env.AI_PROVIDER ?? "openai"`。
  * - 加拿大 / 北美生产模式下缺关键 env 时给出清晰错误（避免运行到一半才报）。
  * - **绝不修改 process.env 本身**；只读 + 解析 + 缓存。
  * - 默认行为：openai / vercel_blob / BytePlus 国际 Seedance。
+ * - 国内版部署 2026-11-16 决定不做，代码已删：AI 只有 openai、存储只有 vercel_blob。
+ *   AI_PROVIDER / STORAGE_PROVIDER 写成别的值（含旧的 volcengine / volcengine_tos）一律在解析时报错，
+ *   不静默退回默认。REGION / DEPLOYMENT_TARGET / SMS_LOGIN_ENABLED / PAYMENT_ENABLED 不再读取。
  *
  * 校验时机：
  * - `validateDeploymentEnv()` 由健康检查 / 部署脚本主动调用。
@@ -23,25 +26,18 @@ import {
 } from "@/lib/config/seedance-runtime";
 import { shuyuApiKey } from "@/lib/providers/shuyu";
 
-export type Region = "na" | "future";
-export type DeploymentTarget = "vercel" | "selfhosted";
-export type AiProviderId = "openai" | "volcengine";
-export type StorageProviderId = "vercel_blob" | "volcengine_tos";
+export type AiProviderId = "openai";
+export type StorageProviderId = "vercel_blob";
 export type VideoProviderId = "byteplus" | "shuyu" | "mock";
 export type ContentReviewProviderId = "noop" | "openai_moderation";
 
 export interface AppEnv {
-  region: Region;
-  deploymentTarget: DeploymentTarget;
   aiProvider: AiProviderId;
   storageProvider: StorageProviderId;
   videoProvider: VideoProviderId;
   seedanceRuntimeProfile: SeedanceRuntimeProfile;
   contentReviewProvider: ContentReviewProviderId;
   contentReviewEnabled: boolean;
-  paymentEnabled: boolean;
-  smsLoginEnabled: boolean;
-  cdnBaseUrl: string | null;
   appBaseUrl: string | null;
 }
 
@@ -71,13 +67,8 @@ export class VideoGenerationRuntimeUnavailableError extends Error {
   }
 }
 
-const REGION_VALUES: Region[] = ["na", "future"];
-const DEPLOYMENT_VALUES: DeploymentTarget[] = ["vercel", "selfhosted"];
-const AI_PROVIDER_VALUES: AiProviderId[] = ["openai", "volcengine"];
-const STORAGE_PROVIDER_VALUES: StorageProviderId[] = [
-  "vercel_blob",
-  "volcengine_tos",
-];
+const AI_PROVIDER_VALUES: AiProviderId[] = ["openai"];
+const STORAGE_PROVIDER_VALUES: StorageProviderId[] = ["vercel_blob"];
 const VIDEO_PROVIDER_VALUES: VideoProviderId[] = ["byteplus", "shuyu", "mock"];
 const REVIEW_PROVIDER_VALUES: ContentReviewProviderId[] = ["noop", "openai_moderation"];
 
@@ -239,15 +230,6 @@ export function getAppEnv(): AppEnv {
  * 纯函数版本（不读 process.env），方便单测。
  */
 export function parseAppEnv(env: NodeJS.ProcessEnv | Record<string, string | undefined>): AppEnv {
-  const region = parseEnum<Region>(env.REGION, REGION_VALUES, "na", "REGION");
-  const deploymentDefault: DeploymentTarget = "vercel";
-  const deploymentTarget = parseEnum<DeploymentTarget>(
-    env.DEPLOYMENT_TARGET,
-    DEPLOYMENT_VALUES,
-    deploymentDefault,
-    "DEPLOYMENT_TARGET",
-  );
-
   const aiDefault: AiProviderId = "openai";
   const storageDefault: StorageProviderId = "vercel_blob";
   const videoDefault: VideoProviderId = "byteplus";
@@ -282,17 +264,12 @@ export function parseAppEnv(env: NodeJS.ProcessEnv | Record<string, string | und
   );
 
   return {
-    region,
-    deploymentTarget,
     aiProvider,
     storageProvider,
     videoProvider,
     seedanceRuntimeProfile,
     contentReviewProvider,
     contentReviewEnabled: parseBool(env.CONTENT_REVIEW_ENABLED, false),
-    paymentEnabled: parseBool(env.PAYMENT_ENABLED, true),
-    smsLoginEnabled: parseBool(env.SMS_LOGIN_ENABLED, false),
-    cdnBaseUrl: env.CDN_BASE_URL?.trim() || null,
     appBaseUrl: (env.APP_BASE_URL || env.NEXT_PUBLIC_APP_URL)?.trim() || null,
   };
 }
@@ -324,31 +301,6 @@ export function validateDeploymentEnv(
   if (!env.AUTH_SECRET) missing.push("AUTH_SECRET");
   if (!env.APP_BASE_URL && !env.NEXT_PUBLIC_APP_URL) {
     missing.push("APP_BASE_URL (或 NEXT_PUBLIC_APP_URL)");
-  }
-
-  if (app.aiProvider === "volcengine") {
-    if (!env.VOLCENGINE_ARK_API_KEY && !env.ARK_API_KEY) {
-      missing.push("VOLCENGINE_ARK_API_KEY (或 ARK_API_KEY)");
-    }
-    if (!env.VOLCENGINE_ARK_MODEL_TEXT) {
-      warnings.push(
-        "VOLCENGINE_ARK_MODEL_TEXT 未配置，将使用默认 doubao-pro-32k",
-      );
-    }
-  }
-
-  if (app.storageProvider === "volcengine_tos") {
-    if (!env.VOLCENGINE_ACCESS_KEY_ID) missing.push("VOLCENGINE_ACCESS_KEY_ID");
-    if (!env.VOLCENGINE_SECRET_ACCESS_KEY) {
-      missing.push("VOLCENGINE_SECRET_ACCESS_KEY");
-    }
-    if (!env.VOLCENGINE_TOS_ENDPOINT) missing.push("VOLCENGINE_TOS_ENDPOINT");
-    if (!env.VOLCENGINE_TOS_BUCKET_UPLOADS) {
-      missing.push("VOLCENGINE_TOS_BUCKET_UPLOADS");
-    }
-    if (!env.VOLCENGINE_TOS_BUCKET_RENDERS) {
-      missing.push("VOLCENGINE_TOS_BUCKET_RENDERS");
-    }
   }
 
   if (app.videoProvider === "byteplus") {

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T00:12:06.564Z",
+  "generatedAt": "2026-11-17T00:27:58.137Z",
   "package": {
     "name": "aivora",
     "version": "0.2.0"
@@ -12,7 +12,6 @@
     ".superpowers",
     ".worktrees",
     "assets",
-    "deploy",
     "designs",
     "docs",
     "e2e",
@@ -37,10 +36,10 @@
     "bcryptjs (^3.0.3)"
   ],
   "fileTotals": {
-    "total": 1959,
+    "total": 1934,
     "byType": {
-      "unknown": 431,
-      "doc": 439,
+      "unknown": 418,
+      "doc": 430,
       "style": 9,
       "workflow": 4,
       "config": 9,
@@ -52,23 +51,23 @@
       "api": 93,
       "component": 121,
       "i18n": 17,
-      "util": 186,
+      "util": 184,
       "provider": 21,
       "service": 86,
       "type": 2,
-      "test": 371
+      "test": 370
     },
     "byArea": {
-      "unknown": 867,
-      "media-processing": 81,
+      "unknown": 856,
+      "media-processing": 77,
       "config": 11,
-      "ffmpeg": 16,
-      "shared": 334,
+      "shared": 326,
       "prisma": 59,
       "auth": 25,
       "payments": 1,
       "upload": 7,
       "scripts": 21,
+      "ffmpeg": 15,
       "admin": 5,
       "marketing-site": 5,
       "real-footage-ads": 1,
@@ -81,7 +80,7 @@
       "i18n": 17,
       "demo": 1,
       "ai-providers": 21,
-      "tests": 371
+      "tests": 370
     }
   },
   "routes": {

@@ -67,9 +67,7 @@ function unavailableError(args: {
  * 通用素材上传：前端以 POST multipart/form-data 上传单文件。
  * 用于产品参考图、自定义参考图等。
  *
- * Phase 2A：从直接 import @vercel/blob 改为走 storage provider 抽象层。
- *   - 海外部署：STORAGE_PROVIDER=vercel_blob → 走 Vercel Blob
- *   - 国内部署：STORAGE_PROVIDER=volcengine_tos → 走火山 TOS
+ * 走 storage provider 抽象层，不直接 import @vercel/blob（现在只有 Vercel Blob 一个实现）。
  *
  * 鉴权：任何已登录账号（含 BUSINESS / PERSONAL / 内部 staff）均可调用，
  * 由 size + MIME 白名单 + 文件名 prefix 兜底防滥用。Phase 7a 已加单用户配额。
@@ -79,7 +77,7 @@ function unavailableError(args: {
  * ⚠️ 部署在 Vercel 上时，这条中转路径只收得下 4.5MB 以内的文件：函数请求体超过上限，
  * 平台直接回 413 FUNCTION_PAYLOAD_TOO_LARGE（纯文本），本 handler 根本不会被调用
  * （10-30 CEO 演示翻车）。Vercel Blob 存储下，前端一律走 ticket → 直传 → complete
- * （src/lib/upload/blob-xhr.ts）；这里只给国内 TOS 部署与旧客户端兜底。
+ * （src/lib/upload/blob-xhr.ts）；这里只给旧客户端与「存储不支持直传」的情形兜底。
  */
 export function createUploadBlobPostHandler(
   overrides: Partial<UploadBlobDependencies> = {},
@@ -154,7 +152,7 @@ export function createUploadBlobPostHandler(
 
   /// 用户上传素材走 uploads bucket（与生成视频成品的 renders bucket 隔离）
   /// access=public：当前业务模型里素材 URL 需要长期可被 AI provider 拉取（Seedance / Ark vision），
-  /// 不能用短时效 signed URL。生产环境推荐 TOS bucket 公开读 + 单独 ACL，或外挂 CDN。
+  /// 不能用短时效 signed URL。
   let result: Awaited<ReturnType<typeof storage.uploadFile>> | null = null;
   let assetPersisted = false;
   let stage: "storage_upload" | "asset_persistence" = "storage_upload";

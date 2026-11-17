@@ -8,13 +8,12 @@
  *   return blob.url;
  *
  * Provider 选择由 STORAGE_PROVIDER 决定：
- *   - vercel_blob (默认海外)
- *   - volcengine_tos (默认 cn region；Phase 2A 已接入 @volcengine/tos-sdk 真实 API)
+ *   - vercel_blob（默认，也是唯一实现；火山 TOS 随国内版部署 2026-11-16 一起删了，
+ *     写别的值在 env 解析时就报错）
  */
 
 import { getAppEnv } from "@/lib/config/env";
 import { VercelBlobStorageProvider } from "./providers/vercel-blob-provider";
-import { VolcengineTosStorageProvider } from "./providers/volcengine-tos-provider";
 import type { StorageProvider } from "./types";
 
 let cached: StorageProvider | null = null;
@@ -30,8 +29,6 @@ export function createStorageProvider(): StorageProvider {
   switch (env.storageProvider) {
     case "vercel_blob":
       return new VercelBlobStorageProvider();
-    case "volcengine_tos":
-      return new VolcengineTosStorageProvider();
     default: {
       const exhaustiveCheck: never = env.storageProvider;
       throw new Error(

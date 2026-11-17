@@ -7,7 +7,6 @@ const eslintConfig = [
       ".claude/**",
       ".cursor/**",
       "showcase-static/**",
-      "deploy/china-future/**",
       "docs/evidence/**",
       "playwright-report/**",
       "test-results/**",

@@ -1790,7 +1790,7 @@ async function uploadRender(
 }
 
 /**
- * 把本地 mp4 上传到对象存储（Vercel Blob / 火山 TOS，按 STORAGE_PROVIDER 自动选择），
+ * 把本地 mp4 上传到对象存储（Vercel Blob），
  * 返回可在 DB 中持久化的 URL。
  *
  * 强约束：storage provider 必须已配置 → 直接 throw，绝不再回退到 file:// 静默兜底

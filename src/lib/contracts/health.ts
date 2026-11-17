@@ -15,14 +15,8 @@ const providerConfigurationSchema = z.enum([
 export const healthResponseSchema = z
   .object({
     ok: z.boolean(),
-    region: z.enum(["na", "future", "unknown"]),
-    deploymentTarget: z.enum(["vercel", "selfhosted", "unknown"]),
-    aiProvider: z.enum(["openai", "volcengine", "unknown"]),
-    storageProvider: z.enum([
-      "vercel_blob",
-      "volcengine_tos",
-      "unknown",
-    ]),
+    aiProvider: z.enum(["openai", "unknown"]),
+    storageProvider: z.enum(["vercel_blob", "unknown"]),
     videoProvider: z.string().min(1).max(80),
     seedanceRuntimeProfile: z.enum([
       "byteplus_international",
@@ -35,8 +29,6 @@ export const healthResponseSchema = z
       "unknown",
     ]),
     contentReviewEnabled: z.boolean(),
-    paymentEnabled: z.boolean(),
-    smsLoginEnabled: z.boolean(),
     database: z.enum(["connected", "failed", "not_checked"]),
     databaseError: z.literal("database_unreachable").optional(),
     aiProviderStatus: providerConfigurationSchema,
@@ -118,16 +110,12 @@ export function healthHttpStatus(body: HealthResponse): 200 | 503 {
 export function unavailableHealthResponse(now = new Date()): HealthResponse {
   return healthResponseSchema.parse({
     ok: false,
-    region: "unknown",
-    deploymentTarget: "unknown",
     aiProvider: "unknown",
     storageProvider: "unknown",
     videoProvider: "unknown",
     seedanceRuntimeProfile: "unknown",
     contentReviewProvider: "unknown",
     contentReviewEnabled: false,
-    paymentEnabled: false,
-    smsLoginEnabled: false,
     database: "not_checked",
     aiProviderStatus: "not_configured",
     storageProviderStatus: "not_configured",

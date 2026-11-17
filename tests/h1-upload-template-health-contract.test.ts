@@ -176,16 +176,12 @@ test("H1 template contract: DTO allowlist is stable and strips persistence field
 test("H1 health contract: healthy and degraded snapshots expose only bounded diagnostics", () => {
   const healthy = healthResponseSchema.parse({
     ok: true,
-    region: "na",
-    deploymentTarget: "vercel",
     aiProvider: "openai",
     storageProvider: "vercel_blob",
     videoProvider: "mock",
     seedanceRuntimeProfile: "byteplus_international",
     contentReviewProvider: "openai_moderation",
     contentReviewEnabled: true,
-    paymentEnabled: false,
-    smsLoginEnabled: false,
     database: "connected",
     aiProviderStatus: "configured",
     storageProviderStatus: "configured",
@@ -202,13 +198,9 @@ test("H1 health contract: healthy and degraded snapshots expose only bounded dia
     "contentReviewEnabled",
     "contentReviewProvider",
     "database",
-    "deploymentTarget",
     "envValidation",
     "ok",
-    "paymentEnabled",
-    "region",
     "seedanceRuntimeProfile",
-    "smsLoginEnabled",
     "storage",
     "storageProvider",
     "storageProviderStatus",
@@ -225,6 +217,18 @@ test("H1 health contract: healthy and degraded snapshots expose only bounded dia
   assert.equal(degraded.database, "not_checked");
   assert.equal(healthHttpStatus(degraded), 503);
   assert.deepEqual(healthResponseSchema.parse(degraded), degraded);
+
+  /// 国内版部署与 Stripe 的字段 2026-11-16 已退出契约：strict 契约不再接受它们，也不再接受已删的 provider
+  for (const retired of [
+    { region: "na" },
+    { deploymentTarget: "vercel" },
+    { paymentEnabled: true },
+    { smsLoginEnabled: false },
+    { aiProvider: "volcengine" },
+    { storageProvider: "volcengine_tos" },
+  ]) {
+    assert.equal(healthResponseSchema.safeParse({ ...healthy, ...retired }).success, false, JSON.stringify(retired));
+  }
 
   assert.equal(
     healthResponseSchema.safeParse({

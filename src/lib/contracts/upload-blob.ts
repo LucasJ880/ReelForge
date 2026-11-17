@@ -50,7 +50,7 @@ export const uploadTicketRequestSchema = z
 
 /**
  * mode=direct：浏览器拿 clientToken 直接 PUT 到 pathname，传完拿 ticket 来登记。
- * mode=server：存储不支持直传（国内 TOS），退回 multipart 中转。
+ * mode=server：存储不支持直传，退回 multipart 中转（现在只有 Vercel Blob，服务端不会回这个）。
  */
 export const uploadTicketResponseSchema = z.discriminatedUnion("mode", [
   z

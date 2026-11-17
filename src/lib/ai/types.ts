@@ -102,14 +102,14 @@ export interface AiVisionAnalyzeOptions {
   user: string;
   /**
    * 图片解析精度（OpenAI `image_url.detail`）。默认 "low"：帧质检 480px 抽帧用 low 足够识别字幕，
-   * 商品 / 人物一致性检查需要 "high" 才看得清细节。volcengine 忽略此项。
+   * 商品 / 人物一致性检查需要 "high" 才看得清细节。
    */
   detail?: "low" | "high" | "auto";
   /** 回答 token 上限，默认 1200（帧质检 JSON 信封够用；长结构化输出自己加）。 */
   maxTokens?: number;
   /**
    * 用哪一档模型看图：缺省 "vision"（最强、最慢）。"fast" 走 fast 档的回退链（同样支持图像输入），
-   * 给「要看图但更在乎响应时间」的调用用，例如建故事板时看着商品图写镜头卡。volcengine 忽略此项。
+   * 给「要看图但更在乎响应时间」的调用用，例如建故事板时看着商品图写镜头卡。
    */
   tier?: "vision" | "fast";
 }
@@ -128,13 +128,12 @@ export interface AiVisionAnalyzeOptions {
  * 加上文本/图像/视觉三大底层能力。
  */
 export interface AiProvider {
-  readonly id: "openai" | "volcengine";
+  readonly id: "openai";
   readonly displayName: string;
 
   /**
    * 是否对外宣称"已配置"。
    * - openai → 看 OPENAI_API_KEY
-   * - volcengine → 看 VOLCENGINE_ARK_API_KEY
    * 未配置时调用 chat/image 必须抛清晰错误（不允许静默 fall back 到 mock，
    * 由 caller 的 mock guard 决定）。
    */

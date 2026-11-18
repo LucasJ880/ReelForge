@@ -865,8 +865,12 @@ test("系统提示词：关键规矩都在，英文，长度有数", () => {
     assert.ok(prompt.includes(phrase), `系统提示词里少了：${phrase}`);
   }
   /// 目标是 9,000 字上下；现在略超（一份自己过得了校验的完整示例占三千多字；11-17 加了探厂 / 探店一节约一千字），别再往上长
-  /// 11-18 加了三条有真机证据的规矩（风格自带节拍、台词别照念描述、开场帧正面写商品在哪），上限随之放到 11,900
-  assert.ok(prompt.length < 11_900, `系统提示词 ${prompt.length} 字`);
+  /// 11-18 十条口水巾真机之后加了五条有证据的规矩（风格自带节拍、台词别照念描述、商品在哪要正面写、
+  /// 结尾写清放在哪和几件、穿戴品从戴的那一面拍），上限随之放到 12,100。再加之前先看有没有能删的
+  assert.ok(prompt.length < 12_100, `系统提示词 ${prompt.length} 字`);
+  for (const phrase of ["says where the product is in positive words", "exact number of pieces", "from behind, the model draws it on the back", "no two lines make the same point"]) {
+    assert.ok(prompt.includes(phrase), `系统提示词里少了：${phrase}`);
+  }
   assert.ok(prompt.endsWith(JSON.stringify(DIRECTOR_WRITER_EXAMPLE_DRAFT)));
 });
 

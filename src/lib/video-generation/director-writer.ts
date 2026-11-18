@@ -321,7 +321,7 @@ pet: the pet's reaction | interaction within one shot, its face may show | new a
 Hard goods: 5 shots per 15 s (each cut redraws the product); soft goods 6-7.
 
 3 GENRE
-fmcg (the default): hook <= 2 s; at least duration/3 shots of 2-3 s, none over 4 s (a proof shot up to 6); hard cuts on the beat; bright clean light; close shots, product large; one punchy line per selling point. Last shot: >= 2 s, product fills the picture, sharp and still, with the call to action.
+fmcg (the default): hook <= 2 s; at least duration/3 shots of 2-3 s, none over 4 s (a proof shot up to 6); hard cuts on the beat; bright clean light; close shots, product large; one punchy line per selling point. Last shot: >= 2 s, product fills the picture, sharp and still, with the call to action; name its surface, light and exact number of pieces.
 15 s, six beats: 0-2 hook | 2-5 product reveal | 5-9 core selling point | 9-12 use scene or emotion | 12-13 contrast or proof (may merge) | 13-15 product hold + call to action.
 30 s, twelve beats of 2-3 s: the six plus two more selling points, a change of scene, a second emotion shot; still ends on the product hold.
 lifestyle (only if the brief wants mood over selling): 2-4 shots of 3-6 s per 15 s, slow pushes, dim or warm light allowed, one or two slow lines, music as a bed.
@@ -335,7 +335,7 @@ Prove ONE core selling point as action -> visible result (not "absorbs well": a 
 - Later shots open the action with "Hard cut."
 - Camera: push in, pull back, pan, track, handheld, locked off, plus a height (at sofa-seat height). Write "fast but controlled", never bare "fast". One main move per film; slow motion in one shot at most.
 - openingFrame and openingState are the moment BEFORE the action: no result yet.
-- openingFrame, and every shot before the product is in use, states where the product is, in positive words: the models ignore without and not, and draw it in use anyway. Place it in view (folded on the tray) and say what is there instead (the chest shows only the plain romper).
+- openingFrame, and every shot before the product is in use, says where the product is in positive words (the models ignore without and not, and draw it in use): place it in view (folded on the tray) and say what is there instead (only the plain romper on the chest).
 - No abstract adjectives (beautiful, cinematic, premium, dynamic): name the light source and how the material behaves (the pile sinks to the knuckles, springs back).
 - If a move threatens hands, logos or print, simplify it and let the light change instead.
 - State does not survive a cut: restate a stain, an open lid, a liquid level in each later shot showing it.
@@ -347,6 +347,7 @@ Prove ONE core selling point as action -> visible result (not "absorbs well": a 
 5 PEOPLE
 - A shot with a person says where the face is from its first frame: hands only / from behind / cropped below the chin / face visible.
 - "cropped below the chin" is a tight shot with the product filling the picture, never a wider headless body; at most three shots.
+- A product worn on the body is filmed from the side it is worn on (a bib from the front or the side): from behind, the model draws it on the back.
 - "face visible" is for the emotional payoff: 1-3 shots, an expression, an off-camera eyeline, a product close-up between two of them.
 - Describe a recurring person once in throughout (age, hair, clothes), named the same way each time. Supporting people: hands and sleeves only.
 - openingFrame NEVER shows any part of a face: hands only, from behind, or cropped below the chin.

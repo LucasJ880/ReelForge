@@ -282,7 +282,7 @@ export const DIRECTOR_WRITER_EXAMPLE_DRAFT: DirectorDraft = {
       fromSec: 8,
       toSec: 10,
       action: "Hard cut. The folded blanket sits alone on the sofa, sherpa corner turned back; a hand pats it once.",
-      framing: "Product close shot, blanket centred and large.",
+      framing: "Product close shot as in photo-1, blanket centred and large.",
       camera: "Short push in that stops dead.",
       sound: 'A pat; the voice says "今天就带走！" as the music ends.',
       note: "毯子叠好放在沙发上，定格",
@@ -321,35 +321,37 @@ pet: the pet's reaction | interaction within one shot, its face may show | new a
 Hard goods: 5 shots per 15 s (each cut redraws the product); soft goods 6-7.
 
 3 GENRE
-fmcg (the default): hook <= 2 s; at least duration/3 shots of 2-3 s, none over 4 s (a proof shot up to 6); hard cuts on the beat; bright clean light; close shots, product large; one punchy line per selling point. Last shot: >= 2 s, product fills the picture, sharp and still, with the call to action; name its surface, light and exact number of pieces.
+fmcg (the default): hook <= 2 s; at least duration/3 shots of 2-3 s, none over 4 s (a proof shot up to 6); hard cuts on the beat; bright clean light; close shots, product large; one punchy line per selling point. Last shot: >= 2 s, product fills the picture, sharp and still, with the call to action; arranged as in the whole-product photo (point at it), naming its surface, light and exact number of pieces.
 15 s, six beats: 0-2 hook | 2-5 product reveal | 5-9 core selling point | 9-12 use scene or emotion | 12-13 contrast or proof (may merge) | 13-15 product hold + call to action.
-30 s, twelve beats of 2-3 s: the six plus two more selling points, a change of scene, a second emotion shot; still ends on the product hold.
+30 s, ten or eleven beats of about 3 s (the hook stays 0-2): the six plus two more selling points, a change of scene, a second emotion shot; still ends on the product hold. More seconds are not more events.
 lifestyle (only if the brief wants mood over selling): 2-4 shots of 3-6 s per 15 s, slow pushes, dim or warm light allowed, one or two slow lines, music as a bed.
-Prove ONE core selling point as action -> visible result (not "absorbs well": a drop lands and is gone in a second, no mark left). Name it in the logline and give it a shot; other points get a spoken line each.
+Prove ONE core selling point as action -> visible result (not "absorbs well": one water drop lands and sinks in, leaving a darker damp dot). Name it in the logline and give it a shot; other points get a spoken line each.
 
 4 SHOTS
 - All prose in English. Spoken lines: the language the brief names, in English double quotes, ONLY in "sound". No double quotes anywhere else.
 - Integer seconds, contiguous from 0, filling the duration exactly.
-- One main action and one camera intent per shot; if you need "then", split it.
+- action = ONE move a real person would make, sized to the shot (a 2-3 s shot holds one move; two moves are two shots; never "then"). Write it as start -> move -> end: which hand, what it already holds or touches, the one move and its speed, what is left when it stops (the corner stays folded back).
+- Hands begin the shot already holding or touching the thing. A thing is set down on a named surface before the hand lets go. Nothing passes from hand to hand.
+- Liquids and food: say what it is, its colour and amount (one clear water drop from a teaspoon, one small spoonful of white rice cereal), where it lands and how it rests at the end (a darker damp patch remains). Lock the camera. It comes from a spoon or cup, never from a body; a spill slips off the spoon on its way to the mouth, never poured on purpose; it never runs off the product; no bare hand touches it.
 - Every shot: action, framing, camera, sound. Shot 1 must also give space and light; later shots only when they change.
 - Later shots open the action with "Hard cut."
-- Camera: push in, pull back, pan, track, handheld, locked off, plus a height (at sofa-seat height). Write "fast but controlled", never bare "fast". One main move per film; slow motion in one shot at most.
+- Camera in a few words: locked off for every hand, liquid or product-detail shot; otherwise push in, pull back, pan, track or handheld, plus a height. Write "fast but controlled", never bare "fast". One main move per film; slow motion in one shot at most.
 - openingFrame and openingState are the moment BEFORE the action: no result yet.
 - openingFrame, and every shot before the product is in use, says where the product is in positive words (the models ignore without and not, and draw it in use): place it in view (folded on the tray) and say what is there instead (only the plain romper on the chest).
 - No abstract adjectives (beautiful, cinematic, premium, dynamic): name the light source and how the material behaves (the pile sinks to the knuckles, springs back).
 - If a move threatens hands, logos or print, simplify it and let the light change instead.
 - State does not survive a cut: restate a stain, an open lid, a liquid level in each later shot showing it.
 - Point at photos by id (photo-1), do not re-describe them; never write "image N".
-- throughout: up to 5 positive statements true in every shot (only hands and forearms are seen); no negatives, nothing on subtitles.
+- throughout: up to 5 positive statements true in every shot (only hands and forearms are seen); no negatives, nothing on subtitles. A multi-piece set: state its exact pieces (exactly three bibs: white, mustard, brown); no shot shows more. Also say once how the product sits in use (triangle on the chest, corners snapped behind the neck).
 - Never invent text or logos on the product. Never write the brand name in a visual field.
 - Each shot also has note: one short line (at most 30 characters) in the merchant's own language saying what the viewer sees. The merchant reads it on screen; it is never sent to the video model. Write the scenario card in the merchant's language too.
 
 5 PEOPLE
-- A shot with a person says where the face is from its first frame: hands only / from behind / cropped below the chin / face visible.
+- A shot with a person says where the face is from its first frame: hands only / from behind / cropped below the chin / face visible. Open the action with it (Hands only: both hands hold ...); below the nose when the mouth is in the shot.
 - "cropped below the chin" is a tight shot with the product filling the picture, never a wider headless body; at most three shots.
-- A product worn on the body is filmed from the side it is worn on (a bib from the front or the side): from behind, the model draws it on the back.
-- "face visible" is for the emotional payoff: 1-3 shots, an expression, an off-camera eyeline, a product close-up between two of them.
-- Describe a recurring person once in throughout (age, hair, clothes), named the same way each time. Supporting people: hands and sleeves only.
+- A product worn on the body is filmed from the side it is worn on (a bib from the front or the side): from behind, the model draws it on the back. Putting it on: the hands carry the ends out of sight (behind the neck); a snap, buckle or zip closes in its own detail shot off the body.
+- "face visible" is for the emotional payoff and belongs to the person the product is for: 1-3 shots, an expression, an off-camera eyeline, a product close-up between two of them.
+- Describe a recurring person once in throughout (age, hair, clothes), named the same way each time. Supporting people (a parent feeding): hands and sleeves only. All clothes are plain, with no prints or lettering.
 - openingFrame NEVER shows any part of a face: hands only, from behind, or cropped below the chin.
 - Children: fully dressed, at home, an adult's hands nearby. No celebrities or real people.
 - Adults wear plain everyday or work clothes with shoulders, midriff and legs covered; say so in throughout whenever an adult's body is in frame.
@@ -364,13 +366,13 @@ Prove ONE core selling point as action -> visible result (not "absorbs well": a 
 - Claims: say only what the brief supports. No invented numbers, certifications, "best" or "No.1", medical or absolute claims. A call to action in the brief becomes the last line, shortened to fit; otherwise a plain one.
 
 7 LENGTH
-The assembled prompt has a hard limit of 4,800 characters; aim for 240 per second. Per shot over all fields: about 300 characters at 15 s, 220 at 30 s (one short sentence per field). Photo roles under 100.
+The assembled prompt has a hard limit of 4,800 characters; a 30 s script must land under 4,500. Spend the words on action. Count words per shot: action up to 30 (25 at 30 s), framing 8, camera 5, sound 8 plus the line. Photo roles under 100 characters.
 
 8 PLACE TOUR (factory, workshop, store, showroom)
-When the brief asks to show a place rather than a product in use, film a first-person walk through the real spaces in the photos, in the order a visitor meets them.
-- Those photos are kind scene: point each space's shot at its photo and keep buildings, signs and layouts exactly as photographed. A product photo, if given, stays kind product.
-- Card: who = the visitor (the buyer) and the host, where = the place, moment = walking in, trouble = what a buyer doubts before seeing it, after = what they have now seen, emotion = trust.
-- The camera IS the visitor: nobody walks in front of it and no host or visitor is ever on screen. The only people are workers at their stations, from behind or as hands.
+When the brief asks to show a place, not a product in use, film a first-person walk through the photographed spaces in the order a visitor meets them.
+- Those photos are kind scene: point each space's shot at its photo and keep buildings, signs and layouts as photographed. A product photo stays kind product.
+- Card: who = the visitor (the buyer) and the host, where = the place, moment = walking in, trouble = what a buyer doubts, after = what they have now seen, emotion = trust.
+- The camera IS the visitor: no host or visitor is ever on screen. The only people are workers at their stations, from behind or as hands.
 - Hook = the camera moving toward the entrance. Alternate wide walking shots with hands-only close-ups of the work.
 - openingFrame = the first place photo, described as it is, with no person in it. End on the product hold if a product photo is given, otherwise on the last space, still.
 - Lines are a host's tour narration: what this space is, one fact per shot, only facts from the brief.
@@ -516,6 +518,43 @@ function spokenLinesOf(sound: string): string[] {
 /// 开场画面里说「商品不在 / 还没用」的否定写法（写手自查用）：只认说缺席的那几种，「no face appears」这类不算
 const OPENING_FRAME_NEGATION = /\bwithout\b|\bnot (?:yet )?(?:wearing|worn|in use|used|opened|applied|on (?:the|her|his|its))\b|\bno \w+(?: \w+)? (?:is|are) (?:worn|in use|present|in (?:the )?(?:frame|picture|shot))\b/iu;
 
+/// 商家自己写了口播稿时，线上会把它接在描述后面并带上这一句（director-line.ts）：那份稿子就是要照念的
+const MERCHANT_SCRIPT_MARKER = "商家已经写好的口播稿";
+/// 一个镜头里最多写几个「手上的动作」。真机里两三秒的镜头塞进三个动作（拿起、翻面、放下）时，模型会漏做或把东西画乱
+const MOVES_PER_SHOT_MAX = 2;
+const ACTION_VERBS =
+  /\b(?:lifts?|picks up|places|puts|lays|sets (?:it|the|a|them)|presses|pulls|pushes|turns|flips|opens|closes|wipes?|dabs?|folds|unfolds?|drops (?:it|the|a|them|and|onto|into)|wraps|fastens?|unfastens?|snaps (?:it|the|them|shut|closed|together|on|open)|shakes?|pours?|tilts?|passes|brings?|raises?|lowers?|spreads?|rubs?|strokes|pats|squeezes?|slides (?:it|the|a|them)|tucks?|ties|buttons (?:it|the|up)|zips|peels?|tears (?:it|the|open|off)|scoops?|tips (?:it|the|a)|hands (?:it|the|a|over)|removes?|joins|aligns?)\b/gu;
+/// 从身体里出来的液体：模型画不好，画出来也不好看
+const BODY_FLUIDS = /\b(?:drool(?:s|ing)?(?! (?:bibs?|cloths?|towels?|pads?))|saliva|spit(?:tle)?|dribbl(?:e|es|ing)(?! bibs?)|snot|mucus|sweat(?:s|ing)?|vomit|urine|blood)\b/iu;
+const CHIN_CROP_SHOTS_MAX = 3;
+/// 中文连着这么多个字、英文连着这么多个词和描述一模一样，就算「照着念」
+const ECHO_MIN_CJK_CHARS = 8;
+const ECHO_MIN_WORDS = 6;
+
+/** 这句台词里有没有一长段是从商家描述里原样搬来的；有就返回那一段（给提醒看），没有返回 null。 */
+function echoedFromDescription(line: string, description: string): string | null {
+  if (CJK.test(line)) {
+    const strip = (text: string) => text.replace(/[\s\p{P}\p{S}]+/gu, "");
+    const spoken = strip(line);
+    const source = strip(description);
+    for (let length = Math.min(spoken.length, 24); length >= ECHO_MIN_CJK_CHARS; length -= 1) {
+      for (let start = 0; start + length <= spoken.length; start += 1) {
+        const piece = spoken.slice(start, start + length);
+        if (source.includes(piece)) return piece;
+      }
+    }
+    return null;
+  }
+  const words = (text: string) => text.toLowerCase().replace(/[^a-z0-9'\s]+/gu, " ").split(/\s+/u).filter(Boolean);
+  const spoken = words(line);
+  const source = ` ${words(description).join(" ")} `;
+  for (let start = 0; start + ECHO_MIN_WORDS <= spoken.length; start += 1) {
+    const piece = spoken.slice(start, start + ECHO_MIN_WORDS).join(" ");
+    if (source.includes(` ${piece} `)) return piece;
+  }
+  return null;
+}
+
 /// 广告里不能凭空说的词：商家自己的描述里有才可以念
 const ABSOLUTE_CLAIMS =
   /最好|最佳|最强|全网最低|销量第一|行业第一|全国第一|第一品牌|顶级|国家级|世界级|100%|百分百|根治|治愈|治疗|疗效|药用|医用级|永不|绝对|\bbest\b|#1|\bno\.? ?1\b|\bnumber one\b|\bguaranteed?\b|\bcures?\b|\bclinically\b|\bmedical[- ]grade\b|\bmiracle\b/giu;
@@ -617,9 +656,45 @@ function writerChecks(draft: DirectorDraft, brief: WriterBrief, plan: PhotoPlan)
   /// （2026-11-18 口水巾：写着 without a bib，线上线下五张里四张都给宝宝戴上了；改成正面写法后一次就对）
   const negated = draft.openingFrame.match(OPENING_FRAME_NEGATION);
   if (negated) {
-    errors.push(
-      `openingFrame 里用了否定写法（${negated[0]}）：出图模型不听否定，会把商品照样画在使用的位置上。改成正面写——商品此刻在画面的哪里（例：the folded bibs lie on the tray），原来该有它的位置现在是什么（例：the chest shows only the plain cream romper）`,
+    warnings.push(
+      `openingFrame 里用了否定写法（${negated[0]}）：出图模型不听否定，会把商品照样画在使用的位置上。改成正面写——商品此刻在画面的哪里（例：the folded bibs lie on the tray），原来该有它的位置现在是什么（例：only the plain cream romper on the chest）`,
     );
+  }
+
+  /// 下面几条是 2026-11-18 十条口水巾真机之后加的：都只是「送回去改」，改不好不算失败（提醒随稿留着）
+  /// 1) 台词照着商家描述念：商家自己写了口播稿的不查（那份就是要照念的）
+  if (!brief.description.includes(MERCHANT_SCRIPT_MARKER)) {
+    draft.shots.forEach((shot, index) => {
+      for (const line of spokenLinesOf(shot.sound)) {
+        const echoed = echoedFromDescription(line, brief.description);
+        if (echoed) {
+          warnings.push(`镜头 ${index + 1} 的台词「${line}」是照着商家的描述念的（「${echoed}」一字不差）：换成平时说话的句子，说它给买家带来什么，意思不变`);
+        }
+      }
+    });
+  }
+  /// 1.5) 物理动作（真机里的「幻觉」大多出在这两处）
+  draft.shots.forEach((shot, index) => {
+    const action = shot.action.replace(/^hard cut\.\s*/iu, "");
+    const moves = new Set((action.toLowerCase().match(ACTION_VERBS) ?? []).map((move) => move.split(" ")[0]));
+    if (moves.size >= MOVES_PER_SHOT_MAX + 1) {
+      warnings.push(`镜头 ${index + 1} 里有 ${moves.size} 个动作（${[...moves].join("、")}）：${shot.toSec - shot.fromSec} 秒只够做完一个，留下最要紧的那一个，其余拆到别的镜头或删掉`);
+    }
+    const fluid = `${shot.action} ${shot.framing}`.match(BODY_FLUIDS);
+    if (fluid) {
+      warnings.push(`镜头 ${index + 1} 拍了从身体里出来的液体（${fluid[0]}）：出片模型会把它画成一道浓稠的浆。改成一滴清水从小勺落下（one clear water drop from a teaspoon），写清落在哪、最后留下什么`);
+    }
+  });
+  /// 2) 「下巴以下」的半身镜头太多：看着是一个没有头的人
+  const chinShots = draft.shots.filter((shot) => /cropped below the chin/iu.test(`${shot.action} ${shot.framing}`)).length;
+  if (chinShots > CHIN_CROP_SHOTS_MAX) {
+    warnings.push(`有 ${chinShots} 个镜头是 cropped below the chin：最多 ${CHIN_CROP_SHOTS_MAX} 个。其余改成只拍手（hands only）、贴近商品的特写，或者让该露脸的人露脸（face visible）`);
+  }
+  /// 3) 结尾定格要照整件商品的那张图摆：真机里对着图摆的结尾和商品图一模一样，没指图的出过纯黑背景、多出两三件
+  const productPhotos = plan.selected.filter((photo) => photo.kind === "product");
+  const lastShot = draft.shots.at(-1);
+  if (productPhotos.length > 0 && lastShot && !/\bphoto-\d+\b/iu.test(`${lastShot.action} ${lastShot.framing}`)) {
+    warnings.push(`最后一个镜头没有指向商品图：结尾定格照整件商品的那张图摆（例：arranged as in ${productPhotos[0]!.referenceId}），并写清放在什么面上、一共几件`);
   }
   return { errors, warnings };
 }
@@ -756,10 +831,31 @@ function evaluateDraft(raw: unknown, brief: WriterBrief, options: { jobId: strin
     job,
     plan,
     lint,
-    mustFix: [...lint.errors, ...own.warnings, ...blocking.map((warning) => `${warning} (${blockingRule(warning, job.durationSec)!.hint})`)],
+    mustFix: [...lint.errors.map((error) => withLengthBudget(error, draft)), ...own.warnings, ...blocking.map((warning) => `${warning} (${blockingRule(warning, job.durationSec)!.hint})`)],
     alsoNoted: director.warnings.filter((warning) => !blocking.includes(warning)),
   };
 }
+
+/**
+ * 超字数那一条错误只说「超了」，模型不会数字数，三稿常常在上限附近来回（11-18 五份 30 秒脚本里两份因此写不成）。
+ * 这里补上要删多少、哪几个镜头最长、每一项按词数该多长，模型照着删就够。
+ */
+function withLengthBudget(error: string, draft: DirectorDraft): string {
+  const over = error.match(/出片提示词 (\d+) 字，超过 (\d+)/u);
+  if (!over) return error;
+  const excess = Number(over[1]) - Number(over[2]);
+  const sizes = draft.shots.map((shot, index) => ({
+    shot: index + 1,
+    chars: [shot.action, shot.framing, shot.camera, shot.sound, shot.space ?? "", shot.light ?? ""].join("").length,
+  }));
+  const longest = [...sizes].sort((a, b) => b.chars - a.chars).slice(0, 4);
+  const cut = excess + LENGTH_REPAIR_MARGIN;
+  return `${error} (cut at least ${cut} characters and keep the shot count. Longest shots: ${longest
+    .map((entry) => `shot ${entry.shot} = ${entry.chars}`)
+    .join(", ")}; bring every shot to ${Math.max(180, Math.round((sizes.reduce((sum, entry) => sum + entry.chars, 0) - cut) / sizes.length))} or fewer. Per shot: action at most 25 words, framing 8, camera 5, sound 8 plus the line; space and light only in shot 1 and where the place changes; throughout entries at most 12 words each)`;
+}
+/// 返修时多删一点：模型数不准，只删到刚好会再超
+const LENGTH_REPAIR_MARGIN = 150;
 
 function errorText(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -789,38 +885,11 @@ export async function writeDirectorJob(input: DirectorWriterInput, deps: Directo
   const modelName = () => deps.model ?? deps.complete.model ?? "unknown";
 
   let previous: { attempt: number; raw: unknown; mustFix: string[]; alsoNoted: string[] } | null = null;
-  for (let attempt = 1; attempt <= DIRECTOR_WRITER_MAX_ATTEMPTS; attempt += 1) {
-    let raw: unknown;
-    try {
-      raw = await deps.complete({
-        system: DIRECTOR_WRITER_SYSTEM_PROMPT,
-        user: previous ? repairMessage(base, previous) : base,
-        images,
-        schemaName: DIRECTOR_WRITER_SCHEMA_NAME,
-      });
-    } catch (error) {
-      return { ok: false, reason: "model_unavailable", attempts: attempt, lastErrors: [errorText(error)] };
-    }
-    const evaluation = evaluateDraft(raw, brief, { jobId, maxVideoPhotos });
-    const last = attempt === DIRECTOR_WRITER_MAX_ATTEMPTS || deps.outOfTime?.() === true;
-
-    if (evaluation.kind === "invalid") {
-      deps.onAttempt?.({ attempt, outcome: "invalid", problems: evaluation.problems });
-      if (last) return { ok: false, reason: "invalid_output", attempts: attempt, lastErrors: evaluation.problems };
-      previous = { attempt, raw, mustFix: evaluation.problems, alsoNoted: [] };
-      continue;
-    }
-
-    const { draft, job, lint, plan } = evaluation;
-    const clean = evaluation.mustFix.length === 0;
-    deps.onAttempt?.({ attempt, outcome: clean ? "clean" : "send_back", problems: evaluation.mustFix });
-    if (!clean && !last) {
-      previous = { attempt, raw, mustFix: evaluation.mustFix, alsoNoted: evaluation.alsoNoted };
-      continue;
-    }
-    if (!job || lint.errors.length > 0) {
-      return { ok: false, reason: "lint_failed", attempts: attempt, lastErrors: lint.errors };
-    }
+  /// 前面哪一稿已经零错误（只剩提醒）：最后一稿改坏了就交它，别因为返修把一份能用的脚本弄丢
+  let fallback: Extract<Evaluation, { kind: "checked" }> | null = null;
+  const deliver = (evaluation: Extract<Evaluation, { kind: "checked" }>, attempt: number): DirectorWriterResult => {
+    const { draft, lint, plan } = evaluation;
+    const job = evaluation.job!;
     const imageOf = new Map(plan.selected.map((photo, order) => [photo.index, order + 1]));
     const described = new Map(draft.photos.map((entry) => [Number(entry.photo.slice("photo-".length)), entry]));
     return {
@@ -850,6 +919,41 @@ export async function writeDirectorJob(input: DirectorWriterInput, deps: Directo
         };
       }),
     };
+  };
+  for (let attempt = 1; attempt <= DIRECTOR_WRITER_MAX_ATTEMPTS; attempt += 1) {
+    let raw: unknown;
+    try {
+      raw = await deps.complete({
+        system: DIRECTOR_WRITER_SYSTEM_PROMPT,
+        user: previous ? repairMessage(base, previous) : base,
+        images,
+        schemaName: DIRECTOR_WRITER_SCHEMA_NAME,
+      });
+    } catch (error) {
+      return { ok: false, reason: "model_unavailable", attempts: attempt, lastErrors: [errorText(error)] };
+    }
+    const evaluation = evaluateDraft(raw, brief, { jobId, maxVideoPhotos });
+    const last = attempt === DIRECTOR_WRITER_MAX_ATTEMPTS || deps.outOfTime?.() === true;
+
+    if (evaluation.kind === "invalid") {
+      deps.onAttempt?.({ attempt, outcome: "invalid", problems: evaluation.problems });
+      if (last) return fallback ? deliver(fallback, attempt) : { ok: false, reason: "invalid_output", attempts: attempt, lastErrors: evaluation.problems };
+      previous = { attempt, raw, mustFix: evaluation.problems, alsoNoted: [] };
+      continue;
+    }
+
+    const { job, lint } = evaluation;
+    const usable = job !== null && lint.errors.length === 0;
+    const clean = evaluation.mustFix.length === 0;
+    deps.onAttempt?.({ attempt, outcome: clean ? "clean" : "send_back", problems: evaluation.mustFix });
+    if (!clean && !last) {
+      if (usable) fallback = evaluation;
+      previous = { attempt, raw, mustFix: evaluation.mustFix, alsoNoted: evaluation.alsoNoted };
+      continue;
+    }
+    if (usable) return deliver(evaluation, attempt);
+    if (fallback) return deliver(fallback, attempt);
+    return { ok: false, reason: "lint_failed", attempts: attempt, lastErrors: lint.errors };
   }
   /// 走不到这里：循环的最后一稿一定会 return
   return { ok: false, reason: "lint_failed", attempts: DIRECTOR_WRITER_MAX_ATTEMPTS, lastErrors: [] };

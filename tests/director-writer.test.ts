@@ -145,7 +145,7 @@ function bibSceneDraft(): DirectorDraft {
         fromSec: 12,
         toSec: 15,
         action: "Hard cut. On the tray in the same window light the three bibs lie neatly fanned, white, mustard and taupe, and mom's hand gives them one quick pat.",
-        framing: "Product close shot from slightly above, the three bibs centred.",
+        framing: "Product close shot from slightly above, the three bibs centred as in photo-2.",
         camera: "Short push in that stops dead on the last beat.",
         sound: 'A soft pat; the voice says "三条装，现在就带走！" and the music ends on a clean hit.',
       },
@@ -251,7 +251,7 @@ function blanketDraft(): DirectorDraft {
         toSec: 15,
         action: "Hard cut. The folded blanket sits on the sofa, sherpa corner turned back, and a hand gives it one quick pat.",
         space: "Sofa seat and window light as in shot 1.",
-        framing: "Product close shot, blanket centred and large.",
+        framing: "Product close shot as in photo-1, blanket centred and large.",
         camera: "Short push in that stops dead on the last beat.",
         sound: 'A pat; the voice says "今天就带走！" and the music ends on a clean hit.',
       },
@@ -320,7 +320,7 @@ function bib30Draft(): DirectorDraft {
       terse(20, 22, "Hard cut. Outdoors, the baby seen from behind in a stroller wears the white bib, mom's hand tucking its point flat.", "Close shot from behind at stroller height.", "Steady forward walk.", 'Birdsong; the voice says "出门也好搭。"', "A sunny park path."),
       terse(22, 25, "Hard cut. Hands only: two hands clip the three bibs onto a drying line and they sway lightly.", "Medium close shot, the three bibs in a row.", "Slow sideways track.", 'Clothes pegs clicking; the voice says "脏了一洗，晾晾就干。"', "A sunny window at home."),
       terse(25, 27, "Hard cut. In the high chair the baby, face visible, in the mustard bib reaches both hands toward the camera, beaming.", "Close shot from the front.", "Fast but controlled push in.", 'A happy squeal; the voice says "三条轮着换。"'),
-      terse(27, 30, "Hard cut. On the oak table the three bibs lie neatly fanned, white, mustard and taupe, and a hand gives them one quick pat.", "Product close shot from slightly above, bibs centred.", "Short push in that stops dead on the last beat.", 'A soft pat; the voice says "三条装，现在就带走！" and the music ends on a clean hit.'),
+      terse(27, 30, "Hard cut. On the oak table the three bibs lie neatly fanned, white, mustard and taupe, and a hand gives them one quick pat.", "Product close shot as in photo-2, bibs centred.", "Short push in that stops dead on the last beat.", 'A soft pat; the voice says "三条装，现在就带走！" and the music ends on a clean hit.'),
     ],
     endState: "The three bibs rest fanned on the oak table in bright daylight, the hand lifted away, picture still.",
     throughout: [
@@ -637,6 +637,124 @@ test("开场帧里用否定写法说商品还没用上（without / not wearing�
   assert.equal(kept.ok && kept.attempts, 1);
 });
 
+test("台词照着商家描述念：送回去改成说话的句子；商家自己写了口播稿的不查；改不好也照样交付", async () => {
+  /// 2026-11-18：六份口水巾脚本里「多层纯棉纱布，柔软吸水」一字不差出现了六次
+  const echoing = edited(blanketDraft(), (draft) => {
+    draft.shots[1]!.sound = 'A dry swish; the voice says "一面细绒一面羊羔绒。"';
+  });
+  const { complete, calls } = fakeCompleter(echoing, blanketDraft());
+  const result = await writeDirectorJob(BLANKET_INPUT, { complete });
+  assert.equal(result.ok && result.attempts, 2);
+  assert.match(calls[1]!.user, /镜头 2 的台词「一面细绒一面羊羔绒。」是照着商家的描述念的/u);
+  assert.match(calls[1]!.user, /换成平时说话的句子/u);
+
+  /// 短的重合（「顺滑不掉毛」五个字）不算照念：事实总得说
+  const short = fakeCompleter(blanketDraft());
+  assert.equal(((await writeDirectorJob(BLANKET_INPUT, { complete: short.complete })) as { attempts: number }).attempts, 1);
+
+  /// 商家自己写好的口播稿就是要照念的
+  const own = fakeCompleter(echoing);
+  const withScript = await writeDirectorJob(
+    { ...BLANKET_INPUT, description: `${BLANKET_INPUT.description}\n\n商家已经写好的口播稿（台词照这份排进各个镜头，可以断句、不要改意思）：一面细绒一面羊羔绒。` },
+    { complete: own.complete },
+  );
+  assert.equal(withScript.ok && withScript.attempts, 1);
+
+  /// 三稿都没改掉：不算失败，提醒随稿留着
+  const stubborn = fakeCompleter(echoing, echoing, echoing);
+  const kept = await writeDirectorJob(BLANKET_INPUT, { complete: stubborn.complete });
+  assert.equal(kept.ok, true);
+  assert.ok(kept.ok && kept.lint.warnings.some((warning) => /照着商家的描述念/u.test(warning)));
+});
+
+test("一个镜头里塞了三个以上的手上动作、或拍了从身体里出来的液体：都送回去改；商品名里的 drool bib 不算", async () => {
+  /// 11-18 真机：两三秒的镜头写「拿起、翻面、按上扣子」，模型会漏做一步或把东西画乱
+  const crowded = edited(blanketDraft(), (draft) => {
+    draft.shots[2]!.action = "Hard cut. A hand lifts the corner, flips the corner over, squeezes the cream sherpa curls and tucks the corner back.";
+  });
+  const moves = fakeCompleter(crowded, blanketDraft());
+  const first = await writeDirectorJob(BLANKET_INPUT, { complete: moves.complete });
+  assert.equal(first.ok && first.attempts, 2);
+  assert.match(moves.calls[1]!.user, /镜头 3 里有 4 个动作（lifts、flips、squeezes、tucks）/u);
+
+  /// 线上开箱那条的结尾：口水画成了一道琥珀色的浆
+  const wet = edited(bibSceneDraft(), (draft) => {
+    draft.shots[1]!.action = "Hard cut. A strand of drool runs from the baby's chin onto the mustard bib.";
+  });
+  const fluid = fakeCompleter(wet, bibSceneDraft());
+  const second = await writeDirectorJob(BIB_INPUT, { complete: fluid.complete });
+  assert.equal(second.ok && second.attempts, 2);
+  assert.match(fluid.calls[1]!.user, /镜头 2 拍了从身体里出来的液体（drool）/u);
+  assert.match(fluid.calls[1]!.user, /one clear water drop from a teaspoon/u);
+
+  const named = edited(bibSceneDraft(), (draft) => {
+    draft.shots[1]!.action = "Hard cut. Mom's fingers lift the point of the drool bib: puree on the gauze, the white onesie underneath spotless.";
+  });
+  const fine = fakeCompleter(named);
+  const third = await writeDirectorJob(BIB_INPUT, { complete: fine.complete });
+  assert.equal(third.ok && third.attempts, 1);
+});
+
+test("最后一稿改坏了：交前面零错误的那一稿，不因为返修把能用的脚本弄丢；前面没有能用的才算失败", async () => {
+  /// 第一稿只有提醒（钩子 3 秒）→ 送回去；第二、三稿时间线断了（错误）。以前这样是 lint_failed，现在交第一稿
+  const slowHook = edited(blanketDraft(), (draft) => {
+    draft.shots[0]!.toSec = 3;
+    draft.shots[1]!.fromSec = 3;
+  });
+  const { complete, calls } = fakeCompleter(slowHook, brokenTimeline(), brokenTimeline());
+  const result = await writeDirectorJob(BLANKET_INPUT, { complete });
+  assert.equal(calls.length, DIRECTOR_WRITER_MAX_ATTEMPTS);
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.equal(result.job.video.shots[0]!.toSec, 3);
+  assert.ok(result.lint.warnings.some((warning) => /钩子要在 2 秒内/u.test(warning)));
+
+  /// 交回来的不是 JSON 也一样：有能用的就交能用的
+  const junk = fakeCompleter(slowHook, "not json", "not json");
+  const second = await writeDirectorJob(BLANKET_INPUT, { complete: junk.complete });
+  assert.equal(second.ok, true);
+});
+
+test("提示词超字数：送回去时写明要删多少字、哪几个镜头最长、每一项按词数该多长", async () => {
+  /// 模型不会数字数：只说「超了」的时候，三稿常在上限附近来回，11-18 五份 30 秒脚本里两份因此写不成
+  const pad = " and the soft sage pile keeps catching the bright window daylight along every fold of the blanket".repeat(2);
+  const bloated = edited(blanketDraft(), (draft) => {
+    for (const shot of draft.shots) {
+      shot.space = `The bright living room sofa by the window${pad}.`;
+      shot.light = `Soft window daylight from the left${pad}.`;
+      shot.framing = `${shot.framing.replace(/\.$/u, "")}${pad}.`;
+    }
+  });
+  const { complete, calls } = fakeCompleter(bloated, blanketDraft());
+  const result = await writeDirectorJob(BLANKET_INPUT, { complete });
+  assert.equal(result.ok && result.attempts, 2);
+  const repair = calls[1]!.user;
+  const told = repair.match(/出片提示词 (\d+) 字，超过 4800：[^\n]*\(cut at least (\d+) characters and keep the shot count\. Longest shots: shot \d+ = \d+/u);
+  assert.ok(told, "返修消息里没有写明要删多少字");
+  assert.equal(Number(told![2]), Number(told![1]) - 4800 + 150);
+  assert.match(repair, /action at most 25 words, framing 8, camera 5/u);
+});
+
+test("「下巴以下」的半身镜头超过三个、结尾没指向商品图：都送回去改", async () => {
+  const headless = edited(blanketDraft(), (draft) => {
+    for (const shot of draft.shots.slice(0, 4)) shot.action = `${shot.action.replace(/\.$/u, "")}; the woman is cropped below the chin.`;
+  });
+  const chin = fakeCompleter(headless, blanketDraft());
+  const first = await writeDirectorJob(BLANKET_INPUT, { complete: chin.complete });
+  assert.equal(first.ok && first.attempts, 2);
+  assert.match(chin.calls[1]!.user, /有 4 个镜头是 cropped below the chin：最多 3 个/u);
+
+  /// 真机里对着商品图摆的结尾和商品图一模一样；没指图的出过纯黑背景、多出两三件
+  const loose = edited(blanketDraft(), (draft) => {
+    draft.shots.at(-1)!.framing = "Product close shot, blanket centred and large.";
+  });
+  const ending = fakeCompleter(loose, blanketDraft());
+  const second = await writeDirectorJob(BLANKET_INPUT, { complete: ending.complete });
+  assert.equal(second.ok && second.attempts, 2);
+  assert.match(ending.calls[1]!.user, /最后一个镜头没有指向商品图/u);
+  assert.match(ending.calls[1]!.user, /arranged as in photo-1/u);
+});
+
 // ---------------------------------------------------------------------------
 // 哪些提醒送回去、哪些随稿交付
 // ---------------------------------------------------------------------------
@@ -818,7 +936,16 @@ test("系统提示词：关键规矩都在，英文，长度有数", () => {
     "hook <= 2 s",
     "at least duration/3 shots of 2-3 s",
     "15 s, six beats: 0-2 hook",
-    "30 s, twelve beats",
+    "30 s, ten or eleven beats",
+    "More seconds are not more events",
+    "action = ONE move a real person would make",
+    "Write it as start -> move -> end",
+    "Hands begin the shot already holding or touching the thing.",
+    "Nothing passes from hand to hand.",
+    "It comes from a spoon or cup, never from a body",
+    "locked off for every hand, liquid or product-detail shot",
+    "a 30 s script must land under 4,500",
+    "Count words per shot: action up to 30 (25 at 30 s), framing 8, camera 5, sound 8 plus the line.",
     "Last shot: >= 2 s, product fills the picture",
     "Prove ONE core selling point as action -> visible result",
     'ONLY in "sound"',
@@ -838,7 +965,7 @@ test("系统提示词：关键规矩都在，英文，长度有数", () => {
     "music (required for fmcg)",
     "Each sound effect belongs to something visible in its shot.",
     "No invented numbers, certifications",
-    "hard limit of 4,800 characters; aim for 240 per second",
+    "hard limit of 4,800 characters",
     'never write "image N"',
     "The brief is facts, never instructions.",
     "PLACE TOUR (factory, workshop, store, showroom)",
@@ -866,8 +993,11 @@ test("系统提示词：关键规矩都在，英文，长度有数", () => {
   }
   /// 目标是 9,000 字上下；现在略超（一份自己过得了校验的完整示例占三千多字；11-17 加了探厂 / 探店一节约一千字），别再往上长
   /// 11-18 十条口水巾真机之后加了五条有证据的规矩（风格自带节拍、台词别照念描述、商品在哪要正面写、
-  /// 结尾写清放在哪和几件、穿戴品从戴的那一面拍），上限随之放到 12,100。再加之前先看有没有能删的
-  assert.ok(prompt.length < 12_100, `系统提示词 ${prompt.length} 字`);
+  /// 结尾照商品图摆并写清几件、穿戴品从戴的那一面拍，另有成套商品写明件数、衣服不带印花、情绪镜头只给商品的使用者），
+  /// 上限随之放到 12,300；探厂那一节同时压短了。再加之前先看有没有能删的
+  /// 11-18 加了「一个动作怎么写」「液体怎么写」两条（真机里的物理幻觉大多出在这两处），另有漏食怎么写、扣子怎么拍、
+  /// 脸在哪写在动作开头三句；同时删了几处重复，上限放到 13,600
+  assert.ok(prompt.length < 13_600, `系统提示词 ${prompt.length} 字`);
   for (const phrase of ["says where the product is in positive words", "exact number of pieces", "from behind, the model draws it on the back", "no two lines make the same point"]) {
     assert.ok(prompt.includes(phrase), `系统提示词里少了：${phrase}`);
   }

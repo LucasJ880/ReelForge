@@ -345,6 +345,7 @@ Prove ONE core selling point as action -> visible result (not "absorbs well": a 
 
 5 PEOPLE
 - A shot with a person says where the face is from its first frame: hands only / from behind / cropped below the chin / face visible.
+- "cropped below the chin" is a tight shot with the product filling the picture, never a wider headless body; at most three shots.
 - "face visible" is for the emotional payoff: 1-3 shots, an expression, an off-camera eyeline, a product close-up between two of them.
 - Describe a recurring person once in throughout (age, hair, clothes), named the same way each time. Supporting people: hands and sleeves only.
 - openingFrame NEVER shows any part of a face: hands only, from behind, or cropped below the chin.
@@ -353,6 +354,7 @@ Prove ONE core selling point as action -> visible result (not "absorbs well": a 
 
 6 SOUND
 - voice: one speaker, described once (language, gender and age feel, tone, close-mic).
+- Lines are everyday spoken sentences about what it does for the buyer; never the description read back word for word, and no two lines make the same point.
 - One short line per shot, in the shot where it is spoken. Mandarin: 3.5 characters per second comfortable, 4.5 the limit (a 2 s shot: 7 characters); English: 2.5-3 words per second. Silent shots: 1.5-2.5 s.
 - music (required for fmcg): style, tempo in bpm, instruments, how it ends.
 - Each sound effect belongs to something visible in its shot.
@@ -423,7 +425,7 @@ function briefMessage(brief: WriterBrief, maxVideoPhotos: number): string {
     brief.genre ? `Genre: ${brief.genre} (set by the merchant: keep it and say so in genreReason)` : "Genre: not set. Choose fmcg or lifestyle and say why in genreReason.",
     `Spoken lines: ${LANGUAGE_LABEL[brief.voiceLanguage]}`,
     brief.styleBrief
-      ? `Style (picked by the merchant; shape the hook, pacing, light, how people appear and the tone of voice and music around it. Where the style says how to open, open that way. On everything else the rules above still win where they conflict):\n${brief.styleBrief}`
+      ? `Style (picked by the merchant; shape the hook, pacing, light, how people appear and the tone of voice and music around it. Where the style says how to open, open that way. Where it gives its own order of beats, places or kind of shot, follow that instead of the default beats in rule 3: a viewer must be able to tell this style from a standard ad with the sound off. On everything else the rules above still win where they conflict):\n${brief.styleBrief}`
       : null,
     "",
     `PHOTOS: ${photos.length} attached, in this order`,

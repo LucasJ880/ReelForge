@@ -163,7 +163,7 @@ test("取消生成中的故事板：CAS 改 CANCELLED、墓碑幂等键、解绑
   assert.equal(where.id, "run-1");
   assert.equal(where.userId, "owner-1");
   assert.equal(where.idempotencyKey, "key-1");
-  assert.deepEqual(where.status, { in: ["GENERATING", "AWAITING_APPROVAL"] });
+  assert.deepEqual(where.status, { in: ["GENERATING", "AWAITING_APPROVAL", "APPROVED"] });
   assert.equal(where.dispatchReservationKey, null, "a dispatch-reserved run is never cancelled");
   assert.equal(where.videoBriefId, null, "a brief-attached run is never cancelled");
   assert.equal(where.videoJobId, null, "a user cancel never detaches a batch storyboard");
@@ -214,16 +214,26 @@ test("批量任务上的故事板不能单独取消（只能随批次取消，�
   assert.equal(storyboardRunView(run({ videoJobId: "job-1" }) as never).canCancel, false);
 });
 
-test("APPROVED / FAILED 不走服务端取消（不再产生费用），给 INVALID_STATE", async (t) => {
-  const approved = harness(t, { runRows: [run({ status: "APPROVED" })] });
-  await rejectsWithCode(cancelStoryboardRun("run-1", "owner-1"), "INVALID_STATE");
-  assert.equal(approved.transactions, 0);
+test("FAILED 不走服务端取消（不再产生费用），给 INVALID_STATE；已确认但还没交给视频生成的一轮可以取消", async (t) => {
+  await t.test("已失败", async (st) => {
+    const failed = harness(st, { runRows: [run({ status: "FAILED" })] });
+    await rejectsWithCode(cancelStoryboardRun("run-1", "owner-1"), "INVALID_STATE");
+    assert.equal(failed.transactions, 0);
+  });
+  await t.test("已确认、没派发", async (st) => {
+    /// 以前只在浏览器里记成不再恢复，成品库还会一直提示「有一轮故事板已经确认，还没开始生成视频」
+    const approved = harness(st, { runRows: [run({ status: "APPROVED" }), run({ status: "CANCELLED" })] });
+    const view = await cancelStoryboardRun("run-1", "owner-1");
+    assert.equal(view.status, "CANCELLED");
+    assert.equal(approved.transactions, 1);
+  });
 });
 
 test("读写之间被确认：CAS 落空后按最新状态给人话；仍可取消则明确告诉调用方没取消", async (t) => {
   await t.test("刚被确认", async (st) => {
+    /// 确认之后仍可取消，所以这里不是「已结束」，而是明确告诉调用方这一次没取消成、再点一次
     harness(st, { runRows: [run({ status: "AWAITING_APPROVAL" }), run({ status: "APPROVED" })], casCount: 0 });
-    await rejectsWithCode(cancelStoryboardRun("run-1", "owner-1"), "INVALID_STATE");
+    await rejectsWithCode(cancelStoryboardRun("run-1", "owner-1"), "STATE_CHANGED");
   });
   await t.test("刚开始派发", async (st) => {
     harness(st, {
@@ -271,7 +281,7 @@ test("cancelStoryboardRunsForVideoJobs 只取消挂在这些任务上的生成�
   assert.equal(cancelled, 1);
   const where = findManyArgs[0].where as Record<string, unknown>;
   assert.deepEqual(where.videoJobId, { in: ["job-a", "job-b"] });
-  assert.deepEqual(where.status, { in: ["GENERATING", "AWAITING_APPROVAL"] });
+  assert.deepEqual(where.status, { in: ["GENERATING", "AWAITING_APPROVAL", "APPROVED"] });
   assert.equal(runWrites.length, 2);
   assert.equal(runWrites[0].data.idempotencyKey, "cancelled:run-a:batch-storyboard:job-a:r0");
   assert.equal(runWrites[0].data.videoJobId, null, "the batch job is unbound so a retry can attach a fresh run");
@@ -379,11 +389,12 @@ test("恢复入口不会把已取消的故事板带回来", async (t) => {
   assert.ok(!statuses.includes("CANCELLED"));
 });
 
-test("视图：生成中且未派发才 canCancel", () => {
+test("视图：还没交给视频生成才 canCancel（生成中、等确认、已确认都算）", () => {
   assert.equal(storyboardRunView(run() as never).canCancel, true);
   assert.equal(storyboardRunView(run({ status: "AWAITING_APPROVAL" }) as never).canCancel, true);
   assert.equal(storyboardRunView(run({ dispatchReservationKey: "req" }) as never).canCancel, false);
-  assert.equal(storyboardRunView(run({ status: "APPROVED" }) as never).canCancel, false);
+  assert.equal(storyboardRunView(run({ status: "APPROVED" }) as never).canCancel, true);
+  assert.equal(storyboardRunView(run({ status: "APPROVED", videoBriefId: "brief-1" }) as never).canCancel, false);
   assert.equal(storyboardRunView(run({ status: "FAILED" }) as never).canCancel, false);
 });
 

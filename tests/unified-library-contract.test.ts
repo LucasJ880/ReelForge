@@ -225,3 +225,21 @@ test("制作过程：镜头还在生成时「后期制作」是等待，不是�
   assert.equal(stitching[3]?.status, "current");
   assert.equal(stitching[3]?.summary, "post_processing");
 });
+
+test("制作过程：出片失败记在「视频生成」那一步，第 1 步「需求确认」照样是已完成（不能写成「需求处理未通过」）", () => {
+  const steps = deriveMakingProcess({
+    orderCreatedAt: new Date("2026-11-18T15:44:00.000Z"),
+    briefCreatedAt: new Date("2026-11-18T15:44:02.000Z"),
+    briefStatus: "RENDER_FAILED",
+    storyboardStatus: "APPROVED",
+    storyboardCreatedAt: new Date("2026-11-18T15:33:00.000Z"),
+    storyboardApprovedAt: new Date("2026-11-18T15:43:00.000Z"),
+    videoJobs: [{ status: "FAILED", submittedAt: new Date("2026-11-18T15:44:10.000Z"), finishedAt: new Date("2026-11-18T16:05:40.000Z") }],
+    finalVideoStatus: "PENDING",
+    hasPlayableVideo: false,
+  });
+  assert.equal(steps[0]?.status, "completed");
+  assert.equal(steps[0]?.summary, "brief_locked");
+  assert.equal(steps[2]?.status, "failed");
+  assert.equal(steps[2]?.summary, "generation_failed");
+});

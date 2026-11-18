@@ -335,6 +335,7 @@ Prove ONE core selling point as action -> visible result (not "absorbs well": a 
 - Later shots open the action with "Hard cut."
 - Camera: push in, pull back, pan, track, handheld, locked off, plus a height (at sofa-seat height). Write "fast but controlled", never bare "fast". One main move per film; slow motion in one shot at most.
 - openingFrame and openingState are the moment BEFORE the action: no result yet.
+- openingFrame, and every shot before the product is in use, states where the product is, in positive words: the models ignore without and not, and draw it in use anyway. Place it in view (folded on the tray) and say what is there instead (the chest shows only the plain romper).
 - No abstract adjectives (beautiful, cinematic, premium, dynamic): name the light source and how the material behaves (the pile sinks to the knuckles, springs back).
 - If a move threatens hands, logos or print, simplify it and let the light change instead.
 - State does not survive a cut: restate a stain, an open lid, a liquid level in each later shot showing it.
@@ -511,6 +512,9 @@ function spokenLinesOf(sound: string): string[] {
   return [...sound.matchAll(QUOTED)].map((match) => (match[1] ?? "").trim()).filter(Boolean);
 }
 
+/// 开场画面里说「商品不在 / 还没用」的否定写法（写手自查用）：只认说缺席的那几种，「no face appears」这类不算
+const OPENING_FRAME_NEGATION = /\bwithout\b|\bnot (?:yet )?(?:wearing|worn|in use|used|opened|applied|on (?:the|her|his|its))\b|\bno \w+(?: \w+)? (?:is|are) (?:worn|in use|present|in (?:the )?(?:frame|picture|shot))\b/iu;
+
 /// 广告里不能凭空说的词：商家自己的描述里有才可以念
 const ABSOLUTE_CLAIMS =
   /最好|最佳|最强|全网最低|销量第一|行业第一|全国第一|第一品牌|顶级|国家级|世界级|100%|百分百|根治|治愈|治疗|疗效|药用|医用级|永不|绝对|\bbest\b|#1|\bno\.? ?1\b|\bnumber one\b|\bguaranteed?\b|\bcures?\b|\bclinically\b|\bmedical[- ]grade\b|\bmiracle\b/giu;
@@ -608,6 +612,14 @@ function writerChecks(draft: DirectorDraft, brief: WriterBrief, plan: PhotoPlan)
     }
   });
   if (brief.voiceLanguage === "zh-CN" && allLines > 0 && cjkLines === 0) errors.push("台词全是英文：这条片的台词要用中文念");
+  /// 开场画面里「商品还没用上」只能正面写：出图时商品实拍图是带着的，模型看到否定写法照样把商品画在使用位置上
+  /// （2026-11-18 口水巾：写着 without a bib，线上线下五张里四张都给宝宝戴上了；改成正面写法后一次就对）
+  const negated = draft.openingFrame.match(OPENING_FRAME_NEGATION);
+  if (negated) {
+    errors.push(
+      `openingFrame 里用了否定写法（${negated[0]}）：出图模型不听否定，会把商品照样画在使用的位置上。改成正面写——商品此刻在画面的哪里（例：the folded bibs lie on the tray），原来该有它的位置现在是什么（例：the chest shows only the plain cream romper）`,
+    );
+  }
   return { errors, warnings };
 }
 

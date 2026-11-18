@@ -57,6 +57,7 @@ import { SIGNOFF_BRAND_MAX, SIGNOFF_CTA_MAX } from "@/lib/video-generation/brand
 import { DIRECTOR_LINE_DURATIONS, DIRECTOR_STYLES, DIRECTOR_STYLE_GROUPS, directorLineBlocker, directorStyle } from "@/lib/video-generation/director-line-policy";
 import { decideStoryboardResume } from "@/lib/create/storyboard-resume";
 import { loadVoiceoverDraft, saveVoiceoverDraft } from "@/lib/video-generation/voiceover-draft-storage";
+import { loadFinishingDraft, saveFinishingDraft } from "@/lib/video-generation/finishing-draft-storage";
 import { detectScriptLanguage } from "@/lib/video-generation/detect-script-language";
 import { toOwnedCreationRequest } from "@/types/video-generation";
 import type {
@@ -548,6 +549,22 @@ export function StreamlinedVideoStudio({
     if (voiceoverDraft !== null) {
       setAudioCaptionSettings((current) => ({ ...current, voiceoverScript: voiceoverDraft }));
     }
+    /// 「更多设置」里收尾的几项（右上角 Logo、片尾落款、字幕）也要回来：不然刷新一次，勾好的 Logo 就悄悄没了
+    const finishing = loadFinishingDraft(sessionStorage, context.prompt);
+    if (finishing) {
+      setCornerLogo(finishing.cornerLogo);
+      setSignoffEnabled(finishing.signoffEnabled);
+      setSignoffBrand(finishing.signoffBrand);
+      setSignoffCta(finishing.signoffCta);
+      setSignoffLogo(finishing.signoffLogo);
+      setAudioCaptionSettings((current) => ({
+        ...current,
+        captionsEnabled: finishing.captionsEnabled,
+        captionStyle: (["word_by_word", "karaoke", "plain"] as const).find((style) => style === finishing.captionStyle) ?? current.captionStyle,
+        captionPosition: (["top", "center", "bottom"] as const).find((position) => position === finishing.captionPosition) ?? current.captionPosition,
+        exportSrt: finishing.exportSrt,
+      }));
+    }
     if ((DURATIONS as readonly number[]).includes(context.durationSec)) {
       setSelectedDuration(context.durationSec as 15 | 30);
     }
@@ -747,6 +764,37 @@ export function StreamlinedVideoStudio({
     saveVoiceoverDraft(sessionStorage, rawPrompt, voiceoverScript.trim() ? voiceoverScript : null);
   }, [rawPrompt, voiceoverScript]);
 
+  /// 收尾的几项设置也跟描述一起存。第一次渲染时都是缺省值，不拿它去覆盖上次存下来的（刷新后要靠它恢复）
+  const finishingDraftArmedRef = useRef(false);
+  useEffect(() => {
+    if (!finishingDraftArmedRef.current) {
+      finishingDraftArmedRef.current = true;
+      return;
+    }
+    saveFinishingDraft(sessionStorage, rawPrompt, {
+      cornerLogo,
+      signoffEnabled,
+      signoffBrand,
+      signoffCta,
+      signoffLogo,
+      captionsEnabled: audioCaptionSettings.captionsEnabled,
+      captionStyle: audioCaptionSettings.captionStyle,
+      captionPosition: audioCaptionSettings.captionPosition,
+      exportSrt: audioCaptionSettings.exportSrt,
+    });
+  }, [
+    rawPrompt,
+    cornerLogo,
+    signoffEnabled,
+    signoffBrand,
+    signoffCta,
+    signoffLogo,
+    audioCaptionSettings.captionsEnabled,
+    audioCaptionSettings.captionStyle,
+    audioCaptionSettings.captionPosition,
+    audioCaptionSettings.exportSrt,
+  ]);
+
   const invalidatePlan = useCallback(() => {
     interactedRef.current = true;
     setStoryboard(null);
@@ -763,7 +811,8 @@ export function StreamlinedVideoStudio({
    * 返回 false 表示服务端没有确认取消：调用方必须保留这一轮并说明原因。
    */
   async function cancelStoryboardOnServer(run: StoryboardRunView): Promise<boolean> {
-    if (run.status !== "GENERATING" && run.status !== "AWAITING_APPROVAL") return true;
+    /// 已确认、还没点「生成视频」的一轮也要在服务端取消：不然成品库会一直提示还有一轮没开始生成
+    if (run.status !== "GENERATING" && run.status !== "AWAITING_APPROVAL" && run.status !== "APPROVED") return true;
     const failed = english
       ? "Could not cancel this round. Nothing was lost — please try again."
       : "暂时没能取消这一轮，素材都还在，请再试一次。";
@@ -1233,6 +1282,7 @@ export function StreamlinedVideoStudio({
       persistStoredAttempt(DISPATCH_ATTEMPT_STORAGE_KEY, null);
       persistStoredAttempt(STORYBOARD_ATTEMPT_STORAGE_KEY, null);
       saveVoiceoverDraft(sessionStorage, rawPrompt, null);
+      saveFinishingDraft(sessionStorage, rawPrompt, null);
       if (storyboard) markStoryboardRunDismissed(storyboard.id);
       requestPulseRefresh();
       router.push(payload.nextUrl ?? "/app/library");

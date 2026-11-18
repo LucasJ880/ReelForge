@@ -608,6 +608,35 @@ test("开场帧里写了正脸：送回去改", async () => {
   assert.ok(result.ok && !/smiling at the camera/u.test(result.job.frames[0]!.prompt));
 });
 
+test("开场帧里用否定写法说商品还没用上（without / not wearing）：送回去改成正面写法；no face appears 这类不算", async () => {
+  /// 2026-11-18 口水巾：开场帧写着 without a bib，出图时商品实拍图是带着的，五张里四张照样给宝宝戴上了
+  const negated = edited(blanketDraft(), (draft) => {
+    draft.openingFrame =
+      "A bright living room at midday. Two hands rest on a light oatmeal sofa without the blanket; the seat is bare and window light falls across it from the left. Hands only, close view at sofa-seat height.";
+  });
+  const { complete, calls } = fakeCompleter(negated, blanketDraft());
+  const result = await writeDirectorJob(BLANKET_INPUT, { complete });
+  assert.equal(result.ok && result.attempts, 2);
+  assert.match(calls[1]!.user, /openingFrame 里用了否定写法（without）/u);
+  assert.match(calls[1]!.user, /改成正面写/u);
+
+  for (const text of ["not yet wearing the bib", "the bib is not worn", "no bib is worn yet", "the lid is not opened"]) {
+    const draft = edited(blanketDraft(), (value) => {
+      value.openingFrame = `A bright room at midday with window light from the left. Hands only at table height; ${text}, and the product from photo-1 waits in view.`;
+    });
+    const run = fakeCompleter(draft, blanketDraft());
+    const outcome = await writeDirectorJob(BLANKET_INPUT, { complete: run.complete });
+    assert.equal(outcome.ok && outcome.attempts, 2, text);
+  }
+  /// 说「没有脸」「没有字」不是在说商品缺席：不送回去
+  const fine = edited(blanketDraft(), (draft) => {
+    draft.openingFrame = `${draft.openingFrame} No face appears and no text is visible.`;
+  });
+  const ok = fakeCompleter(fine);
+  const kept = await writeDirectorJob(BLANKET_INPUT, { complete: ok.complete });
+  assert.equal(kept.ok && kept.attempts, 1);
+});
+
 // ---------------------------------------------------------------------------
 // 哪些提醒送回去、哪些随稿交付
 // ---------------------------------------------------------------------------
@@ -836,7 +865,8 @@ test("系统提示词：关键规矩都在，英文，长度有数", () => {
     assert.ok(prompt.includes(phrase), `系统提示词里少了：${phrase}`);
   }
   /// 目标是 9,000 字上下；现在略超（一份自己过得了校验的完整示例占三千多字；11-17 加了探厂 / 探店一节约一千字），别再往上长
-  assert.ok(prompt.length < 11_600, `系统提示词 ${prompt.length} 字`);
+  /// 11-18 加了三条有真机证据的规矩（风格自带节拍、台词别照念描述、开场帧正面写商品在哪），上限随之放到 11,900
+  assert.ok(prompt.length < 11_900, `系统提示词 ${prompt.length} 字`);
   assert.ok(prompt.endsWith(JSON.stringify(DIRECTOR_WRITER_EXAMPLE_DRAFT)));
 });
 

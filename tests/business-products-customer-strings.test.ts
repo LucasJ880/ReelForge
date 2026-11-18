@@ -37,5 +37,6 @@ test("统一 VideoActions 保留刷新与失败片段重试契约", async () => 
   assert.match(actions, /render-retry/);
   assert.match(actions, /all:\s*true/);
   assert.match(zh, /刷新进度/);
-  assert.match(zh, /重试失败片段/);
+  /// 整条一次生成的片没有「片段」：失败后的按钮叫「再生成一次」（工作台另一处给老的多段片留着「重试失败片段」）
+  assert.match(zh, /再生成一次/);
 });

@@ -190,9 +190,8 @@ export function deriveMakingProcess(
     !evidence.hasPlayableVideo && isCancelledOrderJobs(evidence.videoJobs.map((job) => job.status));
   const briefFailed =
     !cancelled &&
-    (evidence.briefStatus === "RENDER_FAILED" ||
-      evidence.briefStatus === "QA_REJECTED" ||
-      evidence.briefStatus === "DROPPED");
+    /// 出片失败（RENDER_FAILED）记在第 3 步「视频生成」上：创作方向和素材早就确认了，不能说「需求处理未通过」
+    (evidence.briefStatus === "QA_REJECTED" || evidence.briefStatus === "DROPPED");
   const brief: MakingProcessStep = {
     key: "brief",
     status: briefFailed ? "failed" : "completed",

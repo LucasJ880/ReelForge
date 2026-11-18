@@ -27,7 +27,8 @@ test("成片详情的大标题：第一句还长就只取第一小句（商品�
   /// 详情页：读数只在有失败片段时出现，整段描述折叠在视频下面
   const page = readFileSync("src/app/(platform)/app/library/[id]/page.tsx", "utf8");
   assert.match(page, /const displayTitle = libraryHeadline\(item\.title\);/);
-  assert.match(page, /item\.failedSceneCount > 0\s+\? \[/);
+  /// 整条一次生成的片只有一段：失败已经写在标题下面，读数格只给老的多段片（两段以上失败）
+  assert.match(page, /item\.failedSceneCount > 1\s+\? \[/);
   assert.match(page, /data-testid="library-detail-meta"/);
   assert.match(page, /data-testid="library-brief"/);
   assert.ok(page.indexOf('data-testid="library-player"') < page.indexOf('data-testid="library-brief"'), "视频在整段描述前面");

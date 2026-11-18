@@ -124,9 +124,9 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
         /// 下载与处置跟着成片走（舞台旁边），行情头不另放主钮
         primaryAction={null}
         readingsLabel={copy.detailReadings}
-        /// 读数只留需要你处理的那一个：有失败片段才出现（零就不占地方）
+        /// 读数只留需要你处理的那一个：老的多段片有几段失败才出现。整条一次生成的片只有一段，失败已经写在标题下面，不再重复一格
         readings={
-          item.failedSceneCount > 0
+          item.failedSceneCount > 1
             ? [
                 {
                   label: copy.detailFailedScenes,
@@ -211,7 +211,7 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
             </div>
           ) : (
             <p className="py-16 text-center text-body text-muted-foreground">
-              {item.status === "cancelled" ? copy.detailCancelled : copy.processing}
+              {item.status === "cancelled" ? copy.detailCancelled : item.status === "failed" ? copy.detailFailedStage : copy.processing}
             </p>
           )}
         </div>

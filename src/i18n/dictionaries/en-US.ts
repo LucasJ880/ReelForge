@@ -168,7 +168,7 @@ export const enUS: Dictionary = {
     },
     videoActions: {
       refresh: "Refresh progress",
-      retryFailed: "Retry failed scenes",
+      retryFailed: "Generate again",
       refreshFailed: "Could not refresh — try again",
       retryFailedMsg: "Retry failed — try again or regenerate",
       retryStarted: "Retry started — refresh to see progress",

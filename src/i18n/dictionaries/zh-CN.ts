@@ -163,7 +163,7 @@ export const zhCN: Dictionary = {
     },
     videoActions: {
       refresh: "刷新进度",
-      retryFailed: "重试失败片段",
+      retryFailed: "再生成一次",
       refreshFailed: "刷新失败，请稍后再试",
       retryFailedMsg: "重试失败，请稍后再试或重新生成",
       retryStarted: "已开始重试，刷新一下进度看看",

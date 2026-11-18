@@ -97,9 +97,13 @@ const STORYBOARD_POLL_RETRY_MS = 20_000;
 const STORYBOARD_SUBMIT_STALL_MS = 10 * 60_000;
 /// 用户能取消的状态：还在出帧，或出完等用户确认。APPROVED 已交给（或即将交给）
 /// 派发，FAILED 已全部终态——两者都不会再产生出图费用，前端放弃即可。
+/// 已确认但还没交给视频生成的一轮也能取消（2026-11-18）：以前只在浏览器里把它记成「不再恢复」，服务端仍是已确认，
+/// 成品库在别的设备上、清了浏览器之后还会一直提示「有一轮故事板已经确认，还没开始生成视频」。
+/// 交给视频生成之后（有预留键或已挂 brief）照旧不能取消，那两条在取消的条件里单独把关。
 const CANCELLABLE_STORYBOARD_STATUSES: StoryboardRunStatus[] = [
   StoryboardRunStatus.GENERATING,
   StoryboardRunStatus.AWAITING_APPROVAL,
+  StoryboardRunStatus.APPROVED,
 ];
 /// 单帧重做上限（每帧 attempt 1 之后最多再重做 3 次）。批量自动重投自有更低上限。
 const STORYBOARD_FRAME_MAX_REGENERATIONS = 3;
@@ -2394,13 +2398,7 @@ function assertStoryboardRunCancellable(run: {
     );
   }
   if (!CANCELLABLE_STORYBOARD_STATUSES.includes(run.status)) {
-    throw new StoryboardRequestError(
-      run.status === StoryboardRunStatus.APPROVED
-        ? "故事板已确认，不会再产生出图费用；修改创作方向即可开始新的一轮。"
-        : "这一轮故事板已经结束，不会再产生出图费用。",
-      "INVALID_STATE",
-      409,
-    );
+    throw new StoryboardRequestError("这一轮故事板已经结束，不会再产生出图费用。", "INVALID_STATE", 409);
   }
 }
 
